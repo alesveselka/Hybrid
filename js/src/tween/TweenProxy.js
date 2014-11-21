@@ -80,7 +80,7 @@ App.TweenProxy.prototype.stop = function stop()
     this._running = false;
 
     clearInterval(this._interval);
-    this._interval = -1.0;
+    this._interval = -1;
 };
 
 /**

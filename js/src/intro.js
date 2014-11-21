@@ -50,6 +50,26 @@ if (typeof Object.create != 'function') {
 }
 
 /**
+ * requestAnimationFrame polyfill
+ */
+window.requestAnimationFrame || (window.requestAnimationFrame =
+    window.webkitRequestAnimationFrame ||
+    window.mozRequestAnimationFrame    ||
+    window.oRequestAnimationFrame      ||
+    window.msRequestAnimationFrame     ||
+    function(callback,element)
+    {
+        return window.setTimeout(function() {
+            callback(+new Date());
+        }, 1000 / 60);
+    });
+
+window.cancelAnimationFrame = window.cancelAnimationFrame ||
+    window.webkitCancelAnimationFrame ||
+    window.mozCancelAnimationFrame ||
+    window.webkitCancelRequestAnimationFrame;
+
+/**
  * @module App
  */
 var App = App || {};

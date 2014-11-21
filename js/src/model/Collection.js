@@ -23,8 +23,8 @@ App.Collection = function Collection(source,itemConstructor,parent)
     this._currentIndex = -1;
 };
 
-Collection.prototype = Object.create(App.EventDispatcher.prototype);
-Collection.prototype.constructor = App.Collection;
+App.Collection.prototype = Object.create(App.EventDispatcher.prototype);
+App.Collection.prototype.constructor = App.Collection;
 
 /**
  * @method addItem Add item into collection
@@ -49,6 +49,7 @@ App.Collection.prototype.setCurrent = function setCurrent(value,force)
     //var data = {oldItem:this._currentItem};
 
     this._currentItem = value;
+    this._updateCurrentIndex();
 
     //data.currentItem = this._currentItem;
 
@@ -130,9 +131,9 @@ App.Collection.prototype.hasItem = function hasItem(item)
  */
 App.Collection.prototype.removeItemAt = function removeItemAt(index)
 {
-    var item = this._items[index];
+    var item = this._items.splice(index,1)[0];
 
-    this._items.splice(index,1);
+    this._updateCurrentIndex();
 
     this.dispatchEvent(App.EventType.REMOVED,item);
 
@@ -174,6 +175,16 @@ App.Collection.prototype.indexOf = function indexOf(item)
     }
 
     return -1;
+};
+
+/**
+ * Return current item's index
+ * @method index
+ * @returns {number}
+ */
+App.Collection.prototype.index = function index()
+{
+    return this._currentIndex;
 };
 
 /**

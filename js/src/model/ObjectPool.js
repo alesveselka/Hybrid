@@ -51,10 +51,7 @@ App.ObjectPool.prototype.allocate = function allocate()
  */
 App.ObjectPool.prototype.release = function release(item)
 {
-    if (item.allocated === true)
-    {
-        item.allocated = false;
+    item.allocated = false;
 
-        this._freeItems.push(item.poolIndex);
-    }
+    this._freeItems.push(item.poolIndex);
 };

@@ -15,10 +15,9 @@ App.EventListener = function EventListener(index)
 /**
  * @method reset Reset item returning to pool
  */
-App.EventListener.reset = function reset()
+App.EventListener.prototype.reset = function reset()
 {
     this.allocated = false;
-    this.poolIndex = -1;
     this.type = null;
     this.scope = null;
     this.handler = null;

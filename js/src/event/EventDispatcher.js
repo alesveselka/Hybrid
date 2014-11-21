@@ -2,11 +2,10 @@
  * @class EventDispatcher
  * @constructor
  */
-App.EventDispatcher = function EventDispatcher()
+App.EventDispatcher = function EventDispatcher(listenerPool)
 {
-    //TODO pre-allocate?
     this._listeners = [];
-    this._listenersPool = App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL);
+    this._listenersPool = listenerPool;
 };
 
 /**
@@ -19,12 +18,10 @@ App.EventDispatcher.prototype.addEventListener = function addEventListener(event
 {
     if (!this.hasEventListener(eventType,scope,listener))
     {
-        //TODO cache objects in pool?
-        //this._listeners[this._listeners.length] = {eventType:eventType,scope:scope,listener:listener};
         var eventListener = this._listenersPool.allocate();
-        eventListener.eventType = eventType;
+        eventListener.type = eventType;
         eventListener.scope = scope;
-        eventListener.listener = listener;
+        eventListener.handler = listener;
 
         this._listeners[this._listeners.length] = eventListener;
     }
@@ -43,7 +40,7 @@ App.EventDispatcher.prototype.hasEventListener = function hasEventListener(event
     for (;i<l;)
     {
         listener = this._listeners[i++];
-        if (listener.eventType === eventType && listener.scope === scope && listener.listener === handler)
+        if (listener.type === eventType && listener.scope === scope && listener.handler === handler)
         {
             listener = null;
 
@@ -67,12 +64,8 @@ App.EventDispatcher.prototype.removeEventListener = function removeEventListener
     for (;i<l;i++)
     {
         listener = this._listeners[i];
-        if (listener.eventType === eventType && listener.scope === scope && listener.listener === handler)
+        if (listener.type === eventType && listener.scope === scope && listener.handler === handler)
         {
-            /*listener.eventType = null;
-            listener.scope = null;
-            listener.listener = null;
-*/
             this._listenersPool.release(listener);
             listener.reset();
 
@@ -94,15 +87,10 @@ App.EventDispatcher.prototype.removeAllListeners = function removeAllListeners()
     {
         listener = this._listeners[i];
 
-        /*listener.eventType = null;
-        listener.scope = null;
-        listener.listener = null;*/
-
         this._listenersPool.release(listener);
         listener.reset();
 
         this._listeners.splice(i,1);
-        //this._listeners[i] = null;
     }
     listener = null;
     this._listeners.length = 0;
@@ -115,16 +103,16 @@ App.EventDispatcher.prototype.removeAllListeners = function removeAllListeners()
  */
 App.EventDispatcher.prototype.dispatchEvent = function dispatchEvent(eventType,data)
 {
-    var i = 0, l = this._listeners.length, obj = null;
+    var i = 0, l = this._listeners.length, listener = null;
     for (;i<l;)
     {
-        obj = this._listeners[i++];
-        if (obj && obj.eventType === eventType)
+        listener = this._listeners[i++];
+        if (listener && listener.type === eventType)
         {
-            obj.listener.call(obj.scope,data,eventType);
+            listener.handler.call(listener.scope,data,eventType);
         }
     }
-    obj = null;
+    listener = null;
 };
 
 /**

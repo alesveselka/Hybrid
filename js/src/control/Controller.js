@@ -10,6 +10,7 @@ App.Controller = {
     /**
      * Init
      * @param {Array.<{eventType:string,command:Function}>} eventMap
+     * @private
      */
     _init:function _init(eventMap)
     {
