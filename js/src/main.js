@@ -1,5 +1,5 @@
 console.log("Hello Cashius!");
-
+/*
 var pool = new App.ObjectPool(App.EventListener,10);
 var eventDispatcher = new App.EventDispatcher(pool);
 
@@ -46,16 +46,40 @@ LoadData.prototype.destroy = function destroy()
 
     console.log("LoadData.destroy() called");
 };
-
-function onLoadComplete()
+*/
+(function()
 {
-    console.log("onLoadComplete ",this);
+    var COMPLETE = App.EventType.COMPLETE;
+    var pool = new App.ObjectPool(App.EventListener,10);
+    var initCommand = new App.Initialize(pool);
+    var loadDataCommand = new App.LoadData(pool,{
+        assetsUrl:"./data/icons-big.json",
+        fontName:"HelveticaNeueCond",
+        fontInfoElement:
+    });
 
-    //loadDataCommand.removeEventListener(App.EventType.COMPLETE,this,onLoadComplete);
-    loadDataCommand.destroy();
-    loadDataCommand = null;
-}
+    function onLoadDataComplete()
+    {
+        loadDataCommand.destroy();
+        loadDataCommand = null;
 
-var loadDataCommand = new LoadData(pool);
-loadDataCommand.addEventListener(App.EventType.COMPLETE,this,onLoadComplete);
-loadDataCommand.execute();
+        initCommand.addEventListener(COMPLETE,this,onInitComplete);
+        initCommand.execute(pool);
+
+        console.log("onLoadComplete ",this);
+    }
+
+    function onInitComplete()
+    {
+        initCommand.destroy();
+        initCommand = null;
+
+        pool = null;
+        COMPLETE = null;
+
+        console.log("onInitComplete");
+    }
+
+    loadDataCommand.addEventListener(COMPLETE,this,onLoadDataComplete);
+    loadDataCommand.execute();
+})();

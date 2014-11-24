@@ -14,6 +14,8 @@ module.exports = function(grunt)
         "js/src/intro.js",
         "js/src/utils/MathUtil.js",
         "js/src/enum/EventType.js",
+        "js/src/enum/ModelName.js",
+        "js/src/enum/ViewName.js",
         "js/src/enum/InteractiveState.js",
         "js/src/enum/TransitionState.js",
         "js/src/model/ModelLocator.js",
@@ -22,11 +24,14 @@ module.exports = function(grunt)
         "js/src/model/ObjectPool.js",
         "js/src/model/Collection.js",
         "js/src/view/ViewLocator.js",
+        "js/src/view/ApplicationView.js",
         "js/src/tween/Easing.js",
         "js/src/tween/TweenProxy.js",
         "js/src/core/Ticker.js",
         "js/src/control/Controller.js",
         "js/src/command/Command.js",
+        "js/src/command/LoadData.js",
+        "js/src/command/Initialize.js",
         "js/src/main.js"
     ];
 

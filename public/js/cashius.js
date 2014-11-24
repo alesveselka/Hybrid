@@ -124,6 +124,25 @@ App.EventType = {
 };
 
 /**
+ * Model Proxy state
+ * @enum {string}
+ * @return {{TICKER:string,EVENT_LISTENER_POOL:string}}
+ */
+App.ModelName = {
+    TICKER:"TICKER",
+    EVENT_LISTENER_POOL:"EVENT_LISTENER_POOL"
+};
+
+/**
+ * View Segment state
+ * @enum {string}
+ * @return {{APPLICATION_VIEW:string}}
+ */
+App.ViewName = {
+    APPLICATION_VIEW:"APPLICATION_VIEW"
+};
+
+/**
  * Interactive state
  * @enum {string}
  * @return {{OVER:string,OUT:string}}
@@ -438,11 +457,12 @@ App.ObjectPool.prototype.release = function release(item)
  * @param {Array} source
  * @param {Function} itemConstructor
  * @param {Object} parent
+ * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.Collection = function Collection(source,itemConstructor,parent)
+App.Collection = function Collection(source,itemConstructor,parent,eventListenerPool)
 {
-    App.EventDispatcher.call(this);
+    App.EventDispatcher.call(this,eventListenerPool);
 
     if (source)
     {
@@ -577,6 +597,7 @@ App.Collection.prototype.removeItemAt = function removeItemAt(index)
 
 /**
  * @method updateCurrentIndex Return currentItem's index
+ * @private
  */
 App.Collection.prototype._updateCurrentIndex = function _updateCurrentIndex()
 {
@@ -671,6 +692,21 @@ App.ViewLocator = {
     {
         return this._viewSegments[segmentName];
     }
+};
+
+App.ApplicationView = function ApplicationView()
+{
+    this._registerEventListeners();
+};
+
+App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
+{
+    //TODO Register 'orientation change' event!
+};
+
+App.ApplicationView.prototype._onResize = function _onResize()
+{
+
 };
 
 /**
@@ -960,11 +996,12 @@ App.TweenProxy.prototype._tweenInterval = function _tweenInterval()
 
 /**
  * @class Ticker
+ * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.Ticker = function Ticker()
+App.Ticker = function Ticker(eventListenerPool)
 {
-    App.EventDispatcher.call(this);
+    App.EventDispatcher.call(this,eventListenerPool);
 
     this._rafId = -1;
     this._rafListener = this._raf.bind(this);
@@ -1044,9 +1081,8 @@ App.Controller = {
     /**
      * Init
      * @param {Array.<{eventType:string,command:Function}>} eventMap
-     * @private
      */
-    _init:function _init(eventMap)
+    init:function init(eventMap)
     {
         var i = 0, l = eventMap.length, obj = null;
         for (;i<l;)
@@ -1133,6 +1169,8 @@ App.Controller = {
  * The Command
  * @class Command
  * @extends {EventDispatcher}
+ * @param allowMultipleInstances {boolean}
+ * @param eventListenerPool {ObjectPool}
  */
 App.Command = function Command(allowMultipleInstances,eventListenerPool)
 {
@@ -1161,8 +1199,182 @@ App.Command.prototype.destroy = function destroy()
 
     console.log("Command.destroy() called");
 };
-console.log("Hello Cashius!");
+/**
+ * @class LoadData
+ * @extends {Command}
+ * @param pool
+ * @constructor
+ */
+App.LoadData = function LoadData(pool)
+{
+    App.Command.call(this,false,pool);
 
+    this._assetLoader = new PIXI.AssetLoader(["./data/icons-big.json"]);
+
+    this._fontLoadingInterval = -1;
+    this._fontInfoElement = null;
+};
+
+App.LoadData.prototype = Object.create(App.Command.prototype);
+App.LoadData.prototype.constructor = App.LoadData;
+
+/**
+ * Execute the command
+ *
+ * @method execute
+ */
+App.LoadData.prototype.execute = function execute()
+{
+    this._loadAssets();
+    // images
+    // font
+    // localStorage
+
+    //TODO dispatch Complete when all loading is done!
+    //this.dispatchEvent(App.EventType.COMPLETE);
+};
+
+/**
+ * Load image assets
+ *
+ * @method _loadAssets
+ * @private
+ */
+App.LoadData.prototype._loadAssets = function _loadAssets()
+{
+    console.log("_loadAssets");
+    this._assetLoader.onComplete = function()
+    {
+        console.log("_onAssetsLoadComplete");
+        this._assetLoader.onComplete = null; //TODO destroy?
+
+        this._loadFont();
+    }.bind(this);
+    this._assetLoader.load();
+};
+
+/**
+ * Set app font and check if it is loaded
+ *
+ * @method _loadFont
+ * @private
+ */
+App.LoadData.prototype._loadFont = function _loadFont()
+{
+    console.log("_loadFont");
+    this._fontInfoElement = document.getElementById("fontInfo");
+
+    var fontInfoWidth = this._fontInfoElement.offsetWidth;
+
+    this._fontLoadingInterval = setInterval(function()
+    {
+        console.log("_fontLoadingInterval",this._fontInfoElement.offsetWidth ,fontInfoWidth);
+        if (this._fontInfoElement.offsetWidth !== fontInfoWidth)
+        {
+            clearInterval(this._fontLoadingInterval);
+            console.log("loadFontComplete");
+            // Complete!
+        }
+    }.bind(this),100);
+
+    this._fontInfoElement.style.fontFamily = "HelveticaNeueCond";
+};
+
+/**
+ * Destroy the command
+ *
+ * @method destroy
+ */
+App.LoadData.prototype.destroy = function destroy()
+{
+    App.Command.prototype.destroy.call(this);
+
+    console.log("LoadData.destroy() called");
+};
+
+/**
+ * @class Initialize
+ * @extends {Command}
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.Initialize = function Initialize(eventListenerPool)
+{
+    App.Command.call(this,false,eventListenerPool);
+};
+
+App.Initialize.prototype = Object.create(App.Command.prototype);
+App.Initialize.prototype.constructor = App.Initialize;
+
+/**
+ * Execute the command
+ *
+ * @method execute
+ * @param {ObjectPool} eventListenerPool
+ */
+App.Initialize.prototype.execute = function execute(eventListenerPool)
+{
+    this._initModel(eventListenerPool);
+    this._initCommands();
+    this._initView();
+
+    this.dispatchEvent(App.EventType.COMPLETE);
+};
+
+/**
+ * Initialize application model
+ *
+ * @method _initModel
+ * @param {ObjectPool} eventListenerPool
+ * @private
+ */
+App.Initialize.prototype._initModel = function _initModel(eventListenerPool)
+{
+    var ModelLocator = App.ModelLocator;
+    var ModelName = App.ModelName;
+
+    ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,eventListenerPool);
+    ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(eventListenerPool));
+};
+
+/**
+ * Initialize commands
+ *
+ * @method _initCommands
+ * @private
+ */
+App.Initialize.prototype._initCommands = function _initCommands()
+{
+    App.Controller.init([
+        {eventType:App.EventType.INITIALIZE,command:App.Initialize}
+    ]);
+};
+
+/**
+ * Initialize view
+ *
+ * @method _initView
+ * @private
+ */
+App.Initialize.prototype._initView = function _initView()
+{
+    App.ViewLocator.addViewSegment(App.ViewName.APPLICATION_VIEW,new App.ApplicationView());
+};
+
+/**
+ * Destroy the command
+ *
+ * @method destroy
+ */
+App.Initialize.prototype.destroy = function destroy()
+{
+    App.Command.prototype.destroy.call(this);
+
+    //console.log("LoadData.destroy() called");
+};
+
+console.log("Hello Cashius!");
+/*
 var pool = new App.ObjectPool(App.EventListener,10);
 var eventDispatcher = new App.EventDispatcher(pool);
 
@@ -1209,16 +1421,36 @@ LoadData.prototype.destroy = function destroy()
 
     console.log("LoadData.destroy() called");
 };
-
-function onLoadComplete()
+*/
+(function()
 {
-    console.log("onLoadComplete ",this);
+    var pool = new App.ObjectPool(App.EventListener,10);
+    var loadDataCommand = new App.LoadData(pool);
+    var initCommand = new App.Initialize(pool);
+    var COMPLETE = App.EventType.COMPLETE;
 
-    //loadDataCommand.removeEventListener(App.EventType.COMPLETE,this,onLoadComplete);
-    loadDataCommand.destroy();
-    loadDataCommand = null;
-}
+    function onLoadDataComplete()
+    {
+        loadDataCommand.destroy();
+        loadDataCommand = null;
 
-var loadDataCommand = new LoadData(pool);
-loadDataCommand.addEventListener(App.EventType.COMPLETE,this,onLoadComplete);
-loadDataCommand.execute();
+        initCommand.addEventListener(COMPLETE,this,onInitComplete);
+        initCommand.execute(pool);
+
+        console.log("onLoadComplete ",this);
+    }
+
+    function onInitComplete()
+    {
+        initCommand.destroy();
+        initCommand = null;
+
+        pool = null;
+        COMPLETE = null;
+
+        console.log("onInitComplete");
+    }
+
+    loadDataCommand.addEventListener(COMPLETE,this,onLoadDataComplete);
+    loadDataCommand.execute();
+})();
