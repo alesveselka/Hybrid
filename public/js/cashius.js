@@ -215,9 +215,8 @@ App.EventListener.prototype.reset = function reset()
  */
 App.EventDispatcher = function EventDispatcher(listenerPool)
 {
-    //TODO pre-allocate?
     this._listeners = [];
-    this._listenersPool = listenerPool;//App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL);
+    this._listenersPool = listenerPool;
 };
 
 /**
@@ -368,6 +367,8 @@ App.EventDispatcher.prototype.destroy = function destroy()
     this._listeners.length = 0;
     this._listeners = null;
     this._listenersPool = null;
+
+    console.log("EventDispatcher.destroy() called");
 };
 
 /**
@@ -407,13 +408,14 @@ App.ObjectPool.prototype.preAllocate = function preAllocate()
  */
 App.ObjectPool.prototype.allocate = function allocate()
 {
+    console.log("allocate A ",this._items.length,this._freeItems);
     if (this._freeItems.length === 0) this.preAllocate();
 
     var index = this._freeItems.shift();
     var item = this._items[index];
 
     item.allocated = true;
-
+    console.log("allocate B ",this._items.length,this._freeItems);
     return item;
 };
 
@@ -423,9 +425,12 @@ App.ObjectPool.prototype.allocate = function allocate()
  */
 App.ObjectPool.prototype.release = function release(item)
 {
+    console.log("release A ",this._items.length,this._freeItems);
     item.allocated = false;
 
     this._freeItems.push(item.poolIndex);
+
+    console.log("release B ",this._items.length,this._freeItems);
 };
 
 /**
@@ -1126,12 +1131,12 @@ App.Controller = {
 
 /**
  * The Command
- * @interface Command
+ * @class Command
  * @extends {EventDispatcher}
  */
-App.Command = function Command(allowMultipleInstances)
+App.Command = function Command(allowMultipleInstances,eventListenerPool)
 {
-    App.EventDispatcher.call(this);
+    App.EventDispatcher.call(this,eventListenerPool);
 
     this.allowMultipleInstances = allowMultipleInstances;
 };
@@ -1153,6 +1158,8 @@ App.Command.prototype.execute = function execute(data) {};
 App.Command.prototype.destroy = function destroy()
 {
     App.EventDispatcher.prototype.destroy.call(this);
+
+    console.log("Command.destroy() called");
 };
 console.log("Hello Cashius!");
 
@@ -1178,3 +1185,40 @@ function onSecondChange()
 {
     console.log("onSecondChange");
 }
+
+// Load data command *********************
+var LoadData = function LoadData(pool)
+{
+    App.Command.call(this,false,pool);
+    console.log("LoadData instantiated");
+};
+
+LoadData.prototype = Object.create(App.Command.prototype);
+LoadData.prototype.constructor = LoadData;
+
+LoadData.prototype.execute = function execute()
+{
+    console.log("Executing 'LoadData'");
+
+    this.dispatchEvent(App.EventType.COMPLETE);
+};
+
+LoadData.prototype.destroy = function destroy()
+{
+    App.Command.prototype.destroy.call(this);
+
+    console.log("LoadData.destroy() called");
+};
+
+function onLoadComplete()
+{
+    console.log("onLoadComplete ",this);
+
+    //loadDataCommand.removeEventListener(App.EventType.COMPLETE,this,onLoadComplete);
+    loadDataCommand.destroy();
+    loadDataCommand = null;
+}
+
+var loadDataCommand = new LoadData(pool);
+loadDataCommand.addEventListener(App.EventType.COMPLETE,this,onLoadComplete);
+loadDataCommand.execute();

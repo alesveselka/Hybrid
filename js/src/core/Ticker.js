@@ -1,10 +1,11 @@
 /**
  * @class Ticker
+ * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.Ticker = function Ticker()
+App.Ticker = function Ticker(eventListenerPool)
 {
-    App.EventDispatcher.call(this);
+    App.EventDispatcher.call(this,eventListenerPool);
 
     this._rafId = -1;
     this._rafListener = this._raf.bind(this);

@@ -35,13 +35,14 @@ App.ObjectPool.prototype.preAllocate = function preAllocate()
  */
 App.ObjectPool.prototype.allocate = function allocate()
 {
+    console.log("allocate A ",this._items.length,this._freeItems);
     if (this._freeItems.length === 0) this.preAllocate();
 
     var index = this._freeItems.shift();
     var item = this._items[index];
 
     item.allocated = true;
-
+    console.log("allocate B ",this._items.length,this._freeItems);
     return item;
 };
 
@@ -51,7 +52,10 @@ App.ObjectPool.prototype.allocate = function allocate()
  */
 App.ObjectPool.prototype.release = function release(item)
 {
+    console.log("release A ",this._items.length,this._freeItems);
     item.allocated = false;
 
     this._freeItems.push(item.poolIndex);
+
+    console.log("release B ",this._items.length,this._freeItems);
 };

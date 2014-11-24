@@ -3,11 +3,12 @@
  * @param {Array} source
  * @param {Function} itemConstructor
  * @param {Object} parent
+ * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.Collection = function Collection(source,itemConstructor,parent)
+App.Collection = function Collection(source,itemConstructor,parent,eventListenerPool)
 {
-    App.EventDispatcher.call(this);
+    App.EventDispatcher.call(this,eventListenerPool);
 
     if (source)
     {
@@ -142,6 +143,7 @@ App.Collection.prototype.removeItemAt = function removeItemAt(index)
 
 /**
  * @method updateCurrentIndex Return currentItem's index
+ * @private
  */
 App.Collection.prototype._updateCurrentIndex = function _updateCurrentIndex()
 {

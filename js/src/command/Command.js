@@ -1,11 +1,13 @@
 /**
  * The Command
- * @interface Command
+ * @class Command
  * @extends {EventDispatcher}
+ * @param allowMultipleInstances {boolean}
+ * @param eventListenerPool {ObjectPool}
  */
-App.Command = function Command(allowMultipleInstances)
+App.Command = function Command(allowMultipleInstances,eventListenerPool)
 {
-    App.EventDispatcher.call(this);
+    App.EventDispatcher.call(this,eventListenerPool);
 
     this.allowMultipleInstances = allowMultipleInstances;
 };
@@ -27,4 +29,6 @@ App.Command.prototype.execute = function execute(data) {};
 App.Command.prototype.destroy = function destroy()
 {
     App.EventDispatcher.prototype.destroy.call(this);
+
+    console.log("Command.destroy() called");
 };
