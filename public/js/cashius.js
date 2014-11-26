@@ -126,11 +126,16 @@ App.EventType = {
 /**
  * Model Proxy state
  * @enum {string}
- * @return {{TICKER:string,EVENT_LISTENER_POOL:string}}
+ * @return {{TICKER:string,EVENT_LISTENER_POOL:string,ACCOUNTS:string,TRANSACTIONS:string,SETTINGS:string,FILTERS:string,CURRENCIES:string}}
  */
 App.ModelName = {
     TICKER:"TICKER",
-    EVENT_LISTENER_POOL:"EVENT_LISTENER_POOL"
+    EVENT_LISTENER_POOL:"EVENT_LISTENER_POOL",
+    ACCOUNTS:"ACCOUNTS",
+    TRANSACTIONS:"TRANSACTIONS",
+    SETTINGS:"SETTINGS",
+    FILTERS:"FILTERS",
+    CURRENCIES:"CURRENCIES"
 };
 
 /**
@@ -164,45 +169,6 @@ App.TransitionState = {
     HIDDEN:"HIDDEN"
 };
 
-/**
- * @class ModelLocator
- * @type {{_proxies:Object,addProxy:Function,hasProxy:Function,getProxy:Function}}
- */
-App.ModelLocator = {
-    _proxies:{},
-
-    /**
-     * @method addPoxy Add proxy to the locator
-     * @param {string} proxyName
-     * @param {*} proxy
-     */
-    addProxy:function addProxy(proxyName,proxy)
-    {
-        if (this._proxies[proxyName]) throw Error("Proxy "+proxyName+" already exist");
-
-        this._proxies[proxyName] = proxy;
-    },
-
-    /**
-     * @method hasProxy Check if proxy already exist
-     * @param {string} proxyName
-     * @return {boolean}
-     */
-    hasProxy:function hasProxy(proxyName)
-    {
-        return this._proxies[proxyName];
-    },
-
-    /**
-     * @method getProxy Returns proxy by name passed in
-     * @param {string} proxyName
-     * @return {*}
-     */
-    getProxy:function getProxy(proxyName)
-    {
-        return this._proxies[proxyName];
-    }
-};
 /**
  * @class EventListener
  * @param {number} index
@@ -390,6 +356,45 @@ App.EventDispatcher.prototype.destroy = function destroy()
     console.log("EventDispatcher.destroy() called");
 };
 
+/**
+ * @class ModelLocator
+ * @type {{_proxies:Object,addProxy:Function,hasProxy:Function,getProxy:Function}}
+ */
+App.ModelLocator = {
+    _proxies:{},
+
+    /**
+     * @method addPoxy Add proxy to the locator
+     * @param {string} proxyName
+     * @param {*} proxy
+     */
+    addProxy:function addProxy(proxyName,proxy)
+    {
+        if (this._proxies[proxyName]) throw Error("Proxy "+proxyName+" already exist");
+
+        this._proxies[proxyName] = proxy;
+    },
+
+    /**
+     * @method hasProxy Check if proxy already exist
+     * @param {string} proxyName
+     * @return {boolean}
+     */
+    hasProxy:function hasProxy(proxyName)
+    {
+        return this._proxies[proxyName];
+    },
+
+    /**
+     * @method getProxy Returns proxy by name passed in
+     * @param {string} proxyName
+     * @return {*}
+     */
+    getProxy:function getProxy(proxyName)
+    {
+        return this._proxies[proxyName];
+    }
+};
 /**
  * @class ObjectPool
  * @param {Function} objectClass
@@ -653,6 +658,73 @@ App.Collection.prototype.length = function length()
 };
 
 /**
+ * @class Account
+ * @param {{name:string,categories:Array.<Category>}} data
+ * @constructor
+ */
+App.Account = function Account(data)
+{
+    this._data = data;
+    this._name = null;
+    this._categories = null;
+};
+
+/**
+ * Create and return name
+ *
+ * @method getName
+ * @returns {string}
+ */
+App.Account.prototype.getName = function getName()
+{
+    if (!this._name) this._name = this._data.name;
+
+    return this._name;
+};
+
+/**
+ * Create and return categories collection
+ *
+ * @method getCategories
+ * @returns {Collection}
+ */
+App.Account.prototype.getCategories = function getCategories()
+{
+    if (!this._categories) this._categories = new App.Collection();
+
+    return this._categories;
+};
+
+App.Transaction = function Transaction(amount,currency,category,date,type,mode,repeating,pending)
+{
+    this.amount = amount;
+    this.currency = currency;
+    this.category = category;
+    this.date = date;
+    this.type = type;
+    this.mode = mode;
+    this.repeating = repeating;
+    this.pending = pending;
+};
+
+App.Category = function Category(name,color,icon,subCategories,account,budget)
+{
+    this.name = name;
+    this.color = color;
+    this.icon = icon;
+    this.subCategories = subCategories;
+    this.account = account;
+    this.budget = budget;
+};
+
+App.Filter = function Filter(startDate,endDate,categories)
+{
+    this.startDate = startDate;
+    this.endDate = endDate;
+    this.categories = categories;
+};
+
+/**
  * @class ViewLocator
  * @type {{_viewSegments:Object, addViewSegment: Function, hasViewSegment: Function, getViewSegment: Function}}
  */
@@ -694,14 +766,180 @@ App.ViewLocator = {
     }
 };
 
-App.ApplicationView = function ApplicationView()
+/**
+ * @class AccountButton
+ * @param {Account} model
+ * @param {Object} layout
+ * @constructor
+ */
+App.AccountButton = function AccountButton(model,layout)
 {
+    PIXI.Graphics.call(this);
+
+    this._model = model;
+    this._layout = layout;
+
+    var pixelRatio = this._layout.pixelRatio,
+        height = 70 * pixelRatio;
+
+    this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
+
+    this._nameLabel = new PIXI.Text(this._model.getName(),{font:Math.round(24 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    this._nameLabel.x = Math.round(15 * pixelRatio);
+    this._nameLabel.y = Math.round(15 * pixelRatio);
+
+    this._detailsLabel = new PIXI.Text("Balance: 2.876, Expenses: -250, Income: 1.500",{font:Math.round(12 * pixelRatio)+"px Arial",fill:"#999999"});
+    this._detailsLabel.x = Math.round(15 * pixelRatio);
+    this._detailsLabel.y = Math.round(45 * pixelRatio);
+
+    this.addChild(this._nameLabel);
+    this.addChild(this._detailsLabel);
+
+    this._render();
+};
+
+App.AccountButton.prototype = Object.create(PIXI.Graphics.prototype);
+App.AccountButton.prototype.constructor = App.AccountButton;
+
+/**
+ * @method _resize
+ * @param {number} width
+ */
+App.AccountButton.prototype.resize = function resize(width)
+{
+    this.boundingBox.width = width;
+
+    this._render();
+};
+
+/**
+ * @method render
+ * @private
+ */
+App.AccountButton.prototype._render = function _render()
+{
+    this.clear();
+    this.beginFill(0xefefef);
+    this.drawRect(0,0,this.boundingBox.width,this.boundingBox.height);
+    this.beginFill(0xffffff);
+    this.drawRect(10,0,this.boundingBox.width-20,1);
+    this.beginFill(0xcccccc);
+    this.drawRect(10,this.boundingBox.height-1,this.boundingBox.width-20,1);
+    this.endFill();
+};
+
+/**
+ * @class AccountScreen
+ * @param {Collection} model
+ * @param {Object} layout
+ * @constructor
+ */
+App.AccountScreen = function AccountScreen(model,layout)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this._model = model;
+    this._layout = layout;
+
+    var i = 0, l = this._model.length(), AccountButton = App.AccountButton, button = null;
+
+    this._accountButtons = new Array(l);
+
+    for (;i<l;i++)
+    {
+        button = new AccountButton(this._model.getItemAt(i),this._layout);
+        this._accountButtons[i] = button;
+        this.addChild(button);
+    }
+
+    this._updateLayout();
+
+//    this._addButton =
+};
+
+App.AccountScreen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.AccountScreen.prototype.constructor = App.AccountScreen;
+
+/**
+ * @method _resize
+ * @param {number} width
+ */
+App.AccountScreen.prototype.resize = function resize(width)
+{
+    //
+
+    this._render();
+};
+
+/**
+ * @method _updateLayout
+ * @private
+ */
+App.AccountScreen.prototype._updateLayout = function _updateLayout()
+{
+    var i = 0, l = this._accountButtons.length, height = this._accountButtons[0].boundingBox.height;
+    for (;i<l;i++)
+    {
+        this._accountButtons[i].y = i * height;
+    }
+};
+
+/**
+ * @class ApplicationView
+ * @param {Stage} stage
+ * @param {CanvasRenderer} renderer
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixelRatio)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this._renderer = renderer;
+    this._stage = stage;
+
+    this._layout = {
+        originalWidth:width,
+        originalHeight:height,
+        width:width * pixelRatio,
+        height:height * pixelRatio,
+        headerHeight:50 * pixelRatio,
+        bodyHeight:(height - 50) - pixelRatio,
+        pixelRatio:pixelRatio
+    };
+
+    this._accountScreen = new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
+
+    this.addChild(this._accountScreen);
+
     this._registerEventListeners();
 };
 
+App.ApplicationView.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.ApplicationView.prototype.constructor = App.ApplicationView;
+
+/**
+ * Register event listeners
+ *
+ * @method _registerEventListeners
+ * @private
+ */
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
-    //TODO Register 'orientation change' event!
+    App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
+};
+
+/**
+ * On Ticker's  Tick event
+ *
+ * @method _onTick
+ * @private
+ */
+App.ApplicationView.prototype._onTick = function _onTick()
+{
+    this._renderer.render(this._stage);
 };
 
 App.ApplicationView.prototype._onResize = function _onResize()
@@ -1202,15 +1440,14 @@ App.Command.prototype.destroy = function destroy()
 /**
  * @class LoadData
  * @extends {Command}
- * @param pool
+ * @param {ObjectPool} pool
  * @constructor
  */
 App.LoadData = function LoadData(pool)
 {
     App.Command.call(this,false,pool);
 
-    this._assetLoader = new PIXI.AssetLoader(["./data/icons-big.json"]);
-
+    this._assetLoader = null;
     this._fontLoadingInterval = -1;
     this._fontInfoElement = null;
 };
@@ -1226,12 +1463,6 @@ App.LoadData.prototype.constructor = App.LoadData;
 App.LoadData.prototype.execute = function execute()
 {
     this._loadAssets();
-    // images
-    // font
-    // localStorage
-
-    //TODO dispatch Complete when all loading is done!
-    //this.dispatchEvent(App.EventType.COMPLETE);
 };
 
 /**
@@ -1242,14 +1473,15 @@ App.LoadData.prototype.execute = function execute()
  */
 App.LoadData.prototype._loadAssets = function _loadAssets()
 {
-    console.log("_loadAssets");
+    this._assetLoader = new PIXI.AssetLoader(["./data/icons-big.json"]);
+
     this._assetLoader.onComplete = function()
     {
-        console.log("_onAssetsLoadComplete");
         this._assetLoader.onComplete = null; //TODO destroy?
 
         this._loadFont();
     }.bind(this);
+
     this._assetLoader.load();
 };
 
@@ -1261,23 +1493,54 @@ App.LoadData.prototype._loadAssets = function _loadAssets()
  */
 App.LoadData.prototype._loadFont = function _loadFont()
 {
-    console.log("_loadFont");
     this._fontInfoElement = document.getElementById("fontInfo");
 
     var fontInfoWidth = this._fontInfoElement.offsetWidth;
 
     this._fontLoadingInterval = setInterval(function()
     {
-        console.log("_fontLoadingInterval",this._fontInfoElement.offsetWidth ,fontInfoWidth);
         if (this._fontInfoElement.offsetWidth !== fontInfoWidth)
         {
             clearInterval(this._fontLoadingInterval);
-            console.log("loadFontComplete");
-            // Complete!
+
+            //TODO remove font info element from DOM?
+
+            this._loadData();
         }
     }.bind(this),100);
 
     this._fontInfoElement.style.fontFamily = "HelveticaNeueCond";
+};
+
+/**
+ * Load locally stored app data
+ *
+ * @method _loadData
+ * @private
+ */
+App.LoadData.prototype._loadData = function _loadData()
+{
+    //TODO Access local storage
+    console.log("_loadData ",localStorage);
+
+    var request = new XMLHttpRequest();
+    request.open('GET','./data/accounts.json',true);
+
+    request.onload = function() {
+        if (request.status >= 200 && request.status < 400)
+        {
+            this.dispatchEvent(App.EventType.COMPLETE,request.responseText);
+        } else {
+            console.log("error");
+        }
+    }.bind(this);
+
+    request.onerror = function() {
+        console.log("on error");
+        this.dispatchEvent(App.EventType.COMPLETE);
+    };
+
+    request.send();
 };
 
 /**
@@ -1289,18 +1552,27 @@ App.LoadData.prototype.destroy = function destroy()
 {
     App.Command.prototype.destroy.call(this);
 
+    this._assetLoader = null;
+
+    clearInterval(this._fontLoadingInterval);
+
+    this._fontInfoElement = null;
+
     console.log("LoadData.destroy() called");
 };
 
 /**
  * @class Initialize
  * @extends {Command}
- * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.Initialize = function Initialize(eventListenerPool)
+App.Initialize = function Initialize()
 {
-    App.Command.call(this,false,eventListenerPool);
+    this._eventListenerPool = new App.ObjectPool(App.EventListener,10);
+
+    App.Command.call(this,false,this._eventListenerPool);
+
+    this._loadDataCommand = new App.LoadData(this._eventListenerPool);
 };
 
 App.Initialize.prototype = Object.create(App.Command.prototype);
@@ -1310,11 +1582,26 @@ App.Initialize.prototype.constructor = App.Initialize;
  * Execute the command
  *
  * @method execute
- * @param {ObjectPool} eventListenerPool
  */
-App.Initialize.prototype.execute = function execute(eventListenerPool)
+App.Initialize.prototype.execute = function execute()
 {
-    this._initModel(eventListenerPool);
+    this._loadDataCommand.addEventListener(App.EventType.COMPLETE,this,this._onLoadDataComplete);
+    this._loadDataCommand.execute();
+};
+
+/**
+ * Load data complete handler
+ *
+ * @method _onLoadDataComplete
+ * @param {string} data
+ * @private
+ */
+App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data)
+{
+    this._loadDataCommand.destroy();
+    this._loadDataCommand = null;
+
+    this._initModel(data);
     this._initCommands();
     this._initView();
 
@@ -1325,16 +1612,37 @@ App.Initialize.prototype.execute = function execute(eventListenerPool)
  * Initialize application model
  *
  * @method _initModel
- * @param {ObjectPool} eventListenerPool
+ * @param {string} data
  * @private
  */
-App.Initialize.prototype._initModel = function _initModel(eventListenerPool)
+App.Initialize.prototype._initModel = function _initModel(data)
 {
     var ModelLocator = App.ModelLocator;
     var ModelName = App.ModelName;
+    var Collection = App.Collection;
 
-    ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,eventListenerPool);
-    ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(eventListenerPool));
+    ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
+    ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
+    ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(
+        JSON.parse(data).accounts,//TODO parse JSON on data from localStorage
+        App.Account,
+        null,
+        this._eventListenerPool
+    ));
+    /*ModelLocator.addProxy(ModelName.TRANSACTIONS,new Collection(
+        localStorage.getItem(ModelName.TRANSACTIONS),
+        App.Transaction,
+        null,
+        this._eventListenerPool
+    ));
+    ModelLocator.addProxy(ModelName.FILTERS,new Collection(
+        localStorage.getItem(ModelName.FILTERS),
+        App.Filter,
+        null,
+        this._eventListenerPool
+    ));*/
+
+    //TODO TextField object pool?
 };
 
 /**
@@ -1345,9 +1653,9 @@ App.Initialize.prototype._initModel = function _initModel(eventListenerPool)
  */
 App.Initialize.prototype._initCommands = function _initCommands()
 {
-    App.Controller.init([
+    /*App.Controller.init([
         {eventType:App.EventType.INITIALIZE,command:App.Initialize}
-    ]);
+    ]);*/
 };
 
 /**
@@ -1358,7 +1666,49 @@ App.Initialize.prototype._initCommands = function _initCommands()
  */
 App.Initialize.prototype._initView = function _initView()
 {
-    App.ViewLocator.addViewSegment(App.ViewName.APPLICATION_VIEW,new App.ApplicationView());
+    //TODO initialize textures, icons, patterns?
+
+    var canvas = document.getElementsByTagName("canvas")[0],
+        context = canvas.getContext("2d"),
+        dpr = window.devicePixelRatio || 1,
+        bsr = context.webkitBackingStorePixelRatio ||
+            context.mozBackingStorePixelRatio ||
+            context.msBackingStorePixelRatio ||
+            context.oBackingStorePixelRatio ||
+            context.backingStorePixelRatio || 1,
+        pixelRatio = dpr / bsr,
+        w = window.innerWidth,
+        h = window.innerHeight,
+        stage = new PIXI.Stage(0xffffff),
+        renderer = new PIXI.CanvasRenderer(w,h,{
+            view:canvas,
+            resolution:1,
+            transparent:false,
+            autoResize:false/*,
+             clearBeforeRender:true*/
+        });
+
+    if (pixelRatio > 1)
+    {
+        if (pixelRatio > 2) pixelRatio = 2;
+
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+        canvas.width = canvas.width * pixelRatio;
+        canvas.height = canvas.height * pixelRatio;
+        context.scale(pixelRatio,pixelRatio);
+
+        stage.interactionManager.setPixelRatio(pixelRatio);
+    }
+
+    PIXI.CanvasTinter.tintMethod = PIXI.CanvasTinter.tintWithOverlay;
+
+    App.ViewLocator.addViewSegment(
+        App.ViewName.APPLICATION_VIEW,
+        stage.addChild(new App.ApplicationView(stage,renderer,w,h,pixelRatio))
+    );
+
+    renderer.render(stage);
 };
 
 /**
@@ -1370,7 +1720,15 @@ App.Initialize.prototype.destroy = function destroy()
 {
     App.Command.prototype.destroy.call(this);
 
-    //console.log("LoadData.destroy() called");
+    if (this._loadDataCommand)
+    {
+        this._loadDataCommand.destroy();
+        this._loadDataCommand = null;
+    }
+
+    this._eventListenerPool = null;
+
+    console.log("Initialize.destroy() called");
 };
 
 console.log("Hello Cashius!");
@@ -1424,33 +1782,15 @@ LoadData.prototype.destroy = function destroy()
 */
 (function()
 {
-    var pool = new App.ObjectPool(App.EventListener,10);
-    var loadDataCommand = new App.LoadData(pool);
-    var initCommand = new App.Initialize(pool);
-    var COMPLETE = App.EventType.COMPLETE;
-
-    function onLoadDataComplete()
-    {
-        loadDataCommand.destroy();
-        loadDataCommand = null;
-
-        initCommand.addEventListener(COMPLETE,this,onInitComplete);
-        initCommand.execute(pool);
-
-        console.log("onLoadComplete ",this);
-    }
-
     function onInitComplete()
     {
         initCommand.destroy();
         initCommand = null;
 
-        pool = null;
-        COMPLETE = null;
-
         console.log("onInitComplete");
     }
 
-    loadDataCommand.addEventListener(COMPLETE,this,onLoadDataComplete);
-    loadDataCommand.execute();
+    var initCommand = new App.Initialize();
+    initCommand.addEventListener(App.EventType.COMPLETE,this,onInitComplete);
+    initCommand.execute();
 })();

@@ -2,16 +2,13 @@
  * @class LoadData
  * @extends {Command}
  * @param {ObjectPool} pool
- * @param {{assetsUrl:string,fontName:string}} settings
  * @constructor
  */
-App.LoadData = function LoadData(pool,settings)
+App.LoadData = function LoadData(pool)
 {
     App.Command.call(this,false,pool);
 
-    this._settings = settings;
-    this._assetLoader = new PIXI.AssetLoader([this._settings.assetsUrl]);
-
+    this._assetLoader = null;
     this._fontLoadingInterval = -1;
     this._fontInfoElement = null;
 };
@@ -27,12 +24,6 @@ App.LoadData.prototype.constructor = App.LoadData;
 App.LoadData.prototype.execute = function execute()
 {
     this._loadAssets();
-    // images
-    // font
-    // localStorage
-
-    //TODO dispatch Complete when all loading is done!
-    //this.dispatchEvent(App.EventType.COMPLETE);
 };
 
 /**
@@ -43,14 +34,15 @@ App.LoadData.prototype.execute = function execute()
  */
 App.LoadData.prototype._loadAssets = function _loadAssets()
 {
-    console.log("_loadAssets");
+    this._assetLoader = new PIXI.AssetLoader(["./data/icons-big.json"]);
+
     this._assetLoader.onComplete = function()
     {
-        console.log("_onAssetsLoadComplete");
         this._assetLoader.onComplete = null; //TODO destroy?
 
         this._loadFont();
     }.bind(this);
+
     this._assetLoader.load();
 };
 
@@ -62,25 +54,23 @@ App.LoadData.prototype._loadAssets = function _loadAssets()
  */
 App.LoadData.prototype._loadFont = function _loadFont()
 {
-    console.log("_loadFont");
-    //this._fontInfoElement = document.getElementById("fontInfo");
+    this._fontInfoElement = document.getElementById("fontInfo");
 
     var fontInfoWidth = this._fontInfoElement.offsetWidth;
 
     this._fontLoadingInterval = setInterval(function()
     {
-        console.log("_fontLoadingInterval",this._fontInfoElement.offsetWidth ,fontInfoWidth);
         if (this._fontInfoElement.offsetWidth !== fontInfoWidth)
         {
             clearInterval(this._fontLoadingInterval);
-            console.log("loadFontComplete");
+
             //TODO remove font info element from DOM?
-            // Complete!
+
             this._loadData();
         }
     }.bind(this),100);
 
-    this._fontInfoElement.style.fontFamily = this._settings.fontName;
+    this._fontInfoElement.style.fontFamily = "HelveticaNeueCond";
 };
 
 /**
@@ -92,6 +82,26 @@ App.LoadData.prototype._loadFont = function _loadFont()
 App.LoadData.prototype._loadData = function _loadData()
 {
     //TODO Access local storage
+    console.log("_loadData ",localStorage);
+
+    var request = new XMLHttpRequest();
+    request.open('GET','./data/accounts.json',true);
+
+    request.onload = function() {
+        if (request.status >= 200 && request.status < 400)
+        {
+            this.dispatchEvent(App.EventType.COMPLETE,request.responseText);
+        } else {
+            console.log("error");
+        }
+    }.bind(this);
+
+    request.onerror = function() {
+        console.log("on error");
+        this.dispatchEvent(App.EventType.COMPLETE);
+    };
+
+    request.send();
 };
 
 /**
@@ -102,6 +112,12 @@ App.LoadData.prototype._loadData = function _loadData()
 App.LoadData.prototype.destroy = function destroy()
 {
     App.Command.prototype.destroy.call(this);
+
+    this._assetLoader = null;
+
+    clearInterval(this._fontLoadingInterval);
+
+    this._fontInfoElement = null;
 
     console.log("LoadData.destroy() called");
 };

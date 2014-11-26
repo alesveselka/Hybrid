@@ -1,0 +1,7 @@
+{"categories":[
+    {"name":"Entertainment","color":"bada55","accountId":1,"icon":"frame","sub":["Cinema","Club"]},
+    {"name":"Shopping","color":"c0ffee","accountId":1,"icon":"shirt","sub":["Clothing","Groceries","Food"]},
+    {"name":"Sport","color":"cc6600","accountId":1,"icon":"ball","sub":["Gym","Swimming"]},
+    {"name":"House","color":"cc6600","accountId":1,"icon":"house","sub":["Utilities","Rent"]},
+    {"name":"Business","color":"ffeedd","accountId":2,"icon":"coins","sub":["Lunch","Supplies","Invoices","Fees"]}
+]}

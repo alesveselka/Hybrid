@@ -49,37 +49,15 @@ LoadData.prototype.destroy = function destroy()
 */
 (function()
 {
-    var COMPLETE = App.EventType.COMPLETE;
-    var pool = new App.ObjectPool(App.EventListener,10);
-    var initCommand = new App.Initialize(pool);
-    var loadDataCommand = new App.LoadData(pool,{
-        assetsUrl:"./data/icons-big.json",
-        fontName:"HelveticaNeueCond",
-        fontInfoElement:
-    });
-
-    function onLoadDataComplete()
-    {
-        loadDataCommand.destroy();
-        loadDataCommand = null;
-
-        initCommand.addEventListener(COMPLETE,this,onInitComplete);
-        initCommand.execute(pool);
-
-        console.log("onLoadComplete ",this);
-    }
-
     function onInitComplete()
     {
         initCommand.destroy();
         initCommand = null;
 
-        pool = null;
-        COMPLETE = null;
-
         console.log("onInitComplete");
     }
 
-    loadDataCommand.addEventListener(COMPLETE,this,onLoadDataComplete);
-    loadDataCommand.execute();
+    var initCommand = new App.Initialize();
+    initCommand.addEventListener(App.EventType.COMPLETE,this,onInitComplete);
+    initCommand.execute();
 })();
