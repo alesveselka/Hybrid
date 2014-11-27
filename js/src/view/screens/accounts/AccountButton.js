@@ -1,10 +1,11 @@
 /**
  * @class AccountButton
+ * @extends Graphics
  * @param {Account} model
  * @param {Object} layout
  * @constructor
  */
-App.AccountButton = function AccountButton(model,layout)
+App.AccountButton = function AccountButton(model,layout,index)
 {
     PIXI.Graphics.call(this);
 
@@ -17,7 +18,7 @@ App.AccountButton = function AccountButton(model,layout)
     this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
 
     //TODO move texts and their settings objects into pools?
-    this._nameLabel = new PIXI.Text(this._model.getName(),{font:Math.round(24 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    this._nameLabel = new PIXI.Text(this._model.getName()+" "+index,{font:Math.round(24 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
     this._nameLabel.x = Math.round(15 * pixelRatio);
     this._nameLabel.y = Math.round(15 * pixelRatio);
 
@@ -51,12 +52,16 @@ App.AccountButton.prototype.resize = function resize(width)
  */
 App.AccountButton.prototype._render = function _render()
 {
+    //TODO cache this as texture?
+
+    var padding = Math.round(10 * this._layout.pixelRatio);
+
     this.clear();
     this.beginFill(0xefefef);
     this.drawRect(0,0,this.boundingBox.width,this.boundingBox.height);
     this.beginFill(0xffffff);
-    this.drawRect(10,0,this.boundingBox.width-20,1);
+    this.drawRect(padding,0,this.boundingBox.width-padding*2,1);
     this.beginFill(0xcccccc);
-    this.drawRect(10,this.boundingBox.height-1,this.boundingBox.width-20,1);
+    this.drawRect(padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1);
     this.endFill();
 };

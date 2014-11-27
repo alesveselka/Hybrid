@@ -150,11 +150,14 @@ App.ViewName = {
 /**
  * Interactive state
  * @enum {string}
- * @return {{OVER:string,OUT:string}}
+ * @return {{OVER:string,OUT:string,DRAGGING:string,SCROLLING:string,SNAPPING:string}}
  */
 App.InteractiveState = {
     OVER:"OVER",
-    OUT:"OUT"
+    OUT:"OUT",
+    DRAGGING:"DRAGGING",
+    SCROLLING:"SCROLLING",
+    SNAPPING:"SNAPPING"
 };
 
 /**
@@ -168,6 +171,18 @@ App.TransitionState = {
     HIDING:"HIDING",
     HIDDEN:"HIDDEN"
 };
+
+/**
+ * Scroll Policy
+ * @enum {string}
+ * @return {{ON:string,OFF:string,AUTO:string}}
+ */
+App.ScrollPolicy = {
+    ON:"ON",
+    OFF:"OFF",
+    AUTO:"AUTO"
+};
+
 
 /**
  * @class EventListener
@@ -352,8 +367,6 @@ App.EventDispatcher.prototype.destroy = function destroy()
     this._listeners.length = 0;
     this._listeners = null;
     this._listenersPool = null;
-
-    console.log("EventDispatcher.destroy() called");
 };
 
 /**
@@ -432,14 +445,13 @@ App.ObjectPool.prototype.preAllocate = function preAllocate()
  */
 App.ObjectPool.prototype.allocate = function allocate()
 {
-    console.log("allocate A ",this._items.length,this._freeItems);
     if (this._freeItems.length === 0) this.preAllocate();
 
     var index = this._freeItems.shift();
     var item = this._items[index];
 
     item.allocated = true;
-    console.log("allocate B ",this._items.length,this._freeItems);
+
     return item;
 };
 
@@ -449,12 +461,9 @@ App.ObjectPool.prototype.allocate = function allocate()
  */
 App.ObjectPool.prototype.release = function release(item)
 {
-    console.log("release A ",this._items.length,this._freeItems);
     item.allocated = false;
 
     this._freeItems.push(item.poolIndex);
-
-    console.log("release B ",this._items.length,this._freeItems);
 };
 
 /**
@@ -682,6 +691,21 @@ App.Account.prototype.getName = function getName()
     return this._name;
 };
 
+App.Account.prototype.getBalance = function getBalance()
+{
+
+};
+
+App.Account.prototype.getExpenses = function getExpenses()
+{
+
+};
+
+App.Account.prototype.getIncome = function getIncome()
+{
+
+};
+
 /**
  * Create and return categories collection
  *
@@ -766,13 +790,303 @@ App.ViewLocator = {
     }
 };
 
+App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    //this._layout = layout;
+    this._content = null;
+    this._width = width;
+    this._height = height;
+
+    this._enabled = false;
+    this._xOriginalScrollPolicy = xScrollPolicy;
+    this._yOriginalScrollPolicy = yScrollPolicy;
+    this._xScrollPolicy = xScrollPolicy;
+    this._yScrollPolicy = yScrollPolicy;
+    this._state = null;
+
+    this._dragging = false;
+    this._mouseData = null;
+    this._xSpeed = 0.0;
+    this._ySpeed = 0.0;
+    this._xOffset = 0.0;
+    this._yOffset = 0.0;
+    this._newX = 0.0;
+    this._newY = 0.0;
+    this._oldX = 0.0;
+    this._oldY = 0.0;
+    this._friction = 0.9;
+    this._dumpForce = 0.5;
+};
+
+App.Pane.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.Pane.prototype.constructor = App.Pane;
+
+/**
+ * Set content of the pane
+ *
+ * @method setContent
+ * @param {DisplayObject} content
+ */
+App.Pane.prototype.setContent = function setContent(content)
+{
+    this.removeContent();
+
+    this._content = content;
+
+    this.addChildAt(this._content,0);
+
+    this._updateScrollers();
+
+    console.log(App.Pane.DRAGGING,this.DRAGGING);
+};
+
+/**
+ * Remove content
+ *
+ * @method removeContent
+ */
+App.Pane.prototype.removeContent = function removeContent()
+{
+    if (this._content && this.contains(this._content))
+    {
+        this.removeChild(this._content);
+
+        this._content = null;
+    }
+};
+
+App.Pane.prototype.enable = function enable()
+{
+    if (!this._enabled)
+    {
+        this._registerEventListeners();
+
+        this.interactive = true;
+
+        this._enabled = true;
+    }
+};
+
+App.Pane.prototype.disable = function disable()
+{
+
+};
+
+App.Pane.prototype._registerEventListeners = function _registerEventListeners()
+{
+    //TODO can register only either mouse or touch, based on device
+    this.mousedown = this._onPointerDown;
+    this.mouseup = this._onPointerUp;
+    this.mouseupoutside = this._onPointerUp;
+    this.touchstart = this._onPointerDown;
+    this.touchend = this._onPointerUp;
+    this.touchendoutside = this._onPointerUp;
+    this.mousemove = this._onPointerMove;
+    this.touchmove = this._onPointerMove;
+
+    App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
+};
+
+App.Pane.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+
+};
+
+/**
+ * Pointer Down handler
+ *
+ * @method _onPointerDown
+ * @param {InteractionData} data
+ * @private
+ */
+App.Pane.prototype._onPointerDown = function _onMouseDown(data)
+{
+    data.originalEvent.preventDefault();
+
+    this._mouseData = data;
+
+    var mp = this._mouseData.getLocalPosition(this.stage);
+    this._xOffset = mp.x - this._content.x;
+    this._yOffset = mp.y - this._content.y;
+
+    this._dragging = true;
+};
+
+/**
+ * On pointer up
+ *
+ * @param {InteractionData} data
+ * @private
+ */
+App.Pane.prototype._onPointerUp = function _onMouseUp(data)
+{
+    data.originalEvent.preventDefault();
+
+    this._dragging = false;
+
+    this._mouseData = null;
+};
+
+/**
+ * On pointer move
+ * @param {InteractionData} data
+ * @private
+ */
+App.Pane.prototype._onPointerMove = function _onMouseMove(data)
+{
+    data.originalEvent.preventDefault();
+
+    this._mouseData = data;
+};
+
+App.Pane.prototype._onTick = function _onTick()
+{
+    var pullDistance = 0;
+
+    //TODO if 'pulling', the pointer coordinates will decrease with respect to content move
+    if (this._dragging)
+    {
+        // Calculate speed
+        var mp = this._mouseData.getLocalPosition(this.stage),
+            speed = 1,
+            ScrollPolicy = App.ScrollPolicy;
+
+        pullDistance = 1;
+
+        if (this._xScrollPolicy === ScrollPolicy.ON)
+        {
+            this._newX = mp.x;
+            this._xSpeed = (this._newX - this._oldX) * speed;
+            this._oldX = this._newX;
+
+            this._content.x = Math.round(this._newX - this._xOffset);
+        }
+
+        if (this._yScrollPolicy === ScrollPolicy.ON)
+        {
+            this._newY = mp.y;
+            this._ySpeed = (this._newY - this._oldY) * speed;
+            this._oldY = this._newY;
+
+            if (this._content.y > 0)
+            {
+                pullDistance = 1 - this._content.y / this._height;
+                pullDistance *= this._dumpForce;
+
+                this._content.y = Math.round(this._newY * pullDistance);
+            }
+            else if (this._content.y + this._content.height < this._height)
+            {
+                pullDistance = (this._content.y + this._content.height) / this._height;
+                pullDistance *= this._dumpForce;
+
+                this._content.y = Math.round((this._height - this._content.height) - (this._height - this._newY) * pullDistance);
+            }
+            else
+            {
+                this._content.y = Math.round(this._newY - this._yOffset);
+            }
+            //console.log("pullDistance C ",pullDistance,this._newY,this._yOffset);
+        }
+    }
+    else
+    {
+        this._content.x = Math.round(this._content.x + this._xSpeed);
+        this._content.y = Math.round(this._content.y + this._ySpeed);
+
+        this._xSpeed *= this._friction;
+        this._ySpeed *= this._friction;
+
+        if (this._content.x > 0)
+        {
+            //this._content.x = 0;
+            this._xSpeed *= this._dumpForce;
+            //this._xSpeed *= -1;
+            //ySpeed = 0;
+        }
+        else if (this._content.x + this._content.width < this._width)
+        {
+            //this._content.x = Math.round(this._width - this._content.width);
+            this._xSpeed *= this._dumpForce;
+            //this._xSpeed *= -1;
+            //ySpeed  = 0;
+        }
+
+        if (this._content.y > 0)
+        {
+            pullDistance = 1 - this._content.y / this._height;
+            pullDistance *= this._dumpForce;
+
+            //this._content.y = 0;
+            this._ySpeed *= pullDistance;
+            //this._ySpeed *= -1;
+            //ySpeed = 0;
+        }
+        else if (this._content.y + this._content.height < this._height)
+        {
+            pullDistance = (this._content.y + this._content.height) / this._height;
+            pullDistance *= this._dumpForce;
+
+            //this._content.y = Math.round(this._height - this._content.height);
+            this._ySpeed *= pullDistance;
+            //this._ySpeed *= -1;
+            //ySpeed  = 0;
+        }
+
+//        console.log("pullDistance ",pullDistance);
+
+        if (Math.abs(this._ySpeed) < .1)
+        {
+            this._ySpeed = 0;
+            //this._content.y = Math.round(this._content.y);
+            //running = false;
+        }
+
+        if (Math.abs(this._xSpeed) < .1)
+        {
+            this._xSpeed = 0;
+            //this._content.x = Math.round(this._content.x);
+            //running = false;
+        }
+    }
+};
+
+App.Pane.prototype._updateScrollers = function _updateScrollBars()
+{
+    var bounds = this._content.boundingBox, ScrollPolicy = App.ScrollPolicy;
+    if (bounds)
+    {
+        if (this._xOriginalScrollPolicy === ScrollPolicy.AUTO)
+        {
+            //TODO use this Pane's height instead of the layout's
+            if (bounds.width > this._width) this._xScrollPolicy = ScrollPolicy.ON;
+            else this._xScrollPolicy = ScrollPolicy.OFF;
+        }
+
+        if (this._yOriginalScrollPolicy === ScrollPolicy.AUTO)
+        {
+            //TODO use this Pane's height instead of the layout's
+            if (bounds.height > this._height) this._yScrollPolicy = ScrollPolicy.ON;
+            else this._yScrollPolicy = ScrollPolicy.OFF;
+        }
+    }
+};
+
+App.Pane.prototype.destroy = function destroy()
+{
+
+};
+
 /**
  * @class AccountButton
+ * @extends Graphics
  * @param {Account} model
  * @param {Object} layout
  * @constructor
  */
-App.AccountButton = function AccountButton(model,layout)
+App.AccountButton = function AccountButton(model,layout,index)
 {
     PIXI.Graphics.call(this);
 
@@ -784,7 +1098,8 @@ App.AccountButton = function AccountButton(model,layout)
 
     this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
 
-    this._nameLabel = new PIXI.Text(this._model.getName(),{font:Math.round(24 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    //TODO move texts and their settings objects into pools?
+    this._nameLabel = new PIXI.Text(this._model.getName()+" "+index,{font:Math.round(24 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
     this._nameLabel.x = Math.round(15 * pixelRatio);
     this._nameLabel.y = Math.round(15 * pixelRatio);
 
@@ -818,18 +1133,23 @@ App.AccountButton.prototype.resize = function resize(width)
  */
 App.AccountButton.prototype._render = function _render()
 {
+    //TODO cache this as texture?
+
+    var padding = Math.round(10 * this._layout.pixelRatio);
+
     this.clear();
     this.beginFill(0xefefef);
     this.drawRect(0,0,this.boundingBox.width,this.boundingBox.height);
     this.beginFill(0xffffff);
-    this.drawRect(10,0,this.boundingBox.width-20,1);
+    this.drawRect(padding,0,this.boundingBox.width-padding*2,1);
     this.beginFill(0xcccccc);
-    this.drawRect(10,this.boundingBox.height-1,this.boundingBox.width-20,1);
+    this.drawRect(padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1);
     this.endFill();
 };
 
 /**
  * @class AccountScreen
+ * @extends DisplayObjectContainer
  * @param {Collection} model
  * @param {Object} layout
  * @constructor
@@ -840,14 +1160,17 @@ App.AccountScreen = function AccountScreen(model,layout)
 
     this._model = model;
     this._layout = layout;
+    this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,0);
 
     var i = 0, l = this._model.length(), AccountButton = App.AccountButton, button = null;
 
     this._accountButtons = new Array(l);
 
-    for (;i<l;i++)
+    //TODO add the list into 'ScrollPane'
+    for (;i<30;i++)
     {
-        button = new AccountButton(this._model.getItemAt(i),this._layout);
+        //button = new AccountButton(this._model.getItemAt(i),this._layout);
+        button = new AccountButton(this._model.getItemAt(0),this._layout,i);
         this._accountButtons[i] = button;
         this.addChild(button);
     }
@@ -882,10 +1205,13 @@ App.AccountScreen.prototype._updateLayout = function _updateLayout()
     {
         this._accountButtons[i].y = i * height;
     }
+
+    this.boundingBox.height = l * height;
 };
 
 /**
  * @class ApplicationView
+ * @extends DisplayObjectContainer
  * @param {Stage} stage
  * @param {CanvasRenderer} renderer
  * @param {number} width
@@ -910,9 +1236,18 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         pixelRatio:pixelRatio
     };
 
-    this._accountScreen = new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
+    this._background = new PIXI.Graphics();
+    this._background.beginFill(0xbada55,1);
+    this._background.drawRect(0,0,this._layout.width,this._layout.height);
+    this._background.endFill();
 
-    this.addChild(this._accountScreen);
+    this._screenPane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.bodyHeight);
+    this._screenPane.setContent(new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout));
+
+    //this._accountScreen = new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
+
+    this.addChild(this._background);
+    this.addChild(this._screenPane);
 
     this._registerEventListeners();
 };
@@ -928,6 +1263,8 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
  */
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
+    this._screenPane.enable();
+
     App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
 };
 
@@ -1434,8 +1771,6 @@ App.Command.prototype.execute = function execute(data) {};
 App.Command.prototype.destroy = function destroy()
 {
     App.EventDispatcher.prototype.destroy.call(this);
-
-    console.log("Command.destroy() called");
 };
 /**
  * @class LoadData
@@ -1521,7 +1856,6 @@ App.LoadData.prototype._loadFont = function _loadFont()
 App.LoadData.prototype._loadData = function _loadData()
 {
     //TODO Access local storage
-    console.log("_loadData ",localStorage);
 
     var request = new XMLHttpRequest();
     request.open('GET','./data/accounts.json',true);
@@ -1557,8 +1891,6 @@ App.LoadData.prototype.destroy = function destroy()
     clearInterval(this._fontLoadingInterval);
 
     this._fontInfoElement = null;
-
-    console.log("LoadData.destroy() called");
 };
 
 /**
@@ -1684,8 +2016,8 @@ App.Initialize.prototype._initView = function _initView()
             view:canvas,
             resolution:1,
             transparent:false,
-            autoResize:false/*,
-             clearBeforeRender:true*/
+            autoResize:false,
+            clearBeforeRender:false
         });
 
     if (pixelRatio > 1)
@@ -1727,67 +2059,14 @@ App.Initialize.prototype.destroy = function destroy()
     }
 
     this._eventListenerPool = null;
-
-    console.log("Initialize.destroy() called");
 };
 
-console.log("Hello Cashius!");
-/*
-var pool = new App.ObjectPool(App.EventListener,10);
-var eventDispatcher = new App.EventDispatcher(pool);
-
-eventDispatcher.addEventListener(App.EventType.CHANGE,this,onChange);
-eventDispatcher.addEventListener(App.EventType.CHANGE,this,onSecondChange);
-eventDispatcher.dispatchEvent(App.EventType.CHANGE);
-
-eventDispatcher.removeEventListener(App.EventType.CHANGE,this,onSecondChange);
-
-eventDispatcher.dispatchEvent(App.EventType.CHANGE);
-eventDispatcher.dispatchEvent(App.EventType.CHANGE);
-eventDispatcher.dispatchEvent(App.EventType.CHANGE);
-
-function onChange()
-{
-    console.log("onChange");
-}
-
-function onSecondChange()
-{
-    console.log("onSecondChange");
-}
-
-// Load data command *********************
-var LoadData = function LoadData(pool)
-{
-    App.Command.call(this,false,pool);
-    console.log("LoadData instantiated");
-};
-
-LoadData.prototype = Object.create(App.Command.prototype);
-LoadData.prototype.constructor = LoadData;
-
-LoadData.prototype.execute = function execute()
-{
-    console.log("Executing 'LoadData'");
-
-    this.dispatchEvent(App.EventType.COMPLETE);
-};
-
-LoadData.prototype.destroy = function destroy()
-{
-    App.Command.prototype.destroy.call(this);
-
-    console.log("LoadData.destroy() called");
-};
-*/
 (function()
 {
     function onInitComplete()
     {
         initCommand.destroy();
         initCommand = null;
-
-        console.log("onInitComplete");
     }
 
     var initCommand = new App.Initialize();

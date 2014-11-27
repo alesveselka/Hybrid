@@ -82,7 +82,6 @@ App.LoadData.prototype._loadFont = function _loadFont()
 App.LoadData.prototype._loadData = function _loadData()
 {
     //TODO Access local storage
-    console.log("_loadData ",localStorage);
 
     var request = new XMLHttpRequest();
     request.open('GET','./data/accounts.json',true);
@@ -118,6 +117,4 @@ App.LoadData.prototype.destroy = function destroy()
     clearInterval(this._fontLoadingInterval);
 
     this._fontInfoElement = null;
-
-    console.log("LoadData.destroy() called");
 };

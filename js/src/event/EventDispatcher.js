@@ -156,6 +156,4 @@ App.EventDispatcher.prototype.destroy = function destroy()
     this._listeners.length = 0;
     this._listeners = null;
     this._listenersPool = null;
-
-    console.log("EventDispatcher.destroy() called");
 };

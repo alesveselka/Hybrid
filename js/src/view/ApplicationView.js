@@ -1,5 +1,6 @@
 /**
  * @class ApplicationView
+ * @extends DisplayObjectContainer
  * @param {Stage} stage
  * @param {CanvasRenderer} renderer
  * @param {number} width
@@ -24,9 +25,18 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         pixelRatio:pixelRatio
     };
 
-    this._accountScreen = new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
+    this._background = new PIXI.Graphics();
+    this._background.beginFill(0xbada55,1);
+    this._background.drawRect(0,0,this._layout.width,this._layout.height);
+    this._background.endFill();
 
-    this.addChild(this._accountScreen);
+    this._screenPane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.bodyHeight);
+    this._screenPane.setContent(new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout));
+
+    //this._accountScreen = new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
+
+    this.addChild(this._background);
+    this.addChild(this._screenPane);
 
     this._registerEventListeners();
 };
@@ -42,6 +52,8 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
  */
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
+    this._screenPane.enable();
+
     App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
 };
 

@@ -29,6 +29,4 @@ App.Command.prototype.execute = function execute(data) {};
 App.Command.prototype.destroy = function destroy()
 {
     App.EventDispatcher.prototype.destroy.call(this);
-
-    console.log("Command.destroy() called");
 };

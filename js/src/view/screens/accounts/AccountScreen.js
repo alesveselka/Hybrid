@@ -1,5 +1,6 @@
 /**
  * @class AccountScreen
+ * @extends DisplayObjectContainer
  * @param {Collection} model
  * @param {Object} layout
  * @constructor
@@ -10,14 +11,17 @@ App.AccountScreen = function AccountScreen(model,layout)
 
     this._model = model;
     this._layout = layout;
+    this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,0);
 
     var i = 0, l = this._model.length(), AccountButton = App.AccountButton, button = null;
 
     this._accountButtons = new Array(l);
 
-    for (;i<l;i++)
+    //TODO add the list into 'ScrollPane'
+    for (;i<30;i++)
     {
-        button = new AccountButton(this._model.getItemAt(i),this._layout);
+        //button = new AccountButton(this._model.getItemAt(i),this._layout);
+        button = new AccountButton(this._model.getItemAt(0),this._layout,i);
         this._accountButtons[i] = button;
         this.addChild(button);
     }
@@ -52,4 +56,6 @@ App.AccountScreen.prototype._updateLayout = function _updateLayout()
     {
         this._accountButtons[i].y = i * height;
     }
+
+    this.boundingBox.height = l * height;
 };

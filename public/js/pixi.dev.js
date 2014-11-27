@@ -1861,6 +1861,18 @@ PIXI.DisplayObjectContainer.prototype.getChildAt = function(index)
 };
 
 /**
+ * Check if the container contains the child passed in
+ *
+ * @method contains
+ * @param {DisplayObject} child
+ * @returns {boolean}
+ */
+PIXI.DisplayObjectContainer.prototype.contains = function(child)
+{
+    return this.children.indexOf(child) > -1;
+};
+
+/**
  * Removes a child from the container.
  *
  * @method removeChild
@@ -4068,7 +4080,7 @@ PIXI.InteractionManager.prototype.setTarget = function(target)
 PIXI.InteractionManager.prototype.setPixelRatio = function(value)
 {
     this.pixelRatio = value;
-    this.resolution /= this.pixelRatio;
+    this.resolution = this.resolution / this.pixelRatio;
 };
 
 /**

@@ -121,8 +121,8 @@ App.Initialize.prototype._initView = function _initView()
             view:canvas,
             resolution:1,
             transparent:false,
-            autoResize:false/*,
-             clearBeforeRender:true*/
+            autoResize:false,
+            clearBeforeRender:false
         });
 
     if (pixelRatio > 1)
@@ -164,6 +164,4 @@ App.Initialize.prototype.destroy = function destroy()
     }
 
     this._eventListenerPool = null;
-
-    console.log("Initialize.destroy() called");
 };
