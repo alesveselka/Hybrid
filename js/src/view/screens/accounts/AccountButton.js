@@ -13,7 +13,7 @@ App.AccountButton = function AccountButton(model,layout,index)
     this._layout = layout;
 
     var pixelRatio = this._layout.pixelRatio,
-        height = 70 * pixelRatio;
+        height = Math.round(70 * pixelRatio);
 
     this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
 

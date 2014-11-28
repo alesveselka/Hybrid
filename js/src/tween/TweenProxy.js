@@ -3,11 +3,12 @@
  * @param {number} duration
  * @param {Function} ease
  * @param {number} defaultProgress
+ * @param {ObjectPool} eventListenerPool
  * @extends {EventDispatcher}
  */
-App.TweenProxy = function TweenProxy(duration,ease,defaultProgress)
+App.TweenProxy = function TweenProxy(duration,ease,defaultProgress,eventListenerPool)
 {
-    App.EventDispatcher.call(this);
+    App.EventDispatcher.call(this,eventListenerPool);
 
     this.progress = defaultProgress || 0.0;
 
@@ -22,6 +23,7 @@ App.TweenProxy = function TweenProxy(duration,ease,defaultProgress)
     this._duration = duration * 1000 || 1000;
     this._ease = ease || App.Easing.linear;
     this._timeStamp = window.performance && window.performance.now ? window.performance : Date;
+    this._intervalReference = this._tweenInterval.bind(this);
 };
 
 App.TweenProxy.prototype = Object.create(App.EventDispatcher.prototype);
@@ -121,7 +123,7 @@ App.TweenProxy.prototype._tween = function _tween()
 
     this._start = this._timeStamp.now();
     this._end = this._start + this._duration;
-    this._interval = setInterval(this._tweenInterval,1000/120);
+    this._interval = setInterval(this._intervalReference,1000/120);
 };
 
 /**

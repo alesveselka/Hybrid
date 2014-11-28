@@ -18,10 +18,10 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     this._layout = {
         originalWidth:width,
         originalHeight:height,
-        width:width * pixelRatio,
-        height:height * pixelRatio,
-        headerHeight:50 * pixelRatio,
-        bodyHeight:(height - 50) - pixelRatio,
+        width:Math.round(width * pixelRatio),
+        height:Math.round(height * pixelRatio),
+        headerHeight:Math.round(50 * pixelRatio),
+        bodyHeight:Math.round((height - 50) - pixelRatio),
         pixelRatio:pixelRatio
     };
 
@@ -30,7 +30,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     this._background.drawRect(0,0,this._layout.width,this._layout.height);
     this._background.endFill();
 
-    this._screenPane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.bodyHeight);
+    this._screenPane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height);
     this._screenPane.setContent(new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout));
 
     //this._accountScreen = new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
