@@ -5,6 +5,7 @@
  * @param {number} defaultProgress
  * @param {ObjectPool} eventListenerPool
  * @extends {EventDispatcher}
+ * @constructor
  */
 App.TweenProxy = function TweenProxy(duration,ease,defaultProgress,eventListenerPool)
 {
@@ -133,7 +134,6 @@ App.TweenProxy.prototype._tween = function _tween()
  */
 App.TweenProxy.prototype._tweenInterval = function _tweenInterval()
 {
-    //TODO update progress only when requested?
     this._now = this._timeStamp.now();
 
     var end = this._reversed ? this._reversedEnd : this._end;
@@ -149,4 +149,18 @@ App.TweenProxy.prototype._tweenInterval = function _tweenInterval()
 
         this.dispatchEvent(App.EventType.COMPLETE);
     }
+};
+
+/**
+ * Destroy
+ */
+App.TweenProxy.prototype.destroy = function destroy()
+{
+    App.EventDispatcher.prototype.destroy.call(this);
+
+    this.stop();
+
+    this._intervalReference = null;
+    this._timeStamp = null;
+    this._ease = null;
 };

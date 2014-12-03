@@ -185,6 +185,16 @@ App.ScrollPolicy = {
 
 
 /**
+ * Direction
+ * @enum {string}
+ * @return {{X:string,Y:string}}
+ */
+App.Direction = {
+    X:"x",
+    Y:"y"
+};
+
+/**
  * @class EventListener
  * @param {number} index
  * @constructor
@@ -790,10 +800,225 @@ App.ViewLocator = {
     }
 };
 
-App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height)
+/**
+ * @class ScrollIndicator
+ * @extends Graphics
+ * @param {string} direction
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.ScrollIndicator = function ScrollIndicator(direction,pixelRatio)
+{
+    PIXI.Graphics.call(this);
+
+    this.visible = false;
+    this.boundingBox = new PIXI.Rectangle(0,0,0,0);
+
+    this._direction = direction;
+    this._pixelRatio = pixelRatio;
+    this._minIndicatorSize = Math.round(50 * pixelRatio);
+    this._padding = Math.round(4 * pixelRatio);
+    this._size = 0;
+    this._indicatorSize = 0;
+    this._indicatorThickness = 0;
+    this._contentPosition = 0;
+    this._positionStep = 0;
+
+    this._showHideTween = new App.TweenProxy(0.2,App.Easing.linear,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
+    this._state = App.TransitionState.HIDDEN;
+};
+
+App.ScrollIndicator.prototype = Object.create(PIXI.Graphics.prototype);
+App.ScrollIndicator.prototype.constructor = App.ScrollIndicator;
+
+/**
+ * Show
+ */
+App.ScrollIndicator.prototype.show = function show()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._state === TransitionState.HIDING || this._state === TransitionState.HIDDEN)
+    {
+        this._state = TransitionState.SHOWING;
+        this.visible = true;
+
+        this._showHideTween.start(true);
+    }
+};
+
+/**
+ * Hide
+ */
+App.ScrollIndicator.prototype.hide = function hide()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._state === TransitionState.SHOWING || this._state === TransitionState.SHOWN)
+    {
+        this._state = TransitionState.HIDING;
+
+        this._showHideTween.start(true);
+    }
+};
+
+/**
+ * Update indicator according to position passed in
+ * @param {number} contentPosition
+ */
+App.ScrollIndicator.prototype.update = function update(contentPosition)
+{
+    this._contentPosition = contentPosition;
+
+    var TransitionState = App.TransitionState;
+    if (this._state === TransitionState.SHOWING || this._state === TransitionState.HIDING)
+    {
+        this._updateVisibility(TransitionState);
+    }
+
+    this._render();
+};
+
+/**
+ * Update visibility
+ * @param {App.TransitionState} TransitionState
+ * @private
+ */
+App.ScrollIndicator.prototype._updateVisibility = function _updateVisibility(TransitionState)
+{
+    var progress = this._showHideTween.progress;
+
+    if (this._state === TransitionState.SHOWING)
+    {
+        this.alpha = progress;
+
+        if (progress === 1.0) this._state = TransitionState.SHOWN;
+    }
+    else if (this._state === TransitionState.HIDING)
+    {
+        this.alpha = 1.0 - progress;
+
+        if (progress === 1.0)
+        {
+            this._state = TransitionState.HIDDEN;
+            this.visible = false;
+        }
+    }
+};
+
+/**
+ * Resize
+ * @param {number} size
+ * @param {number} contentSize
+ */
+App.ScrollIndicator.prototype.resize = function resize(size,contentSize)
+{
+    this._size = size;
+
+    if (this._direction === App.Direction.X)
+    {
+        this.boundingBox.width = this._size;
+        this.boundingBox.height = Math.round(8 * this._pixelRatio);
+
+        this._indicatorThickness = this.boundingBox.height - this._padding;
+        this._indicatorSize = Math.round(this._size * (this._size / contentSize));
+        if (this._indicatorSize < this._minIndicatorSize) this._indicatorSize = this._minIndicatorSize;
+
+        this._positionStep = (this._size - this._indicatorSize) / (contentSize - this._size);
+    }
+    else if (this._direction === App.Direction.Y)
+    {
+        this.boundingBox.width = Math.round(8 * this._pixelRatio);
+        this.boundingBox.height = this._size;
+
+        this._indicatorThickness = this.boundingBox.width - this._padding;
+        this._indicatorSize = Math.round(this._size * (this._size / contentSize));
+        if (this._indicatorSize < this._minIndicatorSize) this._indicatorSize = this._minIndicatorSize;
+
+        this._positionStep = (this._size - this._indicatorSize) / (contentSize - this._size);
+    }
+
+    this._render();
+};
+
+/**
+ * Render indicator
+ * @private
+ */
+App.ScrollIndicator.prototype._render = function _render()
+{
+    var indicatorSize = this._indicatorSize,
+        position = -Math.round(this._contentPosition * this._positionStep);
+
+    if (position + indicatorSize > this._size)
+    {
+        indicatorSize = this._size - position;
+    }
+    else if (position < 0)
+    {
+        indicatorSize = indicatorSize + position;
+        position = 0;
+    }
+
+    this.clear();
+    this.beginFill(0x000000,0.3);
+
+    if (this._direction === App.Direction.X)
+    {
+        this.drawRoundedRect(
+            position + this._padding,
+            Math.round(this._padding * 0.5),
+            indicatorSize - this._padding * 2,
+            this._indicatorThickness,
+            this._indicatorThickness * 0.5
+        );
+    }
+    else if (this._direction === App.Direction.Y)
+    {
+        this.drawRoundedRect(
+            Math.round(this._padding * 0.5),
+            position + this._padding,
+            this._indicatorThickness,
+            indicatorSize - this._padding * 2,
+            this._indicatorThickness * 0.5
+        );
+    }
+
+    this.endFill();
+};
+
+/**
+ * Destroy
+ */
+App.ScrollIndicator.prototype.destroy = function destroy()
+{
+    //TODO also destroy PIXI's Graphics object!
+
+    this._showHideTween.destroy();
+    this._showHideTween = null;
+
+    this.boundingBox = null;
+    this._direction = null;
+    this._state = null;
+
+    this.clear();
+};
+
+/**
+ * @class Pane
+ * @extends {DisplayObjectContainer}
+ * @param {string} xScrollPolicy
+ * @param {string} yScrollPolicy
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
 {
     PIXI.DisplayObjectContainer.call(this);
 
+    this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
     this._content = null;
     this._width = width;
     this._height = height;
@@ -801,11 +1026,13 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height)
     this._contentWidth = 0;
 
     this._enabled = false;
+    this._state = null;
     this._xOriginalScrollPolicy = xScrollPolicy;
     this._yOriginalScrollPolicy = yScrollPolicy;
     this._xScrollPolicy = xScrollPolicy;
     this._yScrollPolicy = yScrollPolicy;
-    this._state = null;
+    this._xScrollIndicator = new App.ScrollIndicator(App.Direction.X,pixelRatio);
+    this._yScrollIndicator = new App.ScrollIndicator(App.Direction.Y,pixelRatio);
 
     this._mouseData = null;
     this._oldMouseX = 0.0;
@@ -876,7 +1103,11 @@ App.Pane.prototype.enable = function enable()
  */
 App.Pane.prototype.disable = function disable()
 {
+    this._unRegisterEventListeners();
 
+    this.interactive = false;
+
+    this._enabled = false;
 };
 
 /**
@@ -895,7 +1126,7 @@ App.Pane.prototype._registerEventListeners = function _registerEventListeners()
     this.mousemove = this._onPointerMove;
     this.touchmove = this._onPointerMove;
 
-    App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
+    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
 };
 
 /**
@@ -904,14 +1135,24 @@ App.Pane.prototype._registerEventListeners = function _registerEventListeners()
  */
 App.Pane.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
 {
+    //TODO can register only either mouse or touch, based on device
+    this.mousedown = null;
+    this.mouseup = null;
+    this.mouseupoutside = null;
+    this.touchstart = null;
+    this.touchend = null;
+    this.touchendoutside = null;
+    this.mousemove = null;
+    this.touchmove = null;
 
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
 };
 
 /**
  * Pointer Down handler
  *
  * @method _onPointerDown
- * @param {PIXI.InteractionData} data
+ * @param {InteractionData} data
  * @private
  */
 App.Pane.prototype._onPointerDown = function _onMouseDown(data)
@@ -929,27 +1170,38 @@ App.Pane.prototype._onPointerDown = function _onMouseDown(data)
     this._ySpeed = 0.0;
 
     this._state = App.InteractiveState.DRAGGING;
+
+    if (this._xScrollPolicy === App.ScrollPolicy.ON) this._xScrollIndicator.show();
+    if (this._yScrollPolicy === App.ScrollPolicy.ON) this._yScrollIndicator.show();
 };
 
 /**
  * On pointer up
  *
- * @param {PIXI.InteractionData} data
+ * @param {InteractionData} data
  * @private
  */
 App.Pane.prototype._onPointerUp = function _onMouseUp(data)
 {
     data.originalEvent.preventDefault();
 
-    if (this._isContentPulled()) this._state = App.InteractiveState.SNAPPING;
-    else this._state = App.InteractiveState.SCROLLING;
+    if (this._isContentPulled())
+    {
+        this._state = App.InteractiveState.SNAPPING;
+        this._xSpeed = 0.0;
+        this._ySpeed = 0.0;
+    }
+    else
+    {
+        this._state = App.InteractiveState.SCROLLING;
+    }
 
     this._mouseData = null;
 };
 
 /**
  * On pointer move
- * @param {PIXI.InteractionData} data
+ * @param {InteractionData} data
  * @private
  */
 App.Pane.prototype._onPointerMove = function _onMouseMove(data)
@@ -969,8 +1221,11 @@ App.Pane.prototype._onTick = function _onTick()
     var InteractiveState = App.InteractiveState;
 
     if (this._state === InteractiveState.DRAGGING) this._drag(App.ScrollPolicy);
-    else if (this._state === InteractiveState.SCROLLING) this._scroll(App.ScrollPolicy,App.InteractiveState);
-    else if (this._state === InteractiveState.SNAPPING) this._snap(App.ScrollPolicy,App.InteractiveState);
+    else if (this._state === InteractiveState.SCROLLING) this._scroll(App.ScrollPolicy,InteractiveState);
+    else if (this._state === InteractiveState.SNAPPING) this._snap(App.ScrollPolicy,InteractiveState);
+
+    if (this._xScrollIndicator.visible) this._xScrollIndicator.update(this._content.x);
+    if (this._yScrollIndicator.visible) this._yScrollIndicator.update(this._content.y);
 };
 
 /**
@@ -990,6 +1245,7 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
             contentRight = contentX + this._contentWidth,
             contentLeft = contentX - this._contentWidth;
 
+        // If content is pulled from beyond screen edges, dump the drag effect
         if (contentX > 0)
         {
             pullDistance = (1 - contentX / this._width) * this._dumpForce;
@@ -1016,6 +1272,7 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
             contentBottom = contentY + this._contentHeight,
             contentTop = this._height - this._contentHeight;
 
+        // If content is pulled from beyond screen edges, dump the drag effect
         if (contentY > 0)
         {
             pullDistance = (1 - contentY / this._height) * this._dumpForce;
@@ -1032,7 +1289,6 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
         }
 
         this._ySpeed = mouseY - this._oldMouseY;
-        if (this._ySpeed > 100) this._ySpeed = 100;
         this._oldMouseY = mouseY;
     }
 };
@@ -1053,6 +1309,7 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
         var contentX = this._content.x,
             contentRight = contentX + this._contentWidth;
 
+        // If content is scrolled from beyond screen edges, dump the speed
         if (contentX > 0)
         {
             this._xSpeed *= (1 - contentX / this._width) * this._dumpForce;
@@ -1062,9 +1319,13 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
             this._xSpeed *= (contentRight / this._width) * this._dumpForce;
         }
 
+        // If the speed is very low, stop it.
+        // Also, if the content is scrolled beyond screen edges, switch to 'snap' state
         if (Math.abs(this._xSpeed) < .1)
         {
-            this._xSpeed = 0;
+            this._xSpeed = 0.0;
+            this._state = null;
+            this._xScrollIndicator.hide();
 
             if (contentX > 0 || contentRight < this._width) this._state = InteractiveState.SNAPPING;
         }
@@ -1081,6 +1342,7 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
         var contentY = this._content.y,
             contentBottom = contentY + this._contentHeight;
 
+        // If content is scrolled from beyond screen edges, dump the speed
         if (contentY > 0)
         {
             this._ySpeed *= (1 - contentY / this._height) * this._dumpForce;
@@ -1090,9 +1352,13 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
             this._ySpeed *= (contentBottom / this._height) * this._dumpForce;
         }
 
+        // If the speed is very low, stop it.
+        // Also, if the content is scrolled beyond screen edges, switch to 'snap' state
         if (Math.abs(this._ySpeed) < .1)
         {
-            this._ySpeed = 0;
+            this._ySpeed = 0.0;
+            this._state = null;
+            this._yScrollIndicator.hide();
 
             if (contentY > 0 || contentBottom < this._height) this._state = InteractiveState.SNAPPING;
         }
@@ -1124,6 +1390,7 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
             {
                 this._state = null;
                 this._content.x = 0;
+                this._xScrollIndicator.hide();
             }
             else
             {
@@ -1137,6 +1404,7 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
             {
                 this._state = null;
                 this._content.x = contentLeft;
+                this._xScrollIndicator.hide();
             }
             else
             {
@@ -1158,6 +1426,7 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
             {
                 this._state = null;
                 this._content.y = 0;
+                this._yScrollIndicator.hide();
             }
             else
             {
@@ -1167,10 +1436,11 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
         else if (contentBottom < this._height)
         {
             result = contentTop + (contentY - contentTop) * this._snapForce;
-            if (result >= this._height - 5)
+            if (result >= contentTop - 5)
             {
                 this._state = null;
                 this._content.y = contentTop;
+                this._yScrollIndicator.hide();
             }
             else
             {
@@ -1193,30 +1463,83 @@ App.Pane.prototype._isContentPulled = function _isContentPulled()
         this._content.x + this._contentWidth < this._width;
 };
 
+/**
+ * Update scroll indicators
+ * @private
+ */
 App.Pane.prototype._updateScrollers = function _updateScrollBars()
 {
-    var bounds = this._content.boundingBox, ScrollPolicy = App.ScrollPolicy;
-    if (bounds)
-    {
-        if (this._xOriginalScrollPolicy === ScrollPolicy.AUTO)
-        {
-            //TODO use this Pane's height instead of the layout's
-            if (bounds.width > this._width) this._xScrollPolicy = ScrollPolicy.ON;
-            else this._xScrollPolicy = ScrollPolicy.OFF;
-        }
+    var ScrollPolicy = App.ScrollPolicy;
 
-        if (this._yOriginalScrollPolicy === ScrollPolicy.AUTO)
+    if (this._xOriginalScrollPolicy === ScrollPolicy.AUTO)
+    {
+        if (this._contentWidth >= this._width)
         {
-            //TODO use this Pane's height instead of the layout's
-            if (bounds.height > this._height) this._yScrollPolicy = ScrollPolicy.ON;
-            else this._yScrollPolicy = ScrollPolicy.OFF;
+            this._xScrollPolicy = ScrollPolicy.ON;
+
+            this._xScrollIndicator.resize(this._width,this._contentWidth);
+            this._xScrollIndicator.x = this._height - this._xScrollIndicator.boundingBox.height;
+            if (!this.contains(this._xScrollIndicator)) this.addChild(this._xScrollIndicator);
+        }
+        else
+        {
+            this._xScrollPolicy = ScrollPolicy.OFF;
+
+            this._xScrollIndicator.hide();
+            if (this.contains(this._xScrollIndicator)) this.removeChild(this._xScrollIndicator);
+        }
+    }
+
+    if (this._yOriginalScrollPolicy === ScrollPolicy.AUTO)
+    {
+        if (this._contentHeight >= this._height)
+        {
+            this._yScrollPolicy = ScrollPolicy.ON;
+
+            this._yScrollIndicator.resize(this._height,this._contentHeight);
+            this._yScrollIndicator.x = this._width - this._yScrollIndicator.boundingBox.width;
+            if (!this.contains(this._yScrollIndicator)) this.addChild(this._yScrollIndicator);
+        }
+        else
+        {
+            this._yScrollPolicy = ScrollPolicy.OFF;
+
+            this._yScrollIndicator.hide();
+            if (this.contains(this._yScrollIndicator)) this.removeChild(this._yScrollIndicator);
         }
     }
 };
 
+/**
+ * Destroy
+ */
 App.Pane.prototype.destroy = function destroy()
 {
+    //TODO also destroy PIXI's DisplayObjectContainer object!
 
+    this.disable();
+
+    this._ticker = null;
+
+    this._state = null;
+    this._xSpeed = 0.0;
+    this._ySpeed = 0.0;
+    this._mouseData = null;
+
+    this.removeContent();
+
+    if (this.contains(this._xScrollIndicator)) this.removeChild(this._xScrollIndicator);
+    this._xScrollIndicator.destroy();
+    this._xScrollIndicator = null;
+
+    if (this.contains(this._yScrollIndicator)) this.removeChild(this._yScrollIndicator);
+    this._yScrollIndicator.destroy();
+    this._yScrollIndicator = null;
+
+    this._xOriginalScrollPolicy = null;
+    this._yOriginalScrollPolicy = null;
+    this._xScrollPolicy = null;
+    this._yScrollPolicy = null;
 };
 
 /**
@@ -1381,10 +1704,8 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     this._background.drawRect(0,0,this._layout.width,this._layout.height);
     this._background.endFill();
 
-    this._screenPane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height);
+    this._screenPane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
     this._screenPane.setContent(new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout));
-
-    //this._accountScreen = new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
 
     this.addChild(this._background);
     this.addChild(this._screenPane);
@@ -1565,6 +1886,7 @@ App.Easing = {
  * @param {number} defaultProgress
  * @param {ObjectPool} eventListenerPool
  * @extends {EventDispatcher}
+ * @constructor
  */
 App.TweenProxy = function TweenProxy(duration,ease,defaultProgress,eventListenerPool)
 {
@@ -1693,7 +2015,6 @@ App.TweenProxy.prototype._tween = function _tween()
  */
 App.TweenProxy.prototype._tweenInterval = function _tweenInterval()
 {
-    //TODO update progress only when requested?
     this._now = this._timeStamp.now();
 
     var end = this._reversed ? this._reversedEnd : this._end;
@@ -1711,6 +2032,19 @@ App.TweenProxy.prototype._tweenInterval = function _tweenInterval()
     }
 };
 
+/**
+ * Destroy
+ */
+App.TweenProxy.prototype.destroy = function destroy()
+{
+    App.EventDispatcher.prototype.destroy.call(this);
+
+    this.stop();
+
+    this._intervalReference = null;
+    this._timeStamp = null;
+    this._ease = null;
+};
 /**
  * @class Ticker
  * @param {ObjectPool} eventListenerPool
