@@ -38,6 +38,10 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
     this._loadDataCommand.destroy();
     this._loadDataCommand = null;
 
+    App.TOUCH_SUPPORTED = ('ontouchstart' in window) // iOS
+        || (window.navigator['msPointerEnabled'] && window.navigator['msMaxTouchPoints'] > 0) // IE10
+        || (window.navigator['pointerEnabled'] && window.navigator['maxTouchPoints'] > 0); // IE11+
+
     this._initModel(data);
     this._initCommands();
     this._initView();

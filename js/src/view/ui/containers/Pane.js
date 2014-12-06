@@ -133,15 +133,20 @@ App.Pane.prototype.disable = function disable()
  */
 App.Pane.prototype._registerEventListeners = function _registerEventListeners()
 {
-    //TODO can register only either mouse or touch, based on device
-    this.mousedown = this._onPointerDown;
-    this.mouseup = this._onPointerUp;
-    this.mouseupoutside = this._onPointerUp;
-    this.touchstart = this._onPointerDown;
-    this.touchend = this._onPointerUp;
-    this.touchendoutside = this._onPointerUp;
-    this.mousemove = this._onPointerMove;
-    this.touchmove = this._onPointerMove;
+    if (App.TOUCH_SUPPORTED) //TODO dependency on 'App'
+    {
+        this.touchstart = this._onPointerDown;
+        this.touchend = this._onPointerUp;
+        this.touchendoutside = this._onPointerUp;
+        this.touchmove = this._onPointerMove;
+    }
+    else
+    {
+        this.mousedown = this._onPointerDown;
+        this.mouseup = this._onPointerUp;
+        this.mouseupoutside = this._onPointerUp;
+        this.mousemove = this._onPointerMove;
+    }
 
     this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
 };
@@ -152,17 +157,22 @@ App.Pane.prototype._registerEventListeners = function _registerEventListeners()
  */
 App.Pane.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
 {
-    //TODO can register only either mouse or touch, based on device
-    this.mousedown = null;
-    this.mouseup = null;
-    this.mouseupoutside = null;
-    this.touchstart = null;
-    this.touchend = null;
-    this.touchendoutside = null;
-    this.mousemove = null;
-    this.touchmove = null;
-
     this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    if (App.TOUCH_SUPPORTED)
+    {
+        this.touchstart = null;
+        this.touchend = null;
+        this.touchendoutside = null;
+        this.touchmove = null;
+    }
+    else
+    {
+        this.mousedown = null;
+        this.mouseup = null;
+        this.mouseupoutside = null;
+        this.mousemove = null;
+    }
 };
 
 /**
