@@ -29,6 +29,8 @@ App.AccountButton = function AccountButton(model,layout,index)
     this.addChild(this._nameLabel);
     this.addChild(this._detailsLabel);
 
+    this.interactive = true;
+
     this._render();
 };
 
@@ -64,4 +66,25 @@ App.AccountButton.prototype._render = function _render()
     this.beginFill(0xcccccc);
     this.drawRect(padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1);
     this.endFill();
+};
+
+/**
+ * Destroy
+ */
+App.AccountButton.prototype.destroy = function destroy()
+{
+    this.clear();
+
+    this.interactive = false;
+
+    this._layout = null;
+    this._model = null;
+
+    this.boundingBox = null;
+
+    this.removeChild(this._nameLabel);
+    this._nameLabel = null;
+
+    this.removeChild(this._detailsLabel);
+    this._detailsLabel = null;
 };

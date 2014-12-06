@@ -11,7 +11,7 @@ module.exports = function(grunt)
 
     var source = [
         "js/src/intro.js",
-        "js/src/utils/MathUtil.js",
+        "js/src/utils/MathUtils.js",
         "js/src/enum/EventType.js",
         "js/src/enum/ModelName.js",
         "js/src/enum/ViewName.js",
@@ -29,10 +29,12 @@ module.exports = function(grunt)
         "js/src/model/Category.js",
         "js/src/model/Filter.js",
         "js/src/view/ViewLocator.js",
-        "js/src/view/ui/ScrollIndicator.js",
-        "js/src/view/ui/Pane.js",
+        "js/src/view/ui/controls/ScrollIndicator.js",
+        "js/src/view/ui/containers/Pane.js",
         "js/src/view/screens/accounts/AccountButton.js",
         "js/src/view/screens/accounts/AccountScreen.js",
+        "js/src/view/screens/categories/CategoryButton.js",
+        "js/src/view/screens/categories/CategoryScreen.js",
         "js/src/view/ApplicationView.js",
         "js/src/tween/Easing.js",
         "js/src/tween/TweenProxy.js",

@@ -30,11 +30,15 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     this._background.drawRect(0,0,this._layout.width,this._layout.height);
     this._background.endFill();
 
-    this._screenPane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
-    this._screenPane.setContent(new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout));
+    this._accountScreen = new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
+    this._categoryScreen = new App.CategoryScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
+
+    this._accountScreen.hide();
+    this._categoryScreen.show();
 
     this.addChild(this._background);
-    this.addChild(this._screenPane);
+    this.addChild(this._accountScreen);
+    this.addChild(this._categoryScreen);
 
     this._registerEventListeners();
 };
@@ -50,9 +54,51 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
  */
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
-    this._screenPane.enable();
-
     App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._accountScreen.enable();
+    this._accountScreen.addEventListener(App.EventType.CLICK,this,this._onAccountScreenClick);
+    /*this._accountScreen.click = function(data)
+    {
+        if (!this.contains(this._categoryScreen)) this.addChild(this._categoryScreen);
+        this._categoryScreen.show();
+
+        this._accountScreen.hide();
+        if (this.contains(this._accountScreen)) this.removeChild(this._accountScreen);
+    }.bind(this);*/
+    this._accountScreen.tap = function()
+    {
+        if (!this.contains(this._categoryScreen)) this.addChild(this._categoryScreen);
+        this._categoryScreen.show();
+
+        this._accountScreen.hide();
+        if (this.contains(this._accountScreen)) this.removeChild(this._accountScreen);
+    }.bind(this);
+
+    this._categoryScreen.enable();
+    this._categoryScreen.click = function()
+    {
+        if (!this.contains(this._accountScreen)) this.addChild(this._accountScreen);
+        this._accountScreen.show();
+        this._categoryScreen.hide();
+        if (this.contains(this._categoryScreen)) this.removeChild(this._categoryScreen);
+    }.bind(this);
+    this._categoryScreen.tap = function()
+    {
+        if (!this.contains(this._accountScreen)) this.addChild(this._accountScreen);
+        this._accountScreen.show();
+        this._categoryScreen.hide();
+        if (this.contains(this._categoryScreen)) this.removeChild(this._categoryScreen);
+    }.bind(this);
+};
+
+App.ApplicationView.prototype._onAccountScreenClick = function _onAccountScreenClick()
+{
+    if (!this.contains(this._categoryScreen)) this.addChild(this._categoryScreen);
+    this._categoryScreen.show();
+
+    this._accountScreen.hide();
+    if (this.contains(this._accountScreen)) this.removeChild(this._accountScreen);
 };
 
 /**

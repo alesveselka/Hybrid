@@ -47,15 +47,15 @@ App.Pane.prototype.constructor = App.Pane;
  * Set content of the pane
  *
  * @method setContent
- * @param {PIXI.DisplayObject} content
+ * @param {PIXI.DisplayObjectContainer} content
  */
 App.Pane.prototype.setContent = function setContent(content)
 {
     this.removeContent();
 
     this._content = content;
-    this._contentHeight = this._content.boundingBox.height;
-    this._contentWidth = this._content.boundingBox.width;
+    this._contentHeight = this._content.height;
+    this._contentWidth = this._content.width;
 
     this.addChildAt(this._content,0);
 
@@ -74,6 +74,26 @@ App.Pane.prototype.removeContent = function removeContent()
         this.removeChild(this._content);
 
         this._content = null;
+    }
+};
+
+/**
+ * Resize
+ *
+ * @param {number} width
+ * @param {number} height
+ */
+App.Pane.prototype.resize = function resize(width,height)
+{
+    this._width = width;
+    this._height = height;
+
+    if (this._content)
+    {
+        this._contentHeight = this._content.height;
+        this._contentWidth = this._content.width;
+
+        this._updateScrollers();
     }
 };
 
@@ -98,6 +118,9 @@ App.Pane.prototype.enable = function enable()
 App.Pane.prototype.disable = function disable()
 {
     this._unRegisterEventListeners();
+
+    //TODO also stop scrolling, but if 'snapping' make sure the content is not pulled after cancelling the state
+    if (this._state === App.InteractiveState.DRAGGING) this._onPointerUp();
 
     this.interactive = false;
 
@@ -151,8 +174,8 @@ App.Pane.prototype._unRegisterEventListeners = function _unRegisterEventListener
  */
 App.Pane.prototype._onPointerDown = function _onMouseDown(data)
 {
-    //TODO handle multiple pointers at once (at touch screens)
-
+    //TODO make sure just one input is registered (multiple inputs on touch screens) ...
+    //TODO ... simple condition doesn't matter - I need ID of the first input received and then respond to that in other handlers!
     data.originalEvent.preventDefault();
 
     this._mouseData = data;
@@ -177,8 +200,6 @@ App.Pane.prototype._onPointerDown = function _onMouseDown(data)
  */
 App.Pane.prototype._onPointerUp = function _onMouseUp(data)
 {
-    data.originalEvent.preventDefault();
-
     if (this._isContentPulled())
     {
         this._state = App.InteractiveState.SNAPPING;

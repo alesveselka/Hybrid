@@ -74,6 +74,38 @@ window.cancelAnimationFrame = window.cancelAnimationFrame ||
  */
 var App = App || {};
 
+/** @type {{rgbToHex:Function,hexToRgb:Function}} */
+App.MathUtils = {
+    /**
+     * Convert RGB values to HEX value
+     * @param {number} red
+     * @param {number} green
+     * @param {number} blue
+     * @returns {string}
+     */
+    rgbToHex:function(red,green,blue)
+    {
+        return ((1 << 24) + (red << 16) + (green << 8) + blue).toString(16).slice(1);
+    },
+
+    /**
+     * Convert HEX value to r, g, and b color component values
+     * @param {string} hex
+     * @returns {{r:Number,g:Number,b:Number}|null}
+     */
+    hexToRgb:function(hex)
+    {
+        // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+        var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+        hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+            return r + r + g + g + b + b;
+        });
+
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {r:parseInt(result[1],16),g:parseInt(result[2],16),b:parseInt(result[3],16)} : null;
+    }
+};
+
 /**
  * Event type
  * @enum {string}
@@ -1053,15 +1085,15 @@ App.Pane.prototype.constructor = App.Pane;
  * Set content of the pane
  *
  * @method setContent
- * @param {PIXI.DisplayObject} content
+ * @param {PIXI.DisplayObjectContainer} content
  */
 App.Pane.prototype.setContent = function setContent(content)
 {
     this.removeContent();
 
     this._content = content;
-    this._contentHeight = this._content.boundingBox.height;
-    this._contentWidth = this._content.boundingBox.width;
+    this._contentHeight = this._content.height;
+    this._contentWidth = this._content.width;
 
     this.addChildAt(this._content,0);
 
@@ -1080,6 +1112,26 @@ App.Pane.prototype.removeContent = function removeContent()
         this.removeChild(this._content);
 
         this._content = null;
+    }
+};
+
+/**
+ * Resize
+ *
+ * @param {number} width
+ * @param {number} height
+ */
+App.Pane.prototype.resize = function resize(width,height)
+{
+    this._width = width;
+    this._height = height;
+
+    if (this._content)
+    {
+        this._contentHeight = this._content.height;
+        this._contentWidth = this._content.width;
+
+        this._updateScrollers();
     }
 };
 
@@ -1104,6 +1156,9 @@ App.Pane.prototype.enable = function enable()
 App.Pane.prototype.disable = function disable()
 {
     this._unRegisterEventListeners();
+
+    //TODO also stop scrolling, but if 'snapping' make sure the content is not pulled after cancelling the state
+    if (this._state === App.InteractiveState.DRAGGING) this._onPointerUp();
 
     this.interactive = false;
 
@@ -1157,8 +1212,8 @@ App.Pane.prototype._unRegisterEventListeners = function _unRegisterEventListener
  */
 App.Pane.prototype._onPointerDown = function _onMouseDown(data)
 {
-    //TODO handle multiple pointers at once (at touch screens)
-
+    //TODO make sure just one input is registered (multiple inputs on touch screens) ...
+    //TODO ... simple condition doesn't matter - I need ID of the first input received and then respond to that in other handlers!
     data.originalEvent.preventDefault();
 
     this._mouseData = data;
@@ -1183,8 +1238,6 @@ App.Pane.prototype._onPointerDown = function _onMouseDown(data)
  */
 App.Pane.prototype._onPointerUp = function _onMouseUp(data)
 {
-    data.originalEvent.preventDefault();
-
     if (this._isContentPulled())
     {
         this._state = App.InteractiveState.SNAPPING;
@@ -1573,6 +1626,8 @@ App.AccountButton = function AccountButton(model,layout,index)
     this.addChild(this._nameLabel);
     this.addChild(this._detailsLabel);
 
+    this.interactive = true;
+
     this._render();
 };
 
@@ -1611,6 +1666,27 @@ App.AccountButton.prototype._render = function _render()
 };
 
 /**
+ * Destroy
+ */
+App.AccountButton.prototype.destroy = function destroy()
+{
+    this.clear();
+
+    this.interactive = false;
+
+    this._layout = null;
+    this._model = null;
+
+    this.boundingBox = null;
+
+    this.removeChild(this._nameLabel);
+    this._nameLabel = null;
+
+    this.removeChild(this._detailsLabel);
+    this._detailsLabel = null;
+};
+
+/**
  * @class AccountScreen
  * @extends DisplayObjectContainer
  * @param {Collection} model
@@ -1620,25 +1696,32 @@ App.AccountButton.prototype._render = function _render()
 App.AccountScreen = function AccountScreen(model,layout)
 {
     PIXI.DisplayObjectContainer.call(this);
+    //App.EventDispatcher.call(this,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
 
+    this._eventDispatcher = new App.EventDispatcher(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._model = model;
     this._layout = layout;
-    this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,0);
+    this._enabled = false;
 
     var i = 0, l = this._model.length(), AccountButton = App.AccountButton, button = null;
 
-    this._accountButtons = new Array(l);
+    this._buttons = new Array(l);
+    this._buttonContainer = new PIXI.DisplayObjectContainer();
 
-    //TODO add the list into 'ScrollPane'
     for (;i<30;i++)
     {
         //button = new AccountButton(this._model.getItemAt(i),this._layout);
         button = new AccountButton(this._model.getItemAt(0),this._layout,i);
-        this._accountButtons[i] = button;
-        this.addChild(button);
+        this._buttons[i] = button;
+        this._buttonContainer.addChild(button);
     }
 
+    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
+    this._pane.setContent(this._buttonContainer);
+
     this._updateLayout();
+
+    this.addChild(this._pane);
 
 //    this._addButton =
 };
@@ -1646,15 +1729,97 @@ App.AccountScreen = function AccountScreen(model,layout)
 App.AccountScreen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.AccountScreen.prototype.constructor = App.AccountScreen;
 
-/**
- * @method _resize
- * @param {number} width
- */
-App.AccountScreen.prototype.resize = function resize(width)
+App.AccountScreen.prototype.show = function show()
 {
-    //
+    this.visible = true;
 
-    this._render();
+    this.enable();
+};
+
+App.AccountScreen.prototype.hide = function hide()
+{
+    this.disable();
+
+    this.visible = false;
+};
+
+/**
+ * Enable
+ */
+App.AccountScreen.prototype.enable = function enable()
+{
+    if (!this._enabled)
+    {
+        this._pane.enable();
+
+        this.interactive = true;
+
+        this._registerEventListeners();
+
+        this._enabled = true;
+    }
+};
+
+/**
+ * Disable
+ */
+App.AccountScreen.prototype.disable = function disable()
+{
+    this.interactive = false;
+
+    this._pane.disable();
+
+    //this._registerEventListeners();
+
+    this._enabled = false;
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.AccountScreen.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.AccountScreen.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.AccountScreen.prototype._registerEventListeners = function _registerEventListeners()
+{
+    //TODO check distance between Down and Up events and recognize either "drag" or click/tap
+    this.mousedown = this._onPointerDown;
+    this.mouseup = this._onPointerUp;
+    this.mouseupoutside = this._onPointerUp;
+    this.touchstart = this._onPointerDown;
+    this.touchend = this._onPointerUp;
+    this.touchendoutside = this._onPointerUp;
+};
+
+App.AccountScreen.prototype._onPointerDown = function _onPointerDown(data)
+{
+
+};
+
+App.AccountScreen.prototype._onPointerUp = function _onPointerUp(data)
+{
+    //console.log("_onPointerUp");
+    this._eventDispatcher.dispatchEvent(App.EventType.CLICK);
 };
 
 /**
@@ -1663,15 +1828,290 @@ App.AccountScreen.prototype.resize = function resize(width)
  */
 App.AccountScreen.prototype._updateLayout = function _updateLayout()
 {
-    var i = 0, l = this._accountButtons.length, height = this._accountButtons[0].boundingBox.height;
+    var i = 0, l = this._buttons.length, height = this._buttons[0].boundingBox.height;
     for (;i<l;i++)
     {
-        this._accountButtons[i].y = i * height;
+        this._buttons[i].y = i * height;
     }
 
-    this.boundingBox.height = l * height;
+    this._pane.resize(this._layout.width,this._layout.height);
 };
 
+/**
+ * Destroy
+ */
+App.AccountScreen.prototype.destroy = function destroy()
+{
+    this.disable();
+
+    this._eventDispatcher.destroy();
+    this._eventDispatcher = null;
+
+    var i = 0, button = null;
+    for (;i<30;i++)
+    {
+        this._buttons[i] = button;
+        this._buttonContainer.removeChild(button);
+        button.destroy();
+    }
+
+    this.removeChild(this._pane);
+    this._pane.destroy();
+    this._pane = null;
+
+    this._buttonContainer = null;
+
+    this._buttons.length = 0;
+    this._buttons = null;
+};
+
+/**
+ * @class CategoryButton
+ * @extends Graphics
+ * @param {Account} model
+ * @param {Object} layout
+ * @constructor
+ */
+App.CategoryButton = function CategoryButton(model,layout,index)
+{
+    PIXI.Graphics.call(this);
+
+    this._model = model;
+    this._layout = layout;
+
+    var pixelRatio = this._layout.pixelRatio,
+        height = Math.round(50 * pixelRatio);
+
+    this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
+
+    this._colorStripe = new PIXI.Graphics();
+    this._colorStripe.beginFill("0x"+App.MathUtils.rgbToHex(
+        Math.round(Math.sin(0.3 * index + 0) * 127 + 128),
+        Math.round(Math.sin(0.3 * index + 2) * 127 + 128),
+        Math.round(Math.sin(0.3 * index + 4) * 127 + 128)
+    ));
+    this._colorStripe.drawRect(0,0,Math.round(4 * pixelRatio),height);
+    this._colorStripe.endFill();
+
+    this._icon = new PIXI.Sprite.fromFrame("currencies");
+    if (pixelRatio === 1)
+    {
+        this._icon.scale.x *= 0.5;
+        this._icon.scale.y *= 0.5;
+    }
+    this._icon.x = Math.round(15 * pixelRatio);
+    this._icon.y = Math.round((height - this._icon.height) / 2);
+    this._icon.tint = 0x394264;
+
+    //TODO move texts and their settings objects into pools?
+    this._nameLabel = new PIXI.Text("Category "+index,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    this._nameLabel.x = Math.round(64 * pixelRatio);
+    this._nameLabel.y = Math.round(18 * pixelRatio);
+
+    this.addChild(this._colorStripe);
+    this.addChild(this._icon);
+    this.addChild(this._nameLabel);
+
+    this.interactive = true;
+
+    this._render();
+};
+
+App.CategoryButton.prototype = Object.create(PIXI.Graphics.prototype);
+App.CategoryButton.prototype.constructor = App.CategoryButton;
+
+/**
+ * @method _resize
+ * @param {number} width
+ */
+App.CategoryButton.prototype.resize = function resize(width)
+{
+    this.boundingBox.width = width;
+
+    this._render();
+};
+
+/**
+ * @method render
+ * @private
+ */
+App.CategoryButton.prototype._render = function _render()
+{
+    //TODO cache this as texture?
+
+    var padding = Math.round(10 * this._layout.pixelRatio);
+
+    this.clear();
+    this.beginFill(0xefefef);
+    this.drawRect(0,0,this.boundingBox.width,this.boundingBox.height);
+    this.beginFill(0xffffff);
+    this.drawRect(padding,0,this.boundingBox.width-padding*2,1);
+    this.beginFill(0xcccccc);
+    this.drawRect(padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1);
+    this.endFill();
+};
+
+/**
+ * Destroy
+ */
+App.CategoryButton.prototype.destroy = function destroy()
+{
+    this.clear();
+
+    this.interactive = false;
+
+    this._layout = null;
+    this._model = null;
+
+    this.boundingBox = null;
+
+    this.removeChild(this._colorStripe);
+    this._colorStripe = null;
+
+    this.removeChild(this._icon);
+    this._icon = null;
+
+    this.removeChild(this._nameLabel);
+    this._nameLabel = null;
+};
+
+/**
+ * @class CategoryScreen
+ * @extends DisplayObjectContainer
+ * @param {Collection} model
+ * @param {Object} layout
+ * @constructor
+ */
+App.CategoryScreen = function CategoryScreen(model,layout)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this._model = model;
+    this._layout = layout;
+    this._enabled = false;
+
+    var i = 0, l = this._model.length(), CategoryButton = App.CategoryButton, button = null;
+
+    this._buttons = new Array(l);
+    this._buttonContainer = new PIXI.DisplayObjectContainer();
+
+    for (;i<30;i++)
+    {
+        //button = new AccountButton(this._model.getItemAt(i),this._layout);
+        button = new CategoryButton(this._model.getItemAt(0),this._layout,i);
+        this._buttons[i] = button;
+        this._buttonContainer.addChild(button);
+    }
+
+    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
+    this._pane.setContent(this._buttonContainer);
+
+    this._updateLayout();
+
+    this.addChild(this._pane);
+
+//    this._addButton =
+};
+
+App.CategoryScreen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.CategoryScreen.prototype.constructor = App.CategoryScreen;
+
+App.CategoryScreen.prototype.show = function show()
+{
+    this.visible = true;
+//    console.log(this," show");
+    this.enable();
+};
+
+App.CategoryScreen.prototype.hide = function hide()
+{
+    this.disable();
+//    console.log(this," hide");
+    this.visible = false;
+};
+
+/**
+ * Enable
+ */
+App.CategoryScreen.prototype.enable = function enable()
+{
+    if (!this._enabled)
+    {
+        this._pane.enable();
+
+        this.interactive = true;
+
+        this._registerEventListeners();
+
+        this._enabled = true;
+    }
+};
+
+/**
+ * Disable
+ */
+App.CategoryScreen.prototype.disable = function disable()
+{
+    this.interactive = false;
+
+    this._pane.disable();
+
+    //this._registerEventListeners();
+
+    this._enabled = false;
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.CategoryScreen.prototype._registerEventListeners = function _registerEventListeners()
+{
+    /*this.click = function click()
+    {
+        console.log("Categories clicked");
+    }*/
+};
+
+/**
+ * @method _updateLayout
+ * @private
+ */
+App.CategoryScreen.prototype._updateLayout = function _updateLayout()
+{
+    var i = 0, l = this._buttons.length, height = this._buttons[0].boundingBox.height;
+    for (;i<l;i++)
+    {
+        this._buttons[i].y = i * height;
+    }
+
+    this._pane.resize(this._layout.width,this._layout.height);
+};
+
+/**
+ * Destroy
+ */
+App.CategoryScreen.prototype.destroy = function destroy()
+{
+    this.disable();
+
+    var i = 0, button = null;
+    for (;i<30;i++)
+    {
+        this._buttons[i] = button;
+        this._buttonContainer.removeChild(button);
+        button.destroy();
+    }
+
+    this.removeChild(this._pane);
+    this._pane.destroy();
+    this._pane = null;
+
+    this._buttonContainer = null;
+
+    this._buttons.length = 0;
+    this._buttons = null;
+};
 /**
  * @class ApplicationView
  * @extends DisplayObjectContainer
@@ -1704,11 +2144,15 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     this._background.drawRect(0,0,this._layout.width,this._layout.height);
     this._background.endFill();
 
-    this._screenPane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
-    this._screenPane.setContent(new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout));
+    this._accountScreen = new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
+    this._categoryScreen = new App.CategoryScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
+
+    this._accountScreen.hide();
+    this._categoryScreen.show();
 
     this.addChild(this._background);
-    this.addChild(this._screenPane);
+    this.addChild(this._accountScreen);
+    this.addChild(this._categoryScreen);
 
     this._registerEventListeners();
 };
@@ -1724,9 +2168,51 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
  */
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
-    this._screenPane.enable();
-
     App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._accountScreen.enable();
+    this._accountScreen.addEventListener(App.EventType.CLICK,this,this._onAccountScreenClick)
+    /*this._accountScreen.click = function(data)
+    {
+        if (!this.contains(this._categoryScreen)) this.addChild(this._categoryScreen);
+        this._categoryScreen.show();
+
+        this._accountScreen.hide();
+        if (this.contains(this._accountScreen)) this.removeChild(this._accountScreen);
+    }.bind(this);*/
+    this._accountScreen.tap = function()
+    {
+        if (!this.contains(this._categoryScreen)) this.addChild(this._categoryScreen);
+        this._categoryScreen.show();
+
+        this._accountScreen.hide();
+        if (this.contains(this._accountScreen)) this.removeChild(this._accountScreen);
+    }.bind(this);
+
+    this._categoryScreen.enable();
+    this._categoryScreen.click = function()
+    {
+        if (!this.contains(this._accountScreen)) this.addChild(this._accountScreen);
+        this._accountScreen.show();
+        this._categoryScreen.hide();
+        if (this.contains(this._categoryScreen)) this.removeChild(this._categoryScreen);
+    }.bind(this);
+    this._categoryScreen.tap = function()
+    {
+        if (!this.contains(this._accountScreen)) this.addChild(this._accountScreen);
+        this._accountScreen.show();
+        this._categoryScreen.hide();
+        if (this.contains(this._categoryScreen)) this.removeChild(this._categoryScreen);
+    }.bind(this);
+};
+
+App.ApplicationView.prototype._onAccountScreenClick = function _onAccountScreenClick()
+{
+    if (!this.contains(this._categoryScreen)) this.addChild(this._categoryScreen);
+    this._categoryScreen.show();
+
+    this._accountScreen.hide();
+    if (this.contains(this._accountScreen)) this.removeChild(this._accountScreen);
 };
 
 /**
@@ -2510,6 +2996,8 @@ App.Initialize.prototype._initView = function _initView()
     }
 
     PIXI.CanvasTinter.tintMethod = PIXI.CanvasTinter.tintWithOverlay;
+
+    //context.webkitImageSmoothingEnabled = context.mozImageSmoothingEnabled = true;
 
     App.ViewLocator.addViewSegment(
         App.ViewName.APPLICATION_VIEW,

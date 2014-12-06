@@ -140,6 +140,8 @@ App.Initialize.prototype._initView = function _initView()
 
     PIXI.CanvasTinter.tintMethod = PIXI.CanvasTinter.tintWithOverlay;
 
+    //context.webkitImageSmoothingEnabled = context.mozImageSmoothingEnabled = true;
+
     App.ViewLocator.addViewSegment(
         App.ViewName.APPLICATION_VIEW,
         stage.addChild(new App.ApplicationView(stage,renderer,w,h,pixelRatio))
