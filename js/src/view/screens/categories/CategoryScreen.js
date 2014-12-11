@@ -1,17 +1,13 @@
 /**
  * @class CategoryScreen
- * @extends DisplayObjectContainer
+ * @extends Screen
  * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
 App.CategoryScreen = function CategoryScreen(model,layout)
 {
-    PIXI.DisplayObjectContainer.call(this);
-
-    this._model = model;
-    this._layout = layout;
-    this._enabled = false;
+    App.Screen.call(this,model,layout,0.4);
 
     var i = 0, l = this._model.length(), CategoryButton = App.CategoryButton, button = null;
 
@@ -36,64 +32,26 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 //    this._addButton =
 };
 
-App.CategoryScreen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
 App.CategoryScreen.prototype.constructor = App.CategoryScreen;
-
-App.CategoryScreen.prototype.show = function show()
-{
-    this.visible = true;
-//    console.log(this," show");
-    this.enable();
-};
-
-App.CategoryScreen.prototype.hide = function hide()
-{
-    this.disable();
-//    console.log(this," hide");
-    this.visible = false;
-};
 
 /**
  * Enable
  */
 App.CategoryScreen.prototype.enable = function enable()
 {
-    if (!this._enabled)
-    {
-        this._pane.enable();
+    App.Screen.prototype.enable.call(this);
 
-        this.interactive = true;
-
-        this._registerEventListeners();
-
-        this._enabled = true;
-    }
+    this._pane.enable();
 };
 
 /**
- * Disable
- */
-App.CategoryScreen.prototype.disable = function disable()
-{
-    this.interactive = false;
-
-    this._pane.disable();
-
-    //this._registerEventListeners();
-
-    this._enabled = false;
-};
-
-/**
- * Register event listeners
+ * Click handler
  * @private
  */
-App.CategoryScreen.prototype._registerEventListeners = function _registerEventListeners()
+App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    /*this.click = function click()
-    {
-        console.log("Categories clicked");
-    }*/
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ACCOUNT);
 };
 
 /**
@@ -116,20 +74,21 @@ App.CategoryScreen.prototype._updateLayout = function _updateLayout()
  */
 App.CategoryScreen.prototype.destroy = function destroy()
 {
-    this.disable();
+    App.Screen.prototype.destroy.call(this);
 
-    var i = 0, button = null;
-    for (;i<30;i++)
-    {
-        this._buttons[i] = button;
-        this._buttonContainer.removeChild(button);
-        button.destroy();
-    }
+    this.disable();
 
     this.removeChild(this._pane);
     this._pane.destroy();
     this._pane = null;
 
+    var i = 0, l = this._buttons.length, button = null;
+    for (;i<l;)
+    {
+        button = this._buttons[i++];
+        if (this._buttonContainer.contains(button)) this._buttonContainer.removeChild(button);
+        button.destroy();
+    }
     this._buttonContainer = null;
 
     this._buttons.length = 0;

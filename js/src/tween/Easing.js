@@ -83,7 +83,7 @@ App.Easing = {
      * @static
      */
     outExpo: function(t) {
-        return (t===1.0) ? 1.0 : (-Math.pow(2, -10 * t) + 1);
+        return (t===1.0) ? 1.0 : (1-Math.pow(2, -10 * t));
     },
 
     /**

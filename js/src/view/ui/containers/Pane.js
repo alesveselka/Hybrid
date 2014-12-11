@@ -128,12 +128,31 @@ App.Pane.prototype.disable = function disable()
 };
 
 /**
+ * Reset content scroll
+ */
+App.Pane.prototype.resetScroll = function resetScroll()
+{
+    this._state = null;
+    this._xSpeed = 0.0;
+    this._ySpeed = 0.0;
+
+    if (this._content)
+    {
+        this._content.x = 0;
+        this._content.y = 0;
+
+        this._xScrollIndicator.hide(true);
+        this._yScrollIndicator.hide(true);
+    }
+};
+
+/**
  * Register event listeners
  * @private
  */
 App.Pane.prototype._registerEventListeners = function _registerEventListeners()
 {
-    if (App.TOUCH_SUPPORTED) //TODO dependency on 'App'
+    if (App.Device.TOUCH_SUPPORTED)
     {
         this.touchstart = this._onPointerDown;
         this.touchend = this._onPointerUp;
@@ -159,7 +178,7 @@ App.Pane.prototype._unRegisterEventListeners = function _unRegisterEventListener
 {
     this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
 
-    if (App.TOUCH_SUPPORTED)
+    if (App.Device.TOUCH_SUPPORTED)
     {
         this.touchstart = null;
         this.touchend = null;
@@ -263,58 +282,61 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
 {
     var pullDistance = 0;
 
-    if (this._xScrollPolicy === ScrollPolicy.ON)
+    if (this.stage)
     {
-        var mouseX = this._mouseData.getLocalPosition(this.stage).x,
-            contentX = this._content.x,
-            contentRight = contentX + this._contentWidth,
-            contentLeft = contentX - this._contentWidth;
+        if (this._xScrollPolicy === ScrollPolicy.ON)
+        {
+            var mouseX = this._mouseData.getLocalPosition(this.stage).x,
+                contentX = this._content.x,
+                contentRight = contentX + this._contentWidth,
+                contentLeft = contentX - this._contentWidth;
 
-        // If content is pulled from beyond screen edges, dump the drag effect
-        if (contentX > 0)
-        {
-            pullDistance = (1 - contentX / this._width) * this._dumpForce;
-            this._content.x = Math.round(mouseX * pullDistance - this._xOffset * pullDistance);
-        }
-        else if (contentRight < this._width)
-        {
-            pullDistance = (contentRight / this._width) * this._dumpForce;
-            this._content.x = Math.round(contentLeft - (this._width - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
-        }
-        else
-        {
-            this._content.x = Math.round(mouseX - this._xOffset);
-        }
+            // If content is pulled from beyond screen edges, dump the drag effect
+            if (contentX > 0)
+            {
+                pullDistance = (1 - contentX / this._width) * this._dumpForce;
+                this._content.x = Math.round(mouseX * pullDistance - this._xOffset * pullDistance);
+            }
+            else if (contentRight < this._width)
+            {
+                pullDistance = (contentRight / this._width) * this._dumpForce;
+                this._content.x = Math.round(contentLeft - (this._width - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
+            }
+            else
+            {
+                this._content.x = Math.round(mouseX - this._xOffset);
+            }
 
-        this._xSpeed = mouseX - this._oldMouseX;
-        this._oldMouseX = mouseX;
-    }
-
-    if (this._yScrollPolicy === ScrollPolicy.ON)
-    {
-        var mouseY = this._mouseData.getLocalPosition(this.stage).y,
-            contentY = this._content.y,
-            contentBottom = contentY + this._contentHeight,
-            contentTop = this._height - this._contentHeight;
-
-        // If content is pulled from beyond screen edges, dump the drag effect
-        if (contentY > 0)
-        {
-            pullDistance = (1 - contentY / this._height) * this._dumpForce;
-            this._content.y = Math.round(mouseY * pullDistance - this._yOffset * pullDistance);
-        }
-        else if (contentBottom < this._height)
-        {
-            pullDistance = (contentBottom / this._height) * this._dumpForce;
-            this._content.y = Math.round(contentTop - (this._height - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
-        }
-        else
-        {
-            this._content.y = Math.round(mouseY - this._yOffset);
+            this._xSpeed = mouseX - this._oldMouseX;
+            this._oldMouseX = mouseX;
         }
 
-        this._ySpeed = mouseY - this._oldMouseY;
-        this._oldMouseY = mouseY;
+        if (this._yScrollPolicy === ScrollPolicy.ON)
+        {
+            var mouseY = this._mouseData.getLocalPosition(this.stage).y,
+                contentY = this._content.y,
+                contentBottom = contentY + this._contentHeight,
+                contentTop = this._height - this._contentHeight;
+
+            // If content is pulled from beyond screen edges, dump the drag effect
+            if (contentY > 0)
+            {
+                pullDistance = (1 - contentY / this._height) * this._dumpForce;
+                this._content.y = Math.round(mouseY * pullDistance - this._yOffset * pullDistance);
+            }
+            else if (contentBottom < this._height)
+            {
+                pullDistance = (contentBottom / this._height) * this._dumpForce;
+                this._content.y = Math.round(contentTop - (this._height - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
+            }
+            else
+            {
+                this._content.y = Math.round(mouseY - this._yOffset);
+            }
+
+            this._ySpeed = mouseY - this._oldMouseY;
+            this._oldMouseY = mouseY;
+        }
     }
 };
 

@@ -12,6 +12,9 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
 {
     PIXI.DisplayObjectContainer.call(this);
 
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName;
+
     this._renderer = renderer;
     this._stage = stage;
 
@@ -30,15 +33,15 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     this._background.drawRect(0,0,this._layout.width,this._layout.height);
     this._background.endFill();
 
-    this._accountScreen = new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
-    this._categoryScreen = new App.CategoryScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
-
-    this._accountScreen.hide();
-    this._categoryScreen.show();
+    this._screenStack = new App.ViewStack([
+        new App.AccountScreen(ModelLocator.getProxy(ModelName.ACCOUNTS),this._layout),
+        new App.CategoryScreen(ModelLocator.getProxy(ModelName.ACCOUNTS),this._layout)
+    ]);
+    this._screenStack.selectChildByIndex(0);
+    this._screenStack.show();
 
     this.addChild(this._background);
-    this.addChild(this._accountScreen);
-    this.addChild(this._categoryScreen);
+    this.addChild(this._screenStack);
 
     this._registerEventListeners();
 };
@@ -55,50 +58,17 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
     App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._accountScreen.enable();
-    this._accountScreen.addEventListener(App.EventType.CLICK,this,this._onAccountScreenClick);
-    /*this._accountScreen.click = function(data)
-    {
-        if (!this.contains(this._categoryScreen)) this.addChild(this._categoryScreen);
-        this._categoryScreen.show();
-
-        this._accountScreen.hide();
-        if (this.contains(this._accountScreen)) this.removeChild(this._accountScreen);
-    }.bind(this);*/
-    this._accountScreen.tap = function()
-    {
-        if (!this.contains(this._categoryScreen)) this.addChild(this._categoryScreen);
-        this._categoryScreen.show();
-
-        this._accountScreen.hide();
-        if (this.contains(this._accountScreen)) this.removeChild(this._accountScreen);
-    }.bind(this);
-
-    this._categoryScreen.enable();
-    this._categoryScreen.click = function()
-    {
-        if (!this.contains(this._accountScreen)) this.addChild(this._accountScreen);
-        this._accountScreen.show();
-        this._categoryScreen.hide();
-        if (this.contains(this._categoryScreen)) this.removeChild(this._categoryScreen);
-    }.bind(this);
-    this._categoryScreen.tap = function()
-    {
-        if (!this.contains(this._accountScreen)) this.addChild(this._accountScreen);
-        this._accountScreen.show();
-        this._categoryScreen.hide();
-        if (this.contains(this._categoryScreen)) this.removeChild(this._categoryScreen);
-    }.bind(this);
 };
 
-App.ApplicationView.prototype._onAccountScreenClick = function _onAccountScreenClick()
+/**
+ * Change screen by the name passed in
+ * @param {number} screenName
+ */
+App.ApplicationView.prototype.changeScreen = function changeScreen(screenName)
 {
-    if (!this.contains(this._categoryScreen)) this.addChild(this._categoryScreen);
-    this._categoryScreen.show();
-
-    this._accountScreen.hide();
-    if (this.contains(this._accountScreen)) this.removeChild(this._accountScreen);
+    this._screenStack.selectChildByIndex(screenName);
+    this._screenStack.show();
+    this._screenStack.hide();
 };
 
 /**

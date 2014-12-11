@@ -1,18 +1,22 @@
 /**
  * @class Controller
- * @type {{_eventCommandMap: {}, _commands: Array, _init: Function, _onCommandComplete: Function, _destroyCommand: Function, dispatchEvent: Function}}
+ * @type {{_eventListenerPool:ObjectPool,_eventCommandMap: {}, _commands: Array, _init: Function, _onCommandComplete: Function, _destroyCommand: Function, dispatchEvent: Function}}
  */
 App.Controller = {
+    _eventListenerPool:null,
     _eventCommandMap:{},
     /** @type {Array.<Command>} */
     _commands:[],
 
     /**
      * Init
+     * @param {ObjectPool} eventListenerPool
      * @param {Array.<{eventType:string,command:Function}>} eventMap
      */
-    init:function init(eventMap)
+    init:function init(eventListenerPool,eventMap)
     {
+        this._eventListenerPool = eventListenerPool;
+
         var i = 0, l = eventMap.length, obj = null;
         for (;i<l;)
         {
@@ -84,7 +88,7 @@ App.Controller = {
             }
 
             // Execute command
-            cmd = /** @type {Command} */new commandConstructor();
+            cmd = /** @type {Command} */new commandConstructor(this._eventListenerPool);
 
             this._commands.push(cmd);
 

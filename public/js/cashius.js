@@ -107,10 +107,20 @@ App.MathUtils = {
 };
 
 /**
+ * Device
+ * @type {{TOUCH_SUPPORTED:boolean}}
+ */
+App.Device = {
+    TOUCH_SUPPORTED:('ontouchstart' in window) // iOS
+        || (window.navigator['msPointerEnabled'] && window.navigator['msMaxTouchPoints'] > 0) // IE10
+        || (window.navigator['pointerEnabled'] && window.navigator['maxTouchPoints'] > 0) // IE11+
+};
+
+/**
  * Event type
  * @enum {string}
  * @return {{
- *      INITIALIZE:string,
+ *      CHANGE_SCREEN:string,
  *      COMPLETE:string,
  *      UPDATE:string,
  *      PROGRESS:string,
@@ -130,7 +140,7 @@ App.MathUtils = {
  */
 App.EventType = {
     // Commands
-    INITIALIZE:"INITIALIZE",
+    CHANGE_SCREEN:"CHANGE_SCREEN",
 
     // App
     COMPLETE:"COMPLETE",
@@ -224,6 +234,16 @@ App.ScrollPolicy = {
 App.Direction = {
     X:"x",
     Y:"y"
+};
+
+/**
+ * Screen Name
+ * @enum {number}
+ * @return {{ACCOUNT:number,CATEGORY:number}}
+ */
+App.ScreenName = {
+    ACCOUNT:0,
+    CATEGORY:1
 };
 
 /**
@@ -881,16 +901,28 @@ App.ScrollIndicator.prototype.show = function show()
 
 /**
  * Hide
+ *
+ * @param {boolean} [immediate=false]
  */
-App.ScrollIndicator.prototype.hide = function hide()
+App.ScrollIndicator.prototype.hide = function hide(immediate)
 {
     var TransitionState = App.TransitionState;
 
-    if (this._state === TransitionState.SHOWING || this._state === TransitionState.SHOWN)
+    if (immediate)
     {
-        this._state = TransitionState.HIDING;
+        this._state = TransitionState.HIDDEN;
 
-        this._showHideTween.start(true);
+        this.alpha = 0.0;
+        this.visible = false;
+    }
+    else
+    {
+        if (this._state === TransitionState.SHOWING || this._state === TransitionState.SHOWN)
+        {
+            this._state = TransitionState.HIDING;
+
+            this._showHideTween.start(true);
+        }
     }
 };
 
@@ -1166,20 +1198,44 @@ App.Pane.prototype.disable = function disable()
 };
 
 /**
+ * Reset content scroll
+ */
+App.Pane.prototype.resetScroll = function resetScroll()
+{
+    this._state = null;
+    this._xSpeed = 0.0;
+    this._ySpeed = 0.0;
+
+    if (this._content)
+    {
+        this._content.x = 0;
+        this._content.y = 0;
+
+        this._xScrollIndicator.hide(true);
+        this._yScrollIndicator.hide(true);
+    }
+};
+
+/**
  * Register event listeners
  * @private
  */
 App.Pane.prototype._registerEventListeners = function _registerEventListeners()
 {
-    //TODO can register only either mouse or touch, based on device
-    this.mousedown = this._onPointerDown;
-    this.mouseup = this._onPointerUp;
-    this.mouseupoutside = this._onPointerUp;
-    this.touchstart = this._onPointerDown;
-    this.touchend = this._onPointerUp;
-    this.touchendoutside = this._onPointerUp;
-    this.mousemove = this._onPointerMove;
-    this.touchmove = this._onPointerMove;
+    if (App.Device.TOUCH_SUPPORTED)
+    {
+        this.touchstart = this._onPointerDown;
+        this.touchend = this._onPointerUp;
+        this.touchendoutside = this._onPointerUp;
+        this.touchmove = this._onPointerMove;
+    }
+    else
+    {
+        this.mousedown = this._onPointerDown;
+        this.mouseup = this._onPointerUp;
+        this.mouseupoutside = this._onPointerUp;
+        this.mousemove = this._onPointerMove;
+    }
 
     this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
 };
@@ -1190,17 +1246,22 @@ App.Pane.prototype._registerEventListeners = function _registerEventListeners()
  */
 App.Pane.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
 {
-    //TODO can register only either mouse or touch, based on device
-    this.mousedown = null;
-    this.mouseup = null;
-    this.mouseupoutside = null;
-    this.touchstart = null;
-    this.touchend = null;
-    this.touchendoutside = null;
-    this.mousemove = null;
-    this.touchmove = null;
-
     this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    if (App.Device.TOUCH_SUPPORTED)
+    {
+        this.touchstart = null;
+        this.touchend = null;
+        this.touchendoutside = null;
+        this.touchmove = null;
+    }
+    else
+    {
+        this.mousedown = null;
+        this.mouseup = null;
+        this.mouseupoutside = null;
+        this.mousemove = null;
+    }
 };
 
 /**
@@ -1291,58 +1352,61 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
 {
     var pullDistance = 0;
 
-    if (this._xScrollPolicy === ScrollPolicy.ON)
+    if (this.stage)
     {
-        var mouseX = this._mouseData.getLocalPosition(this.stage).x,
-            contentX = this._content.x,
-            contentRight = contentX + this._contentWidth,
-            contentLeft = contentX - this._contentWidth;
+        if (this._xScrollPolicy === ScrollPolicy.ON)
+        {
+            var mouseX = this._mouseData.getLocalPosition(this.stage).x,
+                contentX = this._content.x,
+                contentRight = contentX + this._contentWidth,
+                contentLeft = contentX - this._contentWidth;
 
-        // If content is pulled from beyond screen edges, dump the drag effect
-        if (contentX > 0)
-        {
-            pullDistance = (1 - contentX / this._width) * this._dumpForce;
-            this._content.x = Math.round(mouseX * pullDistance - this._xOffset * pullDistance);
-        }
-        else if (contentRight < this._width)
-        {
-            pullDistance = (contentRight / this._width) * this._dumpForce;
-            this._content.x = Math.round(contentLeft - (this._width - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
-        }
-        else
-        {
-            this._content.x = Math.round(mouseX - this._xOffset);
-        }
+            // If content is pulled from beyond screen edges, dump the drag effect
+            if (contentX > 0)
+            {
+                pullDistance = (1 - contentX / this._width) * this._dumpForce;
+                this._content.x = Math.round(mouseX * pullDistance - this._xOffset * pullDistance);
+            }
+            else if (contentRight < this._width)
+            {
+                pullDistance = (contentRight / this._width) * this._dumpForce;
+                this._content.x = Math.round(contentLeft - (this._width - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
+            }
+            else
+            {
+                this._content.x = Math.round(mouseX - this._xOffset);
+            }
 
-        this._xSpeed = mouseX - this._oldMouseX;
-        this._oldMouseX = mouseX;
-    }
-
-    if (this._yScrollPolicy === ScrollPolicy.ON)
-    {
-        var mouseY = this._mouseData.getLocalPosition(this.stage).y,
-            contentY = this._content.y,
-            contentBottom = contentY + this._contentHeight,
-            contentTop = this._height - this._contentHeight;
-
-        // If content is pulled from beyond screen edges, dump the drag effect
-        if (contentY > 0)
-        {
-            pullDistance = (1 - contentY / this._height) * this._dumpForce;
-            this._content.y = Math.round(mouseY * pullDistance - this._yOffset * pullDistance);
-        }
-        else if (contentBottom < this._height)
-        {
-            pullDistance = (contentBottom / this._height) * this._dumpForce;
-            this._content.y = Math.round(contentTop - (this._height - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
-        }
-        else
-        {
-            this._content.y = Math.round(mouseY - this._yOffset);
+            this._xSpeed = mouseX - this._oldMouseX;
+            this._oldMouseX = mouseX;
         }
 
-        this._ySpeed = mouseY - this._oldMouseY;
-        this._oldMouseY = mouseY;
+        if (this._yScrollPolicy === ScrollPolicy.ON)
+        {
+            var mouseY = this._mouseData.getLocalPosition(this.stage).y,
+                contentY = this._content.y,
+                contentBottom = contentY + this._contentHeight,
+                contentTop = this._height - this._contentHeight;
+
+            // If content is pulled from beyond screen edges, dump the drag effect
+            if (contentY > 0)
+            {
+                pullDistance = (1 - contentY / this._height) * this._dumpForce;
+                this._content.y = Math.round(mouseY * pullDistance - this._yOffset * pullDistance);
+            }
+            else if (contentBottom < this._height)
+            {
+                pullDistance = (contentBottom / this._height) * this._dumpForce;
+                this._content.y = Math.round(contentTop - (this._height - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
+            }
+            else
+            {
+                this._content.y = Math.round(mouseY - this._yOffset);
+            }
+
+            this._ySpeed = mouseY - this._oldMouseY;
+            this._oldMouseY = mouseY;
+        }
     }
 };
 
@@ -1596,6 +1660,460 @@ App.Pane.prototype.destroy = function destroy()
 };
 
 /**
+ * @class ViewStack
+ * @extends DisplayObjectContainer
+ * @param {Array.<Screen>} children
+ * @param {boolean} [addToStage=false]
+ * @constructor
+ */
+App.ViewStack = function ViewStack(children,addToStage)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this._children = [];
+    this._selectedChild = null;
+    this._selectedIndex = -1;
+    this._childrenToHide = [];
+
+    if (children)
+    {
+        var i = 0, l = children.length;
+        for (;i<l;) this.add(children[i++],addToStage);
+    }
+};
+
+App.ViewStack.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.ViewStack.prototype.constructor = App.ViewStack;
+
+/**
+ * Add child to stack
+ *
+ * @param {Screen} child
+ * @param {boolean} [addToStage=false]
+ */
+App.ViewStack.prototype.add = function add(child,addToStage)
+{
+    this._children[this._children.length] = child;
+
+    if (addToStage) this.addChild(child);
+};
+
+/**
+ * Select child
+ *
+ * @param {Screen} child
+ */
+App.ViewStack.prototype.selectChild = function selectChild(child)
+{
+    if (this._selectedChild)
+    {
+        if (!child || this._selectedChild === child) return;
+
+        this._childrenToHide[this._childrenToHide.length] = this._selectedChild;
+    }
+
+    var i = 0, l = this._children.length;
+    for (;i<l;)
+    {
+        if (child === this._children[i++])
+        {
+            this._selectedChild = child;
+            this._selectedIndex = i - 1;
+        }
+    }
+};
+
+/**
+ * Select child by index passed in
+ *
+ * @param {number} index
+ */
+App.ViewStack.prototype.selectChildByIndex = function selectChildByIndex(index)
+{
+    if (index < 0 || index >= this._children.length) return;
+
+    if (this._selectedChild)
+    {
+        if (this._selectedChild === this._children[index]) return;
+
+        this._childrenToHide[this._childrenToHide.length] = this._selectedChild;
+    }
+
+    this._selectedChild = this._children[index];
+    this._selectedIndex = index;
+};
+
+/**
+ * Return selected child
+ * @returns {Screen}
+ */
+App.ViewStack.prototype.getSelectedChild = function getSelectedChild()
+{
+    return this._selectedChild;
+};
+
+/**
+ * Return index of selected child
+ * @returns {number}
+ */
+App.ViewStack.prototype.getSelectedIndex = function getSelectedIndex()
+{
+    return this._selectedIndex;
+};
+
+/**
+ * Return child by index passed in
+ * @param {number} index
+ * @returns {Screen|null}
+ */
+App.ViewStack.prototype.getChildByIndex = function getChildByIndex(index)
+{
+    if (index < 0 || index >= this._children.length) return null;
+
+    return this._children[index];
+};
+
+/**
+ * Show
+ */
+App.ViewStack.prototype.show = function show()
+{
+    if (this._selectedChild)
+    {
+        // First check if the child to show is not actually hiding
+        var i = 0, l = this._childrenToHide.length;
+        for (;i<l;i++)
+        {
+            if (this._selectedChild === this._childrenToHide[i])
+            {
+                this._selectedChild.removeEventListener(App.EventType.COMPLETE,this,this._onHideComplete);
+                this._childrenToHide.splice(i,1);
+                break;
+            }
+        }
+
+        if (!this.contains(this._selectedChild)) this.addChild(this._selectedChild);
+
+        this._selectedChild.show();
+    }
+};
+
+/**
+ * Hide
+ */
+App.ViewStack.prototype.hide = function hide()
+{
+    var i = 0, l = this._childrenToHide.length, child = null, EventType = App.EventType;
+    for (;i<l;)
+    {
+        child = this._childrenToHide[i++];
+
+        child.addEventListener(EventType.COMPLETE,this,this._onHideComplete);
+        child.hide();
+    }
+};
+
+/**
+ * On hide complete
+ * @param {{target:Screen,state:string}} data
+ * @private
+ */
+App.ViewStack.prototype._onHideComplete = function _onHideComplete(data)
+{
+    if (data.state === App.TransitionState.HIDDEN)
+    {
+        /**@type Screen */
+        var screen = data.target;
+
+        screen.removeEventListener(App.EventType.COMPLETE,this,this._onHideComplete);
+
+        if (this.contains(screen)) this.removeChild(screen);
+
+        var i = 0, l = this._childrenToHide.length;
+        for (;i<l;i++)
+        {
+            if (screen === this._childrenToHide[i])
+            {
+                this._childrenToHide.splice(i,1);
+                break;
+            }
+        }
+    }
+};
+
+/**
+ * Abstract Screen
+ *
+ * @class Screen
+ * @extends {DisplayObjectContainer}
+ * @param {Collection} model
+ * @param {Object} layout
+ * @param {number} tweenDuration
+ * @constructor
+ */
+App.Screen = function Screen(model,layout,tweenDuration)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this._model = model;
+    this._layout = layout;
+    this._enabled = false;
+    this._mousePosition = null;
+    this._state = App.TransitionState.HIDDEN;
+
+    var ModelLocator = App.ModelLocator;
+    var ModelName = App.ModelName;
+
+    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._showHideTween = new App.TweenProxy(tweenDuration,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+
+    this.alpha = 0.0;
+};
+
+App.Screen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.Screen.prototype.constructor = App.Screen;
+
+/**
+ * Show
+ */
+App.Screen.prototype.show = function show()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._state === TransitionState.HIDDEN || this._state === TransitionState.HIDING)
+    {
+        this.enable();
+
+        this._state = TransitionState.SHOWING;
+
+        this._showHideTween.restart();
+
+        this.visible = true;
+    }
+};
+
+/**
+ * Hide
+ */
+App.Screen.prototype.hide = function hide()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._state === TransitionState.SHOWN || this._state === TransitionState.SHOWING)
+    {
+        this._state = TransitionState.HIDING;
+
+        this._showHideTween.start(true);
+    }
+};
+
+/**
+ * Enable
+ */
+App.Screen.prototype.enable = function enable()
+{
+    if (!this._enabled)
+    {
+        this.interactive = true;
+
+        this._registerEventListeners();
+
+        this._enabled = true;
+    }
+};
+
+/**
+ * Disable
+ */
+App.Screen.prototype.disable = function disable()
+{
+    this.interactive = false;
+
+    this._unRegisterEventListeners();
+
+    this._enabled = false;
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Screen.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Screen.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
+};
+
+/**
+ * On tick
+ * @private
+ */
+App.Screen.prototype._onTick = function _onTick()
+{
+    if (this._showHideTween.isRunning())
+    {
+        var TransitionState = App.TransitionState;
+
+        if (this._state === TransitionState.SHOWING) this.alpha = this._showHideTween.progress;
+        else if (this._state === TransitionState.HIDING) this.alpha = 1 - this._showHideTween.progress;
+    }
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.Screen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._state === TransitionState.SHOWING)
+    {
+        this._state = TransitionState.SHOWN;
+
+        this.alpha = 1.0;
+    }
+    else if (this._state === TransitionState.HIDING)
+    {
+        this._state = TransitionState.HIDDEN;
+
+        this.disable();
+
+        this.alpha = 0.0;
+
+        this.visible = false;
+
+        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,{target:this,state:this._state});
+    }
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.Screen.prototype._registerEventListeners = function _registerEventListeners()
+{
+    if (App.Device.TOUCH_SUPPORTED)
+    {
+        this.touchstart = this._onPointerDown;
+        this.touchend = this._onPointerUp;
+        this.touchendoutside = this._onPointerUp;
+        this.touchmove = this._onPointerMove;
+    }
+    else
+    {
+        this.mousedown = this._onPointerDown;
+        this.mouseup = this._onPointerUp;
+        this.mouseupoutside = this._onPointerUp;
+        this.mousemove = this._onPointerMove;
+    }
+
+    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._showHideTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._showHideTween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+
+    if (App.Device.TOUCH_SUPPORTED)
+    {
+        this.touchstart = null;
+        this.touchend = null;
+        this.touchendoutside = null;
+        this.touchmove = null;
+    }
+    else
+    {
+        this.mousedown = null;
+        this.mouseup = null;
+        this.mouseupoutside = null;
+        this.mousemove = null;
+    }
+};
+
+/**
+ * On pointer down
+ *
+ * @param {Object} data
+ * @private
+ */
+App.Screen.prototype._onPointerDown = function _onPointerDown(data)
+{
+    if (this.stage) this._mousePosition = data.getLocalPosition(this.stage);
+};
+
+/**
+ * On pointer up
+ * @param {Object} data
+ * @private
+ */
+App.Screen.prototype._onPointerUp = function _onPointerUp(data)
+{
+    if (this.stage && this._mousePosition && this._enabled)
+    {
+        var newPosition = data.getLocalPosition(this.stage),
+            dx = this._mousePosition.x - newPosition.x,
+            dy = this._mousePosition.y - newPosition.y,
+            dist = dx * dx - dy * dy,
+            TransitionState = App.TransitionState;
+
+        this._mousePosition = null;
+
+        if (Math.abs(dist) < 5 && (this._state === TransitionState.SHOWING || this._state === TransitionState.SHOWN)) this._onClick();
+    }
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.Screen.prototype._onClick = function _onClick()
+{
+    this._eventDispatcher.dispatchEvent(App.EventType.CLICK);
+};
+
+/**
+ * Destroy
+ */
+App.Screen.prototype.destroy = function destroy()
+{
+    this.disable();
+
+    this._eventDispatcher.destroy();
+    this._eventDispatcher = null;
+
+    this._showHideTween.destroy();
+    this._showHideTween = null;
+
+    this._ticker = null;
+    this._model = null;
+    this._layout = null;
+    this._mousePosition = null;
+    this._state = null;
+};
+
+/**
  * @class AccountButton
  * @extends Graphics
  * @param {Account} model
@@ -1688,20 +2206,14 @@ App.AccountButton.prototype.destroy = function destroy()
 
 /**
  * @class AccountScreen
- * @extends DisplayObjectContainer
+ * @extends Screen
  * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
 App.AccountScreen = function AccountScreen(model,layout)
 {
-    PIXI.DisplayObjectContainer.call(this);
-    //App.EventDispatcher.call(this,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
-
-    this._eventDispatcher = new App.EventDispatcher(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
-    this._model = model;
-    this._layout = layout;
-    this._enabled = false;
+    App.Screen.call(this,model,layout,0.4);
 
     var i = 0, l = this._model.length(), AccountButton = App.AccountButton, button = null;
 
@@ -1726,100 +2238,26 @@ App.AccountScreen = function AccountScreen(model,layout)
 //    this._addButton =
 };
 
-App.AccountScreen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.AccountScreen.prototype = Object.create(App.Screen.prototype);
 App.AccountScreen.prototype.constructor = App.AccountScreen;
-
-App.AccountScreen.prototype.show = function show()
-{
-    this.visible = true;
-
-    this.enable();
-};
-
-App.AccountScreen.prototype.hide = function hide()
-{
-    this.disable();
-
-    this.visible = false;
-};
 
 /**
  * Enable
  */
 App.AccountScreen.prototype.enable = function enable()
 {
-    if (!this._enabled)
-    {
-        this._pane.enable();
+    App.Screen.prototype.enable.call(this);
 
-        this.interactive = true;
-
-        this._registerEventListeners();
-
-        this._enabled = true;
-    }
+    this._pane.enable();
 };
 
 /**
- * Disable
- */
-App.AccountScreen.prototype.disable = function disable()
-{
-    this.interactive = false;
-
-    this._pane.disable();
-
-    //this._registerEventListeners();
-
-    this._enabled = false;
-};
-
-/**
- * Add event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.AccountScreen.prototype.addEventListener = function addEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.addEventListener(eventType,scope,listener);
-};
-
-/**
- * Remove event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.AccountScreen.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.removeEventListener(eventType,scope,listener);
-};
-
-/**
- * Register event listeners
+ * Click handler
  * @private
  */
-App.AccountScreen.prototype._registerEventListeners = function _registerEventListeners()
+App.AccountScreen.prototype._onClick = function _onClick()
 {
-    //TODO check distance between Down and Up events and recognize either "drag" or click/tap
-    this.mousedown = this._onPointerDown;
-    this.mouseup = this._onPointerUp;
-    this.mouseupoutside = this._onPointerUp;
-    this.touchstart = this._onPointerDown;
-    this.touchend = this._onPointerUp;
-    this.touchendoutside = this._onPointerUp;
-};
-
-App.AccountScreen.prototype._onPointerDown = function _onPointerDown(data)
-{
-
-};
-
-App.AccountScreen.prototype._onPointerUp = function _onPointerUp(data)
-{
-    //console.log("_onPointerUp");
-    this._eventDispatcher.dispatchEvent(App.EventType.CLICK);
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.CATEGORY);
 };
 
 /**
@@ -1842,23 +2280,21 @@ App.AccountScreen.prototype._updateLayout = function _updateLayout()
  */
 App.AccountScreen.prototype.destroy = function destroy()
 {
+    App.Screen.prototype.destroy.call(this);
+
     this.disable();
-
-    this._eventDispatcher.destroy();
-    this._eventDispatcher = null;
-
-    var i = 0, button = null;
-    for (;i<30;i++)
-    {
-        this._buttons[i] = button;
-        this._buttonContainer.removeChild(button);
-        button.destroy();
-    }
 
     this.removeChild(this._pane);
     this._pane.destroy();
     this._pane = null;
 
+    var i = 0, l = this._buttons.length, button = null;
+    for (;i<l;)
+    {
+        button = this._buttons[i++];
+        if (this._buttonContainer.contains(button)) this._buttonContainer.removeChild(button);
+        button.destroy();
+    }
     this._buttonContainer = null;
 
     this._buttons.length = 0;
@@ -1977,18 +2413,14 @@ App.CategoryButton.prototype.destroy = function destroy()
 
 /**
  * @class CategoryScreen
- * @extends DisplayObjectContainer
+ * @extends Screen
  * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
 App.CategoryScreen = function CategoryScreen(model,layout)
 {
-    PIXI.DisplayObjectContainer.call(this);
-
-    this._model = model;
-    this._layout = layout;
-    this._enabled = false;
+    App.Screen.call(this,model,layout,0.4);
 
     var i = 0, l = this._model.length(), CategoryButton = App.CategoryButton, button = null;
 
@@ -2013,64 +2445,26 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 //    this._addButton =
 };
 
-App.CategoryScreen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
 App.CategoryScreen.prototype.constructor = App.CategoryScreen;
-
-App.CategoryScreen.prototype.show = function show()
-{
-    this.visible = true;
-//    console.log(this," show");
-    this.enable();
-};
-
-App.CategoryScreen.prototype.hide = function hide()
-{
-    this.disable();
-//    console.log(this," hide");
-    this.visible = false;
-};
 
 /**
  * Enable
  */
 App.CategoryScreen.prototype.enable = function enable()
 {
-    if (!this._enabled)
-    {
-        this._pane.enable();
+    App.Screen.prototype.enable.call(this);
 
-        this.interactive = true;
-
-        this._registerEventListeners();
-
-        this._enabled = true;
-    }
+    this._pane.enable();
 };
 
 /**
- * Disable
- */
-App.CategoryScreen.prototype.disable = function disable()
-{
-    this.interactive = false;
-
-    this._pane.disable();
-
-    //this._registerEventListeners();
-
-    this._enabled = false;
-};
-
-/**
- * Register event listeners
+ * Click handler
  * @private
  */
-App.CategoryScreen.prototype._registerEventListeners = function _registerEventListeners()
+App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    /*this.click = function click()
-    {
-        console.log("Categories clicked");
-    }*/
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ACCOUNT);
 };
 
 /**
@@ -2093,20 +2487,21 @@ App.CategoryScreen.prototype._updateLayout = function _updateLayout()
  */
 App.CategoryScreen.prototype.destroy = function destroy()
 {
-    this.disable();
+    App.Screen.prototype.destroy.call(this);
 
-    var i = 0, button = null;
-    for (;i<30;i++)
-    {
-        this._buttons[i] = button;
-        this._buttonContainer.removeChild(button);
-        button.destroy();
-    }
+    this.disable();
 
     this.removeChild(this._pane);
     this._pane.destroy();
     this._pane = null;
 
+    var i = 0, l = this._buttons.length, button = null;
+    for (;i<l;)
+    {
+        button = this._buttons[i++];
+        if (this._buttonContainer.contains(button)) this._buttonContainer.removeChild(button);
+        button.destroy();
+    }
     this._buttonContainer = null;
 
     this._buttons.length = 0;
@@ -2126,6 +2521,9 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
 {
     PIXI.DisplayObjectContainer.call(this);
 
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName;
+
     this._renderer = renderer;
     this._stage = stage;
 
@@ -2144,15 +2542,15 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     this._background.drawRect(0,0,this._layout.width,this._layout.height);
     this._background.endFill();
 
-    this._accountScreen = new App.AccountScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
-    this._categoryScreen = new App.CategoryScreen(App.ModelLocator.getProxy(App.ModelName.ACCOUNTS),this._layout);
-
-    this._accountScreen.hide();
-    this._categoryScreen.show();
+    this._screenStack = new App.ViewStack([
+        new App.AccountScreen(ModelLocator.getProxy(ModelName.ACCOUNTS),this._layout),
+        new App.CategoryScreen(ModelLocator.getProxy(ModelName.ACCOUNTS),this._layout)
+    ]);
+    this._screenStack.selectChildByIndex(0);
+    this._screenStack.show();
 
     this.addChild(this._background);
-    this.addChild(this._accountScreen);
-    this.addChild(this._categoryScreen);
+    this.addChild(this._screenStack);
 
     this._registerEventListeners();
 };
@@ -2169,50 +2567,17 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
     App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._accountScreen.enable();
-    this._accountScreen.addEventListener(App.EventType.CLICK,this,this._onAccountScreenClick)
-    /*this._accountScreen.click = function(data)
-    {
-        if (!this.contains(this._categoryScreen)) this.addChild(this._categoryScreen);
-        this._categoryScreen.show();
-
-        this._accountScreen.hide();
-        if (this.contains(this._accountScreen)) this.removeChild(this._accountScreen);
-    }.bind(this);*/
-    this._accountScreen.tap = function()
-    {
-        if (!this.contains(this._categoryScreen)) this.addChild(this._categoryScreen);
-        this._categoryScreen.show();
-
-        this._accountScreen.hide();
-        if (this.contains(this._accountScreen)) this.removeChild(this._accountScreen);
-    }.bind(this);
-
-    this._categoryScreen.enable();
-    this._categoryScreen.click = function()
-    {
-        if (!this.contains(this._accountScreen)) this.addChild(this._accountScreen);
-        this._accountScreen.show();
-        this._categoryScreen.hide();
-        if (this.contains(this._categoryScreen)) this.removeChild(this._categoryScreen);
-    }.bind(this);
-    this._categoryScreen.tap = function()
-    {
-        if (!this.contains(this._accountScreen)) this.addChild(this._accountScreen);
-        this._accountScreen.show();
-        this._categoryScreen.hide();
-        if (this.contains(this._categoryScreen)) this.removeChild(this._categoryScreen);
-    }.bind(this);
 };
 
-App.ApplicationView.prototype._onAccountScreenClick = function _onAccountScreenClick()
+/**
+ * Change screen by the name passed in
+ * @param {number} screenName
+ */
+App.ApplicationView.prototype.changeScreen = function changeScreen(screenName)
 {
-    if (!this.contains(this._categoryScreen)) this.addChild(this._categoryScreen);
-    this._categoryScreen.show();
-
-    this._accountScreen.hide();
-    if (this.contains(this._accountScreen)) this.removeChild(this._accountScreen);
+    this._screenStack.selectChildByIndex(screenName);
+    this._screenStack.show();
+    this._screenStack.hide();
 };
 
 /**
@@ -2316,7 +2681,7 @@ App.Easing = {
      * @static
      */
     outExpo: function(t) {
-        return (t===1.0) ? 1.0 : (-Math.pow(2, -10 * t) + 1);
+        return (t===1.0) ? 1.0 : (1-Math.pow(2, -10 * t));
     },
 
     /**
@@ -2608,19 +2973,23 @@ App.Ticker.prototype._raf = function _raf()
 };
 /**
  * @class Controller
- * @type {{_eventCommandMap: {}, _commands: Array, _init: Function, _onCommandComplete: Function, _destroyCommand: Function, dispatchEvent: Function}}
+ * @type {{_eventListenerPool:ObjectPool,_eventCommandMap: {}, _commands: Array, _init: Function, _onCommandComplete: Function, _destroyCommand: Function, dispatchEvent: Function}}
  */
 App.Controller = {
+    _eventListenerPool:null,
     _eventCommandMap:{},
     /** @type {Array.<Command>} */
     _commands:[],
 
     /**
      * Init
+     * @param {ObjectPool} eventListenerPool
      * @param {Array.<{eventType:string,command:Function}>} eventMap
      */
-    init:function init(eventMap)
+    init:function init(eventListenerPool,eventMap)
     {
+        this._eventListenerPool = eventListenerPool;
+
         var i = 0, l = eventMap.length, obj = null;
         for (;i<l;)
         {
@@ -2692,7 +3061,7 @@ App.Controller = {
             }
 
             // Execute command
-            cmd = /** @type {Command} */new commandConstructor();
+            cmd = /** @type {Command} */new commandConstructor(this._eventListenerPool);
 
             this._commands.push(cmd);
 
@@ -2894,7 +3263,7 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
 {
     this._loadDataCommand.destroy();
     this._loadDataCommand = null;
-
+    
     this._initModel(data);
     this._initCommands();
     this._initView();
@@ -2947,9 +3316,9 @@ App.Initialize.prototype._initModel = function _initModel(data)
  */
 App.Initialize.prototype._initCommands = function _initCommands()
 {
-    /*App.Controller.init([
-        {eventType:App.EventType.INITIALIZE,command:App.Initialize}
-    ]);*/
+    App.Controller.init(this._eventListenerPool,[
+        {eventType:App.EventType.CHANGE_SCREEN,command:App.ChangeScreen}
+    ]);
 };
 
 /**
@@ -3023,6 +3392,42 @@ App.Initialize.prototype.destroy = function destroy()
     }
 
     this._eventListenerPool = null;
+};
+
+/**
+ * @class ChangeScreen
+ * @extends {Command}
+ * @param {ObjectPool} pool
+ * @constructor
+ */
+App.ChangeScreen = function ChangeScreen(pool)
+{
+    App.Command.call(this,false,pool);
+};
+
+App.ChangeScreen.prototype = Object.create(App.Command.prototype);
+App.ChangeScreen.prototype.constructor = App.ChangeScreen;
+
+/**
+ * Execute the command
+ *
+ * @method execute
+ */
+App.ChangeScreen.prototype.execute = function execute(screenName)
+{
+    App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).changeScreen(screenName);
+
+    this.dispatchEvent(App.EventType.COMPLETE,this);
+};
+
+/**
+ * Destroy the command
+ *
+ * @method destroy
+ */
+App.ChangeScreen.prototype.destroy = function destroy()
+{
+    App.Command.prototype.destroy.call(this);
 };
 
 (function()

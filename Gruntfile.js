@@ -12,6 +12,7 @@ module.exports = function(grunt)
     var source = [
         "js/src/intro.js",
         "js/src/utils/MathUtils.js",
+        "js/src/utils/Device.js",
         "js/src/enum/EventType.js",
         "js/src/enum/ModelName.js",
         "js/src/enum/ViewName.js",
@@ -19,6 +20,7 @@ module.exports = function(grunt)
         "js/src/enum/TransitionState.js",
         "js/src/enum/ScrollPolicy.js",
         "js/src/enum/Direction.js",
+        "js/src/enum/ScreenName.js",
         "js/src/event/EventListener.js",
         "js/src/event/EventDispatcher.js",
         "js/src/model/ModelLocator.js",
@@ -31,6 +33,8 @@ module.exports = function(grunt)
         "js/src/view/ViewLocator.js",
         "js/src/view/ui/controls/ScrollIndicator.js",
         "js/src/view/ui/containers/Pane.js",
+        "js/src/view/ui/containers/ViewStack.js",
+        "js/src/view/screens/Screen.js",
         "js/src/view/screens/accounts/AccountButton.js",
         "js/src/view/screens/accounts/AccountScreen.js",
         "js/src/view/screens/categories/CategoryButton.js",
@@ -43,6 +47,7 @@ module.exports = function(grunt)
         "js/src/command/Command.js",
         "js/src/command/LoadData.js",
         "js/src/command/Initialize.js",
+        "js/src/command/ChangeScreen.js",
         "js/src/main.js"
     ];
 

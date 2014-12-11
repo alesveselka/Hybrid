@@ -2,7 +2,7 @@
  * Event type
  * @enum {string}
  * @return {{
- *      INITIALIZE:string,
+ *      CHANGE_SCREEN:string,
  *      COMPLETE:string,
  *      UPDATE:string,
  *      PROGRESS:string,
@@ -22,7 +22,7 @@
  */
 App.EventType = {
     // Commands
-    INITIALIZE:"INITIALIZE",
+    CHANGE_SCREEN:"CHANGE_SCREEN",
 
     // App
     COMPLETE:"COMPLETE",

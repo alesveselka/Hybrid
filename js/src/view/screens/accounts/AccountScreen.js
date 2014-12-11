@@ -1,19 +1,13 @@
 /**
  * @class AccountScreen
- * @extends DisplayObjectContainer
+ * @extends Screen
  * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
 App.AccountScreen = function AccountScreen(model,layout)
 {
-    PIXI.DisplayObjectContainer.call(this);
-    //App.EventDispatcher.call(this,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
-
-    this._eventDispatcher = new App.EventDispatcher(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
-    this._model = model;
-    this._layout = layout;
-    this._enabled = false;
+    App.Screen.call(this,model,layout,0.4);
 
     var i = 0, l = this._model.length(), AccountButton = App.AccountButton, button = null;
 
@@ -38,100 +32,26 @@ App.AccountScreen = function AccountScreen(model,layout)
 //    this._addButton =
 };
 
-App.AccountScreen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.AccountScreen.prototype = Object.create(App.Screen.prototype);
 App.AccountScreen.prototype.constructor = App.AccountScreen;
-
-App.AccountScreen.prototype.show = function show()
-{
-    this.visible = true;
-
-    this.enable();
-};
-
-App.AccountScreen.prototype.hide = function hide()
-{
-    this.disable();
-
-    this.visible = false;
-};
 
 /**
  * Enable
  */
 App.AccountScreen.prototype.enable = function enable()
 {
-    if (!this._enabled)
-    {
-        this._pane.enable();
+    App.Screen.prototype.enable.call(this);
 
-        this.interactive = true;
-
-        this._registerEventListeners();
-
-        this._enabled = true;
-    }
+    this._pane.enable();
 };
 
 /**
- * Disable
- */
-App.AccountScreen.prototype.disable = function disable()
-{
-    this.interactive = false;
-
-    this._pane.disable();
-
-    //this._registerEventListeners();
-
-    this._enabled = false;
-};
-
-/**
- * Add event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.AccountScreen.prototype.addEventListener = function addEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.addEventListener(eventType,scope,listener);
-};
-
-/**
- * Remove event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.AccountScreen.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.removeEventListener(eventType,scope,listener);
-};
-
-/**
- * Register event listeners
+ * Click handler
  * @private
  */
-App.AccountScreen.prototype._registerEventListeners = function _registerEventListeners()
+App.AccountScreen.prototype._onClick = function _onClick()
 {
-    //TODO check distance between Down and Up events and recognize either "drag" or click/tap
-    this.mousedown = this._onPointerDown;
-    this.mouseup = this._onPointerUp;
-    this.mouseupoutside = this._onPointerUp;
-    this.touchstart = this._onPointerDown;
-    this.touchend = this._onPointerUp;
-    this.touchendoutside = this._onPointerUp;
-};
-
-App.AccountScreen.prototype._onPointerDown = function _onPointerDown(data)
-{
-
-};
-
-App.AccountScreen.prototype._onPointerUp = function _onPointerUp(data)
-{
-    //console.log("_onPointerUp");
-    this._eventDispatcher.dispatchEvent(App.EventType.CLICK);
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.CATEGORY);
 };
 
 /**
@@ -154,23 +74,21 @@ App.AccountScreen.prototype._updateLayout = function _updateLayout()
  */
 App.AccountScreen.prototype.destroy = function destroy()
 {
+    App.Screen.prototype.destroy.call(this);
+
     this.disable();
-
-    this._eventDispatcher.destroy();
-    this._eventDispatcher = null;
-
-    var i = 0, button = null;
-    for (;i<30;i++)
-    {
-        this._buttons[i] = button;
-        this._buttonContainer.removeChild(button);
-        button.destroy();
-    }
 
     this.removeChild(this._pane);
     this._pane.destroy();
     this._pane = null;
 
+    var i = 0, l = this._buttons.length, button = null;
+    for (;i<l;)
+    {
+        button = this._buttons[i++];
+        if (this._buttonContainer.contains(button)) this._buttonContainer.removeChild(button);
+        button.destroy();
+    }
     this._buttonContainer = null;
 
     this._buttons.length = 0;

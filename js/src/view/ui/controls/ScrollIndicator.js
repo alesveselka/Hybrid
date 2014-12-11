@@ -47,16 +47,28 @@ App.ScrollIndicator.prototype.show = function show()
 
 /**
  * Hide
+ *
+ * @param {boolean} [immediate=false]
  */
-App.ScrollIndicator.prototype.hide = function hide()
+App.ScrollIndicator.prototype.hide = function hide(immediate)
 {
     var TransitionState = App.TransitionState;
 
-    if (this._state === TransitionState.SHOWING || this._state === TransitionState.SHOWN)
+    if (immediate)
     {
-        this._state = TransitionState.HIDING;
+        this._state = TransitionState.HIDDEN;
 
-        this._showHideTween.start(true);
+        this.alpha = 0.0;
+        this.visible = false;
+    }
+    else
+    {
+        if (this._state === TransitionState.SHOWING || this._state === TransitionState.SHOWN)
+        {
+            this._state = TransitionState.HIDING;
+
+            this._showHideTween.start(true);
+        }
     }
 };
 
