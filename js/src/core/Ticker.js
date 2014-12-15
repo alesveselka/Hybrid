@@ -7,7 +7,6 @@ App.Ticker = function Ticker(eventListenerPool)
 {
     App.EventDispatcher.call(this,eventListenerPool);
 
-    this._rafId = -1;
     this._rafListener = this._raf.bind(this);
     this._isRunning = false;
 };
@@ -29,7 +28,7 @@ App.Ticker.prototype.addEventListener = function(eventType,scope,listener)
     {
         this._isRunning = true;
 
-        this._rafId = window.requestAnimationFrame(this._rafListener);
+        window.requestAnimationFrame(this._rafListener);
     }
 };
 
@@ -43,12 +42,7 @@ App.Ticker.prototype.removeEventListener = function(eventType,scope,listener)
 {
     App.EventDispatcher.prototype.removeEventListener.call(this,eventType,scope,listener);
 
-    if (this._listeners.length === 0)
-    {
-        window.cancelAnimationFrame(this._rafId);
-
-        this._isRunning = false;
-    }
+    if (this._listeners.length === 0) this._isRunning = false;
 };
 
 /**
@@ -57,8 +51,6 @@ App.Ticker.prototype.removeEventListener = function(eventType,scope,listener)
 App.Ticker.prototype.removeAllListeners = function()
 {
     App.EventDispatcher.prototype.removeAllListeners.call(this);
-
-    window.cancelAnimationFrame(this._rafId);
 
     this._isRunning = false;
 };
@@ -69,7 +61,10 @@ App.Ticker.prototype.removeAllListeners = function()
  */
 App.Ticker.prototype._raf = function _raf()
 {
-    this._rafId = window.requestAnimationFrame(this._rafListener);
+    if (this._isRunning)
+    {
+        window.requestAnimationFrame(this._rafListener);
 
-    this.dispatchEvent(App.EventType.TICK);
+        this.dispatchEvent(App.EventType.TICK);
+    }
 };

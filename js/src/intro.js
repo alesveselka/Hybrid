@@ -57,17 +57,12 @@ window.requestAnimationFrame || (window.requestAnimationFrame =
     window.mozRequestAnimationFrame    ||
     window.oRequestAnimationFrame      ||
     window.msRequestAnimationFrame     ||
-    function(callback,element)
+    function(callback)
     {
         return window.setTimeout(function() {
-            callback(+new Date());
+            callback();
         }, 1000 / 60);
     });
-
-window.cancelAnimationFrame = window.cancelAnimationFrame ||
-    window.webkitCancelAnimationFrame ||
-    window.mozCancelAnimationFrame ||
-    window.webkitCancelRequestAnimationFrame;
 
 /**
  * @module App
