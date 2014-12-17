@@ -104,6 +104,7 @@ App.Pane.prototype.enable = function enable()
 {
     if (!this._enabled)
     {
+        //TODO check scroll policy before registering events; no need to register them if policy is OFF
         this._registerEventListeners();
 
         this.interactive = true;
@@ -144,6 +145,19 @@ App.Pane.prototype.resetScroll = function resetScroll()
         this._xScrollIndicator.hide(true);
         this._yScrollIndicator.hide(true);
     }
+};
+
+/**
+ * Cancel scroll
+ */
+App.Pane.prototype.cancelScroll = function cancelScroll()
+{
+    this._state = null;
+    this._xSpeed = 0.0;
+    this._ySpeed = 0.0;
+
+    this._xScrollIndicator.hide(true);
+    this._yScrollIndicator.hide(true);
 };
 
 /**
@@ -204,8 +218,7 @@ App.Pane.prototype._unRegisterEventListeners = function _unRegisterEventListener
 App.Pane.prototype._onPointerDown = function _onMouseDown(data)
 {
     //TODO make sure just one input is registered (multiple inputs on touch screens) ...
-    //TODO ... simple condition doesn't matter - I need ID of the first input received and then respond to that in other handlers!
-    data.originalEvent.preventDefault();
+    //data.originalEvent.preventDefault();
 
     this._mouseData = data;
 
@@ -250,8 +263,6 @@ App.Pane.prototype._onPointerUp = function _onMouseUp(data)
  */
 App.Pane.prototype._onPointerMove = function _onMouseMove(data)
 {
-    data.originalEvent.preventDefault();
-
     this._mouseData = data;
 };
 
@@ -317,6 +328,8 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
                 contentY = this._content.y,
                 contentBottom = contentY + this._contentHeight,
                 contentTop = this._height - this._contentHeight;
+
+            if (mouseY <= -10000) return;
 
             // If content is pulled from beyond screen edges, dump the drag effect
             if (contentY > 0)
@@ -517,7 +530,7 @@ App.Pane.prototype._isContentPulled = function _isContentPulled()
 App.Pane.prototype._updateScrollers = function _updateScrollBars()
 {
     var ScrollPolicy = App.ScrollPolicy;
-
+    //TODO (un)register event listeners based on the policy!
     if (this._xOriginalScrollPolicy === ScrollPolicy.AUTO)
     {
         if (this._contentWidth >= this._width)

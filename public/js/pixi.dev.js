@@ -3887,6 +3887,14 @@ PIXI.InteractionManager = function(stage)
     this.mouse = new PIXI.InteractionData();
 
     /**
+     * The touch data
+     *
+     * @property touchData
+     * @type InteractionData
+     */
+    this.touchData = null;
+
+    /**
      * An object that stores current touches (InteractionData) by id reference
      *
      * @property touches
@@ -4571,23 +4579,23 @@ PIXI.InteractionManager.prototype.onTouchMove = function(event)
 
     var rect = this.interactionDOMElement.getBoundingClientRect();
     var changedTouches = event.changedTouches;
-    var touchData;
+    //var touchData;
     var i = 0;
 
     for (i = 0; i < changedTouches.length; i++)
     {
         var touchEvent = changedTouches[i];
-        touchData = this.touches[touchEvent.identifier];
-        touchData.originalEvent = event;
+        this.touchData = this.touches[touchEvent.identifier];
+        this.touchData.originalEvent = event;
 
         // update the touch position
-        touchData.global.x = ( (touchEvent.clientX - rect.left) * (this.target.width / rect.width) ) / this.resolution;
-        touchData.global.y = ( (touchEvent.clientY - rect.top)  * (this.target.height / rect.height) )  / this.resolution;
+        this.touchData.global.x = ( (touchEvent.clientX - rect.left) * (this.target.width / rect.width) ) / this.resolution;
+        this.touchData.global.y = ( (touchEvent.clientY - rect.top)  * (this.target.height / rect.height) )  / this.resolution;
         if (navigator.isCocoonJS && !rect.left && !rect.top && !event.target.style.width && !event.target.style.height)
         {
             //Support for CocoonJS fullscreen scale modes
-            touchData.global.x = touchEvent.clientX;
-            touchData.global.y = touchEvent.clientY;
+            this.touchData.global.x = touchEvent.clientX;
+            this.touchData.global.y = touchEvent.clientY;
         }
 
         for (var j = 0; j < this.interactiveItems.length; j++)
@@ -4595,7 +4603,7 @@ PIXI.InteractionManager.prototype.onTouchMove = function(event)
             var item = this.interactiveItems[j];
             if (item.touchmove && item.__touchData && item.__touchData[touchEvent.identifier])
             {
-                item.touchmove(touchData);
+                item.touchmove(this.touchData);
             }
         }
     }
@@ -4886,6 +4894,17 @@ PIXI.Stage.prototype.setBackgroundColor = function(backgroundColor)
 PIXI.Stage.prototype.getMousePosition = function()
 {
     return this.interactionManager.mouse.global;
+};
+
+/**
+ * This will return the point containing global coordinates of the touch.
+ *
+ * @method getTouchPosition
+ * @return {Point} A point containing the coordinates of the global InteractionData position.
+ */
+PIXI.Stage.prototype.getTouchPosition = function()
+{
+    return this.interactionManager.touchData ? this.interactionManager.touchData.global : this.interactionManager.mouse.global;
 };
 
 /**

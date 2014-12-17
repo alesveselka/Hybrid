@@ -33,11 +33,12 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     this._background.drawRect(0,0,this._layout.width,this._layout.height);
     this._background.endFill();
 
+    //TODO use ScreenFactory for the screens?
     this._screenStack = new App.ViewStack([
         new App.AccountScreen(ModelLocator.getProxy(ModelName.ACCOUNTS),this._layout),
         new App.CategoryScreen(ModelLocator.getProxy(ModelName.ACCOUNTS),this._layout)
     ]);
-    this._screenStack.selectChildByIndex(0);
+    this._screenStack.selectChildByIndex(1);
     this._screenStack.show();
 
     this.addChild(this._background);

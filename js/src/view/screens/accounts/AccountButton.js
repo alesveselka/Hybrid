@@ -26,6 +26,8 @@ App.AccountButton = function AccountButton(model,layout,index)
     this._detailsLabel.x = Math.round(15 * pixelRatio);
     this._detailsLabel.y = Math.round(45 * pixelRatio);
 
+    //this._icon =
+
     this.addChild(this._nameLabel);
     this.addChild(this._detailsLabel);
 

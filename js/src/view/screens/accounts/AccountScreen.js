@@ -42,6 +42,7 @@ App.AccountScreen.prototype.enable = function enable()
 {
     App.Screen.prototype.enable.call(this);
 
+    this._pane.resetScroll();
     this._pane.enable();
 };
 

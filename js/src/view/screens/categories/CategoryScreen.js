@@ -9,14 +9,17 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
-    var i = 0, l = this._model.length(), CategoryButton = App.CategoryButton, button = null;
+    var i = 0,
+        l = this._model.length(),
+        CategoryButton = App.CategoryButton,
+        button = null;
 
+    this._swipeButton = null;
     this._buttons = new Array(l);
     this._buttonContainer = new PIXI.DisplayObjectContainer();
 
     for (;i<30;i++)
     {
-        //button = new AccountButton(this._model.getItemAt(i),this._layout);
         button = new CategoryButton(this._model.getItemAt(0),this._layout,i);
         this._buttons[i] = button;
         this._buttonContainer.addChild(button);
@@ -25,11 +28,13 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
     this._pane.setContent(this._buttonContainer);
 
+//    this._addButton =
+
     this._updateLayout();
 
     this.addChild(this._pane);
 
-//    this._addButton =
+    this._swipeEnabled = true;
 };
 
 App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
@@ -42,7 +47,43 @@ App.CategoryScreen.prototype.enable = function enable()
 {
     App.Screen.prototype.enable.call(this);
 
+    this._pane.resetScroll();
     this._pane.enable();
+};
+
+/**
+ * Called when swipe starts
+ * @private
+ */
+App.CategoryScreen.prototype._swipeStart = function _swipeStart()
+{
+    this._pane.cancelScroll();
+
+    this._swipeButton = this._getButtonUnderPoint(this._getPointerPosition());
+};
+
+/**
+ * Called when swipe ends
+ * @param {string} direction
+ * @private
+ */
+App.CategoryScreen.prototype._swipeEnd = function _swipeEnd(direction)
+{
+    if (this._swipeButton)
+    {
+        this._swipeButton.snap(direction);
+        this._swipeButton = null;
+    }
+};
+
+/**
+ * Swipe handler
+ * @param {string} direction
+ * @private
+ */
+App.CategoryScreen.prototype._swipe = function _swipe(direction)
+{
+    if (this._swipeButton && direction === App.Direction.LEFT) this._swipeButton.swipe(this._getPointerPosition().x);
 };
 
 /**
@@ -55,12 +96,41 @@ App.CategoryScreen.prototype._onClick = function _onClick()
 };
 
 /**
+ * Find button under point passed in
+ * @param {Point} point
+ * @private
+ */
+App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoint(point)
+{
+    var i = 0,
+        l = this._buttons.length,
+        height = this._buttons[0].boundingBox.height,
+        y = point.y,
+        buttonY = 0,
+        containerY = this._buttonContainer.y;
+
+    for (;i<l;i++)
+    {
+        buttonY = this._buttons[i].y + containerY;
+        if (buttonY < y && buttonY + height > y)
+        {
+            return this._buttons[i];
+        }
+    }
+
+    return null;
+};
+
+/**
  * @method _updateLayout
  * @private
  */
 App.CategoryScreen.prototype._updateLayout = function _updateLayout()
 {
-    var i = 0, l = this._buttons.length, height = this._buttons[0].boundingBox.height;
+    var i = 0,
+        l = this._buttons.length,
+        height = this._buttons[0].boundingBox.height;
+
     for (;i<l;i++)
     {
         this._buttons[i].y = i * height;

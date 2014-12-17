@@ -1,9 +1,11 @@
 /**
  * Direction
  * @enum {string}
- * @return {{X:string,Y:string}}
+ * @return {{X:string,Y:string,LEFT:string,RIGHT:string}}
  */
 App.Direction = {
     X:"x",
-    Y:"y"
+    Y:"y",
+    LEFT:"LEFT",
+    RIGHT:"RIGHT"
 };

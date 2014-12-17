@@ -57,17 +57,12 @@ window.requestAnimationFrame || (window.requestAnimationFrame =
     window.mozRequestAnimationFrame    ||
     window.oRequestAnimationFrame      ||
     window.msRequestAnimationFrame     ||
-    function(callback,element)
+    function(callback)
     {
         return window.setTimeout(function() {
-            callback(+new Date());
+            callback();
         }, 1000 / 60);
     });
-
-window.cancelAnimationFrame = window.cancelAnimationFrame ||
-    window.webkitCancelAnimationFrame ||
-    window.mozCancelAnimationFrame ||
-    window.webkitCancelRequestAnimationFrame;
 
 /**
  * @module App
@@ -183,23 +178,25 @@ App.ModelName = {
 /**
  * View Segment state
  * @enum {string}
- * @return {{APPLICATION_VIEW:string}}
+ * @return {{APPLICATION_VIEW:string,LOG:string}}
  */
 App.ViewName = {
-    APPLICATION_VIEW:"APPLICATION_VIEW"
+    APPLICATION_VIEW:"APPLICATION_VIEW",
+    LOG:"LOG"
 };
 
 /**
  * Interactive state
  * @enum {string}
- * @return {{OVER:string,OUT:string,DRAGGING:string,SCROLLING:string,SNAPPING:string}}
+ * @return {{OVER:string,OUT:string,DRAGGING:string,SCROLLING:string,SNAPPING:string,SWIPING:string}}
  */
 App.InteractiveState = {
     OVER:"OVER",
     OUT:"OUT",
     DRAGGING:"DRAGGING",
     SCROLLING:"SCROLLING",
-    SNAPPING:"SNAPPING"
+    SNAPPING:"SNAPPING",
+    SWIPING:"SWIPING"
 };
 
 /**
@@ -229,11 +226,13 @@ App.ScrollPolicy = {
 /**
  * Direction
  * @enum {string}
- * @return {{X:string,Y:string}}
+ * @return {{X:string,Y:string,LEFT:string,RIGHT:string}}
  */
 App.Direction = {
     X:"x",
-    Y:"y"
+    Y:"y",
+    LEFT:"LEFT",
+    RIGHT:"RIGHT"
 };
 
 /**
@@ -1174,6 +1173,7 @@ App.Pane.prototype.enable = function enable()
 {
     if (!this._enabled)
     {
+        //TODO check scroll policy before registering events; no need to register them if policy is OFF
         this._registerEventListeners();
 
         this.interactive = true;
@@ -1214,6 +1214,19 @@ App.Pane.prototype.resetScroll = function resetScroll()
         this._xScrollIndicator.hide(true);
         this._yScrollIndicator.hide(true);
     }
+};
+
+/**
+ * Cancel scroll
+ */
+App.Pane.prototype.cancelScroll = function cancelScroll()
+{
+    this._state = null;
+    this._xSpeed = 0.0;
+    this._ySpeed = 0.0;
+
+    this._xScrollIndicator.hide(true);
+    this._yScrollIndicator.hide(true);
 };
 
 /**
@@ -1274,8 +1287,7 @@ App.Pane.prototype._unRegisterEventListeners = function _unRegisterEventListener
 App.Pane.prototype._onPointerDown = function _onMouseDown(data)
 {
     //TODO make sure just one input is registered (multiple inputs on touch screens) ...
-    //TODO ... simple condition doesn't matter - I need ID of the first input received and then respond to that in other handlers!
-    data.originalEvent.preventDefault();
+    //data.originalEvent.preventDefault();
 
     this._mouseData = data;
 
@@ -1320,8 +1332,6 @@ App.Pane.prototype._onPointerUp = function _onMouseUp(data)
  */
 App.Pane.prototype._onPointerMove = function _onMouseMove(data)
 {
-    data.originalEvent.preventDefault();
-
     this._mouseData = data;
 };
 
@@ -1387,6 +1397,8 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
                 contentY = this._content.y,
                 contentBottom = contentY + this._contentHeight,
                 contentTop = this._height - this._contentHeight;
+
+            if (mouseY <= -10000) return;
 
             // If content is pulled from beyond screen edges, dump the drag effect
             if (contentY > 0)
@@ -1587,7 +1599,7 @@ App.Pane.prototype._isContentPulled = function _isContentPulled()
 App.Pane.prototype._updateScrollers = function _updateScrollBars()
 {
     var ScrollPolicy = App.ScrollPolicy;
-
+    //TODO (un)register event listeners based on the policy!
     if (this._xOriginalScrollPolicy === ScrollPolicy.AUTO)
     {
         if (this._contentWidth >= this._width)
@@ -1858,8 +1870,14 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._model = model;
     this._layout = layout;
     this._enabled = false;
-    this._mousePosition = null;
-    this._state = App.TransitionState.HIDDEN;
+    this._transitionState = App.TransitionState.HIDDEN;
+    this._interactiveState = null;
+    this._mouseDownPosition = null;
+    this._mouseX = 0.0;
+    this._leftSwipeThreshold = Math.round(30 * layout.pixelRatio);
+    this._rightSwipeThreshold = Math.round(5 * layout.pixelRatio);
+    this._swipeEnabled = false;
+    this._swipeDirection = null;
 
     var ModelLocator = App.ModelLocator;
     var ModelName = App.ModelName;
@@ -1881,11 +1899,11 @@ App.Screen.prototype.show = function show()
 {
     var TransitionState = App.TransitionState;
 
-    if (this._state === TransitionState.HIDDEN || this._state === TransitionState.HIDING)
+    if (this._transitionState === TransitionState.HIDDEN || this._transitionState === TransitionState.HIDING)
     {
         this.enable();
 
-        this._state = TransitionState.SHOWING;
+        this._transitionState = TransitionState.SHOWING;
 
         this._showHideTween.restart();
 
@@ -1900,9 +1918,9 @@ App.Screen.prototype.hide = function hide()
 {
     var TransitionState = App.TransitionState;
 
-    if (this._state === TransitionState.SHOWN || this._state === TransitionState.SHOWING)
+    if (this._transitionState === TransitionState.SHOWN || this._transitionState === TransitionState.SHOWING)
     {
-        this._state = TransitionState.HIDING;
+        this._transitionState = TransitionState.HIDING;
 
         this._showHideTween.start(true);
     }
@@ -1933,6 +1951,8 @@ App.Screen.prototype.disable = function disable()
     this._unRegisterEventListeners();
 
     this._enabled = false;
+
+    this._interactiveState = null;
 };
 
 /**
@@ -1958,49 +1978,6 @@ App.Screen.prototype.removeEventListener = function removeEventListener(eventTyp
 };
 
 /**
- * On tick
- * @private
- */
-App.Screen.prototype._onTick = function _onTick()
-{
-    if (this._showHideTween.isRunning())
-    {
-        var TransitionState = App.TransitionState;
-
-        if (this._state === TransitionState.SHOWING) this.alpha = this._showHideTween.progress;
-        else if (this._state === TransitionState.HIDING) this.alpha = 1 - this._showHideTween.progress;
-    }
-};
-
-/**
- * On tween complete
- * @private
- */
-App.Screen.prototype._onTweenComplete = function _onTweenComplete()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._state === TransitionState.SHOWING)
-    {
-        this._state = TransitionState.SHOWN;
-
-        this.alpha = 1.0;
-    }
-    else if (this._state === TransitionState.HIDING)
-    {
-        this._state = TransitionState.HIDDEN;
-
-        this.disable();
-
-        this.alpha = 0.0;
-
-        this.visible = false;
-
-        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,{target:this,state:this._state});
-    }
-};
-
-/**
  * Register event listeners
  * @private
  */
@@ -2011,14 +1988,12 @@ App.Screen.prototype._registerEventListeners = function _registerEventListeners(
         this.touchstart = this._onPointerDown;
         this.touchend = this._onPointerUp;
         this.touchendoutside = this._onPointerUp;
-        this.touchmove = this._onPointerMove;
     }
     else
     {
         this.mousedown = this._onPointerDown;
         this.mouseup = this._onPointerUp;
         this.mouseupoutside = this._onPointerUp;
-        this.mousemove = this._onPointerMove;
     }
 
     this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
@@ -2041,14 +2016,63 @@ App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListen
         this.touchstart = null;
         this.touchend = null;
         this.touchendoutside = null;
-        this.touchmove = null;
     }
     else
     {
         this.mousedown = null;
         this.mouseup = null;
         this.mouseupoutside = null;
-        this.mousemove = null;
+    }
+};
+
+/**
+ * On tick
+ * @private
+ */
+App.Screen.prototype._onTick = function _onTick()
+{
+    if (this._showHideTween.isRunning())
+    {
+        var TransitionState = App.TransitionState;
+
+        if (this._transitionState === TransitionState.SHOWING) this.alpha = this._showHideTween.progress;
+        else if (this._transitionState === TransitionState.HIDING) this.alpha = 1 - this._showHideTween.progress;
+    }
+
+    if (this._swipeEnabled)
+    {
+        var InteractiveState = App.InteractiveState;
+
+        if (this._interactiveState === InteractiveState.DRAGGING) this._drag();
+        else if (this._interactiveState === InteractiveState.SWIPING) this._swipe(this._swipeDirection);
+    }
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.Screen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.SHOWING)
+    {
+        this._transitionState = TransitionState.SHOWN;
+
+        this.alpha = 1.0;
+    }
+    else if (this._transitionState === TransitionState.HIDING)
+    {
+        this._transitionState = TransitionState.HIDDEN;
+
+        this.disable();
+
+        this.alpha = 0.0;
+
+        this.visible = false;
+
+        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,{target:this,state:this._transitionState});
     }
 };
 
@@ -2060,7 +2084,13 @@ App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListen
  */
 App.Screen.prototype._onPointerDown = function _onPointerDown(data)
 {
-    if (this.stage) this._mousePosition = data.getLocalPosition(this.stage);
+    if (this.stage)
+    {
+        this._mouseDownPosition = data.getLocalPosition(this.stage);
+        this._mouseX = this._mouseDownPosition.x;
+    }
+
+    if (this._swipeEnabled) this._interactiveState = App.InteractiveState.DRAGGING;
 };
 
 /**
@@ -2070,17 +2100,69 @@ App.Screen.prototype._onPointerDown = function _onPointerDown(data)
  */
 App.Screen.prototype._onPointerUp = function _onPointerUp(data)
 {
-    if (this.stage && this._mousePosition && this._enabled)
+    if (this._swipeEnabled)
     {
-        var newPosition = data.getLocalPosition(this.stage),
-            dx = this._mousePosition.x - newPosition.x,
-            dy = this._mousePosition.y - newPosition.y,
+        if (this._interactiveState === App.InteractiveState.SWIPING) this._swipeEnd(this._swipeDirection);
+        this._interactiveState = null;
+    }
+
+    if (this.stage && this._mouseDownPosition && this._enabled)
+    {
+        var oldX = this._mouseDownPosition.x,
+            oldY = this._mouseDownPosition.y;
+
+        this._mouseDownPosition = data.getLocalPosition(this.stage,this._mouseDownPosition);
+
+        var dx = oldX - this._mouseDownPosition.x,
+            dy = oldY - this._mouseDownPosition.y,
             dist = dx * dx - dy * dy,
             TransitionState = App.TransitionState;
 
-        this._mousePosition = null;
+        if (Math.abs(dist) < 5 && (this._transitionState === TransitionState.SHOWING || this._transitionState === TransitionState.SHOWN)) this._onClick();
 
-        if (Math.abs(dist) < 5 && (this._state === TransitionState.SHOWING || this._state === TransitionState.SHOWN)) this._onClick();
+        this._mouseDownPosition = null;
+    }
+};
+
+/**
+ * Return pointer position
+ * @returns {Point}
+ * @private
+ */
+App.Screen.prototype._getPointerPosition = function _getPointerPosition()
+{
+    return App.Device.TOUCH_SUPPORTED ? this.stage.getTouchPosition() : this.stage.getMousePosition();
+};
+
+/**
+ * Drag
+ * @private
+ */
+App.Screen.prototype._drag = function _drag()
+{
+    var InteractiveState = App.InteractiveState;
+
+    if (this._interactiveState === InteractiveState.DRAGGING)
+    {
+        if (this.stage && this._mouseX)
+        {
+            var newX = this._getPointerPosition().x;
+
+            if (this._mouseX - newX > this._leftSwipeThreshold)
+            {
+                this._interactiveState = InteractiveState.SWIPING;
+                this._swipeDirection = App.Direction.LEFT;
+                this._swipeStart();
+            }
+            else if (newX - this._mouseX > this._rightSwipeThreshold)
+            {
+                this._interactiveState = InteractiveState.SWIPING;
+                this._swipeDirection = App.Direction.RIGHT;
+                this._swipeStart();
+            }
+
+            this._mouseX = newX;
+        }
     }
 };
 
@@ -2091,6 +2173,35 @@ App.Screen.prototype._onPointerUp = function _onPointerUp(data)
 App.Screen.prototype._onClick = function _onClick()
 {
     this._eventDispatcher.dispatchEvent(App.EventType.CLICK);
+};
+
+/**
+ * Called when swipe starts
+ * @private
+ */
+App.Screen.prototype._swipeStart = function _swipeStart()
+{
+    // Abstract
+};
+
+/**
+ * Called when swipe ends
+ * @param {string} direction
+ * @private
+ */
+App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
+{
+    // Abstract
+};
+
+/**
+ * Swipe handler
+ * @param {string} direction
+ * @private
+ */
+App.Screen.prototype._swipe = function _swipe(direction)
+{
+    // Abstract
 };
 
 /**
@@ -2109,8 +2220,10 @@ App.Screen.prototype.destroy = function destroy()
     this._ticker = null;
     this._model = null;
     this._layout = null;
-    this._mousePosition = null;
-    this._state = null;
+    this._transitionState = null;
+    this._mouseDownPosition = null;
+
+    //TODO make sure everything is destroyed
 };
 
 /**
@@ -2140,6 +2253,8 @@ App.AccountButton = function AccountButton(model,layout,index)
     this._detailsLabel = new PIXI.Text("Balance: 2.876, Expenses: -250, Income: 1.500",{font:Math.round(12 * pixelRatio)+"px Arial",fill:"#999999"});
     this._detailsLabel.x = Math.round(15 * pixelRatio);
     this._detailsLabel.y = Math.round(45 * pixelRatio);
+
+    //this._icon =
 
     this.addChild(this._nameLabel);
     this.addChild(this._detailsLabel);
@@ -2248,6 +2363,7 @@ App.AccountScreen.prototype.enable = function enable()
 {
     App.Screen.prototype.enable.call(this);
 
+    this._pane.resetScroll();
     this._pane.enable();
 };
 
@@ -2303,57 +2419,45 @@ App.AccountScreen.prototype.destroy = function destroy()
 
 /**
  * @class CategoryButton
- * @extends Graphics
+ * @extends DisplayObjectContainer
  * @param {Account} model
  * @param {Object} layout
  * @constructor
  */
 App.CategoryButton = function CategoryButton(model,layout,index)
 {
-    PIXI.Graphics.call(this);
+    PIXI.DisplayObjectContainer.call(this);
 
+    var pixelRatio = layout.pixelRatio,
+        height = Math.round(50 * pixelRatio);
+
+    this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
     this._model = model;
     this._layout = layout;
-
-    var pixelRatio = this._layout.pixelRatio,
-        height = Math.round(50 * pixelRatio);
+    this._state = null;
+    this._dragFriction = 0.5;
+    this._snapForce = 0.5;
+    this._editOffset = Math.round(80 * pixelRatio);
+    this._editButtonShown = false;
 
     this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
 
-    this._colorStripe = new PIXI.Graphics();
-    this._colorStripe.beginFill("0x"+App.MathUtils.rgbToHex(
-        Math.round(Math.sin(0.3 * index + 0) * 127 + 128),
-        Math.round(Math.sin(0.3 * index + 2) * 127 + 128),
-        Math.round(Math.sin(0.3 * index + 4) * 127 + 128)
-    ));
-    this._colorStripe.drawRect(0,0,Math.round(4 * pixelRatio),height);
-    this._colorStripe.endFill();
+    this._background = new PIXI.Graphics();
+    this._background.beginFill(0xE53013);
+    this._background.drawRect(0,0,this.boundingBox.width,this.boundingBox.height);
+    this._background.endFill();
 
+    this._surfaceSkin = new PIXI.Graphics();
     this._icon = new PIXI.Sprite.fromFrame("currencies");
-    if (pixelRatio === 1)
-    {
-        this._icon.scale.x *= 0.5;
-        this._icon.scale.y *= 0.5;
-    }
-    this._icon.x = Math.round(15 * pixelRatio);
-    this._icon.y = Math.round((height - this._icon.height) / 2);
-    this._icon.tint = 0x394264;
-
-    //TODO move texts and their settings objects into pools?
     this._nameLabel = new PIXI.Text("Category "+index,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
-    this._nameLabel.x = Math.round(64 * pixelRatio);
-    this._nameLabel.y = Math.round(18 * pixelRatio);
 
-    this.addChild(this._colorStripe);
-    this.addChild(this._icon);
-    this.addChild(this._nameLabel);
+    this._renderSurface();
 
-    this.interactive = true;
-
-    this._render();
+    this.addChild(this._background);
+    this.addChild(this._surfaceSkin);
 };
 
-App.CategoryButton.prototype = Object.create(PIXI.Graphics.prototype);
+App.CategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.CategoryButton.prototype.constructor = App.CategoryButton;
 
 /**
@@ -2364,27 +2468,159 @@ App.CategoryButton.prototype.resize = function resize(width)
 {
     this.boundingBox.width = width;
 
-    this._render();
+    this._renderSurface();
+    //TODO also resize background and other elements
+};
+
+/**
+ * Tick handler
+ * @private
+ */
+App.CategoryButton.prototype._onTick = function _onTick()
+{
+    if (this._state === App.InteractiveState.SNAPPING) this.snap();
+};
+
+/**
+ * Enable snapping
+ * @private
+ */
+App.CategoryButton.prototype._enableSnap = function _enableSnap()
+{
+    this._state = App.InteractiveState.SNAPPING;
+
+    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+};
+
+/**
+ * Disable snapping
+ * @private
+ */
+App.CategoryButton.prototype._disableSnap = function _disableSnap()
+{
+    this._state = null;
+
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+};
+
+/**
+ * @method swipe
+ * @param {number} position
+ * @private
+ */
+App.CategoryButton.prototype.swipe = function swipe(position)
+{
+    if (!this._editButtonShown)
+    {
+        if (!this._state) this._state = App.InteractiveState.SWIPING;
+
+        var w = this._layout.width;
+
+        this._surfaceSkin.x = -Math.round(w * (1 - (position / w)) * this._dragFriction);
+    }
+};
+
+/**
+ * @method snap
+ * @param {string} swipeDirection
+ * @private
+ */
+App.CategoryButton.prototype.snap = function snap(swipeDirection)
+{
+    // Snap back if button is swiping
+    if (this._state === App.InteractiveState.SWIPING)
+    {
+        this._enableSnap();
+    }
+    // Or snap to close edit button, if it is open ...
+    else if (!this._state && this._editButtonShown)
+    {
+        // ... and swipe direction is right
+        if (swipeDirection === App.Direction.RIGHT)
+        {
+            this._enableSnap();
+        }
+        else
+        {
+            return;
+        }
+    }
+
+    // Snap to show edit button
+    if (this._surfaceSkin.x < -this._editOffset)
+    {
+        if (this._surfaceSkin.x * this._snapForce >= -this._editOffset)
+        {
+            this._editButtonShown = true;
+
+            this._surfaceSkin.x = -this._editOffset;
+
+            this._disableSnap();
+        }
+        else
+        {
+            this._surfaceSkin.x *= this._snapForce;
+        }
+    }
+    // Snap to close edit button
+    else
+    {
+        if (this._surfaceSkin.x * this._snapForce >= -1)
+        {
+            this._editButtonShown = false;
+
+            this._surfaceSkin.x = 0;
+
+            this._disableSnap();
+        }
+        else
+        {
+            this._surfaceSkin.x *= this._snapForce;
+        }
+    }
 };
 
 /**
  * @method render
  * @private
  */
-App.CategoryButton.prototype._render = function _render()
+App.CategoryButton.prototype._renderSurface = function _renderSurface()
 {
+    var pixelRatio = this._layout.pixelRatio,
+        padding = Math.round(10 * pixelRatio),
+        w = this.boundingBox.width,
+        h = this.boundingBox.height;
+
     //TODO cache this as texture?
+    this._surfaceSkin.clear();
+    this._surfaceSkin.beginFill(0xefefef);
+    this._surfaceSkin.drawRect(0,0,w,h);
+    this._surfaceSkin.beginFill(0xffffff);
+    this._surfaceSkin.drawRect(padding,0,w-padding*2,1);
+    this._surfaceSkin.beginFill(0xcccccc);
+    this._surfaceSkin.drawRect(padding,h-1,w-padding*2,1);
+    this._surfaceSkin.beginFill("0x"+App.MathUtils.rgbToHex(
+        Math.round(Math.sin(0.3 * 10 + 0) * 127 + 128),
+        Math.round(Math.sin(0.3 * 10 + 2) * 127 + 128),
+        Math.round(Math.sin(0.3 * 10 + 4) * 127 + 128)
+    ));
+    this._surfaceSkin.drawRect(0,0,Math.round(4 * pixelRatio),h);
+    this._surfaceSkin.endFill();
 
-    var padding = Math.round(10 * this._layout.pixelRatio);
+    if (pixelRatio === 1)
+    {
+        this._icon.scale.x *= 0.5;
+        this._icon.scale.y *= 0.5;
+    }
+    this._icon.x = Math.round(15 * pixelRatio);
+    this._icon.y = Math.round((h - this._icon.height) / 2);
+    this._icon.tint = 0x394264;
 
-    this.clear();
-    this.beginFill(0xefefef);
-    this.drawRect(0,0,this.boundingBox.width,this.boundingBox.height);
-    this.beginFill(0xffffff);
-    this.drawRect(padding,0,this.boundingBox.width-padding*2,1);
-    this.beginFill(0xcccccc);
-    this.drawRect(padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1);
-    this.endFill();
+    this._nameLabel.x = Math.round(64 * pixelRatio);
+    this._nameLabel.y = Math.round(18 * pixelRatio);
+
+    this._surfaceSkin.addChild(this._icon);
+    this._surfaceSkin.addChild(this._nameLabel);
 };
 
 /**
@@ -2422,14 +2658,17 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
-    var i = 0, l = this._model.length(), CategoryButton = App.CategoryButton, button = null;
+    var i = 0,
+        l = this._model.length(),
+        CategoryButton = App.CategoryButton,
+        button = null;
 
+    this._swipeButton = null;
     this._buttons = new Array(l);
     this._buttonContainer = new PIXI.DisplayObjectContainer();
 
     for (;i<30;i++)
     {
-        //button = new AccountButton(this._model.getItemAt(i),this._layout);
         button = new CategoryButton(this._model.getItemAt(0),this._layout,i);
         this._buttons[i] = button;
         this._buttonContainer.addChild(button);
@@ -2438,11 +2677,13 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
     this._pane.setContent(this._buttonContainer);
 
+//    this._addButton =
+
     this._updateLayout();
 
     this.addChild(this._pane);
 
-//    this._addButton =
+    this._swipeEnabled = true;
 };
 
 App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
@@ -2455,7 +2696,43 @@ App.CategoryScreen.prototype.enable = function enable()
 {
     App.Screen.prototype.enable.call(this);
 
+    this._pane.resetScroll();
     this._pane.enable();
+};
+
+/**
+ * Called when swipe starts
+ * @private
+ */
+App.CategoryScreen.prototype._swipeStart = function _swipeStart()
+{
+    this._pane.cancelScroll();
+
+    this._swipeButton = this._getButtonUnderPoint(this._getPointerPosition());
+};
+
+/**
+ * Called when swipe ends
+ * @param {string} direction
+ * @private
+ */
+App.CategoryScreen.prototype._swipeEnd = function _swipeEnd(direction)
+{
+    if (this._swipeButton)
+    {
+        this._swipeButton.snap(direction);
+        this._swipeButton = null;
+    }
+};
+
+/**
+ * Swipe handler
+ * @param {string} direction
+ * @private
+ */
+App.CategoryScreen.prototype._swipe = function _swipe(direction)
+{
+    if (this._swipeButton && direction === App.Direction.LEFT) this._swipeButton.swipe(this._getPointerPosition().x);
 };
 
 /**
@@ -2468,12 +2745,41 @@ App.CategoryScreen.prototype._onClick = function _onClick()
 };
 
 /**
+ * Find button under point passed in
+ * @param {Point} point
+ * @private
+ */
+App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoint(point)
+{
+    var i = 0,
+        l = this._buttons.length,
+        height = this._buttons[0].boundingBox.height,
+        y = point.y,
+        buttonY = 0,
+        containerY = this._buttonContainer.y;
+
+    for (;i<l;i++)
+    {
+        buttonY = this._buttons[i].y + containerY;
+        if (buttonY < y && buttonY + height > y)
+        {
+            return this._buttons[i];
+        }
+    }
+
+    return null;
+};
+
+/**
  * @method _updateLayout
  * @private
  */
 App.CategoryScreen.prototype._updateLayout = function _updateLayout()
 {
-    var i = 0, l = this._buttons.length, height = this._buttons[0].boundingBox.height;
+    var i = 0,
+        l = this._buttons.length,
+        height = this._buttons[0].boundingBox.height;
+
     for (;i<l;i++)
     {
         this._buttons[i].y = i * height;
@@ -2507,6 +2813,7 @@ App.CategoryScreen.prototype.destroy = function destroy()
     this._buttons.length = 0;
     this._buttons = null;
 };
+
 /**
  * @class ApplicationView
  * @extends DisplayObjectContainer
@@ -2542,11 +2849,12 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     this._background.drawRect(0,0,this._layout.width,this._layout.height);
     this._background.endFill();
 
+    //TODO use ScreenFactory for the screens?
     this._screenStack = new App.ViewStack([
         new App.AccountScreen(ModelLocator.getProxy(ModelName.ACCOUNTS),this._layout),
         new App.CategoryScreen(ModelLocator.getProxy(ModelName.ACCOUNTS),this._layout)
     ]);
-    this._screenStack.selectChildByIndex(0);
+    this._screenStack.selectChildByIndex(1);
     this._screenStack.show();
 
     this.addChild(this._background);
@@ -2905,7 +3213,6 @@ App.Ticker = function Ticker(eventListenerPool)
 {
     App.EventDispatcher.call(this,eventListenerPool);
 
-    this._rafId = -1;
     this._rafListener = this._raf.bind(this);
     this._isRunning = false;
 };
@@ -2927,7 +3234,7 @@ App.Ticker.prototype.addEventListener = function(eventType,scope,listener)
     {
         this._isRunning = true;
 
-        this._rafId = window.requestAnimationFrame(this._rafListener);
+        window.requestAnimationFrame(this._rafListener);
     }
 };
 
@@ -2941,12 +3248,7 @@ App.Ticker.prototype.removeEventListener = function(eventType,scope,listener)
 {
     App.EventDispatcher.prototype.removeEventListener.call(this,eventType,scope,listener);
 
-    if (this._listeners.length === 0)
-    {
-        window.cancelAnimationFrame(this._rafId);
-
-        this._isRunning = false;
-    }
+    if (this._listeners.length === 0) this._isRunning = false;
 };
 
 /**
@@ -2955,8 +3257,6 @@ App.Ticker.prototype.removeEventListener = function(eventType,scope,listener)
 App.Ticker.prototype.removeAllListeners = function()
 {
     App.EventDispatcher.prototype.removeAllListeners.call(this);
-
-    window.cancelAnimationFrame(this._rafId);
 
     this._isRunning = false;
 };
@@ -2967,10 +3267,14 @@ App.Ticker.prototype.removeAllListeners = function()
  */
 App.Ticker.prototype._raf = function _raf()
 {
-    this._rafId = window.requestAnimationFrame(this._rafListener);
+    if (this._isRunning)
+    {
+        window.requestAnimationFrame(this._rafListener);
 
-    this.dispatchEvent(App.EventType.TICK);
+        this.dispatchEvent(App.EventType.TICK);
+    }
 };
+
 /**
  * @class Controller
  * @type {{_eventListenerPool:ObjectPool,_eventCommandMap: {}, _commands: Array, _init: Function, _onCommandComplete: Function, _destroyCommand: Function, dispatchEvent: Function}}

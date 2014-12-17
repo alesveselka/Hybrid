@@ -15,8 +15,14 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._model = model;
     this._layout = layout;
     this._enabled = false;
-    this._mousePosition = null;
-    this._state = App.TransitionState.HIDDEN;
+    this._transitionState = App.TransitionState.HIDDEN;
+    this._interactiveState = null;
+    this._mouseDownPosition = null;
+    this._mouseX = 0.0;
+    this._leftSwipeThreshold = Math.round(30 * layout.pixelRatio);
+    this._rightSwipeThreshold = Math.round(5 * layout.pixelRatio);
+    this._swipeEnabled = false;
+    this._swipeDirection = null;
 
     var ModelLocator = App.ModelLocator;
     var ModelName = App.ModelName;
@@ -38,11 +44,11 @@ App.Screen.prototype.show = function show()
 {
     var TransitionState = App.TransitionState;
 
-    if (this._state === TransitionState.HIDDEN || this._state === TransitionState.HIDING)
+    if (this._transitionState === TransitionState.HIDDEN || this._transitionState === TransitionState.HIDING)
     {
         this.enable();
 
-        this._state = TransitionState.SHOWING;
+        this._transitionState = TransitionState.SHOWING;
 
         this._showHideTween.restart();
 
@@ -57,9 +63,9 @@ App.Screen.prototype.hide = function hide()
 {
     var TransitionState = App.TransitionState;
 
-    if (this._state === TransitionState.SHOWN || this._state === TransitionState.SHOWING)
+    if (this._transitionState === TransitionState.SHOWN || this._transitionState === TransitionState.SHOWING)
     {
-        this._state = TransitionState.HIDING;
+        this._transitionState = TransitionState.HIDING;
 
         this._showHideTween.start(true);
     }
@@ -90,6 +96,8 @@ App.Screen.prototype.disable = function disable()
     this._unRegisterEventListeners();
 
     this._enabled = false;
+
+    this._interactiveState = null;
 };
 
 /**
@@ -115,49 +123,6 @@ App.Screen.prototype.removeEventListener = function removeEventListener(eventTyp
 };
 
 /**
- * On tick
- * @private
- */
-App.Screen.prototype._onTick = function _onTick()
-{
-    if (this._showHideTween.isRunning())
-    {
-        var TransitionState = App.TransitionState;
-
-        if (this._state === TransitionState.SHOWING) this.alpha = this._showHideTween.progress;
-        else if (this._state === TransitionState.HIDING) this.alpha = 1 - this._showHideTween.progress;
-    }
-};
-
-/**
- * On tween complete
- * @private
- */
-App.Screen.prototype._onTweenComplete = function _onTweenComplete()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._state === TransitionState.SHOWING)
-    {
-        this._state = TransitionState.SHOWN;
-
-        this.alpha = 1.0;
-    }
-    else if (this._state === TransitionState.HIDING)
-    {
-        this._state = TransitionState.HIDDEN;
-
-        this.disable();
-
-        this.alpha = 0.0;
-
-        this.visible = false;
-
-        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,{target:this,state:this._state});
-    }
-};
-
-/**
  * Register event listeners
  * @private
  */
@@ -168,14 +133,12 @@ App.Screen.prototype._registerEventListeners = function _registerEventListeners(
         this.touchstart = this._onPointerDown;
         this.touchend = this._onPointerUp;
         this.touchendoutside = this._onPointerUp;
-        this.touchmove = this._onPointerMove;
     }
     else
     {
         this.mousedown = this._onPointerDown;
         this.mouseup = this._onPointerUp;
         this.mouseupoutside = this._onPointerUp;
-        this.mousemove = this._onPointerMove;
     }
 
     this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
@@ -198,14 +161,63 @@ App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListen
         this.touchstart = null;
         this.touchend = null;
         this.touchendoutside = null;
-        this.touchmove = null;
     }
     else
     {
         this.mousedown = null;
         this.mouseup = null;
         this.mouseupoutside = null;
-        this.mousemove = null;
+    }
+};
+
+/**
+ * On tick
+ * @private
+ */
+App.Screen.prototype._onTick = function _onTick()
+{
+    if (this._showHideTween.isRunning())
+    {
+        var TransitionState = App.TransitionState;
+
+        if (this._transitionState === TransitionState.SHOWING) this.alpha = this._showHideTween.progress;
+        else if (this._transitionState === TransitionState.HIDING) this.alpha = 1 - this._showHideTween.progress;
+    }
+
+    if (this._swipeEnabled)
+    {
+        var InteractiveState = App.InteractiveState;
+
+        if (this._interactiveState === InteractiveState.DRAGGING) this._drag();
+        else if (this._interactiveState === InteractiveState.SWIPING) this._swipe(this._swipeDirection);
+    }
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.Screen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.SHOWING)
+    {
+        this._transitionState = TransitionState.SHOWN;
+
+        this.alpha = 1.0;
+    }
+    else if (this._transitionState === TransitionState.HIDING)
+    {
+        this._transitionState = TransitionState.HIDDEN;
+
+        this.disable();
+
+        this.alpha = 0.0;
+
+        this.visible = false;
+
+        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,{target:this,state:this._transitionState});
     }
 };
 
@@ -217,7 +229,13 @@ App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListen
  */
 App.Screen.prototype._onPointerDown = function _onPointerDown(data)
 {
-    if (this.stage) this._mousePosition = data.getLocalPosition(this.stage);
+    if (this.stage)
+    {
+        this._mouseDownPosition = data.getLocalPosition(this.stage);
+        this._mouseX = this._mouseDownPosition.x;
+    }
+
+    if (this._swipeEnabled) this._interactiveState = App.InteractiveState.DRAGGING;
 };
 
 /**
@@ -227,17 +245,69 @@ App.Screen.prototype._onPointerDown = function _onPointerDown(data)
  */
 App.Screen.prototype._onPointerUp = function _onPointerUp(data)
 {
-    if (this.stage && this._mousePosition && this._enabled)
+    if (this._swipeEnabled)
     {
-        var newPosition = data.getLocalPosition(this.stage),
-            dx = this._mousePosition.x - newPosition.x,
-            dy = this._mousePosition.y - newPosition.y,
+        if (this._interactiveState === App.InteractiveState.SWIPING) this._swipeEnd(this._swipeDirection);
+        this._interactiveState = null;
+    }
+
+    if (this.stage && this._mouseDownPosition && this._enabled)
+    {
+        var oldX = this._mouseDownPosition.x,
+            oldY = this._mouseDownPosition.y;
+
+        this._mouseDownPosition = data.getLocalPosition(this.stage,this._mouseDownPosition);
+
+        var dx = oldX - this._mouseDownPosition.x,
+            dy = oldY - this._mouseDownPosition.y,
             dist = dx * dx - dy * dy,
             TransitionState = App.TransitionState;
 
-        this._mousePosition = null;
+        if (Math.abs(dist) < 5 && (this._transitionState === TransitionState.SHOWING || this._transitionState === TransitionState.SHOWN)) this._onClick();
 
-        if (Math.abs(dist) < 5 && (this._state === TransitionState.SHOWING || this._state === TransitionState.SHOWN)) this._onClick();
+        this._mouseDownPosition = null;
+    }
+};
+
+/**
+ * Return pointer position
+ * @returns {Point}
+ * @private
+ */
+App.Screen.prototype._getPointerPosition = function _getPointerPosition()
+{
+    return App.Device.TOUCH_SUPPORTED ? this.stage.getTouchPosition() : this.stage.getMousePosition();
+};
+
+/**
+ * Drag
+ * @private
+ */
+App.Screen.prototype._drag = function _drag()
+{
+    var InteractiveState = App.InteractiveState;
+
+    if (this._interactiveState === InteractiveState.DRAGGING)
+    {
+        if (this.stage && this._mouseX)
+        {
+            var newX = this._getPointerPosition().x;
+
+            if (this._mouseX - newX > this._leftSwipeThreshold)
+            {
+                this._interactiveState = InteractiveState.SWIPING;
+                this._swipeDirection = App.Direction.LEFT;
+                this._swipeStart();
+            }
+            else if (newX - this._mouseX > this._rightSwipeThreshold)
+            {
+                this._interactiveState = InteractiveState.SWIPING;
+                this._swipeDirection = App.Direction.RIGHT;
+                this._swipeStart();
+            }
+
+            this._mouseX = newX;
+        }
     }
 };
 
@@ -248,6 +318,35 @@ App.Screen.prototype._onPointerUp = function _onPointerUp(data)
 App.Screen.prototype._onClick = function _onClick()
 {
     this._eventDispatcher.dispatchEvent(App.EventType.CLICK);
+};
+
+/**
+ * Called when swipe starts
+ * @private
+ */
+App.Screen.prototype._swipeStart = function _swipeStart()
+{
+    // Abstract
+};
+
+/**
+ * Called when swipe ends
+ * @param {string} direction
+ * @private
+ */
+App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
+{
+    // Abstract
+};
+
+/**
+ * Swipe handler
+ * @param {string} direction
+ * @private
+ */
+App.Screen.prototype._swipe = function _swipe(direction)
+{
+    // Abstract
 };
 
 /**
@@ -266,6 +365,8 @@ App.Screen.prototype.destroy = function destroy()
     this._ticker = null;
     this._model = null;
     this._layout = null;
-    this._mousePosition = null;
-    this._state = null;
+    this._transitionState = null;
+    this._mouseDownPosition = null;
+
+    //TODO make sure everything is destroyed
 };
