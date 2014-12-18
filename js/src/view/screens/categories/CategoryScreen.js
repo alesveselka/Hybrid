@@ -35,6 +35,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     this.addChild(this._pane);
 
     this._swipeEnabled = true;
+    this._preferScroll = true;
 };
 
 App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
@@ -49,17 +50,32 @@ App.CategoryScreen.prototype.enable = function enable()
 
     this._pane.resetScroll();
     this._pane.enable();
+    //TODO also implement 'disable'
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.CategoryScreen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    App.Screen.prototype._onTweenComplete.call(this);
+
+    if (this._transitionState === App.TransitionState.HIDDEN) this._closeOpenedButtons(true);
 };
 
 /**
  * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
  * @private
  */
-App.CategoryScreen.prototype._swipeStart = function _swipeStart()
+App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll)
 {
-    this._pane.cancelScroll();
+    if (!preferScroll) this._pane.cancelScroll();
 
     this._swipeButton = this._getButtonUnderPoint(this._getPointerPosition());
+
+    this._closeOpenedButtons(false);
 };
 
 /**
@@ -84,6 +100,24 @@ App.CategoryScreen.prototype._swipeEnd = function _swipeEnd(direction)
 App.CategoryScreen.prototype._swipe = function _swipe(direction)
 {
     if (this._swipeButton && direction === App.Direction.LEFT) this._swipeButton.swipe(this._getPointerPosition().x);
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.CategoryScreen.prototype._closeOpenedButtons = function _closeOpenedButtons(immediate)
+{
+    var i = 0,
+        l = this._buttons.length,
+        button = null,
+        rightDirection = App.Direction.RIGHT;
+
+    for (;i<l;)
+    {
+        button = this._buttons[i++];
+        if (button.isEditButtonShown() && button !== this._swipeButton) button.snap(rightDirection,immediate);
+    }
 };
 
 /**

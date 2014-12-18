@@ -1874,10 +1874,12 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._interactiveState = null;
     this._mouseDownPosition = null;
     this._mouseX = 0.0;
+    this._mouseY = 0.0;
     this._leftSwipeThreshold = Math.round(30 * layout.pixelRatio);
     this._rightSwipeThreshold = Math.round(5 * layout.pixelRatio);
     this._swipeEnabled = false;
     this._swipeDirection = null;
+    this._preferScroll = false;
 
     var ModelLocator = App.ModelLocator;
     var ModelName = App.ModelName;
@@ -2088,6 +2090,7 @@ App.Screen.prototype._onPointerDown = function _onPointerDown(data)
     {
         this._mouseDownPosition = data.getLocalPosition(this.stage);
         this._mouseX = this._mouseDownPosition.x;
+        this._mouseY = this._mouseDownPosition.y;
     }
 
     if (this._swipeEnabled) this._interactiveState = App.InteractiveState.DRAGGING;
@@ -2146,22 +2149,25 @@ App.Screen.prototype._drag = function _drag()
     {
         if (this.stage && this._mouseX)
         {
-            var newX = this._getPointerPosition().x;
+            var position = this._getPointerPosition(),
+                newX = position.x,
+                newY = position.y;
 
             if (this._mouseX - newX > this._leftSwipeThreshold)
             {
                 this._interactiveState = InteractiveState.SWIPING;
                 this._swipeDirection = App.Direction.LEFT;
-                this._swipeStart();
+                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll);
             }
             else if (newX - this._mouseX > this._rightSwipeThreshold)
             {
                 this._interactiveState = InteractiveState.SWIPING;
                 this._swipeDirection = App.Direction.RIGHT;
-                this._swipeStart();
+                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll);
             }
 
             this._mouseX = newX;
+            this._mouseY = newY;
         }
     }
 };
@@ -2177,9 +2183,10 @@ App.Screen.prototype._onClick = function _onClick()
 
 /**
  * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
  * @private
  */
-App.Screen.prototype._swipeStart = function _swipeStart()
+App.Screen.prototype._swipeStart = function _swipeStart(preferScroll)
 {
     // Abstract
 };
@@ -2473,6 +2480,15 @@ App.CategoryButton.prototype.resize = function resize(width)
 };
 
 /**
+ * Is Edit button shown?
+ * @returns {boolean}
+ */
+App.CategoryButton.prototype.isEditButtonShown = function isEditButtonShown()
+{
+    return this._editButtonShown;
+};
+
+/**
  * Tick handler
  * @private
  */
@@ -2523,10 +2539,19 @@ App.CategoryButton.prototype.swipe = function swipe(position)
 /**
  * @method snap
  * @param {string} swipeDirection
+ * @param {boolean} [immediate=false]
  * @private
  */
-App.CategoryButton.prototype.snap = function snap(swipeDirection)
+App.CategoryButton.prototype.snap = function snap(swipeDirection,immediate)
 {
+    if (immediate)
+    {
+        this._editButtonShown = false;
+        this._surfaceSkin.x = 0;
+
+        return;
+    }
+
     // Snap back if button is swiping
     if (this._state === App.InteractiveState.SWIPING)
     {
@@ -2684,6 +2709,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     this.addChild(this._pane);
 
     this._swipeEnabled = true;
+    this._preferScroll = true;
 };
 
 App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
@@ -2698,17 +2724,32 @@ App.CategoryScreen.prototype.enable = function enable()
 
     this._pane.resetScroll();
     this._pane.enable();
+    //TODO also implement 'disable'
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.CategoryScreen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    App.Screen.prototype._onTweenComplete.call(this);
+
+    if (this._transitionState === App.TransitionState.HIDDEN) this._closeOpenedButtons(true);
 };
 
 /**
  * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
  * @private
  */
-App.CategoryScreen.prototype._swipeStart = function _swipeStart()
+App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll)
 {
-    this._pane.cancelScroll();
+    if (!preferScroll) this._pane.cancelScroll();
 
     this._swipeButton = this._getButtonUnderPoint(this._getPointerPosition());
+
+    this._closeOpenedButtons(false);
 };
 
 /**
@@ -2733,6 +2774,24 @@ App.CategoryScreen.prototype._swipeEnd = function _swipeEnd(direction)
 App.CategoryScreen.prototype._swipe = function _swipe(direction)
 {
     if (this._swipeButton && direction === App.Direction.LEFT) this._swipeButton.swipe(this._getPointerPosition().x);
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.CategoryScreen.prototype._closeOpenedButtons = function _closeOpenedButtons(immediate)
+{
+    var i = 0,
+        l = this._buttons.length,
+        button = null,
+        rightDirection = App.Direction.RIGHT;
+
+    for (;i<l;)
+    {
+        button = this._buttons[i++];
+        if (button.isEditButtonShown() && button !== this._swipeButton) button.snap(rightDirection,immediate);
+    }
 };
 
 /**
@@ -3536,6 +3595,7 @@ App.LoadData.prototype.destroy = function destroy()
 App.Initialize = function Initialize()
 {
     this._eventListenerPool = new App.ObjectPool(App.EventListener,10);
+    //TODO also create TextOption pool for all text elements! ...
 
     App.Command.call(this,false,this._eventListenerPool);
 

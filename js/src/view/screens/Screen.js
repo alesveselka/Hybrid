@@ -19,10 +19,12 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._interactiveState = null;
     this._mouseDownPosition = null;
     this._mouseX = 0.0;
+    this._mouseY = 0.0;
     this._leftSwipeThreshold = Math.round(30 * layout.pixelRatio);
     this._rightSwipeThreshold = Math.round(5 * layout.pixelRatio);
     this._swipeEnabled = false;
     this._swipeDirection = null;
+    this._preferScroll = false;
 
     var ModelLocator = App.ModelLocator;
     var ModelName = App.ModelName;
@@ -233,6 +235,7 @@ App.Screen.prototype._onPointerDown = function _onPointerDown(data)
     {
         this._mouseDownPosition = data.getLocalPosition(this.stage);
         this._mouseX = this._mouseDownPosition.x;
+        this._mouseY = this._mouseDownPosition.y;
     }
 
     if (this._swipeEnabled) this._interactiveState = App.InteractiveState.DRAGGING;
@@ -291,22 +294,25 @@ App.Screen.prototype._drag = function _drag()
     {
         if (this.stage && this._mouseX)
         {
-            var newX = this._getPointerPosition().x;
+            var position = this._getPointerPosition(),
+                newX = position.x,
+                newY = position.y;
 
             if (this._mouseX - newX > this._leftSwipeThreshold)
             {
                 this._interactiveState = InteractiveState.SWIPING;
                 this._swipeDirection = App.Direction.LEFT;
-                this._swipeStart();
+                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll);
             }
             else if (newX - this._mouseX > this._rightSwipeThreshold)
             {
                 this._interactiveState = InteractiveState.SWIPING;
                 this._swipeDirection = App.Direction.RIGHT;
-                this._swipeStart();
+                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll);
             }
 
             this._mouseX = newX;
+            this._mouseY = newY;
         }
     }
 };
@@ -322,9 +328,10 @@ App.Screen.prototype._onClick = function _onClick()
 
 /**
  * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
  * @private
  */
-App.Screen.prototype._swipeStart = function _swipeStart()
+App.Screen.prototype._swipeStart = function _swipeStart(preferScroll)
 {
     // Abstract
 };

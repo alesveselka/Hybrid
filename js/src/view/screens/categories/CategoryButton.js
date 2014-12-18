@@ -54,6 +54,15 @@ App.CategoryButton.prototype.resize = function resize(width)
 };
 
 /**
+ * Is Edit button shown?
+ * @returns {boolean}
+ */
+App.CategoryButton.prototype.isEditButtonShown = function isEditButtonShown()
+{
+    return this._editButtonShown;
+};
+
+/**
  * Tick handler
  * @private
  */
@@ -104,10 +113,19 @@ App.CategoryButton.prototype.swipe = function swipe(position)
 /**
  * @method snap
  * @param {string} swipeDirection
+ * @param {boolean} [immediate=false]
  * @private
  */
-App.CategoryButton.prototype.snap = function snap(swipeDirection)
+App.CategoryButton.prototype.snap = function snap(swipeDirection,immediate)
 {
+    if (immediate)
+    {
+        this._editButtonShown = false;
+        this._surfaceSkin.x = 0;
+
+        return;
+    }
+
     // Snap back if button is swiping
     if (this._state === App.InteractiveState.SWIPING)
     {

@@ -6,6 +6,7 @@
 App.Initialize = function Initialize()
 {
     this._eventListenerPool = new App.ObjectPool(App.EventListener,10);
+    //TODO also create TextOption pool for all text elements! ...
 
     App.Command.call(this,false,this._eventListenerPool);
 
