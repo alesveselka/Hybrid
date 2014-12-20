@@ -202,13 +202,17 @@ App.InteractiveState = {
 /**
  * Transition state
  * @enum {string}
- * @return {{SHOWING:string,SHOWN:string,HIDING:string,HIDDEN:string}}
+ * @return {{SHOWING:string,SHOWN:string,HIDING:string,HIDDEN:string,OPEN:string,OPENING:string,CLOSED:string,CLOSING:string}}
  */
 App.TransitionState = {
     SHOWING:"SHOWING",
     SHOWN:"SHOWN",
     HIDING:"HIDING",
-    HIDDEN:"HIDDEN"
+    HIDDEN:"HIDDEN",
+    OPEN:"OPEN",
+    OPENING:"OPENING",
+    CLOSED:"CLOSED",
+    CLOSING:"CLOSING"
 };
 
 /**
@@ -1067,6 +1071,780 @@ App.ScrollIndicator.prototype.destroy = function destroy()
     this.clear();
 };
 
+App.TileList = function TileList(direction,layout/*windowSize*/)
+{
+    PIXI.DisplayObjectContainer.call(this);
+    //TODO just pass in collection and construct on the fly?
+    this.width = 0;
+    this.height = 0;
+
+    this._direction = direction;
+    //this._windowSize = windowSize;
+    this._windowSize = layout.height;
+    this._children = [];
+    this._lastY = 0;
+    this._topVisibleChildIndex = 0;
+
+    this._layout = layout;
+    this._childHeight = Math.round(50 * this._layout.pixelRatio);
+};
+
+App.TileList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.TileList.prototype.constructor = App.TileList;
+
+App.TileList.prototype.add = function add(child)
+{
+    this._children[this._children.length] = child;
+//    this._children.length = this._children.length + 1;
+
+    //TODO do not add if outside of screen
+    this.addChild(child);
+
+    this._updateSize();//TODO postpone and update just once?
+};
+
+App.TileList.prototype.update = function update(position)
+{
+    this._lastY = this.y;//TODO also do X
+
+    var Direction = App.Direction;
+    if (this._direction === Direction.X) this.x = Math.round(position);
+    else if (this._direction === Direction.Y) this.y = Math.round(position);
+
+    this._updateTiles();
+};
+
+App.TileList.prototype._updateTiles = function _updateTiles()
+{
+    var i = 0,
+        l = this._children.length,
+        height = 0,
+        y = 0,
+        child = null/*,
+        start = window.performance.now();*/
+
+    //TODO also implement for X
+    for (;i<l;)
+    {
+        child = this._children[i++];
+        height = child.boundingBox.height;
+        y = this.y + child.y;
+
+        if (y + height > 0 && y < this._windowSize)
+        {
+            if (!this.contains(child)) this.addChild(child);
+//            child.visible = true;
+        }
+        else
+        {
+            if (this.contains(child)) this.removeChild(child);
+//            child.visible = false;
+        }
+    }
+
+    //TODO also utilize POOL, for memory conservation?
+    //TODO test performance with 1000+ and consider to use '_setTopVisibleChild' (and also include children withing 'change' distance)
+};
+
+//TODO rename
+App.TileList.prototype._setTopVisibleChild = function _setTopVisibleChild(change)
+{
+    var i = this._topVisibleChildIndex;
+    var child = this._children[i];
+
+    if (change < 0)
+    {
+        while(child)
+        {
+            if (this.y + child.y > 0)
+            {
+                this._topVisibleChildIndex = i;
+                return;
+            }
+
+            child = this._children[++i];
+        }
+    }
+    else
+    {
+        while(child)
+        {
+            if (this.y + child.y < 0)
+            {
+                this._topVisibleChildIndex = i;
+                return;
+            }
+
+            child = this._children[--i];
+        }
+    }
+};
+
+App.TileList.prototype._updateSize = function _updateSize()
+{
+    this.width = 0;
+    this.height = 0;
+
+    var i = 0,
+        l = this._children.length,
+        child = null,
+        bounds = null,
+        y = 0;
+
+    for (;i<l;i++)
+    {
+        child = this._children[i];
+        bounds = child.boundingBox;
+
+        //TODO also implement X
+        child.y = y;
+
+        y = Math.round(y + bounds.height);
+    }
+
+    this.width = bounds.width;
+//    this.width = this._layout.width;
+    this.height = y;
+//    this.height = this._children.length * this._childHeight;
+};
+
+/**
+ * @class TilePane
+ * @extends {DisplayObjectContainer}
+ * @param {string} xScrollPolicy
+ * @param {string} yScrollPolicy
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.TilePane = function TilePane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    var ScrollIndicator = App.ScrollIndicator,
+        Direction = App.Direction;
+
+    this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
+    this._content = null;
+    this._width = width;
+    this._height = height;
+    this._contentHeight = 0;
+    this._contentWidth = 0;
+
+    this._enabled = false;
+    this._eventsRegistered = false;
+    this._state = null;
+    this._xOriginalScrollPolicy = xScrollPolicy;
+    this._yOriginalScrollPolicy = yScrollPolicy;
+    this._xScrollPolicy = xScrollPolicy;
+    this._yScrollPolicy = yScrollPolicy;
+    this._xScrollIndicator = new ScrollIndicator(Direction.X,pixelRatio);
+    this._yScrollIndicator = new ScrollIndicator(Direction.Y,pixelRatio);
+
+    this._mouseData = null;
+    this._oldMouseX = 0.0;
+    this._oldMouseY = 0.0;
+    this._xSpeed = 0.0;
+    this._ySpeed = 0.0;
+    this._xOffset = 0.0;
+    this._yOffset = 0.0;
+    this._friction = 0.9;
+    this._dumpForce = 0.3;
+    this._snapForce = 0.2;
+};
+
+App.TilePane.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.TilePane.prototype.constructor = App.TilePane;
+
+/**
+ * Set content of the pane
+ *
+ * @method setContent
+ * @param {PIXI.DisplayObjectContainer} content
+ */
+App.TilePane.prototype.setContent = function setContent(content)
+{
+    this.removeContent();
+
+    this._content = content;
+    this._contentHeight = this._content.height;
+    this._contentWidth = this._content.width;
+
+    this.addChildAt(this._content,0);
+
+    this._updateScrollers();
+};
+
+/**
+ * Remove content
+ *
+ * @method removeContent
+ */
+App.TilePane.prototype.removeContent = function removeContent()
+{
+    if (this._content && this.contains(this._content))
+    {
+        this.removeChild(this._content);
+
+        this._content = null;
+    }
+};
+
+/**
+ * Resize
+ *
+ * @param {number} width
+ * @param {number} height
+ */
+App.TilePane.prototype.resize = function resize(width,height)
+{
+    this._width = width;
+    this._height = height;
+
+    if (this._content)
+    {
+        this._contentHeight = this._content.height;
+        this._contentWidth = this._content.width;
+
+        this._updateScrollers();
+    }
+};
+
+/**
+ * Enable
+ */
+App.TilePane.prototype.enable = function enable()
+{
+    if (!this._enabled)
+    {
+        var ScrollPolicy = App.ScrollPolicy;
+        if (this._xScrollPolicy !== ScrollPolicy.OFF || this._yScrollPolicy !== ScrollPolicy.OFF) this._registerEventListeners();
+
+        this.interactive = true;
+
+        this._enabled = true;
+    }
+};
+
+/**
+ * Disable
+ */
+App.TilePane.prototype.disable = function disable()
+{
+    this._unRegisterEventListeners();
+
+    this.cancelScroll();
+
+    // If content is pulled, make sure that the position is reset
+    if (this._content.x > 0) this._content.x = 0;
+    else if (this._content.y > 0) this._content.y = 0;
+    else if (this._content.x + this._contentWidth < this._width) this._content.x = this._width - this._contentWidth;
+    else if (this._content.y + this._contentHeight < this._height) this._content.y = this._height - this._contentHeight;
+
+    this.interactive = false;
+
+    this._enabled = false;
+};
+
+/**
+ * Reset content scroll
+ */
+App.TilePane.prototype.resetScroll = function resetScroll()
+{
+    this._state = null;
+    this._xSpeed = 0.0;
+    this._ySpeed = 0.0;
+
+    if (this._content)
+    {
+        this._content.update(0);
+        //this._content.y = 0;
+
+        this._xScrollIndicator.hide(true);
+        this._yScrollIndicator.hide(true);
+    }
+};
+
+/**
+ * Cancel scroll
+ */
+App.TilePane.prototype.cancelScroll = function cancelScroll()
+{
+    this._state = null;
+    this._xSpeed = 0.0;
+    this._ySpeed = 0.0;
+
+    this._xScrollIndicator.hide(true);
+    this._yScrollIndicator.hide(true);
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.TilePane.prototype._registerEventListeners = function _registerEventListeners()
+{
+    if (!this._eventsRegistered)
+    {
+        this._eventsRegistered = true;
+
+        if (App.Device.TOUCH_SUPPORTED)
+        {
+            this.touchstart = this._onPointerDown;
+            this.touchend = this._onPointerUp;
+            this.touchendoutside = this._onPointerUp;
+            this.touchmove = this._onPointerMove;
+        }
+        else
+        {
+            this.mousedown = this._onPointerDown;
+            this.mouseup = this._onPointerUp;
+            this.mouseupoutside = this._onPointerUp;
+            this.mousemove = this._onPointerMove;
+        }
+
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+    }
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.TilePane.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    if (App.Device.TOUCH_SUPPORTED)
+    {
+        this.touchstart = null;
+        this.touchend = null;
+        this.touchendoutside = null;
+        this.touchmove = null;
+    }
+    else
+    {
+        this.mousedown = null;
+        this.mouseup = null;
+        this.mouseupoutside = null;
+        this.mousemove = null;
+    }
+
+    this._eventsRegistered = false;
+};
+
+/**
+ * Pointer Down handler
+ *
+ * @method _onPointerDown
+ * @param {InteractionData} data
+ * @private
+ */
+App.TilePane.prototype._onPointerDown = function _onPointerDown(data)
+{
+    //TODO make sure just one input is registered (multiple inputs on touch screens) ...
+
+    this._mouseData = data;
+
+    var mp = this._mouseData.getLocalPosition(this.stage);
+    this._xOffset = mp.x - this._content.x;
+    this._yOffset = mp.y - this._content.y;
+    this._xSpeed = 0.0;
+    this._ySpeed = 0.0;
+
+    this._state = App.InteractiveState.DRAGGING;
+
+    if (this._xScrollPolicy === App.ScrollPolicy.ON) this._xScrollIndicator.show();
+    if (this._yScrollPolicy === App.ScrollPolicy.ON) this._yScrollIndicator.show();
+};
+
+/**
+ * On pointer up
+ *
+ * @param {InteractionData} data
+ * @private
+ */
+App.TilePane.prototype._onPointerUp = function _onPointerUp(data)
+{
+    if (this._isContentPulled())
+    {
+        this._state = App.InteractiveState.SNAPPING;
+        this._xSpeed = 0.0;
+        this._ySpeed = 0.0;
+    }
+    else
+    {
+        this._state = App.InteractiveState.SCROLLING;
+    }
+
+    this._mouseData = null;
+};
+
+/**
+ * On pointer move
+ * @param {InteractionData} data
+ * @private
+ */
+App.TilePane.prototype._onPointerMove = function _onPointerMove(data)
+{
+    this._mouseData = data;
+};
+
+/**
+ * Tick handler
+ *
+ * @private
+ */
+App.TilePane.prototype._onTick = function _onTick()
+{
+    var InteractiveState = App.InteractiveState;
+
+    if (this._state === InteractiveState.DRAGGING) this._drag(App.ScrollPolicy);
+    else if (this._state === InteractiveState.SCROLLING) this._scroll(App.ScrollPolicy,InteractiveState);
+    else if (this._state === InteractiveState.SNAPPING) this._snap(App.ScrollPolicy,InteractiveState);
+
+    if (this._xScrollIndicator.visible) this._xScrollIndicator.update(this._content.x);
+    if (this._yScrollIndicator.visible) this._yScrollIndicator.update(this._content.y);
+};
+
+/**
+ * Perform drag operation
+ *
+ * @param {App.ScrollPolicy} ScrollPolicy
+ * @private
+ */
+App.TilePane.prototype._drag = function _drag(ScrollPolicy)
+{
+    var pullDistance = 0;
+
+    if (this.stage)
+    {
+        if (this._xScrollPolicy === ScrollPolicy.ON)
+        {
+            var mouseX = this._mouseData.getLocalPosition(this.stage).x,
+                contentX = this._content.x,
+                contentRight = contentX + this._contentWidth,
+                contentLeft = contentX - this._contentWidth;
+
+            // If content is pulled from beyond screen edges, dump the drag effect
+            if (contentX > 0)
+            {
+                pullDistance = (1 - contentX / this._width) * this._dumpForce;
+                //this._content.x = Math.round(mouseX * pullDistance - this._xOffset * pullDistance);
+                this._content.update(mouseX * pullDistance - this._xOffset * pullDistance);
+            }
+            else if (contentRight < this._width)
+            {
+                pullDistance = (contentRight / this._width) * this._dumpForce;
+                //this._content.x = Math.round(contentLeft - (this._width - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
+                this._content.update(contentLeft - (this._width - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
+            }
+            else
+            {
+                //this._content.x = Math.round(mouseX - this._xOffset);
+                this._content.update(mouseX - this._xOffset);
+            }
+
+            this._xSpeed = mouseX - this._oldMouseX;
+            this._oldMouseX = mouseX;
+        }
+
+        if (this._yScrollPolicy === ScrollPolicy.ON)
+        {
+            var mouseY = this._mouseData.getLocalPosition(this.stage).y,
+                contentY = this._content.y,
+                contentBottom = contentY + this._contentHeight,
+                contentTop = this._height - this._contentHeight;
+
+            if (mouseY <= -10000) return;
+
+            // If content is pulled from beyond screen edges, dump the drag effect
+            if (contentY > 0)
+            {
+                pullDistance = (1 - contentY / this._height) * this._dumpForce;
+                //this._content.y = Math.round(mouseY * pullDistance - this._yOffset * pullDistance);
+                this._content.update(mouseY * pullDistance - this._yOffset * pullDistance);
+            }
+            else if (contentBottom < this._height)
+            {
+                pullDistance = (contentBottom / this._height) * this._dumpForce;
+                //this._content.y = Math.round(contentTop - (this._height - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
+                this._content.update(contentTop - (this._height - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
+            }
+            else
+            {
+                //this._content.y = Math.round(mouseY - this._yOffset);
+                this._content.update(mouseY - this._yOffset);
+            }
+
+            this._ySpeed = mouseY - this._oldMouseY;
+            this._oldMouseY = mouseY;
+        }
+    }
+};
+
+/**
+ * Perform scroll operation
+ *
+ * @param {App.ScrollPolicy} ScrollPolicy
+ * @param {App.InteractiveState} InteractiveState
+ * @private
+ */
+App.TilePane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
+{
+    if (this._xScrollPolicy === ScrollPolicy.ON)
+    {
+        //this._content.x = Math.round(this._content.x + this._xSpeed);
+        this._content.update(this._content.x + this._xSpeed);
+
+        var contentX = this._content.x,
+            contentRight = contentX + this._contentWidth;
+
+        // If content is scrolled from beyond screen edges, dump the speed
+        if (contentX > 0)
+        {
+            this._xSpeed *= (1 - contentX / this._width) * this._dumpForce;
+        }
+        else if (contentRight < this._width)
+        {
+            this._xSpeed *= (contentRight / this._width) * this._dumpForce;
+        }
+
+        // If the speed is very low, stop it.
+        // Also, if the content is scrolled beyond screen edges, switch to 'snap' state
+        if (Math.abs(this._xSpeed) < .1)
+        {
+            this._xSpeed = 0.0;
+            this._state = null;
+            this._xScrollIndicator.hide();
+
+            if (contentX > 0 || contentRight < this._width) this._state = InteractiveState.SNAPPING;
+        }
+        else
+        {
+            this._xSpeed *= this._friction;
+        }
+    }
+
+    if (this._yScrollPolicy === ScrollPolicy.ON)
+    {
+        //this._content.y = Math.round(this._content.y + this._ySpeed);
+        this._content.update(this._content.y + this._ySpeed);
+
+        var contentY = this._content.y,
+            contentBottom = contentY + this._contentHeight;
+
+        // If content is scrolled from beyond screen edges, dump the speed
+        if (contentY > 0)
+        {
+            this._ySpeed *= (1 - contentY / this._height) * this._dumpForce;
+        }
+        else if (contentBottom < this._height)
+        {
+            this._ySpeed *= (contentBottom / this._height) * this._dumpForce;
+        }
+
+        // If the speed is very low, stop it.
+        // Also, if the content is scrolled beyond screen edges, switch to 'snap' state
+        if (Math.abs(this._ySpeed) < .1)
+        {
+            this._ySpeed = 0.0;
+            this._state = null;
+            this._yScrollIndicator.hide();
+
+            if (contentY > 0 || contentBottom < this._height) this._state = InteractiveState.SNAPPING;
+        }
+        else
+        {
+            this._ySpeed *= this._friction;
+        }
+    }
+};
+
+/**
+ * Perform snap operation
+ *
+ * @param {App.ScrollPolicy} ScrollPolicy
+ * @private
+ */
+App.TilePane.prototype._snap = function _snap(ScrollPolicy)
+{
+    if (this._xScrollPolicy === ScrollPolicy.ON)
+    {
+        var contentX = this._content.x,
+            contentRight = contentX + this._contentWidth,
+            contentLeft = contentX - this._contentWidth,
+            result = contentX * this._snapForce;
+
+        if (contentX > 0)
+        {
+            if (result < 5)
+            {
+                this._state = null;
+                //this._content.x = 0;
+                this._content.update(0);
+                this._xScrollIndicator.hide();
+            }
+            else
+            {
+                //this._content.x = Math.round(result);
+                this._content.update(result);
+            }
+        }
+        else if (contentRight < this._width)
+        {
+            result = contentLeft + (contentX - contentLeft) * this._snapForce;
+            if (result >= this._width - 5)
+            {
+                this._state = null;
+                //this._content.x = contentLeft;
+                this._content.update(contentLeft);
+                this._xScrollIndicator.hide();
+            }
+            else
+            {
+                //this._content.x = Math.round(result);
+                this._content.update(result);
+            }
+        }
+    }
+
+    if (this._yScrollPolicy === ScrollPolicy.ON)
+    {
+        var contentY = this._content.y,
+            contentBottom = contentY + this._contentHeight,
+            contentTop = this._height - this._contentHeight;
+
+        if (contentY > 0)
+        {
+            result = contentY * this._snapForce;
+            if (result < 5)
+            {
+                this._state = null;
+                //this._content.y = 0;
+                this._content.update(0);
+                this._yScrollIndicator.hide();
+            }
+            else
+            {
+                //this._content.y = Math.round(result);
+                this._content.update(result);
+            }
+        }
+        else if (contentBottom < this._height)
+        {
+            result = contentTop + (contentY - contentTop) * this._snapForce;
+            if (result >= contentTop - 5)
+            {
+                this._state = null;
+                //this._content.y = contentTop;
+                this._content.update(contentTop);
+                this._yScrollIndicator.hide();
+            }
+            else
+            {
+                //this._content.y = Math.round(result);
+                this._content.update(result);
+            }
+        }
+    }
+};
+
+/**
+ * Is content pulled
+ * @returns {boolean}
+ * @private
+ */
+App.TilePane.prototype._isContentPulled = function _isContentPulled()
+{
+    return this._content.x > 0 ||
+        this._content.y > 0 ||
+        this._content.y + this._contentHeight < this._height ||
+        this._content.x + this._contentWidth < this._width;
+};
+
+/**
+ * Update scroll indicators
+ * @private
+ */
+App.TilePane.prototype._updateScrollers = function _updateScrollers()
+{
+    var ScrollPolicy = App.ScrollPolicy;
+
+    if (this._xOriginalScrollPolicy === ScrollPolicy.AUTO)
+    {
+        if (this._contentWidth >= this._width)
+        {
+            this._xScrollPolicy = ScrollPolicy.ON;
+
+            this._xScrollIndicator.resize(this._width,this._contentWidth);
+            this._xScrollIndicator.x = this._height - this._xScrollIndicator.boundingBox.height;
+            if (!this.contains(this._xScrollIndicator)) this.addChild(this._xScrollIndicator);
+        }
+        else
+        {
+            this._xScrollPolicy = ScrollPolicy.OFF;
+
+            this._xScrollIndicator.hide();
+            if (this.contains(this._xScrollIndicator)) this.removeChild(this._xScrollIndicator);
+        }
+    }
+
+    if (this._yOriginalScrollPolicy === ScrollPolicy.AUTO)
+    {
+        if (this._contentHeight >= this._height)
+        {
+            this._yScrollPolicy = ScrollPolicy.ON;
+
+            this._yScrollIndicator.resize(this._height,this._contentHeight);
+            this._yScrollIndicator.x = this._width - this._yScrollIndicator.boundingBox.width;
+            if (!this.contains(this._yScrollIndicator)) this.addChild(this._yScrollIndicator);
+        }
+        else
+        {
+            this._yScrollPolicy = ScrollPolicy.OFF;
+
+            this._yScrollIndicator.hide();
+            if (this.contains(this._yScrollIndicator)) this.removeChild(this._yScrollIndicator);
+        }
+    }
+
+    if (this._xScrollPolicy === ScrollPolicy.OFF && this._yScrollPolicy === ScrollPolicy.OFF) this._unRegisterEventListeners();
+};
+
+/**
+ * Destroy
+ */
+App.TilePane.prototype.destroy = function destroy()
+{
+    //TODO also destroy PIXI's DisplayObjectContainer object!
+
+    this.disable();
+
+    this._ticker = null;
+
+    this._state = null;
+    this._xSpeed = 0.0;
+    this._ySpeed = 0.0;
+    this._mouseData = null;
+
+    this.removeContent();
+
+    if (this.contains(this._xScrollIndicator)) this.removeChild(this._xScrollIndicator);
+    this._xScrollIndicator.destroy();
+    this._xScrollIndicator = null;
+
+    if (this.contains(this._yScrollIndicator)) this.removeChild(this._yScrollIndicator);
+    this._yScrollIndicator.destroy();
+    this._yScrollIndicator = null;
+
+    this._xOriginalScrollPolicy = null;
+    this._yOriginalScrollPolicy = null;
+    this._xScrollPolicy = null;
+    this._yScrollPolicy = null;
+};
+
 /**
  * @class Pane
  * @extends {DisplayObjectContainer}
@@ -1089,6 +1867,7 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
     this._contentWidth = 0;
 
     this._enabled = false;
+    this._eventsRegistered = false;
     this._state = null;
     this._xOriginalScrollPolicy = xScrollPolicy;
     this._yOriginalScrollPolicy = yScrollPolicy;
@@ -1123,8 +1902,8 @@ App.Pane.prototype.setContent = function setContent(content)
     this.removeContent();
 
     this._content = content;
-    this._contentHeight = this._content.height;
-    this._contentWidth = this._content.width;
+    this._contentHeight = Math.round(this._content.height);
+    this._contentWidth = Math.round(this._content.width);
 
     this.addChildAt(this._content,0);
 
@@ -1159,8 +1938,8 @@ App.Pane.prototype.resize = function resize(width,height)
 
     if (this._content)
     {
-        this._contentHeight = this._content.height;
-        this._contentWidth = this._content.width;
+        this._contentHeight = Math.round(this._content.height);
+        this._contentWidth = Math.round(this._content.width);
 
         this._updateScrollers();
     }
@@ -1173,8 +1952,8 @@ App.Pane.prototype.enable = function enable()
 {
     if (!this._enabled)
     {
-        //TODO check scroll policy before registering events; no need to register them if policy is OFF
-        this._registerEventListeners();
+        var ScrollPolicy = App.ScrollPolicy;
+        if (this._xScrollPolicy !== ScrollPolicy.OFF || this._yScrollPolicy !== ScrollPolicy.OFF) this._registerEventListeners();
 
         this.interactive = true;
 
@@ -1189,8 +1968,13 @@ App.Pane.prototype.disable = function disable()
 {
     this._unRegisterEventListeners();
 
-    //TODO also stop scrolling, but if 'snapping' make sure the content is not pulled after cancelling the state
-    if (this._state === App.InteractiveState.DRAGGING) this._onPointerUp();
+    this.cancelScroll();
+
+    // If content is pulled, make sure that the position is reset
+    if (this._content.x > 0) this._content.x = 0;
+    else if (this._content.y > 0) this._content.y = 0;
+    else if (this._content.x + this._contentWidth < this._width) this._content.x = this._width - this._contentWidth;
+    else if (this._content.y + this._contentHeight < this._height) this._content.y = this._height - this._contentHeight;
 
     this.interactive = false;
 
@@ -1235,22 +2019,27 @@ App.Pane.prototype.cancelScroll = function cancelScroll()
  */
 App.Pane.prototype._registerEventListeners = function _registerEventListeners()
 {
-    if (App.Device.TOUCH_SUPPORTED)
+    if (!this._eventsRegistered)
     {
-        this.touchstart = this._onPointerDown;
-        this.touchend = this._onPointerUp;
-        this.touchendoutside = this._onPointerUp;
-        this.touchmove = this._onPointerMove;
-    }
-    else
-    {
-        this.mousedown = this._onPointerDown;
-        this.mouseup = this._onPointerUp;
-        this.mouseupoutside = this._onPointerUp;
-        this.mousemove = this._onPointerMove;
-    }
+        this._eventsRegistered = true;
 
-    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+        if (App.Device.TOUCH_SUPPORTED)
+        {
+            this.touchstart = this._onPointerDown;
+            this.touchend = this._onPointerUp;
+            this.touchendoutside = this._onPointerUp;
+            this.touchmove = this._onPointerMove;
+        }
+        else
+        {
+            this.mousedown = this._onPointerDown;
+            this.mouseup = this._onPointerUp;
+            this.mouseupoutside = this._onPointerUp;
+            this.mousemove = this._onPointerMove;
+        }
+
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+    }
 };
 
 /**
@@ -1275,6 +2064,8 @@ App.Pane.prototype._unRegisterEventListeners = function _unRegisterEventListener
         this.mouseupoutside = null;
         this.mousemove = null;
     }
+
+    this._eventsRegistered = false;
 };
 
 /**
@@ -1284,10 +2075,9 @@ App.Pane.prototype._unRegisterEventListeners = function _unRegisterEventListener
  * @param {InteractionData} data
  * @private
  */
-App.Pane.prototype._onPointerDown = function _onMouseDown(data)
+App.Pane.prototype._onPointerDown = function _onPointerDown(data)
 {
     //TODO make sure just one input is registered (multiple inputs on touch screens) ...
-    //data.originalEvent.preventDefault();
 
     this._mouseData = data;
 
@@ -1309,7 +2099,7 @@ App.Pane.prototype._onPointerDown = function _onMouseDown(data)
  * @param {InteractionData} data
  * @private
  */
-App.Pane.prototype._onPointerUp = function _onMouseUp(data)
+App.Pane.prototype._onPointerUp = function _onPointerUp(data)
 {
     if (this._isContentPulled())
     {
@@ -1330,7 +2120,7 @@ App.Pane.prototype._onPointerUp = function _onMouseUp(data)
  * @param {InteractionData} data
  * @private
  */
-App.Pane.prototype._onPointerMove = function _onMouseMove(data)
+App.Pane.prototype._onPointerMove = function _onPointerMove(data)
 {
     this._mouseData = data;
 };
@@ -1596,10 +2386,10 @@ App.Pane.prototype._isContentPulled = function _isContentPulled()
  * Update scroll indicators
  * @private
  */
-App.Pane.prototype._updateScrollers = function _updateScrollBars()
+App.Pane.prototype._updateScrollers = function _updateScrollers()
 {
     var ScrollPolicy = App.ScrollPolicy;
-    //TODO (un)register event listeners based on the policy!
+
     if (this._xOriginalScrollPolicy === ScrollPolicy.AUTO)
     {
         if (this._contentWidth >= this._width)
@@ -1637,6 +2427,8 @@ App.Pane.prototype._updateScrollers = function _updateScrollBars()
             if (this.contains(this._yScrollIndicator)) this.removeChild(this._yScrollIndicator);
         }
     }
+
+    if (this._xScrollPolicy === ScrollPolicy.OFF && this._yScrollPolicy === ScrollPolicy.OFF) this._unRegisterEventListeners();
 };
 
 /**
@@ -1867,22 +2659,25 @@ App.Screen = function Screen(model,layout,tweenDuration)
 {
     PIXI.DisplayObjectContainer.call(this);
 
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        pixelRatio = layout.pixelRatio;
+
     this._model = model;
     this._layout = layout;
     this._enabled = false;
+    this._eventsRegistered = false;
+
     this._transitionState = App.TransitionState.HIDDEN;
     this._interactiveState = null;
     this._mouseDownPosition = null;
     this._mouseX = 0.0;
     this._mouseY = 0.0;
-    this._leftSwipeThreshold = Math.round(30 * layout.pixelRatio);
-    this._rightSwipeThreshold = Math.round(5 * layout.pixelRatio);
-    this._swipeEnabled = false;
+    this._leftSwipeThreshold = Math.round(30 * pixelRatio);
+    this._rightSwipeThreshold = Math.round(5 * pixelRatio);
     this._swipeDirection = null;
+    this._swipeEnabled = false;
     this._preferScroll = false;
-
-    var ModelLocator = App.ModelLocator;
-    var ModelName = App.ModelName;
 
     this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
@@ -1985,22 +2780,27 @@ App.Screen.prototype.removeEventListener = function removeEventListener(eventTyp
  */
 App.Screen.prototype._registerEventListeners = function _registerEventListeners()
 {
-    if (App.Device.TOUCH_SUPPORTED)
+    if (!this._eventsRegistered)
     {
-        this.touchstart = this._onPointerDown;
-        this.touchend = this._onPointerUp;
-        this.touchendoutside = this._onPointerUp;
-    }
-    else
-    {
-        this.mousedown = this._onPointerDown;
-        this.mouseup = this._onPointerUp;
-        this.mouseupoutside = this._onPointerUp;
-    }
+        this._eventsRegistered = true;
 
-    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+        if (App.Device.TOUCH_SUPPORTED)
+        {
+            this.touchstart = this._onPointerDown;
+            this.touchend = this._onPointerUp;
+            this.touchendoutside = this._onPointerUp;
+        }
+        else
+        {
+            this.mousedown = this._onPointerDown;
+            this.mouseup = this._onPointerUp;
+            this.mouseupoutside = this._onPointerUp;
+        }
 
-    this._showHideTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._showHideTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+    }
 };
 
 /**
@@ -2025,6 +2825,8 @@ App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListen
         this.mouseup = null;
         this.mouseupoutside = null;
     }
+
+    this._eventsRegistered = false;
 };
 
 /**
@@ -2436,32 +3238,47 @@ App.CategoryButton = function CategoryButton(model,layout,index)
     PIXI.DisplayObjectContainer.call(this);
 
     var pixelRatio = layout.pixelRatio,
-        height = Math.round(50 * pixelRatio);
+        height = Math.round(50 * pixelRatio),
+        width = layout.width,
+        ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName;
 
-    this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
     this._model = model;
     this._layout = layout;
-    this._state = null;
+    this._interactiveState = null;
+//    this._transitionState = App.TransitionState.CLOSED;
     this._dragFriction = 0.5;
     this._snapForce = 0.5;
     this._editOffset = Math.round(80 * pixelRatio);
     this._editButtonShown = false;
 
-    this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
+    this.boundingBox = new PIXI.Rectangle(0,0,width,height);
 
     this._background = new PIXI.Graphics();
     this._background.beginFill(0xE53013);
-    this._background.drawRect(0,0,this.boundingBox.width,this.boundingBox.height);
+    this._background.drawRect(0,0,width,height);
     this._background.endFill();
+
+    //TODO add this to stage only when needed?
+    //TODO also not all variation of CategoryButtons will have editable option!
+    this._editLabel = new PIXI.Text("Edit ",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#ffffff"});
+    this._editLabel.x = Math.round(width - 50 * pixelRatio);
+    this._editLabel.y = Math.round(18 * pixelRatio);
 
     this._surfaceSkin = new PIXI.Graphics();
     this._icon = new PIXI.Sprite.fromFrame("currencies");
     this._nameLabel = new PIXI.Text("Category "+index,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
 
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+//    this._openCloseTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+
     this._renderSurface();
 
     this.addChild(this._background);
+    this.addChild(this._editLabel);
     this.addChild(this._surfaceSkin);
+
+//    this.interactive = true;
 };
 
 App.CategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -2494,7 +3311,7 @@ App.CategoryButton.prototype.isEditButtonShown = function isEditButtonShown()
  */
 App.CategoryButton.prototype._onTick = function _onTick()
 {
-    if (this._state === App.InteractiveState.SNAPPING) this.snap();
+    if (this._interactiveState === App.InteractiveState.SNAPPING) this.snap();
 };
 
 /**
@@ -2503,7 +3320,7 @@ App.CategoryButton.prototype._onTick = function _onTick()
  */
 App.CategoryButton.prototype._enableSnap = function _enableSnap()
 {
-    this._state = App.InteractiveState.SNAPPING;
+    this._interactiveState = App.InteractiveState.SNAPPING;
 
     this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
 };
@@ -2514,7 +3331,7 @@ App.CategoryButton.prototype._enableSnap = function _enableSnap()
  */
 App.CategoryButton.prototype._disableSnap = function _disableSnap()
 {
-    this._state = null;
+    this._interactiveState = null;
 
     this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
 };
@@ -2528,7 +3345,7 @@ App.CategoryButton.prototype.swipe = function swipe(position)
 {
     if (!this._editButtonShown)
     {
-        if (!this._state) this._state = App.InteractiveState.SWIPING;
+        if (!this._interactiveState) this._interactiveState = App.InteractiveState.SWIPING;
 
         var w = this._layout.width;
 
@@ -2553,12 +3370,12 @@ App.CategoryButton.prototype.snap = function snap(swipeDirection,immediate)
     }
 
     // Snap back if button is swiping
-    if (this._state === App.InteractiveState.SWIPING)
+    if (this._interactiveState === App.InteractiveState.SWIPING)
     {
         this._enableSnap();
     }
     // Or snap to close edit button, if it is open ...
-    else if (!this._state && this._editButtonShown)
+    else if (!this._interactiveState && this._editButtonShown)
     {
         // ... and swipe direction is right
         if (swipeDirection === App.Direction.RIGHT)
@@ -2604,6 +3421,36 @@ App.CategoryButton.prototype.snap = function snap(swipeDirection,immediate)
         }
     }
 };
+
+/**
+ * Open
+ */
+//App.CategoryButton.prototype.open = function open()
+//{
+//    var TransitionState = App.TransitionState;
+//
+//    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
+//    {
+//        this._transitionState = TransitionState.OPENING;
+//
+//        this._openCloseTween.restart();
+//    }
+//};
+
+/**
+ * Close
+ */
+//App.CategoryButton.prototype.close = function close()
+//{
+//    var TransitionState = App.TransitionState;
+//
+//    if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
+//    {
+//        this._transitionState = TransitionState.CLOSING;
+//
+//        this._openCloseTween.start(true);
+//    }
+//};
 
 /**
  * @method render
@@ -2690,21 +3537,24 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 
     this._swipeButton = null;
     this._buttons = new Array(l);
-    this._buttonContainer = new PIXI.DisplayObjectContainer();
+//    this._buttonContainer = new PIXI.DisplayObjectContainer();
+    this._buttonContainer = new App.TileList(App.Direction.Y,layout);
 
-    for (;i<30;i++)
+    for (;i<50;i++)
     {
         button = new CategoryButton(this._model.getItemAt(0),this._layout,i);
         this._buttons[i] = button;
-        this._buttonContainer.addChild(button);
+        //this._buttonContainer.addChild(button);
+        this._buttonContainer.add(button);
     }
 
-    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
+    //this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
+    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
     this._pane.setContent(this._buttonContainer);
 
 //    this._addButton =
 
-    this._updateLayout();
+    //this._updateLayout();
 
     this.addChild(this._pane);
 
@@ -2724,7 +3574,18 @@ App.CategoryScreen.prototype.enable = function enable()
 
     this._pane.resetScroll();
     this._pane.enable();
-    //TODO also implement 'disable'
+};
+
+/**
+ * Disable
+ */
+App.CategoryScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._pane.disable();
+
+    //TODO also disable buttons
 };
 
 /**
@@ -2800,6 +3661,8 @@ App.CategoryScreen.prototype._closeOpenedButtons = function _closeOpenedButtons(
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
+    //this._getButtonUnderPoint(this._getPointerPosition()).open();
+
     App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ACCOUNT);
 };
 
@@ -2833,8 +3696,9 @@ App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoin
  * @method _updateLayout
  * @private
  */
-App.CategoryScreen.prototype._updateLayout = function _updateLayout()
+/*App.CategoryScreen.prototype._updateLayout = function _updateLayout()
 {
+    //TODO this can be delegated to the TileList, if used
     var i = 0,
         l = this._buttons.length,
         height = this._buttons[0].boundingBox.height;
@@ -2845,7 +3709,7 @@ App.CategoryScreen.prototype._updateLayout = function _updateLayout()
     }
 
     this._pane.resize(this._layout.width,this._layout.height);
-};
+};*/
 
 /**
  * Destroy
@@ -2955,6 +3819,7 @@ App.ApplicationView.prototype.changeScreen = function changeScreen(screenName)
  */
 App.ApplicationView.prototype._onTick = function _onTick()
 {
+    //TODO do not render if nothing happens (prop 'dirty'?)
     this._renderer.render(this._stage);
 };
 

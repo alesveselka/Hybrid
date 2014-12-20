@@ -32,6 +32,8 @@ module.exports = function(grunt)
         "js/src/model/Filter.js",
         "js/src/view/ViewLocator.js",
         "js/src/view/ui/controls/ScrollIndicator.js",
+        "js/src/view/ui/containers/TileList.js",
+        "js/src/view/ui/containers/TilePane.js",
         "js/src/view/ui/containers/Pane.js",
         "js/src/view/ui/containers/ViewStack.js",
         "js/src/view/screens/Screen.js",
@@ -62,7 +64,8 @@ module.exports = function(grunt)
         },
         uglify:{
             options:{
-                banner:getBanner()
+                banner:getBanner(),
+                mangle:true
             },
             dist:{
                 files:{

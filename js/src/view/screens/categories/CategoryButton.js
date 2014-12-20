@@ -10,32 +10,47 @@ App.CategoryButton = function CategoryButton(model,layout,index)
     PIXI.DisplayObjectContainer.call(this);
 
     var pixelRatio = layout.pixelRatio,
-        height = Math.round(50 * pixelRatio);
+        height = Math.round(50 * pixelRatio),
+        width = layout.width,
+        ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName;
 
-    this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
     this._model = model;
     this._layout = layout;
-    this._state = null;
+    this._interactiveState = null;
+//    this._transitionState = App.TransitionState.CLOSED;
     this._dragFriction = 0.5;
     this._snapForce = 0.5;
     this._editOffset = Math.round(80 * pixelRatio);
     this._editButtonShown = false;
 
-    this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
+    this.boundingBox = new PIXI.Rectangle(0,0,width,height);
 
     this._background = new PIXI.Graphics();
     this._background.beginFill(0xE53013);
-    this._background.drawRect(0,0,this.boundingBox.width,this.boundingBox.height);
+    this._background.drawRect(0,0,width,height);
     this._background.endFill();
+
+    //TODO add this to stage only when needed?
+    //TODO also not all variation of CategoryButtons will have editable option!
+    this._editLabel = new PIXI.Text("Edit ",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#ffffff"});
+    this._editLabel.x = Math.round(width - 50 * pixelRatio);
+    this._editLabel.y = Math.round(18 * pixelRatio);
 
     this._surfaceSkin = new PIXI.Graphics();
     this._icon = new PIXI.Sprite.fromFrame("currencies");
     this._nameLabel = new PIXI.Text("Category "+index,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
 
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+//    this._openCloseTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+
     this._renderSurface();
 
     this.addChild(this._background);
+    this.addChild(this._editLabel);
     this.addChild(this._surfaceSkin);
+
+//    this.interactive = true;
 };
 
 App.CategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -68,7 +83,7 @@ App.CategoryButton.prototype.isEditButtonShown = function isEditButtonShown()
  */
 App.CategoryButton.prototype._onTick = function _onTick()
 {
-    if (this._state === App.InteractiveState.SNAPPING) this.snap();
+    if (this._interactiveState === App.InteractiveState.SNAPPING) this.snap();
 };
 
 /**
@@ -77,7 +92,7 @@ App.CategoryButton.prototype._onTick = function _onTick()
  */
 App.CategoryButton.prototype._enableSnap = function _enableSnap()
 {
-    this._state = App.InteractiveState.SNAPPING;
+    this._interactiveState = App.InteractiveState.SNAPPING;
 
     this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
 };
@@ -88,7 +103,7 @@ App.CategoryButton.prototype._enableSnap = function _enableSnap()
  */
 App.CategoryButton.prototype._disableSnap = function _disableSnap()
 {
-    this._state = null;
+    this._interactiveState = null;
 
     this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
 };
@@ -102,7 +117,7 @@ App.CategoryButton.prototype.swipe = function swipe(position)
 {
     if (!this._editButtonShown)
     {
-        if (!this._state) this._state = App.InteractiveState.SWIPING;
+        if (!this._interactiveState) this._interactiveState = App.InteractiveState.SWIPING;
 
         var w = this._layout.width;
 
@@ -127,12 +142,12 @@ App.CategoryButton.prototype.snap = function snap(swipeDirection,immediate)
     }
 
     // Snap back if button is swiping
-    if (this._state === App.InteractiveState.SWIPING)
+    if (this._interactiveState === App.InteractiveState.SWIPING)
     {
         this._enableSnap();
     }
     // Or snap to close edit button, if it is open ...
-    else if (!this._state && this._editButtonShown)
+    else if (!this._interactiveState && this._editButtonShown)
     {
         // ... and swipe direction is right
         if (swipeDirection === App.Direction.RIGHT)
@@ -178,6 +193,36 @@ App.CategoryButton.prototype.snap = function snap(swipeDirection,immediate)
         }
     }
 };
+
+/**
+ * Open
+ */
+//App.CategoryButton.prototype.open = function open()
+//{
+//    var TransitionState = App.TransitionState;
+//
+//    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
+//    {
+//        this._transitionState = TransitionState.OPENING;
+//
+//        this._openCloseTween.restart();
+//    }
+//};
+
+/**
+ * Close
+ */
+//App.CategoryButton.prototype.close = function close()
+//{
+//    var TransitionState = App.TransitionState;
+//
+//    if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
+//    {
+//        this._transitionState = TransitionState.CLOSING;
+//
+//        this._openCloseTween.start(true);
+//    }
+//};
 
 /**
  * @method render

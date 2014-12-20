@@ -16,21 +16,24 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 
     this._swipeButton = null;
     this._buttons = new Array(l);
-    this._buttonContainer = new PIXI.DisplayObjectContainer();
+//    this._buttonContainer = new PIXI.DisplayObjectContainer();
+    this._buttonContainer = new App.TileList(App.Direction.Y,layout);
 
-    for (;i<30;i++)
+    for (;i<50;i++)
     {
         button = new CategoryButton(this._model.getItemAt(0),this._layout,i);
         this._buttons[i] = button;
-        this._buttonContainer.addChild(button);
+        //this._buttonContainer.addChild(button);
+        this._buttonContainer.add(button);
     }
 
-    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
+    //this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
+    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
     this._pane.setContent(this._buttonContainer);
 
 //    this._addButton =
 
-    this._updateLayout();
+    //this._updateLayout();
 
     this.addChild(this._pane);
 
@@ -50,7 +53,18 @@ App.CategoryScreen.prototype.enable = function enable()
 
     this._pane.resetScroll();
     this._pane.enable();
-    //TODO also implement 'disable'
+};
+
+/**
+ * Disable
+ */
+App.CategoryScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._pane.disable();
+
+    //TODO also disable buttons
 };
 
 /**
@@ -126,6 +140,8 @@ App.CategoryScreen.prototype._closeOpenedButtons = function _closeOpenedButtons(
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
+    //this._getButtonUnderPoint(this._getPointerPosition()).open();
+
     App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ACCOUNT);
 };
 
@@ -159,8 +175,9 @@ App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoin
  * @method _updateLayout
  * @private
  */
-App.CategoryScreen.prototype._updateLayout = function _updateLayout()
+/*App.CategoryScreen.prototype._updateLayout = function _updateLayout()
 {
+    //TODO this can be delegated to the TileList, if used
     var i = 0,
         l = this._buttons.length,
         height = this._buttons[0].boundingBox.height;
@@ -171,7 +188,7 @@ App.CategoryScreen.prototype._updateLayout = function _updateLayout()
     }
 
     this._pane.resize(this._layout.width,this._layout.height);
-};
+};*/
 
 /**
  * Destroy

@@ -12,22 +12,25 @@ App.Screen = function Screen(model,layout,tweenDuration)
 {
     PIXI.DisplayObjectContainer.call(this);
 
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        pixelRatio = layout.pixelRatio;
+
     this._model = model;
     this._layout = layout;
     this._enabled = false;
+    this._eventsRegistered = false;
+
     this._transitionState = App.TransitionState.HIDDEN;
     this._interactiveState = null;
     this._mouseDownPosition = null;
     this._mouseX = 0.0;
     this._mouseY = 0.0;
-    this._leftSwipeThreshold = Math.round(30 * layout.pixelRatio);
-    this._rightSwipeThreshold = Math.round(5 * layout.pixelRatio);
-    this._swipeEnabled = false;
+    this._leftSwipeThreshold = Math.round(30 * pixelRatio);
+    this._rightSwipeThreshold = Math.round(5 * pixelRatio);
     this._swipeDirection = null;
+    this._swipeEnabled = false;
     this._preferScroll = false;
-
-    var ModelLocator = App.ModelLocator;
-    var ModelName = App.ModelName;
 
     this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
@@ -130,22 +133,27 @@ App.Screen.prototype.removeEventListener = function removeEventListener(eventTyp
  */
 App.Screen.prototype._registerEventListeners = function _registerEventListeners()
 {
-    if (App.Device.TOUCH_SUPPORTED)
+    if (!this._eventsRegistered)
     {
-        this.touchstart = this._onPointerDown;
-        this.touchend = this._onPointerUp;
-        this.touchendoutside = this._onPointerUp;
-    }
-    else
-    {
-        this.mousedown = this._onPointerDown;
-        this.mouseup = this._onPointerUp;
-        this.mouseupoutside = this._onPointerUp;
-    }
+        this._eventsRegistered = true;
 
-    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+        if (App.Device.TOUCH_SUPPORTED)
+        {
+            this.touchstart = this._onPointerDown;
+            this.touchend = this._onPointerUp;
+            this.touchendoutside = this._onPointerUp;
+        }
+        else
+        {
+            this.mousedown = this._onPointerDown;
+            this.mouseup = this._onPointerUp;
+            this.mouseupoutside = this._onPointerUp;
+        }
 
-    this._showHideTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._showHideTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+    }
 };
 
 /**
@@ -170,6 +178,8 @@ App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListen
         this.mouseup = null;
         this.mouseupoutside = null;
     }
+
+    this._eventsRegistered = false;
 };
 
 /**

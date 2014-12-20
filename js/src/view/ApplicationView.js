@@ -80,6 +80,7 @@ App.ApplicationView.prototype.changeScreen = function changeScreen(screenName)
  */
 App.ApplicationView.prototype._onTick = function _onTick()
 {
+    //TODO do not render if nothing happens (prop 'dirty'?)
     this._renderer.render(this._stage);
 };
 

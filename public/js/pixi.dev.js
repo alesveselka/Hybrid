@@ -4181,7 +4181,7 @@ PIXI.InteractionManager.prototype.update = function()
     var length = this.interactiveItems.length;
     var cursor = 'inherit';
     var over = false;
-
+    //console.log("update ",length);
     for (i = 0; i < length; i++)
     {
         var item = this.interactiveItems[i];
