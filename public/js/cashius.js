@@ -166,7 +166,6 @@ App.EventType = {
  * @return {{
  *      TICKER:string,
  *      EVENT_LISTENER_POOL:string,
- *      CATEGORY_BUTTON_POOL:string,
  *      RECTANGLE_POOL:string,
  *      ACCOUNTS:string,
  *      TRANSACTIONS:string,
@@ -178,7 +177,6 @@ App.EventType = {
 App.ModelName = {
     TICKER:"TICKER",
     EVENT_LISTENER_POOL:"EVENT_LISTENER_POOL",
-    CATEGORY_BUTTON_POOL:"CATEGORY_BUTTON_POOL",
     RECTANGLE_POOL:"RECTANGLE_POOL",
     ACCOUNTS:"ACCOUNTS",
     TRANSACTIONS:"TRANSACTIONS",
@@ -511,67 +509,6 @@ App.ModelLocator = {
         return this._proxies[proxyName];
     }
 };
-/**
- * @class CategoryButtonObjectPool
- * @param {Function} objectClass
- * @param {number} size
- * @constructor
- */
-App.CategoryButtonObjectPool = function CategoryButtonObjectPool(objectClass,size)
-{
-    this._objectClass = objectClass;
-    this._size = size;
-    this._items = [];
-    this._freeItems = [];
-};
-
-/**
- * Pre-allocate objectClass instances
- */
-App.CategoryButtonObjectPool.prototype.preAllocate = function preAllocate()
-{
-    var oldSize = this._items.length,
-        newSize = oldSize + this._size,
-        i = oldSize;
-
-    this._items.length = newSize;
-
-    for (;i < newSize;i++)
-    {
-        this._items[i] = new this._objectClass(i);
-        this._freeItems.push(i);
-    }
-    console.log("preAllocate ",this._items.length);
-};
-
-/**
- * @method allocate Allocate object instance
- * @returns {{poolIndex:number,allocated:boolean}}
- */
-App.CategoryButtonObjectPool.prototype.allocate = function allocate()
-{
-    console.log("allocate");
-    if (this._freeItems.length === 0) this.preAllocate();
-
-    var index = this._freeItems.shift();
-    var item = this._items[index];
-
-    item.allocated = true;
-
-    return item;
-};
-
-/**
- * @method release Release item into pool
- * @param {{poolIndex:number,allocated:boolean}} item
- */
-App.CategoryButtonObjectPool.prototype.release = function release(item)
-{
-    item.allocated = false;
-
-    this._freeItems.push(item.poolIndex);
-};
-
 /**
  * @class ObjectPool
  * @param {Function} objectClass
@@ -1184,837 +1121,6 @@ App.ScrollIndicator.prototype.destroy = function destroy()
     this.clear();
 };
 
-App.TileList = function TileList(collection,itemPool,layout,direction/*windowSize*/)
-{
-    PIXI.DisplayObjectContainer.call(this);
-    //TODO just pass in collection and construct on the fly?
-    this.width = 0;
-    this.height = 0;
-
-    this._direction = direction;
-    //this._windowSize = windowSize;
-    this._windowSize = layout.height;
-//    this._children = [];
-//    this._childrenLayout = [];
-    this._lastY = 0;
-    this._topVisibleChildIndex = 0;
-
-    this._collection = collection;
-    this._itemPool = itemPool;
-    this._rectanglePool = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL);
-
-    this._layout = layout;
-    this._childHeight = Math.round(50 * this._layout.pixelRatio);
-
-    var i = 0,
-        l = this._collection.length(),
-        item = this._itemPool.allocate(),
-        childSize = item.init(this._collection.getItemAt(0),layout).boundingBox.height,
-        childLayout = null,
-        y = 0;
-
-    this._children = new Array(l);
-    this._childrenLayout = new Array(l);
-
-    for (;i<l;i++)
-    {
-        childLayout = this._rectanglePool.allocate();
-        this._childrenLayout[i] = childLayout;
-
-        //TODO also implement X
-        childLayout.y = i * childSize;
-        childLayout.height = childSize;
-        console.log(childLayout.y);
-//        y = Math.round(y + bounds.height);
-    }
-
-    this.height = childLayout.y + childSize;
-    console.log("this.height: ",this.height,", childLayout.y: ",childLayout.y,childSize);
-    this._updateTiles();
-};
-
-App.TileList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.TileList.prototype.constructor = App.TileList;
-
-App.TileList.prototype.add = function add(child)
-{
-    this._children[this._children.length] = child;
-    this._childrenLayout[this._childrenLayout.length] = this._rectanglePool.allocate();
-
-    //TODO do not add if outside of screen
-    this.addChild(child);
-
-    this._updateLayout();//TODO postpone and update just once?
-};
-
-App.TileList.prototype.update = function update(position)
-{
-    this._lastY = this.y;//TODO also do X
-
-    var Direction = App.Direction;
-    if (this._direction === Direction.X) this.x = Math.round(position);
-    else if (this._direction === Direction.Y) this.y = Math.round(position);
-    console.log("update ",position);
-    this._updateTiles(); //TODO do not perform this if its bigger than screen and don't scroll
-};
-
-App.TileList.prototype._updateTiles = function _updateTiles()
-{
-    var i = 0,
-        l = this._childrenLayout.length,
-        height = 0,
-        y = 0,
-        child = null,
-        childLayout = null;
-
-    //TODO also implement for X
-    for (;i<l;i++)
-    {
-        child = this._children[i];
-        childLayout = this._childrenLayout[i];
-        height = childLayout.height;
-        y = this.y + childLayout.y;
-
-        if (y > 0 && y < this._windowSize-height)
-        {
-            //console.log("child ",child);
-            if (!child)
-            {
-                child = this._itemPool.allocate();
-                child.init(this._collection.getItemAt(i),this._layout);
-                child.y = childLayout.y;
-                this._children[i] = child;
-            }
-            if (!this.contains(child)) this.addChild(child);
-//            child.visible = true;
-        }
-        else
-        {
-            if (child)
-            {
-                if (this.contains(child)) this.removeChild(child);
-                this._itemPool.release(child);
-                child.reset();
-                this._children[i] = null;
-            }
-
-            //TODO release
-//            child.visible = false;
-        }
-    }
-
-    this.height = 1500;
-
-    //TODO also utilize POOL, for memory conservation?
-    //TODO test performance with 1000+ and consider to use '_setTopVisibleChild' (and also include children withing 'change' distance)
-};
-
-//TODO rename
-App.TileList.prototype._setTopVisibleChild = function _setTopVisibleChild(change)
-{
-    var i = this._topVisibleChildIndex;
-    var child = this._children[i];
-
-    if (change < 0)
-    {
-        while(child)
-        {
-            if (this.y + child.y > 0)
-            {
-                this._topVisibleChildIndex = i;
-                return;
-            }
-
-            child = this._children[++i];
-        }
-    }
-    else
-    {
-        while(child)
-        {
-            if (this.y + child.y < 0)
-            {
-                this._topVisibleChildIndex = i;
-                return;
-            }
-
-            child = this._children[--i];
-        }
-    }
-};
-
-App.TileList.prototype._updateLayout = function _updateLayout()
-{
-    console.log("_updateLayout");
-//    this.width = 0;
-//    this.height = 0;
-
-    var i = 0,
-        l = this._collection.length(),
-        child = null,
-        bounds = null,
-        childLayout = null,
-        y = 0;
-
-    for (;i<l;i++)
-    {
-        child = this._children[i];
-        childLayout = this._childrenLayout[i];
-
-        //TODO also implement X
-        child.y = y;
-
-        bounds = child.boundingBox;
-        childLayout.y = child.y;
-        childLayout.width = bounds.width;
-        childLayout.height = bounds.height;
-
-        y = Math.round(y + bounds.height);
-    }
-
-//    this.width = bounds.width;
-//    this.width = this._layout.width;
-//    this.height = y;
-//    this.height = this._children.length * this._childHeight;
-};
-
-/**
- * @class TilePane
- * @extends {DisplayObjectContainer}
- * @param {string} xScrollPolicy
- * @param {string} yScrollPolicy
- * @param {number} width
- * @param {number} height
- * @param {number} pixelRatio
- * @constructor
- */
-App.TilePane = function TilePane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    var ScrollIndicator = App.ScrollIndicator,
-        Direction = App.Direction;
-
-    this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
-    this._content = null;
-    this._width = width;
-    this._height = height;
-    this._contentHeight = 0;
-    this._contentWidth = 0;
-
-    this._enabled = false;
-    this._eventsRegistered = false;
-    this._state = null;
-    this._xOriginalScrollPolicy = xScrollPolicy;
-    this._yOriginalScrollPolicy = yScrollPolicy;
-    this._xScrollPolicy = xScrollPolicy;
-    this._yScrollPolicy = yScrollPolicy;
-    this._xScrollIndicator = new ScrollIndicator(Direction.X,pixelRatio);
-    this._yScrollIndicator = new ScrollIndicator(Direction.Y,pixelRatio);
-
-    this._mouseData = null;
-    this._oldMouseX = 0.0;
-    this._oldMouseY = 0.0;
-    this._xSpeed = 0.0;
-    this._ySpeed = 0.0;
-    this._xOffset = 0.0;
-    this._yOffset = 0.0;
-    this._friction = 0.9;
-    this._dumpForce = 0.5;
-    this._snapForce = 0.2;
-};
-
-App.TilePane.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.TilePane.prototype.constructor = App.TilePane;
-
-/**
- * Set content of the pane
- *
- * @method setContent
- * @param {PIXI.DisplayObjectContainer} content
- */
-App.TilePane.prototype.setContent = function setContent(content)
-{
-    this.removeContent();
-
-    this._content = content;
-    this._contentHeight = this._content.height;
-    this._contentWidth = this._content.width;
-
-    this.addChildAt(this._content,0);
-
-    this._updateScrollers();
-};
-
-/**
- * Remove content
- *
- * @method removeContent
- */
-App.TilePane.prototype.removeContent = function removeContent()
-{
-    if (this._content && this.contains(this._content))
-    {
-        this.removeChild(this._content);
-
-        this._content = null;
-    }
-};
-
-/**
- * Resize
- *
- * @param {number} width
- * @param {number} height
- */
-App.TilePane.prototype.resize = function resize(width,height)
-{
-    this._width = width;
-    this._height = height;
-
-    if (this._content)
-    {
-        this._contentHeight = this._content.height;
-        this._contentWidth = this._content.width;
-
-        this._updateScrollers();
-    }
-};
-
-/**
- * Enable
- */
-App.TilePane.prototype.enable = function enable()
-{
-    if (!this._enabled)
-    {
-        var ScrollPolicy = App.ScrollPolicy;
-        if (this._xScrollPolicy !== ScrollPolicy.OFF || this._yScrollPolicy !== ScrollPolicy.OFF) this._registerEventListeners();
-
-        this.interactive = true;
-
-        this._enabled = true;
-    }
-};
-
-/**
- * Disable
- */
-App.TilePane.prototype.disable = function disable()
-{
-    this._unRegisterEventListeners();
-
-    this.cancelScroll();
-
-    // If content is pulled, make sure that the position is reset
-    if (this._content.x > 0) this._content.x = 0;
-    else if (this._content.y > 0) this._content.y = 0;
-    else if (this._content.x + this._contentWidth < this._width) this._content.x = this._width - this._contentWidth;
-    else if (this._content.y + this._contentHeight < this._height) this._content.y = this._height - this._contentHeight;
-
-    this.interactive = false;
-
-    this._enabled = false;
-};
-
-/**
- * Reset content scroll
- */
-App.TilePane.prototype.resetScroll = function resetScroll()
-{
-    this._state = null;
-    this._xSpeed = 0.0;
-    this._ySpeed = 0.0;
-
-    if (this._content)
-    {
-        this._content.update(0);
-        //this._content.y = 0;
-
-        this._xScrollIndicator.hide(true);
-        this._yScrollIndicator.hide(true);
-    }
-};
-
-/**
- * Cancel scroll
- */
-App.TilePane.prototype.cancelScroll = function cancelScroll()
-{
-    this._state = null;
-    this._xSpeed = 0.0;
-    this._ySpeed = 0.0;
-
-    this._xScrollIndicator.hide(true);
-    this._yScrollIndicator.hide(true);
-};
-
-/**
- * Register event listeners
- * @private
- */
-App.TilePane.prototype._registerEventListeners = function _registerEventListeners()
-{
-    if (!this._eventsRegistered)
-    {
-        this._eventsRegistered = true;
-
-        if (App.Device.TOUCH_SUPPORTED)
-        {
-            this.touchstart = this._onPointerDown;
-            this.touchend = this._onPointerUp;
-            this.touchendoutside = this._onPointerUp;
-            this.touchmove = this._onPointerMove;
-        }
-        else
-        {
-            this.mousedown = this._onPointerDown;
-            this.mouseup = this._onPointerUp;
-            this.mouseupoutside = this._onPointerUp;
-            this.mousemove = this._onPointerMove;
-        }
-
-        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-    }
-};
-
-/**
- * UnRegister event listeners
- * @private
- */
-App.TilePane.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
-{
-    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
-
-    if (App.Device.TOUCH_SUPPORTED)
-    {
-        this.touchstart = null;
-        this.touchend = null;
-        this.touchendoutside = null;
-        this.touchmove = null;
-    }
-    else
-    {
-        this.mousedown = null;
-        this.mouseup = null;
-        this.mouseupoutside = null;
-        this.mousemove = null;
-    }
-
-    this._eventsRegistered = false;
-};
-
-/**
- * Pointer Down handler
- *
- * @method _onPointerDown
- * @param {InteractionData} data
- * @private
- */
-App.TilePane.prototype._onPointerDown = function _onPointerDown(data)
-{
-    //TODO make sure just one input is registered (multiple inputs on touch screens) ...
-
-    this._mouseData = data;
-
-    var mp = this._mouseData.getLocalPosition(this.stage);
-    this._xOffset = mp.x - this._content.x;
-    this._yOffset = mp.y - this._content.y;
-    this._xSpeed = 0.0;
-    this._ySpeed = 0.0;
-
-    this._state = App.InteractiveState.DRAGGING;
-
-    if (this._xScrollPolicy === App.ScrollPolicy.ON) this._xScrollIndicator.show();
-    if (this._yScrollPolicy === App.ScrollPolicy.ON) this._yScrollIndicator.show();
-};
-
-/**
- * On pointer up
- *
- * @param {InteractionData} data
- * @private
- */
-App.TilePane.prototype._onPointerUp = function _onPointerUp(data)
-{
-    if (this._isContentPulled())
-    {
-        this._state = App.InteractiveState.SNAPPING;
-        this._xSpeed = 0.0;
-        this._ySpeed = 0.0;
-    }
-    else
-    {
-        this._state = App.InteractiveState.SCROLLING;
-    }
-
-    this._mouseData = null;
-};
-
-/**
- * On pointer move
- * @param {InteractionData} data
- * @private
- */
-App.TilePane.prototype._onPointerMove = function _onPointerMove(data)
-{
-    this._mouseData = data;
-};
-
-/**
- * Tick handler
- *
- * @private
- */
-App.TilePane.prototype._onTick = function _onTick()
-{
-    var InteractiveState = App.InteractiveState;
-
-    if (this._state === InteractiveState.DRAGGING) this._drag(App.ScrollPolicy);
-    else if (this._state === InteractiveState.SCROLLING) this._scroll(App.ScrollPolicy,InteractiveState);
-    else if (this._state === InteractiveState.SNAPPING) this._snap(App.ScrollPolicy,InteractiveState);
-
-    if (this._xScrollIndicator.visible) this._xScrollIndicator.update(this._content.x);
-    if (this._yScrollIndicator.visible) this._yScrollIndicator.update(this._content.y);
-};
-
-/**
- * Perform drag operation
- *
- * @param {App.ScrollPolicy} ScrollPolicy
- * @private
- */
-App.TilePane.prototype._drag = function _drag(ScrollPolicy)
-{
-    var pullDistance = 0;
-
-    if (this.stage)
-    {
-        if (this._xScrollPolicy === ScrollPolicy.ON)
-        {
-            var mouseX = this._mouseData.getLocalPosition(this.stage).x,
-                contentX = this._content.x,
-                contentRight = contentX + this._contentWidth,
-                contentLeft = contentX - this._contentWidth;
-
-            // If content is pulled from beyond screen edges, dump the drag effect
-            if (contentX > 0)
-            {
-                pullDistance = (1 - contentX / this._width) * this._dumpForce;
-                //this._content.x = Math.round(mouseX * pullDistance - this._xOffset * pullDistance);
-                this._content.update(mouseX * pullDistance - this._xOffset * pullDistance);
-            }
-            else if (contentRight < this._width)
-            {
-                pullDistance = (contentRight / this._width) * this._dumpForce;
-                //this._content.x = Math.round(contentLeft - (this._width - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
-                this._content.update(contentLeft - (this._width - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
-            }
-            else
-            {
-                //this._content.x = Math.round(mouseX - this._xOffset);
-                this._content.update(mouseX - this._xOffset);
-            }
-
-            this._xSpeed = mouseX - this._oldMouseX;
-            this._oldMouseX = mouseX;
-        }
-
-        if (this._yScrollPolicy === ScrollPolicy.ON)
-        {
-            var mouseY = this._mouseData.getLocalPosition(this.stage).y,
-                contentY = this._content.y,
-                contentBottom = contentY + this._contentHeight,
-                contentTop = this._height - this._contentHeight;
-
-            if (mouseY <= -10000) return;
-
-            // If content is pulled from beyond screen edges, dump the drag effect
-            if (contentY > 0)
-            {
-                pullDistance = (1 - contentY / this._height) * this._dumpForce;
-                //this._content.y = Math.round(mouseY * pullDistance - this._yOffset * pullDistance);
-                this._content.update(mouseY * pullDistance - this._yOffset * pullDistance);
-            }
-            else if (contentBottom < this._height)
-            {
-                pullDistance = (contentBottom / this._height) * this._dumpForce;
-                //this._content.y = Math.round(contentTop - (this._height - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
-                this._content.update(contentTop - (this._height - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
-            }
-            else
-            {
-                //this._content.y = Math.round(mouseY - this._yOffset);
-                this._content.update(mouseY - this._yOffset);
-            }
-
-            this._ySpeed = mouseY - this._oldMouseY;
-            this._oldMouseY = mouseY;
-        }
-    }
-};
-
-/**
- * Perform scroll operation
- *
- * @param {App.ScrollPolicy} ScrollPolicy
- * @param {App.InteractiveState} InteractiveState
- * @private
- */
-App.TilePane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
-{
-    if (this._xScrollPolicy === ScrollPolicy.ON)
-    {
-        //this._content.x = Math.round(this._content.x + this._xSpeed);
-        this._content.update(this._content.x + this._xSpeed);
-
-        var contentX = this._content.x,
-            contentRight = contentX + this._contentWidth;
-
-        // If content is scrolled from beyond screen edges, dump the speed
-        if (contentX > 0)
-        {
-            this._xSpeed *= (1 - contentX / this._width) * this._dumpForce;
-        }
-        else if (contentRight < this._width)
-        {
-            this._xSpeed *= (contentRight / this._width) * this._dumpForce;
-        }
-
-        // If the speed is very low, stop it.
-        // Also, if the content is scrolled beyond screen edges, switch to 'snap' state
-        if (Math.abs(this._xSpeed) < .1)
-        {
-            this._xSpeed = 0.0;
-            this._state = null;
-            this._xScrollIndicator.hide();
-
-            if (contentX > 0 || contentRight < this._width) this._state = InteractiveState.SNAPPING;
-        }
-        else
-        {
-            this._xSpeed *= this._friction;
-        }
-    }
-
-    if (this._yScrollPolicy === ScrollPolicy.ON)
-    {
-        //this._content.y = Math.round(this._content.y + this._ySpeed);
-        this._content.update(this._content.y + this._ySpeed);
-
-        var contentY = this._content.y,
-            contentBottom = contentY + this._contentHeight;
-
-        // If content is scrolled from beyond screen edges, dump the speed
-        if (contentY > 0)
-        {
-            this._ySpeed *= (1 - contentY / this._height) * this._dumpForce;
-        }
-        else if (contentBottom < this._height)
-        {
-            this._ySpeed *= (contentBottom / this._height) * this._dumpForce;
-        }
-
-        // If the speed is very low, stop it.
-        // Also, if the content is scrolled beyond screen edges, switch to 'snap' state
-        if (Math.abs(this._ySpeed) < .1)
-        {
-            this._ySpeed = 0.0;
-            this._state = null;
-            this._yScrollIndicator.hide();
-
-            if (contentY > 0 || contentBottom < this._height) this._state = InteractiveState.SNAPPING;
-        }
-        else
-        {
-            this._ySpeed *= this._friction;
-        }
-    }
-};
-
-/**
- * Perform snap operation
- *
- * @param {App.ScrollPolicy} ScrollPolicy
- * @private
- */
-App.TilePane.prototype._snap = function _snap(ScrollPolicy)
-{
-    if (this._xScrollPolicy === ScrollPolicy.ON)
-    {
-        var contentX = this._content.x,
-            contentRight = contentX + this._contentWidth,
-            contentLeft = contentX - this._contentWidth,
-            result = contentX * this._snapForce;
-
-        if (contentX > 0)
-        {
-            if (result < 5)
-            {
-                this._state = null;
-                //this._content.x = 0;
-                this._content.update(0);
-                this._xScrollIndicator.hide();
-            }
-            else
-            {
-                //this._content.x = Math.round(result);
-                this._content.update(result);
-            }
-        }
-        else if (contentRight < this._width)
-        {
-            result = contentLeft + (contentX - contentLeft) * this._snapForce;
-            if (result >= this._width - 5)
-            {
-                this._state = null;
-                //this._content.x = contentLeft;
-                this._content.update(contentLeft);
-                this._xScrollIndicator.hide();
-            }
-            else
-            {
-                //this._content.x = Math.round(result);
-                this._content.update(result);
-            }
-        }
-    }
-
-    if (this._yScrollPolicy === ScrollPolicy.ON)
-    {
-        var contentY = this._content.y,
-            contentBottom = contentY + this._contentHeight,
-            contentTop = this._height - this._contentHeight;
-
-        if (contentY > 0)
-        {
-            result = contentY * this._snapForce;
-            if (result < 5)
-            {
-                this._state = null;
-                //this._content.y = 0;
-                this._content.update(0);
-                this._yScrollIndicator.hide();
-            }
-            else
-            {
-                //this._content.y = Math.round(result);
-                this._content.update(result);
-            }
-        }
-        else if (contentBottom < this._height)
-        {
-            result = contentTop + (contentY - contentTop) * this._snapForce;
-            if (result >= contentTop - 5)
-            {
-                this._state = null;
-                //this._content.y = contentTop;
-                this._content.update(contentTop);
-                this._yScrollIndicator.hide();
-            }
-            else
-            {
-                //this._content.y = Math.round(result);
-                this._content.update(result);
-            }
-        }
-    }
-};
-
-/**
- * Is content pulled
- * @returns {boolean}
- * @private
- */
-App.TilePane.prototype._isContentPulled = function _isContentPulled()
-{
-    return this._content.x > 0 ||
-        this._content.y > 0 ||
-        this._content.y + this._contentHeight < this._height ||
-        this._content.x + this._contentWidth < this._width;
-};
-
-/**
- * Update scroll indicators
- * @private
- */
-App.TilePane.prototype._updateScrollers = function _updateScrollers()
-{
-    var ScrollPolicy = App.ScrollPolicy;
-
-    if (this._xOriginalScrollPolicy === ScrollPolicy.AUTO)
-    {
-        if (this._contentWidth >= this._width)
-        {
-            this._xScrollPolicy = ScrollPolicy.ON;
-
-            this._xScrollIndicator.resize(this._width,this._contentWidth);
-            this._xScrollIndicator.x = this._height - this._xScrollIndicator.boundingBox.height;
-            if (!this.contains(this._xScrollIndicator)) this.addChild(this._xScrollIndicator);
-        }
-        else
-        {
-            this._xScrollPolicy = ScrollPolicy.OFF;
-
-            this._xScrollIndicator.hide();
-            if (this.contains(this._xScrollIndicator)) this.removeChild(this._xScrollIndicator);
-        }
-    }
-
-    if (this._yOriginalScrollPolicy === ScrollPolicy.AUTO)
-    {
-        if (this._contentHeight >= this._height)
-        {
-            this._yScrollPolicy = ScrollPolicy.ON;
-
-            this._yScrollIndicator.resize(this._height,this._contentHeight);
-            this._yScrollIndicator.x = this._width - this._yScrollIndicator.boundingBox.width;
-            if (!this.contains(this._yScrollIndicator)) this.addChild(this._yScrollIndicator);
-        }
-        else
-        {
-            this._yScrollPolicy = ScrollPolicy.OFF;
-
-            this._yScrollIndicator.hide();
-            if (this.contains(this._yScrollIndicator)) this.removeChild(this._yScrollIndicator);
-        }
-    }
-
-    if (this._xScrollPolicy === ScrollPolicy.OFF && this._yScrollPolicy === ScrollPolicy.OFF) this._unRegisterEventListeners();
-};
-
-/**
- * Destroy
- */
-App.TilePane.prototype.destroy = function destroy()
-{
-    //TODO also destroy PIXI's DisplayObjectContainer object!
-
-    this.disable();
-
-    this._ticker = null;
-
-    this._state = null;
-    this._xSpeed = 0.0;
-    this._ySpeed = 0.0;
-    this._mouseData = null;
-
-    this.removeContent();
-
-    if (this.contains(this._xScrollIndicator)) this.removeChild(this._xScrollIndicator);
-    this._xScrollIndicator.destroy();
-    this._xScrollIndicator = null;
-
-    if (this.contains(this._yScrollIndicator)) this.removeChild(this._yScrollIndicator);
-    this._yScrollIndicator.destroy();
-    this._yScrollIndicator = null;
-
-    this._xOriginalScrollPolicy = null;
-    this._yOriginalScrollPolicy = null;
-    this._xScrollPolicy = null;
-    this._yScrollPolicy = null;
-};
-
 /**
  * @class Pane
  * @extends {DisplayObjectContainer}
@@ -2116,6 +1222,26 @@ App.Pane.prototype.resize = function resize(width,height)
 };
 
 /**
+ * Update content's x position
+ * @param {number} position
+ * @private
+ */
+App.Pane.prototype._updateX = function _updateX(position)
+{
+    this._content.x = Math.round(position);
+};
+
+/**
+ * Update content's y position
+ * @param {number} position
+ * @private
+ */
+App.Pane.prototype._updateY = function _updateY(position)
+{
+    this._content.y = Math.round(position);
+};
+
+/**
  * Enable
  */
 App.Pane.prototype.enable = function enable()
@@ -2141,10 +1267,10 @@ App.Pane.prototype.disable = function disable()
     this.cancelScroll();
 
     // If content is pulled, make sure that the position is reset
-    if (this._content.x > 0) this._content.x = 0;
-    else if (this._content.y > 0) this._content.y = 0;
-    else if (this._content.x + this._contentWidth < this._width) this._content.x = this._width - this._contentWidth;
-    else if (this._content.y + this._contentHeight < this._height) this._content.y = this._height - this._contentHeight;
+    if (this._content.x > 0) this._updateX(0);
+    else if (this._content.y > 0) this._updateY(0);
+    else if (this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
+    else if (this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
 
     this.interactive = false;
 
@@ -2162,8 +1288,8 @@ App.Pane.prototype.resetScroll = function resetScroll()
 
     if (this._content)
     {
-        this._content.x = 0;
-        this._content.y = 0;
+        this._updateX(0);
+        this._updateY(0);
 
         this._xScrollIndicator.hide(true);
         this._yScrollIndicator.hide(true);
@@ -2335,16 +1461,16 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
             if (contentX > 0)
             {
                 pullDistance = (1 - contentX / this._width) * this._dumpForce;
-                this._content.x = Math.round(mouseX * pullDistance - this._xOffset * pullDistance);
+                this._updateX(mouseX * pullDistance - this._xOffset * pullDistance);
             }
             else if (contentRight < this._width)
             {
                 pullDistance = (contentRight / this._width) * this._dumpForce;
-                this._content.x = Math.round(contentLeft - (this._width - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
+                this._updateX(contentLeft - (this._width - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
             }
             else
             {
-                this._content.x = Math.round(mouseX - this._xOffset);
+                this._updateX(mouseX - this._xOffset);
             }
 
             this._xSpeed = mouseX - this._oldMouseX;
@@ -2364,16 +1490,16 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
             if (contentY > 0)
             {
                 pullDistance = (1 - contentY / this._height) * this._dumpForce;
-                this._content.y = Math.round(mouseY * pullDistance - this._yOffset * pullDistance);
+                this._updateY(mouseY * pullDistance - this._yOffset * pullDistance);
             }
             else if (contentBottom < this._height)
             {
                 pullDistance = (contentBottom / this._height) * this._dumpForce;
-                this._content.y = Math.round(contentTop - (this._height - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
+                this._updateY(contentTop - (this._height - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
             }
             else
             {
-                this._content.y = Math.round(mouseY - this._yOffset);
+                this._updateY(mouseY - this._yOffset);
             }
 
             this._ySpeed = mouseY - this._oldMouseY;
@@ -2393,7 +1519,7 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
 {
     if (this._xScrollPolicy === ScrollPolicy.ON)
     {
-        this._content.x = Math.round(this._content.x + this._xSpeed);
+        this._updateX(this._content.x + this._xSpeed);
 
         var contentX = this._content.x,
             contentRight = contentX + this._contentWidth;
@@ -2426,7 +1552,7 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
 
     if (this._yScrollPolicy === ScrollPolicy.ON)
     {
-        this._content.y = Math.round(this._content.y + this._ySpeed);
+        this._updateY(this._content.y + this._ySpeed);
 
         var contentY = this._content.y,
             contentBottom = contentY + this._contentHeight;
@@ -2478,12 +1604,12 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
             if (result < 5)
             {
                 this._state = null;
-                this._content.x = 0;
+                this._updateX(0);
                 this._xScrollIndicator.hide();
             }
             else
             {
-                this._content.x = Math.round(result);
+                this._updateX(result);
             }
         }
         else if (contentRight < this._width)
@@ -2492,12 +1618,12 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
             if (result >= this._width - 5)
             {
                 this._state = null;
-                this._content.x = contentLeft;
+                this._updateX(contentLeft);
                 this._xScrollIndicator.hide();
             }
             else
             {
-                this._content.x = Math.round(result);
+                this._updateX(result);
             }
         }
     }
@@ -2514,12 +1640,12 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
             if (result < 5)
             {
                 this._state = null;
-                this._content.y = 0;
+                this._updateY(0);
                 this._yScrollIndicator.hide();
             }
             else
             {
-                this._content.y = Math.round(result);
+                this._updateY(result);
             }
         }
         else if (contentBottom < this._height)
@@ -2528,12 +1654,12 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
             if (result >= contentTop - 5)
             {
                 this._state = null;
-                this._content.y = contentTop;
+                this._updateY(contentTop);
                 this._yScrollIndicator.hide();
             }
             else
             {
-                this._content.y = Math.round(result);
+                this._updateY(result);
             }
         }
     }
@@ -2631,6 +1757,201 @@ App.Pane.prototype.destroy = function destroy()
     this._yOriginalScrollPolicy = null;
     this._xScrollPolicy = null;
     this._yScrollPolicy = null;
+};
+
+App.TileList = function TileList(direction,windowSize)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this._direction = direction;
+    this._windowSize = windowSize;
+    this._items = [];
+
+    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
+};
+
+App.TileList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.TileList.prototype.constructor = App.TileList;
+
+/**
+ * Add item
+ * @param {DisplayObject} item
+ * @param {boolean} [updateLayout=false]
+ */
+App.TileList.prototype.add = function add(item,updateLayout)
+{
+    this._items[this._items.length] = item;
+
+    this.addChild(item);
+
+    if (updateLayout) this.updateLayout();
+};
+
+/**
+ * Update X position
+ * @param {number} position
+ */
+App.TileList.prototype.updateX = function updateX(position)
+{
+    this.x = Math.round(position);
+
+    var i = 0,
+        l = this._items.length,
+        width = 0,
+        x = 0,
+        child = null;
+
+    for (;i<l;)
+    {
+        child = this._items[i++];
+        width = child.boundingBox.width;
+        x = this.x + child.x;
+
+        child.visible = x + width > 0 && x < this._windowSize;
+    }
+};
+
+/**
+ * Update Y position
+ * @param {number} position
+ */
+App.TileList.prototype.updateY = function updateY(position)
+{
+    this.y = Math.round(position);
+
+    var i = 0,
+        l = this._items.length,
+        height = 0,
+        y = 0,
+        child = null;
+
+    for (;i<l;)
+    {
+        child = this._items[i++];
+        height = child.boundingBox.height;
+        y = this.y + child.y;
+
+        child.visible = y + height > 0 && y < this._windowSize;
+    }
+};
+
+/**
+ * Update layout
+ */
+App.TileList.prototype.updateLayout = function updateLayout()
+{
+    var i = 0,
+        l = this._items.length,
+        child = null,
+        position = 0,
+        Direction = App.Direction;
+
+    if (this._direction === Direction.X)
+    {
+        for (;i<l;)
+        {
+            child = this._items[i++];
+            child.x = position;
+            position = Math.round(position + child.boundingBox.width);
+        }
+
+        this.boundingBox.width = position;
+        this.boundingBox.height = child.boundingBox.height;
+    }
+    else if (this._direction === Direction.Y)
+    {
+        for (;i<l;)
+        {
+            child = this._items[i++];
+            child.y = position;
+            position = Math.round(position + child.boundingBox.height);
+        }
+
+        this.boundingBox.height = position;
+        this.boundingBox.width = child.boundingBox.width;
+    }
+};
+
+App.TileList.prototype.destroy = function destroy()
+{
+    //TODO implement
+};
+
+/**
+ * @class TilePane
+ * @extends {Pane}
+ * @param {string} xScrollPolicy
+ * @param {string} yScrollPolicy
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.TilePane = function TilePane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
+{
+    App.Pane.call(this,xScrollPolicy,yScrollPolicy,width,height,pixelRatio);
+};
+
+App.TilePane.prototype = Object.create(App.Pane.prototype);
+App.TilePane.prototype.constructor = App.TilePane;
+
+/**
+ * Set content of the pane
+ *
+ * @method setContent
+ * @param {TileList} content
+ */
+App.TilePane.prototype.setContent = function setContent(content)
+{
+    this.removeContent();
+
+    this._content = content;
+    this._contentHeight = Math.round(this._content.boundingBox.height);
+    this._contentWidth = Math.round(this._content.boundingBox.width);
+
+    this.addChildAt(this._content,0);
+
+    this._updateScrollers();
+};
+
+/**
+ * Resize
+ *
+ * @param {number} width
+ * @param {number} height
+ */
+App.TilePane.prototype.resize = function resize(width,height)
+{
+    this._width = width;
+    this._height = height;
+
+    if (this._content)
+    {
+        this._contentHeight = Math.round(this._content.boundingBox.height);
+        this._contentWidth = Math.round(this._content.boundingBox.width);
+
+        this._updateScrollers();
+    }
+};
+
+/**
+ * Update content's x position
+ * @param {number} position
+ * @private
+ */
+App.TilePane.prototype._updateX = function _updateX(position)
+{
+    this._content.updateX(position);
+};
+
+/**
+ * Update content's y position
+ * @param {number} position
+ * @private
+ */
+App.TilePane.prototype._updateY = function _updateY(position)
+{
+    this._content.updateY(position);
 };
 
 /**
@@ -2845,12 +2166,11 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._mouseY = 0.0;
     this._leftSwipeThreshold = Math.round(30 * pixelRatio);
     this._rightSwipeThreshold = Math.round(5 * pixelRatio);
-    this._swipeDirection = null;
     this._swipeEnabled = false;
     this._preferScroll = false;
 
-    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
     this._showHideTween = new App.TweenProxy(tweenDuration,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
 
     this.alpha = 0.0;
@@ -3010,16 +2330,10 @@ App.Screen.prototype._onTick = function _onTick()
         var TransitionState = App.TransitionState;
 
         if (this._transitionState === TransitionState.SHOWING) this.alpha = this._showHideTween.progress;
-        else if (this._transitionState === TransitionState.HIDING) this.alpha = 1 - this._showHideTween.progress;
+        else if (this._transitionState === TransitionState.HIDING) this.alpha = 1.0 - this._showHideTween.progress;
     }
 
-    if (this._swipeEnabled)
-    {
-        var InteractiveState = App.InteractiveState;
-
-        if (this._interactiveState === InteractiveState.DRAGGING) this._drag();
-        else if (this._interactiveState === InteractiveState.SWIPING) this._swipe(this._swipeDirection);
-    }
+    if (this._swipeEnabled && this._interactiveState === App.InteractiveState.DRAGGING) this._drag();
 };
 
 /**
@@ -3077,7 +2391,7 @@ App.Screen.prototype._onPointerUp = function _onPointerUp(data)
 {
     if (this._swipeEnabled)
     {
-        if (this._interactiveState === App.InteractiveState.SWIPING) this._swipeEnd(this._swipeDirection);
+        if (this._interactiveState === App.InteractiveState.SWIPING) this._swipeEnd();
         this._interactiveState = null;
     }
 
@@ -3100,16 +2414,6 @@ App.Screen.prototype._onPointerUp = function _onPointerUp(data)
 };
 
 /**
- * Return pointer position
- * @returns {Point}
- * @private
- */
-App.Screen.prototype._getPointerPosition = function _getPointerPosition()
-{
-    return App.Device.TOUCH_SUPPORTED ? this.stage.getTouchPosition() : this.stage.getMousePosition();
-};
-
-/**
  * Drag
  * @private
  */
@@ -3121,21 +2425,19 @@ App.Screen.prototype._drag = function _drag()
     {
         if (this.stage && this._mouseX)
         {
-            var position = this._getPointerPosition(),
+            var position = this.stage.getTouchPosition(),
                 newX = position.x,
                 newY = position.y;
 
             if (this._mouseX - newX > this._leftSwipeThreshold)
             {
                 this._interactiveState = InteractiveState.SWIPING;
-                this._swipeDirection = App.Direction.LEFT;
-                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll);
+                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll,App.Direction.LEFT);
             }
             else if (newX - this._mouseX > this._rightSwipeThreshold)
             {
                 this._interactiveState = InteractiveState.SWIPING;
-                this._swipeDirection = App.Direction.RIGHT;
-                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll);
+                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll,App.Direction.RIGHT);
             }
 
             this._mouseX = newX;
@@ -3169,16 +2471,6 @@ App.Screen.prototype._swipeStart = function _swipeStart(preferScroll)
  * @private
  */
 App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
-{
-    // Abstract
-};
-
-/**
- * Swipe handler
- * @param {string} direction
- * @private
- */
-App.Screen.prototype._swipe = function _swipe(direction)
 {
     // Abstract
 };
@@ -3225,7 +2517,7 @@ App.AccountButton = function AccountButton(model,layout,index)
     this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
 
     //TODO move texts and their settings objects into pools?
-    this._nameLabel = new PIXI.Text(this._model.getName()+" "+index,{font:Math.round(24 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    this._nameLabel = new PIXI.Text(this._model.name+" "+index,{font:Math.round(24 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
     this._nameLabel.x = Math.round(15 * pixelRatio);
     this._nameLabel.y = Math.round(15 * pixelRatio);
 
@@ -3399,28 +2691,33 @@ App.AccountScreen.prototype.destroy = function destroy()
 /**
  * @class CategoryButton
  * @extends DisplayObjectContainer
- * @param {number} index ObjectPool index
+ * @param {Category} model
+ * @param {Object} layout
+ * @param {Object} labelStyle
  * @constructor
  */
-App.CategoryButton = function CategoryButton(index)
+App.CategoryButton = function CategoryButton(model,layout,labelStyle)
 {
     PIXI.DisplayObjectContainer.call(this);
 
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName;
 
-    this.allocated = false;
-    this.poolIndex = index;
-    this.boundingBox = ModelLocator.getProxy(ModelName.RECTANGLE_POOL).allocate();
+    this._model = model;
+    this._layout = layout;
 
-    this._model = null;
-    this._layout = null;
+    this.boundingBox = ModelLocator.getProxy(ModelName.RECTANGLE_POOL).allocate();
+    this.boundingBox.width = layout.width;
+    this.boundingBox.height = Math.round(50 * layout.pixelRatio);
+
+    this._model = model;
+    this._layout = layout;
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
 
     this._surfaceSkin = new PIXI.Graphics();
     this._colorStripe = new PIXI.Graphics();
-    this._icon = PIXI.Sprite.fromFrame("currencies");
-    this._nameLabel = new PIXI.Text("");
+    this._icon = PIXI.Sprite.fromFrame(model.icon);
+    this._nameLabel = new PIXI.Text(model.name,labelStyle);
 
     this._surfaceSkin.addChild(this._colorStripe);
     this._surfaceSkin.addChild(this._icon);
@@ -3430,35 +2727,6 @@ App.CategoryButton = function CategoryButton(index)
 
 App.CategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.CategoryButton.prototype.constructor = App.CategoryButton;
-
-/**
- * Init
- * @param {Category} model
- * @param {Object} layout
- * @param {Object} labelStyle
- */
-App.CategoryButton.prototype.init = function init(model,layout,labelStyle)
-{
-    this._model = model;
-    this._layout = layout;
-
-    this.boundingBox.width = layout.width;
-    this.boundingBox.height = Math.round(50 * layout.pixelRatio);
-
-    this._icon.setTexture(PIXI.TextureCache[this._model.icon]);
-
-    this._nameLabel.setText(this._model.name);
-    this._nameLabel.setStyle(labelStyle);
-
-    this._render();
-
-    return this;
-};
-
-App.CategoryButton.prototype.reset = function reset()
-{
-    this.interactive = false;
-};
 
 /**
  * @method render
@@ -3537,6 +2805,216 @@ App.CategoryButton.prototype.destroy = function destroy()
 };
 
 /**
+ * @class CategoryButtonEdit
+ * @extends {CategoryButton}
+ * @param {Category} model
+ * @param {Object} layout
+ * @param {{font:string,fill:string}} nameLabelStyle
+ * @param {{font:string,fill:string}} editLabelStyle
+ * @constructor
+ */
+App.CategoryButtonEdit = function CategoryButtonEdit(model,layout,nameLabelStyle,editLabelStyle)
+{
+    App.CategoryButton.call(this,model,layout,nameLabelStyle);
+
+    this._enabled = false;
+    this._interactiveState = null;
+    this._dragFriction = 0.5;
+    this._snapForce = 0.5;
+    this._editOffset = Math.round(80 * layout.pixelRatio);
+    this._editButtonShown = false;
+
+    this._background = new PIXI.Graphics();
+    this._editLabel = new PIXI.Text("Edit",editLabelStyle);
+
+    this._render();
+
+    this.addChildAt(this._editLabel,0);
+    this.addChildAt(this._background,0);
+};
+
+App.CategoryButtonEdit.prototype = Object.create(App.CategoryButton.prototype);
+App.CategoryButtonEdit.prototype.constructor = App.CategoryButtonEdit;
+
+/**
+ * Render
+ * @private
+ */
+App.CategoryButtonEdit.prototype._render = function _render()
+{
+    App.CategoryButton.prototype._render.call(this);
+
+    var pixelRatio = this._layout.pixelRatio,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height;
+
+    this._background.beginFill(0xE53013);
+    this._background.drawRect(0,0,w,h);
+    this._background.endFill();
+
+    this._editLabel.x = Math.round(w - 50 * pixelRatio);
+    this._editLabel.y = Math.round(18 * pixelRatio);
+};
+
+/**
+ * Enable interaction
+ * @private
+ */
+App.CategoryButtonEdit.prototype._enableInteraction = function _enableInteraction()
+{
+    if (!this._enabled)
+    {
+        this._enabled = true;
+
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this.interactive = true;
+    }
+};
+
+/**
+ * Disable interaction
+ * @private
+ */
+App.CategoryButtonEdit.prototype._disableInteraction = function _disableInteraction()
+{
+    this.interactive = false;
+
+    this._interactiveState = null;
+
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._enabled = false;
+};
+
+/**
+ * Tick handler
+ * @private
+ */
+App.CategoryButtonEdit.prototype._onTick = function _onTick()
+{
+    var InteractiveState = App.InteractiveState;
+    if (this._interactiveState === InteractiveState.SWIPING) this._swipe();
+    else if (this._interactiveState === InteractiveState.SNAPPING) this._snap();
+};
+
+/**
+ * @method swipe
+ * @param {string} direction
+ * @private
+ */
+App.CategoryButtonEdit.prototype.swipeStart = function swipeStart(direction)
+{
+    var Direction = App.Direction,
+        InteractiveState = App.InteractiveState;
+
+    if (!this._interactiveState)
+    {
+        if (!this._editButtonShown && direction === Direction.LEFT)
+        {
+            this._interactiveState = InteractiveState.SWIPING;
+            this._enableInteraction();
+        }
+        else if (this._editButtonShown && direction === Direction.RIGHT)
+        {
+            this._interactiveState = InteractiveState.SNAPPING;
+            this._enableInteraction();
+        }
+    }
+};
+
+/**
+ * @method swipe
+ * @private
+ */
+App.CategoryButtonEdit.prototype.swipeEnd = function swipeEnd()
+{
+    if (this._interactiveState === App.InteractiveState.SWIPING) this._interactiveState = App.InteractiveState.SNAPPING;
+};
+
+/**
+ * @method swipe
+ * @private
+ */
+App.CategoryButtonEdit.prototype._swipe = function _swipe()
+{
+    if (this.stage && !this._editButtonShown)
+    {
+        var w = this._layout.width;
+        this._surfaceSkin.x = -Math.round(w * (1 - (this.stage.getTouchPosition().x / w)) * this._dragFriction);
+    }
+};
+
+/**
+ * @method _snap
+ * @private
+ */
+App.CategoryButtonEdit.prototype._snap = function _snap()
+{
+    var result = Math.round(this._surfaceSkin.x * this._snapForce);
+
+    // Snap to show edit button
+    if (this._surfaceSkin.x < -this._editOffset)
+    {
+        if (result >= -this._editOffset)
+        {
+            this._editButtonShown = true;
+            this._disableInteraction();
+
+            this._surfaceSkin.x = -this._editOffset;
+        }
+        else
+        {
+            this._surfaceSkin.x = result;
+        }
+    }
+    // Snap to close edit button
+    else
+    {
+        if (result >= -1)
+        {
+            this._editButtonShown = false;
+            this._disableInteraction();
+
+            this._surfaceSkin.x = 0;
+        }
+        else
+        {
+            this._surfaceSkin.x = result;
+        }
+    }
+};
+
+/**
+ * Close Edit button
+ * @param {boolean} [immediate=false]
+ */
+App.CategoryButtonEdit.prototype.closeEditButton = function closeEditButton(immediate)
+{
+    if (this._editButtonShown)
+    {
+        if (immediate)
+        {
+            this._surfaceSkin.x = 0;
+            this._editButtonShown = false;
+        }
+        else
+        {
+            this._interactiveState = App.InteractiveState.SNAPPING;
+            this._enableInteraction();
+        }
+    }
+};
+
+/**
+ * Destroy
+ */
+App.CategoryButtonEdit.prototype.destroy = function destroy()
+{
+    //TODO implement
+};
+
+/**
  * @class CategoryScreen
  * @extends Screen
  * @param {Collection} model
@@ -3547,46 +3025,33 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
-    var CategoryButton = App.CategoryButton,
-        labelStyle = {font:Math.round(18 * layout.pixelRatio)+"px HelveticaNeueCond",fill:"#394264"},
-        categories = this._model.getItemAt(0).getCategories(),
+    var CategoryButton = App.CategoryButtonEdit,
+        font = Math.round(18 * layout.pixelRatio)+"px HelveticaNeueCond",
+        nameLabelStyle = {font:font,fill:"#394264"},
+        editLabelStyle = {font:font,fill:"#ffffff"},
         i = 0,
-        l = categories.length(),
+        l = this._model.length(),
         button = null;
 
-    this._swipeButton = null;
+    this._interactiveButton = null;
     this._buttons = new Array(l);
-//    this._buttonContainer = new PIXI.DisplayObjectContainer();
+    this._buttonList = new App.TileList(App.Direction.Y,layout.height);
 
-    this._buttonContainer = new App.TileList(
-        categories,
-        App.ModelLocator.getProxy(App.ModelName.CATEGORY_BUTTON_POOL),
-        layout,
-        App.Direction.Y
-    );
-
-    //TODO generate this inside of the TileList?
-    /*for (;i<l;i++)
+    for (;i<l;i++)
     {
-        button = new CategoryButton(i);
-        button.init(categories.getItemAt(i),this._layout,labelStyle);
+        button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle,editLabelStyle);
         this._buttons[i] = button;
-        //this._buttonContainer.addChild(button);
-        this._buttonContainer.add(button);
-    }*/
+        this._buttonList.add(button);
+    }
+    this._buttonList.updateLayout();
 
-    //this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
     this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
-    this._pane.setContent(this._buttonContainer);
-
-//    this._addButton =
-
-    //this._updateLayout();
+    this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
 
     this._swipeEnabled = true;
-    this._preferScroll = true;
+    this._preferScroll = false;
 };
 
 App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
@@ -3629,39 +3094,30 @@ App.CategoryScreen.prototype._onTweenComplete = function _onTweenComplete()
 /**
  * Called when swipe starts
  * @param {boolean} [preferScroll=false]
+ * @param {string} direction
  * @private
  */
-App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll)
+App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
 {
-    /*if (!preferScroll) this._pane.cancelScroll();
+    if (!preferScroll) this._pane.cancelScroll();
 
-    this._swipeButton = this._getButtonUnderPoint(this._getPointerPosition());
+    this._interactiveButton = this._getButtonUnderPoint(this.stage.getTouchPosition());
+    this._interactiveButton.swipeStart(direction);
 
-    this._closeOpenedButtons(false);*/
+    this._closeOpenedButtons(false);
 };
 
 /**
  * Called when swipe ends
- * @param {string} direction
  * @private
  */
-App.CategoryScreen.prototype._swipeEnd = function _swipeEnd(direction)
+App.CategoryScreen.prototype._swipeEnd = function _swipeEnd()
 {
-    /*if (this._swipeButton)
+    if (this._interactiveButton)
     {
-        this._swipeButton.snap(direction);
-        this._swipeButton = null;
-    }*/
-};
-
-/**
- * Swipe handler
- * @param {string} direction
- * @private
- */
-App.CategoryScreen.prototype._swipe = function _swipe(direction)
-{
-    //if (this._swipeButton && direction === App.Direction.LEFT) this._swipeButton.swipe(this._getPointerPosition().x);
+        this._interactiveButton.swipeEnd();
+        this._interactiveButton = null;
+    }
 };
 
 /**
@@ -3670,16 +3126,15 @@ App.CategoryScreen.prototype._swipe = function _swipe(direction)
  */
 App.CategoryScreen.prototype._closeOpenedButtons = function _closeOpenedButtons(immediate)
 {
-    /*var i = 0,
+    var i = 0,
         l = this._buttons.length,
-        button = null,
-        rightDirection = App.Direction.RIGHT;
+        button = null;
 
     for (;i<l;)
     {
         button = this._buttons[i++];
-        if (button.isEditButtonShown() && button !== this._swipeButton) button.snap(rightDirection,immediate);
-    }*/
+        if (button !== this._interactiveButton) button.closeEditButton(immediate);
+    }
 };
 
 /**
@@ -3705,12 +3160,12 @@ App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoin
         height = this._buttons[0].boundingBox.height,
         y = point.y,
         buttonY = 0,
-        containerY = this._buttonContainer.y;
+        containerY = this._buttonList.y;
 
     for (;i<l;i++)
     {
         buttonY = this._buttons[i].y + containerY;
-        if (buttonY < y && buttonY + height > y)
+        if (buttonY <= y && buttonY + height >= y)
         {
             return this._buttons[i];
         }
@@ -3718,25 +3173,6 @@ App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoin
 
     return null;
 };
-
-/**
- * @method _updateLayout
- * @private
- */
-/*App.CategoryScreen.prototype._updateLayout = function _updateLayout()
-{
-    //TODO this can be delegated to the TileList, if used
-    var i = 0,
-        l = this._buttons.length,
-        height = this._buttons[0].boundingBox.height;
-
-    for (;i<l;i++)
-    {
-        this._buttons[i].y = i * height;
-    }
-
-    this._pane.resize(this._layout.width,this._layout.height);
-};*/
 
 /**
  * Destroy
@@ -3751,14 +3187,15 @@ App.CategoryScreen.prototype.destroy = function destroy()
     this._pane.destroy();
     this._pane = null;
 
-    var i = 0, l = this._buttons.length, button = null;
+    /*var i = 0, l = this._buttons.length, button = null;
     for (;i<l;)
     {
         button = this._buttons[i++];
-        if (this._buttonContainer.contains(button)) this._buttonContainer.removeChild(button);
+        if (this._buttonList.contains(button)) this._buttonList.removeChild(button);
         button.destroy();
     }
-    this._buttonContainer = null;
+    this._buttonList.destroy();
+    this._buttonList = null;*/
 
     this._buttons.length = 0;
     this._buttons = null;
@@ -3779,7 +3216,8 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     PIXI.DisplayObjectContainer.call(this);
 
     var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName;
+        ModelName = App.ModelName,
+        categories = ModelLocator.getProxy(ModelName.ACCOUNTS).getItemAt(0).getCategories();
 
     this._renderer = renderer;
     this._stage = stage;
@@ -3801,8 +3239,8 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
 
     //TODO use ScreenFactory for the screens?
     this._screenStack = new App.ViewStack([
-        new App.AccountScreen(ModelLocator.getProxy(ModelName.ACCOUNTS),this._layout),
-        new App.CategoryScreen(ModelLocator.getProxy(ModelName.ACCOUNTS),this._layout)
+        new App.AccountScreen(categories,this._layout),
+        new App.CategoryScreen(categories,this._layout)
     ]);
     this._screenStack.selectChildByIndex(1);
     this._screenStack.show();
@@ -4543,7 +3981,6 @@ App.Initialize.prototype._initModel = function _initModel(data)
 
     //TODO initiate all proxies in once 'init' method? Same as Controller ...
     ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
-    ModelLocator.addProxy(ModelName.CATEGORY_BUTTON_POOL,new App.CategoryButtonObjectPool(App.CategoryButton,10));
     ModelLocator.addProxy(ModelName.RECTANGLE_POOL,new App.ObjectPool(App.Rectangle,20));
     ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
     ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(

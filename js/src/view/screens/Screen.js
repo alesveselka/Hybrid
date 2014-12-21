@@ -2,7 +2,7 @@
  * Abstract Screen
  *
  * @class Screen
- * @extends {DisplayObjectContainer}
+ * @extends DisplayObjectContainer
  * @param {Collection} model
  * @param {Object} layout
  * @param {number} tweenDuration
@@ -28,12 +28,11 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._mouseY = 0.0;
     this._leftSwipeThreshold = Math.round(30 * pixelRatio);
     this._rightSwipeThreshold = Math.round(5 * pixelRatio);
-    this._swipeDirection = null;
     this._swipeEnabled = false;
     this._preferScroll = false;
 
-    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
     this._showHideTween = new App.TweenProxy(tweenDuration,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
 
     this.alpha = 0.0;
@@ -193,16 +192,10 @@ App.Screen.prototype._onTick = function _onTick()
         var TransitionState = App.TransitionState;
 
         if (this._transitionState === TransitionState.SHOWING) this.alpha = this._showHideTween.progress;
-        else if (this._transitionState === TransitionState.HIDING) this.alpha = 1 - this._showHideTween.progress;
+        else if (this._transitionState === TransitionState.HIDING) this.alpha = 1.0 - this._showHideTween.progress;
     }
 
-    if (this._swipeEnabled)
-    {
-        var InteractiveState = App.InteractiveState;
-
-        if (this._interactiveState === InteractiveState.DRAGGING) this._drag();
-        else if (this._interactiveState === InteractiveState.SWIPING) this._swipe(this._swipeDirection);
-    }
+    if (this._swipeEnabled && this._interactiveState === App.InteractiveState.DRAGGING) this._drag();
 };
 
 /**
@@ -260,7 +253,7 @@ App.Screen.prototype._onPointerUp = function _onPointerUp(data)
 {
     if (this._swipeEnabled)
     {
-        if (this._interactiveState === App.InteractiveState.SWIPING) this._swipeEnd(this._swipeDirection);
+        if (this._interactiveState === App.InteractiveState.SWIPING) this._swipeEnd();
         this._interactiveState = null;
     }
 
@@ -283,16 +276,6 @@ App.Screen.prototype._onPointerUp = function _onPointerUp(data)
 };
 
 /**
- * Return pointer position
- * @returns {Point}
- * @private
- */
-App.Screen.prototype._getPointerPosition = function _getPointerPosition()
-{
-    return App.Device.TOUCH_SUPPORTED ? this.stage.getTouchPosition() : this.stage.getMousePosition();
-};
-
-/**
  * Drag
  * @private
  */
@@ -304,21 +287,19 @@ App.Screen.prototype._drag = function _drag()
     {
         if (this.stage && this._mouseX)
         {
-            var position = this._getPointerPosition(),
+            var position = this.stage.getTouchPosition(),
                 newX = position.x,
                 newY = position.y;
 
             if (this._mouseX - newX > this._leftSwipeThreshold)
             {
                 this._interactiveState = InteractiveState.SWIPING;
-                this._swipeDirection = App.Direction.LEFT;
-                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll);
+                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll,App.Direction.LEFT);
             }
             else if (newX - this._mouseX > this._rightSwipeThreshold)
             {
                 this._interactiveState = InteractiveState.SWIPING;
-                this._swipeDirection = App.Direction.RIGHT;
-                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll);
+                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll,App.Direction.RIGHT);
             }
 
             this._mouseX = newX;
@@ -352,16 +333,6 @@ App.Screen.prototype._swipeStart = function _swipeStart(preferScroll)
  * @private
  */
 App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
-{
-    // Abstract
-};
-
-/**
- * Swipe handler
- * @param {string} direction
- * @private
- */
-App.Screen.prototype._swipe = function _swipe(direction)
 {
     // Abstract
 };

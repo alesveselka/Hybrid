@@ -1,87 +1,84 @@
-App.CategoryButtonEdit = function CategoryButtonEdit(model,layout,index)
+/**
+ * @class CategoryButtonEdit
+ * @extends CategoryButton
+ * @param {Category} model
+ * @param {Object} layout
+ * @param {{font:string,fill:string}} nameLabelStyle
+ * @param {{font:string,fill:string}} editLabelStyle
+ * @constructor
+ */
+App.CategoryButtonEdit = function CategoryButtonEdit(model,layout,nameLabelStyle,editLabelStyle)
 {
-    PIXI.DisplayObjectContainer.call(this);
+    App.CategoryButton.call(this,model,layout,nameLabelStyle);
 
-    var pixelRatio = layout.pixelRatio,
-        height = Math.round(50 * pixelRatio),
-        width = layout.width,
-        ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName;
-
-    this.allocated = false;
-    this.poolIndex = index;
-
-    this._model = model;
-    this._layout = layout;
+    this._enabled = false;
     this._interactiveState = null;
-//    this._transitionState = App.TransitionState.CLOSED;
     this._dragFriction = 0.5;
     this._snapForce = 0.5;
-    this._editOffset = Math.round(80 * pixelRatio);
+    this._editOffset = Math.round(80 * layout.pixelRatio);
     this._editButtonShown = false;
 
-    this.boundingBox = new PIXI.Rectangle(0,0,width,height);
-
     this._background = new PIXI.Graphics();
-    this._background.beginFill(0xE53013);
-    this._background.drawRect(0,0,width,height);
-    this._background.endFill();
+    this._editLabel = new PIXI.Text("Edit",editLabelStyle);
 
-    //TODO add this to stage only when needed?
-    //TODO also not all variation of CategoryButtons will have editable option!
-    this._editLabel = new PIXI.Text("Edit ",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#ffffff"});
-    this._editLabel.x = Math.round(width - 50 * pixelRatio);
-    this._editLabel.y = Math.round(18 * pixelRatio);
+    this._render();
 
-    this._surfaceSkin = new PIXI.Graphics();
-    this._icon = new PIXI.Sprite.fromFrame("currencies");
-    this._nameLabel = new PIXI.Text("Category "+index,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
-
-    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-//    this._openCloseTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
-
-    this._renderSurface();
-
-    this.addChild(this._background);
-    this.addChild(this._editLabel);
-    this.addChild(this._surfaceSkin);
-
-//    this.interactive = true;
+    this.addChildAt(this._editLabel,0);
+    this.addChildAt(this._background,0);
 };
 
-App.CategoryButtonEdit.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.CategoryButtonEdit.prototype = Object.create(App.CategoryButton.prototype);
 App.CategoryButtonEdit.prototype.constructor = App.CategoryButtonEdit;
 
-App.CategoryButtonEdit.prototype.init = function init(model,layout)
+/**
+ * Render
+ * @private
+ */
+App.CategoryButtonEdit.prototype._render = function _render()
 {
-    //TODO let's first move the swiping into this class ...
-    //TODO and also split into sub-classes - Editable, Expandable, Basic ...
+    App.CategoryButton.prototype._render.call(this);
+
+    var pixelRatio = this._layout.pixelRatio,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height;
+
+    this._background.beginFill(0xE53013);
+    this._background.drawRect(0,0,w,h);
+    this._background.endFill();
+
+    this._editLabel.x = Math.round(w - 50 * pixelRatio);
+    this._editLabel.y = Math.round(18 * pixelRatio);
 };
 
-App.CategoryButtonEdit.prototype.reset = function reset()
+/**
+ * Enable interaction
+ * @private
+ */
+App.CategoryButtonEdit.prototype._enableInteraction = function _enableInteraction()
+{
+    if (!this._enabled)
+    {
+        this._enabled = true;
+
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this.interactive = true;
+    }
+};
+
+/**
+ * Disable interaction
+ * @private
+ */
+App.CategoryButtonEdit.prototype._disableInteraction = function _disableInteraction()
 {
     this.interactive = false;
-};
 
-/**
- * @method _resize
- * @param {number} width
- */
-App.CategoryButtonEdit.prototype.resize = function resize(width)
-{
-    this.boundingBox.width = width;
+    this._interactiveState = null;
 
-    this._renderSurface();
-    //TODO also resize background and other elements
-};
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
 
-/**
- * Is Edit button shown?
- * @returns {boolean}
- */
-App.CategoryButtonEdit.prototype.isEditButtonShown = function isEditButtonShown()
-{
-    return this._editButtonShown;
+    this._enabled = false;
 };
 
 /**
@@ -90,188 +87,117 @@ App.CategoryButtonEdit.prototype.isEditButtonShown = function isEditButtonShown(
  */
 App.CategoryButtonEdit.prototype._onTick = function _onTick()
 {
-    if (this._interactiveState === App.InteractiveState.SNAPPING) this.snap();
-};
-
-/**
- * Enable snapping
- * @private
- */
-App.CategoryButtonEdit.prototype._enableSnap = function _enableSnap()
-{
-    this._interactiveState = App.InteractiveState.SNAPPING;
-
-    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-};
-
-/**
- * Disable snapping
- * @private
- */
-App.CategoryButtonEdit.prototype._disableSnap = function _disableSnap()
-{
-    this._interactiveState = null;
-
-    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+    var InteractiveState = App.InteractiveState;
+    if (this._interactiveState === InteractiveState.SWIPING) this._swipe();
+    else if (this._interactiveState === InteractiveState.SNAPPING) this._snap();
 };
 
 /**
  * @method swipe
- * @param {number} position
+ * @param {string} direction
  * @private
  */
-App.CategoryButtonEdit.prototype.swipe = function swipe(position)
+App.CategoryButtonEdit.prototype.swipeStart = function swipeStart(direction)
 {
-    if (!this._editButtonShown)
+    var Direction = App.Direction,
+        InteractiveState = App.InteractiveState;
+
+    if (!this._interactiveState)
     {
-        if (!this._interactiveState) this._interactiveState = App.InteractiveState.SWIPING;
-
-        var w = this._layout.width;
-
-        this._surfaceSkin.x = -Math.round(w * (1 - (position / w)) * this._dragFriction);
+        if (!this._editButtonShown && direction === Direction.LEFT)
+        {
+            this._interactiveState = InteractiveState.SWIPING;
+            this._enableInteraction();
+        }
+        else if (this._editButtonShown && direction === Direction.RIGHT)
+        {
+            this._interactiveState = InteractiveState.SNAPPING;
+            this._enableInteraction();
+        }
     }
 };
 
 /**
- * @method snap
- * @param {string} swipeDirection
- * @param {boolean} [immediate=false]
+ * @method swipe
  * @private
  */
-App.CategoryButtonEdit.prototype.snap = function snap(swipeDirection,immediate)
+App.CategoryButtonEdit.prototype.swipeEnd = function swipeEnd()
 {
-    if (immediate)
-    {
-        this._editButtonShown = false;
-        this._surfaceSkin.x = 0;
+    if (this._interactiveState === App.InteractiveState.SWIPING) this._interactiveState = App.InteractiveState.SNAPPING;
+};
 
-        return;
+/**
+ * @method swipe
+ * @private
+ */
+App.CategoryButtonEdit.prototype._swipe = function _swipe()
+{
+    if (this.stage && !this._editButtonShown)
+    {
+        var w = this._layout.width;
+        this._surfaceSkin.x = -Math.round(w * (1 - (this.stage.getTouchPosition().x / w)) * this._dragFriction);
     }
+};
 
-    // Snap back if button is swiping
-    if (this._interactiveState === App.InteractiveState.SWIPING)
-    {
-        this._enableSnap();
-    }
-    // Or snap to close edit button, if it is open ...
-    else if (!this._interactiveState && this._editButtonShown)
-    {
-        // ... and swipe direction is right
-        if (swipeDirection === App.Direction.RIGHT)
-        {
-            this._enableSnap();
-        }
-        else
-        {
-            return;
-        }
-    }
+/**
+ * @method _snap
+ * @private
+ */
+App.CategoryButtonEdit.prototype._snap = function _snap()
+{
+    var result = Math.round(this._surfaceSkin.x * this._snapForce);
 
     // Snap to show edit button
     if (this._surfaceSkin.x < -this._editOffset)
     {
-        if (this._surfaceSkin.x * this._snapForce >= -this._editOffset)
+        if (result >= -this._editOffset)
         {
             this._editButtonShown = true;
+            this._disableInteraction();
 
             this._surfaceSkin.x = -this._editOffset;
-
-            this._disableSnap();
         }
         else
         {
-            this._surfaceSkin.x *= this._snapForce;
+            this._surfaceSkin.x = result;
         }
     }
     // Snap to close edit button
     else
     {
-        if (this._surfaceSkin.x * this._snapForce >= -1)
+        if (result >= -1)
         {
             this._editButtonShown = false;
+            this._disableInteraction();
 
             this._surfaceSkin.x = 0;
-
-            this._disableSnap();
         }
         else
         {
-            this._surfaceSkin.x *= this._snapForce;
+            this._surfaceSkin.x = result;
         }
     }
 };
 
 /**
- * Open
+ * Close Edit button
+ * @param {boolean} [immediate=false]
  */
-//App.CategoryButtonEdit.prototype.open = function open()
-//{
-//    var TransitionState = App.TransitionState;
-//
-//    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
-//    {
-//        this._transitionState = TransitionState.OPENING;
-//
-//        this._openCloseTween.restart();
-//    }
-//};
-
-/**
- * Close
- */
-//App.CategoryButtonEdit.prototype.close = function close()
-//{
-//    var TransitionState = App.TransitionState;
-//
-//    if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
-//    {
-//        this._transitionState = TransitionState.CLOSING;
-//
-//        this._openCloseTween.start(true);
-//    }
-//};
-
-/**
- * @method render
- * @private
- */
-App.CategoryButtonEdit.prototype._renderSurface = function _renderSurface()
+App.CategoryButtonEdit.prototype.closeEditButton = function closeEditButton(immediate)
 {
-    var pixelRatio = this._layout.pixelRatio,
-        padding = Math.round(10 * pixelRatio),
-        w = this.boundingBox.width,
-        h = this.boundingBox.height;
-
-    //TODO cache this as texture?
-    this._surfaceSkin.clear();
-    this._surfaceSkin.beginFill(0xefefef);
-    this._surfaceSkin.drawRect(0,0,w,h);
-    this._surfaceSkin.beginFill(0xffffff);
-    this._surfaceSkin.drawRect(padding,0,w-padding*2,1);
-    this._surfaceSkin.beginFill(0xcccccc);
-    this._surfaceSkin.drawRect(padding,h-1,w-padding*2,1);
-    this._surfaceSkin.beginFill("0x"+App.MathUtils.rgbToHex(
-        Math.round(Math.sin(0.3 * 10 + 0) * 127 + 128),
-        Math.round(Math.sin(0.3 * 10 + 2) * 127 + 128),
-        Math.round(Math.sin(0.3 * 10 + 4) * 127 + 128)
-    ));
-    this._surfaceSkin.drawRect(0,0,Math.round(4 * pixelRatio),h);
-    this._surfaceSkin.endFill();
-
-    if (pixelRatio === 1)
+    if (this._editButtonShown)
     {
-        this._icon.scale.x *= 0.5;
-        this._icon.scale.y *= 0.5;
+        if (immediate)
+        {
+            this._surfaceSkin.x = 0;
+            this._editButtonShown = false;
+        }
+        else
+        {
+            this._interactiveState = App.InteractiveState.SNAPPING;
+            this._enableInteraction();
+        }
     }
-    this._icon.x = Math.round(15 * pixelRatio);
-    this._icon.y = Math.round((h - this._icon.height) / 2);
-    this._icon.tint = 0x394264;
-
-    this._nameLabel.x = Math.round(64 * pixelRatio);
-    this._nameLabel.y = Math.round(18 * pixelRatio);
-
-    this._surfaceSkin.addChild(this._icon);
-    this._surfaceSkin.addChild(this._nameLabel);
 };
 
 /**
@@ -279,21 +205,5 @@ App.CategoryButtonEdit.prototype._renderSurface = function _renderSurface()
  */
 App.CategoryButtonEdit.prototype.destroy = function destroy()
 {
-    this.clear();
-
-    this.interactive = false;
-
-    this._layout = null;
-    this._model = null;
-
-    this.boundingBox = null;
-
-    this.removeChild(this._colorStripe);
-    this._colorStripe = null;
-
-    this.removeChild(this._icon);
-    this._icon = null;
-
-    this.removeChild(this._nameLabel);
-    this._nameLabel = null;
+    //TODO implement
 };

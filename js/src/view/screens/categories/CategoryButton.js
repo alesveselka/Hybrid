@@ -1,28 +1,33 @@
 /**
  * @class CategoryButton
  * @extends DisplayObjectContainer
- * @param {number} index ObjectPool index
+ * @param {Category} model
+ * @param {Object} layout
+ * @param {Object} labelStyle
  * @constructor
  */
-App.CategoryButton = function CategoryButton(index)
+App.CategoryButton = function CategoryButton(model,layout,labelStyle)
 {
     PIXI.DisplayObjectContainer.call(this);
 
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName;
 
-    this.allocated = false;
-    this.poolIndex = index;
-    this.boundingBox = ModelLocator.getProxy(ModelName.RECTANGLE_POOL).allocate();
+    this._model = model;
+    this._layout = layout;
 
-    this._model = null;
-    this._layout = null;
+    this.boundingBox = ModelLocator.getProxy(ModelName.RECTANGLE_POOL).allocate();
+    this.boundingBox.width = layout.width;
+    this.boundingBox.height = Math.round(50 * layout.pixelRatio);
+
+    this._model = model;
+    this._layout = layout;
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
 
     this._surfaceSkin = new PIXI.Graphics();
     this._colorStripe = new PIXI.Graphics();
-    this._icon = PIXI.Sprite.fromFrame("currencies");
-    this._nameLabel = new PIXI.Text("");
+    this._icon = PIXI.Sprite.fromFrame(model.icon);
+    this._nameLabel = new PIXI.Text(model.name,labelStyle);
 
     this._surfaceSkin.addChild(this._colorStripe);
     this._surfaceSkin.addChild(this._icon);
@@ -32,35 +37,6 @@ App.CategoryButton = function CategoryButton(index)
 
 App.CategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.CategoryButton.prototype.constructor = App.CategoryButton;
-
-/**
- * Init
- * @param {Category} model
- * @param {Object} layout
- * @param {Object} labelStyle
- */
-App.CategoryButton.prototype.init = function init(model,layout,labelStyle)
-{
-    this._model = model;
-    this._layout = layout;
-
-    this.boundingBox.width = layout.width;
-    this.boundingBox.height = Math.round(50 * layout.pixelRatio);
-
-    this._icon.setTexture(PIXI.TextureCache[this._model.icon]);
-
-    this._nameLabel.setText(this._model.name);
-    this._nameLabel.setStyle(labelStyle);
-
-    this._render();
-
-    return this;
-};
-
-App.CategoryButton.prototype.reset = function reset()
-{
-    this.interactive = false;
-};
 
 /**
  * @method render

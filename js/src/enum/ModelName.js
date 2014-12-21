@@ -4,7 +4,6 @@
  * @return {{
  *      TICKER:string,
  *      EVENT_LISTENER_POOL:string,
- *      CATEGORY_BUTTON_POOL:string,
  *      RECTANGLE_POOL:string,
  *      ACCOUNTS:string,
  *      TRANSACTIONS:string,
@@ -16,7 +15,6 @@
 App.ModelName = {
     TICKER:"TICKER",
     EVENT_LISTENER_POOL:"EVENT_LISTENER_POOL",
-    CATEGORY_BUTTON_POOL:"CATEGORY_BUTTON_POOL",
     RECTANGLE_POOL:"RECTANGLE_POOL",
     ACCOUNTS:"ACCOUNTS",
     TRANSACTIONS:"TRANSACTIONS",

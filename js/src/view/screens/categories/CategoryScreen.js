@@ -9,46 +9,33 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
-    var CategoryButton = App.CategoryButton,
-        labelStyle = {font:Math.round(18 * layout.pixelRatio)+"px HelveticaNeueCond",fill:"#394264"},
-        categories = this._model.getItemAt(0).getCategories(),
+    var CategoryButton = App.CategoryButtonEdit,
+        font = Math.round(18 * layout.pixelRatio)+"px HelveticaNeueCond",
+        nameLabelStyle = {font:font,fill:"#394264"},
+        editLabelStyle = {font:font,fill:"#ffffff"},
         i = 0,
-        l = categories.length(),
+        l = this._model.length(),
         button = null;
 
-    this._swipeButton = null;
+    this._interactiveButton = null;
     this._buttons = new Array(l);
-//    this._buttonContainer = new PIXI.DisplayObjectContainer();
+    this._buttonList = new App.TileList(App.Direction.Y,layout.height);
 
-    this._buttonContainer = new App.TileList(
-        categories,
-        App.ModelLocator.getProxy(App.ModelName.CATEGORY_BUTTON_POOL),
-        layout,
-        App.Direction.Y
-    );
-
-    //TODO generate this inside of the TileList?
-    /*for (;i<l;i++)
+    for (;i<l;i++)
     {
-        button = new CategoryButton(i);
-        button.init(categories.getItemAt(i),this._layout,labelStyle);
+        button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle,editLabelStyle);
         this._buttons[i] = button;
-        //this._buttonContainer.addChild(button);
-        this._buttonContainer.add(button);
-    }*/
+        this._buttonList.add(button);
+    }
+    this._buttonList.updateLayout();
 
-    //this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
     this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
-    this._pane.setContent(this._buttonContainer);
-
-//    this._addButton =
-
-    //this._updateLayout();
+    this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
 
     this._swipeEnabled = true;
-    this._preferScroll = true;
+    this._preferScroll = false;
 };
 
 App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
@@ -91,39 +78,30 @@ App.CategoryScreen.prototype._onTweenComplete = function _onTweenComplete()
 /**
  * Called when swipe starts
  * @param {boolean} [preferScroll=false]
+ * @param {string} direction
  * @private
  */
-App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll)
+App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
 {
-    /*if (!preferScroll) this._pane.cancelScroll();
+    if (!preferScroll) this._pane.cancelScroll();
 
-    this._swipeButton = this._getButtonUnderPoint(this._getPointerPosition());
+    this._interactiveButton = this._getButtonUnderPoint(this.stage.getTouchPosition());
+    this._interactiveButton.swipeStart(direction);
 
-    this._closeOpenedButtons(false);*/
+    this._closeOpenedButtons(false);
 };
 
 /**
  * Called when swipe ends
- * @param {string} direction
  * @private
  */
-App.CategoryScreen.prototype._swipeEnd = function _swipeEnd(direction)
+App.CategoryScreen.prototype._swipeEnd = function _swipeEnd()
 {
-    /*if (this._swipeButton)
+    if (this._interactiveButton)
     {
-        this._swipeButton.snap(direction);
-        this._swipeButton = null;
-    }*/
-};
-
-/**
- * Swipe handler
- * @param {string} direction
- * @private
- */
-App.CategoryScreen.prototype._swipe = function _swipe(direction)
-{
-    //if (this._swipeButton && direction === App.Direction.LEFT) this._swipeButton.swipe(this._getPointerPosition().x);
+        this._interactiveButton.swipeEnd();
+        this._interactiveButton = null;
+    }
 };
 
 /**
@@ -132,16 +110,15 @@ App.CategoryScreen.prototype._swipe = function _swipe(direction)
  */
 App.CategoryScreen.prototype._closeOpenedButtons = function _closeOpenedButtons(immediate)
 {
-    /*var i = 0,
+    var i = 0,
         l = this._buttons.length,
-        button = null,
-        rightDirection = App.Direction.RIGHT;
+        button = null;
 
     for (;i<l;)
     {
         button = this._buttons[i++];
-        if (button.isEditButtonShown() && button !== this._swipeButton) button.snap(rightDirection,immediate);
-    }*/
+        if (button !== this._interactiveButton) button.closeEditButton(immediate);
+    }
 };
 
 /**
@@ -162,17 +139,18 @@ App.CategoryScreen.prototype._onClick = function _onClick()
  */
 App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoint(point)
 {
+    //TODO also check 'x'?
     var i = 0,
         l = this._buttons.length,
         height = this._buttons[0].boundingBox.height,
         y = point.y,
         buttonY = 0,
-        containerY = this._buttonContainer.y;
+        containerY = this._buttonList.y;
 
     for (;i<l;i++)
     {
         buttonY = this._buttons[i].y + containerY;
-        if (buttonY < y && buttonY + height > y)
+        if (buttonY <= y && buttonY + height >= y)
         {
             return this._buttons[i];
         }
@@ -180,25 +158,6 @@ App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoin
 
     return null;
 };
-
-/**
- * @method _updateLayout
- * @private
- */
-/*App.CategoryScreen.prototype._updateLayout = function _updateLayout()
-{
-    //TODO this can be delegated to the TileList, if used
-    var i = 0,
-        l = this._buttons.length,
-        height = this._buttons[0].boundingBox.height;
-
-    for (;i<l;i++)
-    {
-        this._buttons[i].y = i * height;
-    }
-
-    this._pane.resize(this._layout.width,this._layout.height);
-};*/
 
 /**
  * Destroy
@@ -213,14 +172,15 @@ App.CategoryScreen.prototype.destroy = function destroy()
     this._pane.destroy();
     this._pane = null;
 
-    var i = 0, l = this._buttons.length, button = null;
+    /*var i = 0, l = this._buttons.length, button = null;
     for (;i<l;)
     {
         button = this._buttons[i++];
-        if (this._buttonContainer.contains(button)) this._buttonContainer.removeChild(button);
+        if (this._buttonList.contains(button)) this._buttonList.removeChild(button);
         button.destroy();
     }
-    this._buttonContainer = null;
+    this._buttonList.destroy();
+    this._buttonList = null;*/
 
     this._buttons.length = 0;
     this._buttons = null;

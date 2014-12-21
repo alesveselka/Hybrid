@@ -13,7 +13,8 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     PIXI.DisplayObjectContainer.call(this);
 
     var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName;
+        ModelName = App.ModelName,
+        categories = ModelLocator.getProxy(ModelName.ACCOUNTS).getItemAt(0).getCategories();
 
     this._renderer = renderer;
     this._stage = stage;
@@ -35,8 +36,8 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
 
     //TODO use ScreenFactory for the screens?
     this._screenStack = new App.ViewStack([
-        new App.AccountScreen(ModelLocator.getProxy(ModelName.ACCOUNTS),this._layout),
-        new App.CategoryScreen(ModelLocator.getProxy(ModelName.ACCOUNTS),this._layout)
+        new App.AccountScreen(categories,this._layout),
+        new App.CategoryScreen(categories,this._layout)
     ]);
     this._screenStack.selectChildByIndex(1);
     this._screenStack.show();
