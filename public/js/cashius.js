@@ -1759,6 +1759,13 @@ App.Pane.prototype.destroy = function destroy()
     this._yScrollPolicy = null;
 };
 
+/**
+ * @class TileList
+ * @extends DisplayObjectContainer
+ * @param {string} direction
+ * @param {number} windowSize
+ * @constructor
+ */
 App.TileList = function TileList(direction,windowSize)
 {
     PIXI.DisplayObjectContainer.call(this);
@@ -1879,7 +1886,7 @@ App.TileList.prototype.destroy = function destroy()
 
 /**
  * @class TilePane
- * @extends {Pane}
+ * @extends Pane
  * @param {string} xScrollPolicy
  * @param {string} yScrollPolicy
  * @param {number} width
@@ -2140,7 +2147,7 @@ App.ViewStack.prototype._onHideComplete = function _onHideComplete(data)
  * Abstract Screen
  *
  * @class Screen
- * @extends {DisplayObjectContainer}
+ * @extends DisplayObjectContainer
  * @param {Collection} model
  * @param {Object} layout
  * @param {number} tweenDuration
@@ -2604,24 +2611,20 @@ App.AccountScreen = function AccountScreen(model,layout)
     var i = 0, l = this._model.length(), AccountButton = App.AccountButton, button = null;
 
     this._buttons = new Array(l);
-    this._buttonContainer = new PIXI.DisplayObjectContainer();
+    this._buttonList = new App.TileList(App.Direction.Y,layout.height);
 
     for (;i<30;i++)
     {
-        //button = new AccountButton(this._model.getItemAt(i),this._layout);
         button = new AccountButton(this._model.getItemAt(0),this._layout,i);
         this._buttons[i] = button;
-        this._buttonContainer.addChild(button);
+        this._buttonList.add(button);
     }
+    this._buttonList.updateLayout();
 
-    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
-    this._pane.setContent(this._buttonContainer);
-
-    this._updateLayout();
+    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
+    this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
-
-//    this._addButton =
 };
 
 App.AccountScreen.prototype = Object.create(App.Screen.prototype);
@@ -2648,21 +2651,6 @@ App.AccountScreen.prototype._onClick = function _onClick()
 };
 
 /**
- * @method _updateLayout
- * @private
- */
-App.AccountScreen.prototype._updateLayout = function _updateLayout()
-{
-    var i = 0, l = this._buttons.length, height = this._buttons[0].boundingBox.height;
-    for (;i<l;i++)
-    {
-        this._buttons[i].y = i * height;
-    }
-
-    this._pane.resize(this._layout.width,this._layout.height);
-};
-
-/**
  * Destroy
  */
 App.AccountScreen.prototype.destroy = function destroy()
@@ -2675,14 +2663,15 @@ App.AccountScreen.prototype.destroy = function destroy()
     this._pane.destroy();
     this._pane = null;
 
-    var i = 0, l = this._buttons.length, button = null;
+    /*var i = 0, l = this._buttons.length, button = null;
     for (;i<l;)
     {
         button = this._buttons[i++];
-        if (this._buttonContainer.contains(button)) this._buttonContainer.removeChild(button);
+        if (this._buttonList.contains(button)) this._buttonList.removeChild(button);
         button.destroy();
     }
-    this._buttonContainer = null;
+    this._buttonList.destroy();
+    this._buttonList = null;*/
 
     this._buttons.length = 0;
     this._buttons = null;
@@ -2806,7 +2795,7 @@ App.CategoryButton.prototype.destroy = function destroy()
 
 /**
  * @class CategoryButtonEdit
- * @extends {CategoryButton}
+ * @extends CategoryButton
  * @param {Category} model
  * @param {Object} layout
  * @param {{font:string,fill:string}} nameLabelStyle
@@ -3155,6 +3144,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
  */
 App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoint(point)
 {
+    //TODO also check 'x'?
     var i = 0,
         l = this._buttons.length,
         height = this._buttons[0].boundingBox.height,
