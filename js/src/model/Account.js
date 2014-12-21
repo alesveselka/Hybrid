@@ -1,13 +1,17 @@
 /**
  * @class Account
  * @param {{name:string,categories:Array.<Category>}} data
+ * @param {Collection} collection
+ * @param {Object} parent
+ * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.Account = function Account(data)
+App.Account = function Account(data,collection,parent,eventListenerPool)
 {
     this._data = data;
     this._name = null;
     this._categories = null;
+    this._eventListenerPool = eventListenerPool;
 };
 
 /**
@@ -46,7 +50,15 @@ App.Account.prototype.getIncome = function getIncome()
  */
 App.Account.prototype.getCategories = function getCategories()
 {
-    if (!this._categories) this._categories = new App.Collection();
+    if (!this._categories)
+    {
+        this._categories = new App.Collection(
+            this._data.categories,
+            App.Category,
+            this,
+            this._eventListenerPool
+        );
+    }
 
     return this._categories;
 };

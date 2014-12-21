@@ -8,7 +8,7 @@ App.LoadData = function LoadData(pool)
 {
     App.Command.call(this,false,pool);
 
-    this._assetLoader = null;
+    this._jsonLoader = null;
     this._fontLoadingInterval = -1;
     this._fontInfoElement = null;
 };
@@ -34,16 +34,17 @@ App.LoadData.prototype.execute = function execute()
  */
 App.LoadData.prototype._loadAssets = function _loadAssets()
 {
-    this._assetLoader = new PIXI.AssetLoader(["./data/icons-big.json"]);
+    this._jsonLoader = new PIXI.JsonLoader("./data/icons-big.json");
 
-    this._assetLoader.onComplete = function()
+    this._jsonLoader.on("loaded",function()
     {
-        this._assetLoader.onComplete = null; //TODO destroy?
+        this._jsonLoader.removeAllListeners("loaded");
+        this._jsonLoader = null;
 
         this._loadFont();
-    }.bind(this);
+    }.bind(this));
 
-    this._assetLoader.load();
+    this._jsonLoader.load();
 };
 
 /**
@@ -112,7 +113,7 @@ App.LoadData.prototype.destroy = function destroy()
 {
     App.Command.prototype.destroy.call(this);
 
-    this._assetLoader = null;
+    this._jsonLoader = null;
 
     clearInterval(this._fontLoadingInterval);
 

@@ -163,11 +163,23 @@ App.EventType = {
 /**
  * Model Proxy state
  * @enum {string}
- * @return {{TICKER:string,EVENT_LISTENER_POOL:string,ACCOUNTS:string,TRANSACTIONS:string,SETTINGS:string,FILTERS:string,CURRENCIES:string}}
+ * @return {{
+ *      TICKER:string,
+ *      EVENT_LISTENER_POOL:string,
+ *      CATEGORY_BUTTON_POOL:string,
+ *      RECTANGLE_POOL:string,
+ *      ACCOUNTS:string,
+ *      TRANSACTIONS:string,
+ *      SETTINGS:string,
+ *      FILTERS:string,
+ *      CURRENCIES:string
+ * }}
  */
 App.ModelName = {
     TICKER:"TICKER",
     EVENT_LISTENER_POOL:"EVENT_LISTENER_POOL",
+    CATEGORY_BUTTON_POOL:"CATEGORY_BUTTON_POOL",
+    RECTANGLE_POOL:"RECTANGLE_POOL",
     ACCOUNTS:"ACCOUNTS",
     TRANSACTIONS:"TRANSACTIONS",
     SETTINGS:"SETTINGS",
@@ -435,6 +447,32 @@ App.EventDispatcher.prototype.destroy = function destroy()
 };
 
 /**
+ * @class Rectangle
+ * @param {number} poolIndex
+ * @constructor
+ */
+App.Rectangle = function Rectangle(poolIndex)
+{
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+    this.x = 0;
+    this.y = 0;
+    this.width = 0;
+    this.height = 0;
+};
+
+/**
+ * @method reset Reset item returning to pool
+ */
+App.EventListener.prototype.reset = function reset()
+{
+    this.allocated = false;
+    this.x = 0;
+    this.y = 0;
+    this.width = 0;
+    this.height = 0;
+};
+/**
  * @class ModelLocator
  * @type {{_proxies:Object,addProxy:Function,hasProxy:Function,getProxy:Function}}
  */
@@ -474,6 +512,67 @@ App.ModelLocator = {
     }
 };
 /**
+ * @class CategoryButtonObjectPool
+ * @param {Function} objectClass
+ * @param {number} size
+ * @constructor
+ */
+App.CategoryButtonObjectPool = function CategoryButtonObjectPool(objectClass,size)
+{
+    this._objectClass = objectClass;
+    this._size = size;
+    this._items = [];
+    this._freeItems = [];
+};
+
+/**
+ * Pre-allocate objectClass instances
+ */
+App.CategoryButtonObjectPool.prototype.preAllocate = function preAllocate()
+{
+    var oldSize = this._items.length,
+        newSize = oldSize + this._size,
+        i = oldSize;
+
+    this._items.length = newSize;
+
+    for (;i < newSize;i++)
+    {
+        this._items[i] = new this._objectClass(i);
+        this._freeItems.push(i);
+    }
+    console.log("preAllocate ",this._items.length);
+};
+
+/**
+ * @method allocate Allocate object instance
+ * @returns {{poolIndex:number,allocated:boolean}}
+ */
+App.CategoryButtonObjectPool.prototype.allocate = function allocate()
+{
+    console.log("allocate");
+    if (this._freeItems.length === 0) this.preAllocate();
+
+    var index = this._freeItems.shift();
+    var item = this._items[index];
+
+    item.allocated = true;
+
+    return item;
+};
+
+/**
+ * @method release Release item into pool
+ * @param {{poolIndex:number,allocated:boolean}} item
+ */
+App.CategoryButtonObjectPool.prototype.release = function release(item)
+{
+    item.allocated = false;
+
+    this._freeItems.push(item.poolIndex);
+};
+
+/**
  * @class ObjectPool
  * @param {Function} objectClass
  * @param {number} size
@@ -493,11 +592,12 @@ App.ObjectPool = function ObjectPool(objectClass,size)
 App.ObjectPool.prototype.preAllocate = function preAllocate()
 {
     var oldSize = this._items.length,
-        newSize = oldSize + this._size;
+        newSize = oldSize + this._size,
+        i = oldSize;
 
     this._items.length = newSize;
 
-    for (var i = oldSize;i < newSize;i++)
+    for (;i < newSize;i++)
     {
         this._items[i] = new this._objectClass(i);
         this._freeItems.push(i);
@@ -549,7 +649,7 @@ App.Collection = function Collection(source,itemConstructor,parent,eventListener
 
         this._items = new Array(l);
 
-        for (;i<l;i++) this._items[i] = new itemConstructor(source[i],this,parent);
+        for (;i<l;i++) this._items[i] = new itemConstructor(source[i],this,parent,eventListenerPool);
     }
 
     if (!this._items) this._items = [];
@@ -734,13 +834,17 @@ App.Collection.prototype.length = function length()
 /**
  * @class Account
  * @param {{name:string,categories:Array.<Category>}} data
+ * @param {Collection} collection
+ * @param {Object} parent
+ * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.Account = function Account(data)
+App.Account = function Account(data,collection,parent,eventListenerPool)
 {
     this._data = data;
     this._name = null;
     this._categories = null;
+    this._eventListenerPool = eventListenerPool;
 };
 
 /**
@@ -779,7 +883,15 @@ App.Account.prototype.getIncome = function getIncome()
  */
 App.Account.prototype.getCategories = function getCategories()
 {
-    if (!this._categories) this._categories = new App.Collection();
+    if (!this._categories)
+    {
+        this._categories = new App.Collection(
+            this._data.categories,
+            App.Category,
+            this,
+            this._eventListenerPool
+        );
+    }
 
     return this._categories;
 };
@@ -796,14 +908,15 @@ App.Transaction = function Transaction(amount,currency,category,date,type,mode,r
     this.pending = pending;
 };
 
-App.Category = function Category(name,color,icon,subCategories,account,budget)
+App.Category = function Category(data,collection,parent,eventListenerPool)
 {
-    this.name = name;
-    this.color = color;
-    this.icon = icon;
-    this.subCategories = subCategories;
-    this.account = account;
-    this.budget = budget;
+    this._data = data;
+    this._account = parent;
+    this.name = data.name;
+    this.color = data.color;
+    this.icon = data.icon;
+    this.subCategories = data.subCategories;
+    //this.budget = budget;
 };
 
 App.Filter = function Filter(startDate,endDate,categories)
@@ -1071,7 +1184,7 @@ App.ScrollIndicator.prototype.destroy = function destroy()
     this.clear();
 };
 
-App.TileList = function TileList(direction,layout/*windowSize*/)
+App.TileList = function TileList(collection,itemPool,layout,direction/*windowSize*/)
 {
     PIXI.DisplayObjectContainer.call(this);
     //TODO just pass in collection and construct on the fly?
@@ -1081,12 +1194,43 @@ App.TileList = function TileList(direction,layout/*windowSize*/)
     this._direction = direction;
     //this._windowSize = windowSize;
     this._windowSize = layout.height;
-    this._children = [];
+//    this._children = [];
+//    this._childrenLayout = [];
     this._lastY = 0;
     this._topVisibleChildIndex = 0;
 
+    this._collection = collection;
+    this._itemPool = itemPool;
+    this._rectanglePool = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL);
+
     this._layout = layout;
     this._childHeight = Math.round(50 * this._layout.pixelRatio);
+
+    var i = 0,
+        l = this._collection.length(),
+        item = this._itemPool.allocate(),
+        childSize = item.init(this._collection.getItemAt(0),layout).boundingBox.height,
+        childLayout = null,
+        y = 0;
+
+    this._children = new Array(l);
+    this._childrenLayout = new Array(l);
+
+    for (;i<l;i++)
+    {
+        childLayout = this._rectanglePool.allocate();
+        this._childrenLayout[i] = childLayout;
+
+        //TODO also implement X
+        childLayout.y = i * childSize;
+        childLayout.height = childSize;
+        console.log(childLayout.y);
+//        y = Math.round(y + bounds.height);
+    }
+
+    this.height = childLayout.y + childSize;
+    console.log("this.height: ",this.height,", childLayout.y: ",childLayout.y,childSize);
+    this._updateTiles();
 };
 
 App.TileList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -1095,12 +1239,12 @@ App.TileList.prototype.constructor = App.TileList;
 App.TileList.prototype.add = function add(child)
 {
     this._children[this._children.length] = child;
-//    this._children.length = this._children.length + 1;
+    this._childrenLayout[this._childrenLayout.length] = this._rectanglePool.allocate();
 
     //TODO do not add if outside of screen
     this.addChild(child);
 
-    this._updateSize();//TODO postpone and update just once?
+    this._updateLayout();//TODO postpone and update just once?
 };
 
 App.TileList.prototype.update = function update(position)
@@ -1110,37 +1254,56 @@ App.TileList.prototype.update = function update(position)
     var Direction = App.Direction;
     if (this._direction === Direction.X) this.x = Math.round(position);
     else if (this._direction === Direction.Y) this.y = Math.round(position);
-
-    this._updateTiles();
+    console.log("update ",position);
+    this._updateTiles(); //TODO do not perform this if its bigger than screen and don't scroll
 };
 
 App.TileList.prototype._updateTiles = function _updateTiles()
 {
     var i = 0,
-        l = this._children.length,
+        l = this._childrenLayout.length,
         height = 0,
         y = 0,
-        child = null/*,
-        start = window.performance.now();*/
+        child = null,
+        childLayout = null;
 
     //TODO also implement for X
-    for (;i<l;)
+    for (;i<l;i++)
     {
-        child = this._children[i++];
-        height = child.boundingBox.height;
-        y = this.y + child.y;
+        child = this._children[i];
+        childLayout = this._childrenLayout[i];
+        height = childLayout.height;
+        y = this.y + childLayout.y;
 
-        if (y + height > 0 && y < this._windowSize)
+        if (y > 0 && y < this._windowSize-height)
         {
+            //console.log("child ",child);
+            if (!child)
+            {
+                child = this._itemPool.allocate();
+                child.init(this._collection.getItemAt(i),this._layout);
+                child.y = childLayout.y;
+                this._children[i] = child;
+            }
             if (!this.contains(child)) this.addChild(child);
 //            child.visible = true;
         }
         else
         {
-            if (this.contains(child)) this.removeChild(child);
+            if (child)
+            {
+                if (this.contains(child)) this.removeChild(child);
+                this._itemPool.release(child);
+                child.reset();
+                this._children[i] = null;
+            }
+
+            //TODO release
 //            child.visible = false;
         }
     }
+
+    this.height = 1500;
 
     //TODO also utilize POOL, for memory conservation?
     //TODO test performance with 1000+ and consider to use '_setTopVisibleChild' (and also include children withing 'change' distance)
@@ -1180,31 +1343,38 @@ App.TileList.prototype._setTopVisibleChild = function _setTopVisibleChild(change
     }
 };
 
-App.TileList.prototype._updateSize = function _updateSize()
+App.TileList.prototype._updateLayout = function _updateLayout()
 {
-    this.width = 0;
-    this.height = 0;
+    console.log("_updateLayout");
+//    this.width = 0;
+//    this.height = 0;
 
     var i = 0,
-        l = this._children.length,
+        l = this._collection.length(),
         child = null,
         bounds = null,
+        childLayout = null,
         y = 0;
 
     for (;i<l;i++)
     {
         child = this._children[i];
-        bounds = child.boundingBox;
+        childLayout = this._childrenLayout[i];
 
         //TODO also implement X
         child.y = y;
 
+        bounds = child.boundingBox;
+        childLayout.y = child.y;
+        childLayout.width = bounds.width;
+        childLayout.height = bounds.height;
+
         y = Math.round(y + bounds.height);
     }
 
-    this.width = bounds.width;
+//    this.width = bounds.width;
 //    this.width = this._layout.width;
-    this.height = y;
+//    this.height = y;
 //    this.height = this._children.length * this._childHeight;
 };
 
@@ -1250,7 +1420,7 @@ App.TilePane = function TilePane(xScrollPolicy,yScrollPolicy,width,height,pixelR
     this._xOffset = 0.0;
     this._yOffset = 0.0;
     this._friction = 0.9;
-    this._dumpForce = 0.3;
+    this._dumpForce = 0.5;
     this._snapForce = 0.2;
 };
 
@@ -3229,234 +3399,72 @@ App.AccountScreen.prototype.destroy = function destroy()
 /**
  * @class CategoryButton
  * @extends DisplayObjectContainer
- * @param {Account} model
- * @param {Object} layout
+ * @param {number} index ObjectPool index
  * @constructor
  */
-App.CategoryButton = function CategoryButton(model,layout,index)
+App.CategoryButton = function CategoryButton(index)
 {
     PIXI.DisplayObjectContainer.call(this);
 
-    var pixelRatio = layout.pixelRatio,
-        height = Math.round(50 * pixelRatio),
-        width = layout.width,
-        ModelLocator = App.ModelLocator,
+    var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName;
 
-    this._model = model;
-    this._layout = layout;
-    this._interactiveState = null;
-//    this._transitionState = App.TransitionState.CLOSED;
-    this._dragFriction = 0.5;
-    this._snapForce = 0.5;
-    this._editOffset = Math.round(80 * pixelRatio);
-    this._editButtonShown = false;
+    this.allocated = false;
+    this.poolIndex = index;
+    this.boundingBox = ModelLocator.getProxy(ModelName.RECTANGLE_POOL).allocate();
 
-    this.boundingBox = new PIXI.Rectangle(0,0,width,height);
-
-    this._background = new PIXI.Graphics();
-    this._background.beginFill(0xE53013);
-    this._background.drawRect(0,0,width,height);
-    this._background.endFill();
-
-    //TODO add this to stage only when needed?
-    //TODO also not all variation of CategoryButtons will have editable option!
-    this._editLabel = new PIXI.Text("Edit ",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#ffffff"});
-    this._editLabel.x = Math.round(width - 50 * pixelRatio);
-    this._editLabel.y = Math.round(18 * pixelRatio);
+    this._model = null;
+    this._layout = null;
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
 
     this._surfaceSkin = new PIXI.Graphics();
-    this._icon = new PIXI.Sprite.fromFrame("currencies");
-    this._nameLabel = new PIXI.Text("Category "+index,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    this._colorStripe = new PIXI.Graphics();
+    this._icon = PIXI.Sprite.fromFrame("currencies");
+    this._nameLabel = new PIXI.Text("");
 
-    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-//    this._openCloseTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
-
-    this._renderSurface();
-
-    this.addChild(this._background);
-    this.addChild(this._editLabel);
+    this._surfaceSkin.addChild(this._colorStripe);
+    this._surfaceSkin.addChild(this._icon);
+    this._surfaceSkin.addChild(this._nameLabel);
     this.addChild(this._surfaceSkin);
-
-//    this.interactive = true;
 };
 
 App.CategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.CategoryButton.prototype.constructor = App.CategoryButton;
 
 /**
- * @method _resize
- * @param {number} width
+ * Init
+ * @param {Category} model
+ * @param {Object} layout
+ * @param {Object} labelStyle
  */
-App.CategoryButton.prototype.resize = function resize(width)
+App.CategoryButton.prototype.init = function init(model,layout,labelStyle)
 {
-    this.boundingBox.width = width;
+    this._model = model;
+    this._layout = layout;
 
-    this._renderSurface();
-    //TODO also resize background and other elements
+    this.boundingBox.width = layout.width;
+    this.boundingBox.height = Math.round(50 * layout.pixelRatio);
+
+    this._icon.setTexture(PIXI.TextureCache[this._model.icon]);
+
+    this._nameLabel.setText(this._model.name);
+    this._nameLabel.setStyle(labelStyle);
+
+    this._render();
+
+    return this;
 };
 
-/**
- * Is Edit button shown?
- * @returns {boolean}
- */
-App.CategoryButton.prototype.isEditButtonShown = function isEditButtonShown()
+App.CategoryButton.prototype.reset = function reset()
 {
-    return this._editButtonShown;
+    this.interactive = false;
 };
-
-/**
- * Tick handler
- * @private
- */
-App.CategoryButton.prototype._onTick = function _onTick()
-{
-    if (this._interactiveState === App.InteractiveState.SNAPPING) this.snap();
-};
-
-/**
- * Enable snapping
- * @private
- */
-App.CategoryButton.prototype._enableSnap = function _enableSnap()
-{
-    this._interactiveState = App.InteractiveState.SNAPPING;
-
-    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-};
-
-/**
- * Disable snapping
- * @private
- */
-App.CategoryButton.prototype._disableSnap = function _disableSnap()
-{
-    this._interactiveState = null;
-
-    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
-};
-
-/**
- * @method swipe
- * @param {number} position
- * @private
- */
-App.CategoryButton.prototype.swipe = function swipe(position)
-{
-    if (!this._editButtonShown)
-    {
-        if (!this._interactiveState) this._interactiveState = App.InteractiveState.SWIPING;
-
-        var w = this._layout.width;
-
-        this._surfaceSkin.x = -Math.round(w * (1 - (position / w)) * this._dragFriction);
-    }
-};
-
-/**
- * @method snap
- * @param {string} swipeDirection
- * @param {boolean} [immediate=false]
- * @private
- */
-App.CategoryButton.prototype.snap = function snap(swipeDirection,immediate)
-{
-    if (immediate)
-    {
-        this._editButtonShown = false;
-        this._surfaceSkin.x = 0;
-
-        return;
-    }
-
-    // Snap back if button is swiping
-    if (this._interactiveState === App.InteractiveState.SWIPING)
-    {
-        this._enableSnap();
-    }
-    // Or snap to close edit button, if it is open ...
-    else if (!this._interactiveState && this._editButtonShown)
-    {
-        // ... and swipe direction is right
-        if (swipeDirection === App.Direction.RIGHT)
-        {
-            this._enableSnap();
-        }
-        else
-        {
-            return;
-        }
-    }
-
-    // Snap to show edit button
-    if (this._surfaceSkin.x < -this._editOffset)
-    {
-        if (this._surfaceSkin.x * this._snapForce >= -this._editOffset)
-        {
-            this._editButtonShown = true;
-
-            this._surfaceSkin.x = -this._editOffset;
-
-            this._disableSnap();
-        }
-        else
-        {
-            this._surfaceSkin.x *= this._snapForce;
-        }
-    }
-    // Snap to close edit button
-    else
-    {
-        if (this._surfaceSkin.x * this._snapForce >= -1)
-        {
-            this._editButtonShown = false;
-
-            this._surfaceSkin.x = 0;
-
-            this._disableSnap();
-        }
-        else
-        {
-            this._surfaceSkin.x *= this._snapForce;
-        }
-    }
-};
-
-/**
- * Open
- */
-//App.CategoryButton.prototype.open = function open()
-//{
-//    var TransitionState = App.TransitionState;
-//
-//    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
-//    {
-//        this._transitionState = TransitionState.OPENING;
-//
-//        this._openCloseTween.restart();
-//    }
-//};
-
-/**
- * Close
- */
-//App.CategoryButton.prototype.close = function close()
-//{
-//    var TransitionState = App.TransitionState;
-//
-//    if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
-//    {
-//        this._transitionState = TransitionState.CLOSING;
-//
-//        this._openCloseTween.start(true);
-//    }
-//};
 
 /**
  * @method render
  * @private
  */
-App.CategoryButton.prototype._renderSurface = function _renderSurface()
+App.CategoryButton.prototype._render = function _render()
 {
     var pixelRatio = this._layout.pixelRatio,
         padding = Math.round(10 * pixelRatio),
@@ -3471,13 +3479,16 @@ App.CategoryButton.prototype._renderSurface = function _renderSurface()
     this._surfaceSkin.drawRect(padding,0,w-padding*2,1);
     this._surfaceSkin.beginFill(0xcccccc);
     this._surfaceSkin.drawRect(padding,h-1,w-padding*2,1);
-    this._surfaceSkin.beginFill("0x"+App.MathUtils.rgbToHex(
+    this._surfaceSkin.endFill();
+
+    this._colorStripe.clear();
+    this._colorStripe.beginFill("0x"+App.MathUtils.rgbToHex(
         Math.round(Math.sin(0.3 * 10 + 0) * 127 + 128),
         Math.round(Math.sin(0.3 * 10 + 2) * 127 + 128),
         Math.round(Math.sin(0.3 * 10 + 4) * 127 + 128)
     ));
-    this._surfaceSkin.drawRect(0,0,Math.round(4 * pixelRatio),h);
-    this._surfaceSkin.endFill();
+    this._colorStripe.drawRect(0,0,Math.round(4 * pixelRatio),h);
+    this._colorStripe.endFill();
 
     if (pixelRatio === 1)
     {
@@ -3490,9 +3501,6 @@ App.CategoryButton.prototype._renderSurface = function _renderSurface()
 
     this._nameLabel.x = Math.round(64 * pixelRatio);
     this._nameLabel.y = Math.round(18 * pixelRatio);
-
-    this._surfaceSkin.addChild(this._icon);
-    this._surfaceSkin.addChild(this._nameLabel);
 };
 
 /**
@@ -3502,21 +3510,30 @@ App.CategoryButton.prototype.destroy = function destroy()
 {
     this.clear();
 
+    this.allocated = false;
     this.interactive = false;
+
+    App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).release(this.boundingBox);
+    this.boundingBox.reset();
+    this.boundingBox = null;
 
     this._layout = null;
     this._model = null;
+    this._ticker = null;
 
-    this.boundingBox = null;
-
-    this.removeChild(this._colorStripe);
+    this._surfaceSkin.removeChild(this._colorStripe);
+    this._colorStripe.clear();
     this._colorStripe = null;
 
-    this.removeChild(this._icon);
+    this._surfaceSkin.removeChild(this._icon);
     this._icon = null;
 
-    this.removeChild(this._nameLabel);
+    this._surfaceSkin.removeChild(this._nameLabel);
     this._nameLabel = null;
+
+    this.removeChild(this._surfaceSkin);
+    this._surfaceSkin.clear();
+    this._surfaceSkin = null;
 };
 
 /**
@@ -3530,23 +3547,33 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
-    var i = 0,
-        l = this._model.length(),
-        CategoryButton = App.CategoryButton,
+    var CategoryButton = App.CategoryButton,
+        labelStyle = {font:Math.round(18 * layout.pixelRatio)+"px HelveticaNeueCond",fill:"#394264"},
+        categories = this._model.getItemAt(0).getCategories(),
+        i = 0,
+        l = categories.length(),
         button = null;
 
     this._swipeButton = null;
     this._buttons = new Array(l);
 //    this._buttonContainer = new PIXI.DisplayObjectContainer();
-    this._buttonContainer = new App.TileList(App.Direction.Y,layout);
 
-    for (;i<50;i++)
+    this._buttonContainer = new App.TileList(
+        categories,
+        App.ModelLocator.getProxy(App.ModelName.CATEGORY_BUTTON_POOL),
+        layout,
+        App.Direction.Y
+    );
+
+    //TODO generate this inside of the TileList?
+    /*for (;i<l;i++)
     {
-        button = new CategoryButton(this._model.getItemAt(0),this._layout,i);
+        button = new CategoryButton(i);
+        button.init(categories.getItemAt(i),this._layout,labelStyle);
         this._buttons[i] = button;
         //this._buttonContainer.addChild(button);
         this._buttonContainer.add(button);
-    }
+    }*/
 
     //this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
     this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
@@ -3606,11 +3633,11 @@ App.CategoryScreen.prototype._onTweenComplete = function _onTweenComplete()
  */
 App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll)
 {
-    if (!preferScroll) this._pane.cancelScroll();
+    /*if (!preferScroll) this._pane.cancelScroll();
 
     this._swipeButton = this._getButtonUnderPoint(this._getPointerPosition());
 
-    this._closeOpenedButtons(false);
+    this._closeOpenedButtons(false);*/
 };
 
 /**
@@ -3620,11 +3647,11 @@ App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll)
  */
 App.CategoryScreen.prototype._swipeEnd = function _swipeEnd(direction)
 {
-    if (this._swipeButton)
+    /*if (this._swipeButton)
     {
         this._swipeButton.snap(direction);
         this._swipeButton = null;
-    }
+    }*/
 };
 
 /**
@@ -3634,7 +3661,7 @@ App.CategoryScreen.prototype._swipeEnd = function _swipeEnd(direction)
  */
 App.CategoryScreen.prototype._swipe = function _swipe(direction)
 {
-    if (this._swipeButton && direction === App.Direction.LEFT) this._swipeButton.swipe(this._getPointerPosition().x);
+    //if (this._swipeButton && direction === App.Direction.LEFT) this._swipeButton.swipe(this._getPointerPosition().x);
 };
 
 /**
@@ -3643,7 +3670,7 @@ App.CategoryScreen.prototype._swipe = function _swipe(direction)
  */
 App.CategoryScreen.prototype._closeOpenedButtons = function _closeOpenedButtons(immediate)
 {
-    var i = 0,
+    /*var i = 0,
         l = this._buttons.length,
         button = null,
         rightDirection = App.Direction.RIGHT;
@@ -3652,7 +3679,7 @@ App.CategoryScreen.prototype._closeOpenedButtons = function _closeOpenedButtons(
     {
         button = this._buttons[i++];
         if (button.isEditButtonShown() && button !== this._swipeButton) button.snap(rightDirection,immediate);
-    }
+    }*/
 };
 
 /**
@@ -4341,7 +4368,7 @@ App.LoadData = function LoadData(pool)
 {
     App.Command.call(this,false,pool);
 
-    this._assetLoader = null;
+    this._jsonLoader = null;
     this._fontLoadingInterval = -1;
     this._fontInfoElement = null;
 };
@@ -4367,16 +4394,17 @@ App.LoadData.prototype.execute = function execute()
  */
 App.LoadData.prototype._loadAssets = function _loadAssets()
 {
-    this._assetLoader = new PIXI.AssetLoader(["./data/icons-big.json"]);
+    this._jsonLoader = new PIXI.JsonLoader("./data/icons-big.json");
 
-    this._assetLoader.onComplete = function()
+    this._jsonLoader.on("loaded",function()
     {
-        this._assetLoader.onComplete = null; //TODO destroy?
+        this._jsonLoader.removeAllListeners("loaded");
+        this._jsonLoader = null;
 
         this._loadFont();
-    }.bind(this);
+    }.bind(this));
 
-    this._assetLoader.load();
+    this._jsonLoader.load();
 };
 
 /**
@@ -4445,7 +4473,7 @@ App.LoadData.prototype.destroy = function destroy()
 {
     App.Command.prototype.destroy.call(this);
 
-    this._assetLoader = null;
+    this._jsonLoader = null;
 
     clearInterval(this._fontLoadingInterval);
 
@@ -4513,7 +4541,10 @@ App.Initialize.prototype._initModel = function _initModel(data)
     var ModelName = App.ModelName;
     var Collection = App.Collection;
 
+    //TODO initiate all proxies in once 'init' method? Same as Controller ...
     ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
+    ModelLocator.addProxy(ModelName.CATEGORY_BUTTON_POOL,new App.CategoryButtonObjectPool(App.CategoryButton,10));
+    ModelLocator.addProxy(ModelName.RECTANGLE_POOL,new App.ObjectPool(App.Rectangle,20));
     ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
     ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(
         JSON.parse(data).accounts,//TODO parse JSON on data from localStorage

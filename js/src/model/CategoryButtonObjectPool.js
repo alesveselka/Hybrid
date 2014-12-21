@@ -1,10 +1,10 @@
 /**
- * @class ObjectPool
+ * @class CategoryButtonObjectPool
  * @param {Function} objectClass
  * @param {number} size
  * @constructor
  */
-App.ObjectPool = function ObjectPool(objectClass,size)
+App.CategoryButtonObjectPool = function CategoryButtonObjectPool(objectClass,size)
 {
     this._objectClass = objectClass;
     this._size = size;
@@ -15,7 +15,7 @@ App.ObjectPool = function ObjectPool(objectClass,size)
 /**
  * Pre-allocate objectClass instances
  */
-App.ObjectPool.prototype.preAllocate = function preAllocate()
+App.CategoryButtonObjectPool.prototype.preAllocate = function preAllocate()
 {
     var oldSize = this._items.length,
         newSize = oldSize + this._size,
@@ -28,14 +28,16 @@ App.ObjectPool.prototype.preAllocate = function preAllocate()
         this._items[i] = new this._objectClass(i);
         this._freeItems.push(i);
     }
+    console.log("preAllocate ",this._items.length);
 };
 
 /**
  * @method allocate Allocate object instance
  * @returns {{poolIndex:number,allocated:boolean}}
  */
-App.ObjectPool.prototype.allocate = function allocate()
+App.CategoryButtonObjectPool.prototype.allocate = function allocate()
 {
+    console.log("allocate");
     if (this._freeItems.length === 0) this.preAllocate();
 
     var index = this._freeItems.shift();
@@ -50,7 +52,7 @@ App.ObjectPool.prototype.allocate = function allocate()
  * @method release Release item into pool
  * @param {{poolIndex:number,allocated:boolean}} item
  */
-App.ObjectPool.prototype.release = function release(item)
+App.CategoryButtonObjectPool.prototype.release = function release(item)
 {
     item.allocated = false;
 

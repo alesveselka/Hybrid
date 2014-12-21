@@ -1,4 +1,4 @@
-App.TileList = function TileList(collection,itemPool,layout,direction/*windowSize*/)
+App.CollectionTileList = function CollectionTileList(collection,itemPool,layout,direction/*windowSize*/)
 {
     PIXI.DisplayObjectContainer.call(this);
     //TODO just pass in collection and construct on the fly?
@@ -45,10 +45,10 @@ App.TileList = function TileList(collection,itemPool,layout,direction/*windowSiz
     this._updateTiles();
 };
 
-App.TileList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.TileList.prototype.constructor = App.TileList;
+App.CollectionTileList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.CollectionTileList.prototype.constructor = App.CollectionTileList;
 
-App.TileList.prototype.add = function add(child)
+App.CollectionTileList.prototype.add = function add(child)
 {
     this._children[this._children.length] = child;
     this._childrenLayout[this._childrenLayout.length] = this._rectanglePool.allocate();
@@ -59,7 +59,7 @@ App.TileList.prototype.add = function add(child)
     this._updateLayout();//TODO postpone and update just once?
 };
 
-App.TileList.prototype.update = function update(position)
+App.CollectionTileList.prototype.update = function update(position)
 {
     this._lastY = this.y;//TODO also do X
 
@@ -70,7 +70,7 @@ App.TileList.prototype.update = function update(position)
     this._updateTiles(); //TODO do not perform this if its bigger than screen and don't scroll
 };
 
-App.TileList.prototype._updateTiles = function _updateTiles()
+App.CollectionTileList.prototype._updateTiles = function _updateTiles()
 {
     var i = 0,
         l = this._childrenLayout.length,
@@ -122,7 +122,7 @@ App.TileList.prototype._updateTiles = function _updateTiles()
 };
 
 //TODO rename
-App.TileList.prototype._setTopVisibleChild = function _setTopVisibleChild(change)
+App.CollectionTileList.prototype._setTopVisibleChild = function _setTopVisibleChild(change)
 {
     var i = this._topVisibleChildIndex;
     var child = this._children[i];
@@ -155,7 +155,7 @@ App.TileList.prototype._setTopVisibleChild = function _setTopVisibleChild(change
     }
 };
 
-App.TileList.prototype._updateLayout = function _updateLayout()
+App.CollectionTileList.prototype._updateLayout = function _updateLayout()
 {
     console.log("_updateLayout");
 //    this.width = 0;

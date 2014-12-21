@@ -1,11 +1,23 @@
 /**
  * Model Proxy state
  * @enum {string}
- * @return {{TICKER:string,EVENT_LISTENER_POOL:string,ACCOUNTS:string,TRANSACTIONS:string,SETTINGS:string,FILTERS:string,CURRENCIES:string}}
+ * @return {{
+ *      TICKER:string,
+ *      EVENT_LISTENER_POOL:string,
+ *      CATEGORY_BUTTON_POOL:string,
+ *      RECTANGLE_POOL:string,
+ *      ACCOUNTS:string,
+ *      TRANSACTIONS:string,
+ *      SETTINGS:string,
+ *      FILTERS:string,
+ *      CURRENCIES:string
+ * }}
  */
 App.ModelName = {
     TICKER:"TICKER",
     EVENT_LISTENER_POOL:"EVENT_LISTENER_POOL",
+    CATEGORY_BUTTON_POOL:"CATEGORY_BUTTON_POOL",
+    RECTANGLE_POOL:"RECTANGLE_POOL",
     ACCOUNTS:"ACCOUNTS",
     TRANSACTIONS:"TRANSACTIONS",
     SETTINGS:"SETTINGS",

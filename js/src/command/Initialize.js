@@ -59,7 +59,10 @@ App.Initialize.prototype._initModel = function _initModel(data)
     var ModelName = App.ModelName;
     var Collection = App.Collection;
 
+    //TODO initiate all proxies in once 'init' method? Same as Controller ...
     ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
+    ModelLocator.addProxy(ModelName.CATEGORY_BUTTON_POOL,new App.CategoryButtonObjectPool(App.CategoryButton,10));
+    ModelLocator.addProxy(ModelName.RECTANGLE_POOL,new App.ObjectPool(App.Rectangle,20));
     ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
     ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(
         JSON.parse(data).accounts,//TODO parse JSON on data from localStorage

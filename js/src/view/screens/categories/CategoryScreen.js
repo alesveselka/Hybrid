@@ -9,23 +9,33 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
-    var i = 0,
-        l = this._model.length(),
-        CategoryButton = App.CategoryButton,
+    var CategoryButton = App.CategoryButton,
+        labelStyle = {font:Math.round(18 * layout.pixelRatio)+"px HelveticaNeueCond",fill:"#394264"},
+        categories = this._model.getItemAt(0).getCategories(),
+        i = 0,
+        l = categories.length(),
         button = null;
 
     this._swipeButton = null;
     this._buttons = new Array(l);
 //    this._buttonContainer = new PIXI.DisplayObjectContainer();
-    this._buttonContainer = new App.TileList(App.Direction.Y,layout);
 
-    for (;i<50;i++)
+    this._buttonContainer = new App.TileList(
+        categories,
+        App.ModelLocator.getProxy(App.ModelName.CATEGORY_BUTTON_POOL),
+        layout,
+        App.Direction.Y
+    );
+
+    //TODO generate this inside of the TileList?
+    /*for (;i<l;i++)
     {
-        button = new CategoryButton(this._model.getItemAt(0),this._layout,i);
+        button = new CategoryButton(i);
+        button.init(categories.getItemAt(i),this._layout,labelStyle);
         this._buttons[i] = button;
         //this._buttonContainer.addChild(button);
         this._buttonContainer.add(button);
-    }
+    }*/
 
     //this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
     this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
@@ -85,11 +95,11 @@ App.CategoryScreen.prototype._onTweenComplete = function _onTweenComplete()
  */
 App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll)
 {
-    if (!preferScroll) this._pane.cancelScroll();
+    /*if (!preferScroll) this._pane.cancelScroll();
 
     this._swipeButton = this._getButtonUnderPoint(this._getPointerPosition());
 
-    this._closeOpenedButtons(false);
+    this._closeOpenedButtons(false);*/
 };
 
 /**
@@ -99,11 +109,11 @@ App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll)
  */
 App.CategoryScreen.prototype._swipeEnd = function _swipeEnd(direction)
 {
-    if (this._swipeButton)
+    /*if (this._swipeButton)
     {
         this._swipeButton.snap(direction);
         this._swipeButton = null;
-    }
+    }*/
 };
 
 /**
@@ -113,7 +123,7 @@ App.CategoryScreen.prototype._swipeEnd = function _swipeEnd(direction)
  */
 App.CategoryScreen.prototype._swipe = function _swipe(direction)
 {
-    if (this._swipeButton && direction === App.Direction.LEFT) this._swipeButton.swipe(this._getPointerPosition().x);
+    //if (this._swipeButton && direction === App.Direction.LEFT) this._swipeButton.swipe(this._getPointerPosition().x);
 };
 
 /**
@@ -122,7 +132,7 @@ App.CategoryScreen.prototype._swipe = function _swipe(direction)
  */
 App.CategoryScreen.prototype._closeOpenedButtons = function _closeOpenedButtons(immediate)
 {
-    var i = 0,
+    /*var i = 0,
         l = this._buttons.length,
         button = null,
         rightDirection = App.Direction.RIGHT;
@@ -131,7 +141,7 @@ App.CategoryScreen.prototype._closeOpenedButtons = function _closeOpenedButtons(
     {
         button = this._buttons[i++];
         if (button.isEditButtonShown() && button !== this._swipeButton) button.snap(rightDirection,immediate);
-    }
+    }*/
 };
 
 /**

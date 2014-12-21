@@ -278,11 +278,11 @@
         "trimmed": false,
         "spriteSourceSize": {"x":0,"y":0,"w":560,"h":350},
         "sourceSize": {"w":560,"h":350}
-    }},
-    "meta": {
-        "image": "../assets/images/icons-big.png",
-        "format": "RGBA8888",
-        "size": {"w":560,"h":350},
-        "scale": "1"
     }
-}
+},
+"meta": {
+    "image": "../assets/images/icons-big.png",
+    "format": "RGBA8888",
+    "size": {"w":560,"h":350},
+    "scale": "1"
+}}

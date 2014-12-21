@@ -16,7 +16,7 @@ App.Collection = function Collection(source,itemConstructor,parent,eventListener
 
         this._items = new Array(l);
 
-        for (;i<l;i++) this._items[i] = new itemConstructor(source[i],this,parent);
+        for (;i<l;i++) this._items[i] = new itemConstructor(source[i],this,parent,eventListenerPool);
     }
 
     if (!this._items) this._items = [];

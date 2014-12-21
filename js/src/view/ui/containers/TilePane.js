@@ -40,7 +40,7 @@ App.TilePane = function TilePane(xScrollPolicy,yScrollPolicy,width,height,pixelR
     this._xOffset = 0.0;
     this._yOffset = 0.0;
     this._friction = 0.9;
-    this._dumpForce = 0.3;
+    this._dumpForce = 0.5;
     this._snapForce = 0.2;
 };
 
