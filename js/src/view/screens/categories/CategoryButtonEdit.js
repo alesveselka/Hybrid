@@ -93,9 +93,8 @@ App.CategoryButtonEdit.prototype._onTick = function _onTick()
 };
 
 /**
- * @method swipe
+ * @method swipeStart
  * @param {string} direction
- * @private
  */
 App.CategoryButtonEdit.prototype.swipeStart = function swipeStart(direction)
 {
@@ -118,8 +117,7 @@ App.CategoryButtonEdit.prototype.swipeStart = function swipeStart(direction)
 };
 
 /**
- * @method swipe
- * @private
+ * @method swipeEnd
  */
 App.CategoryButtonEdit.prototype.swipeEnd = function swipeEnd()
 {
@@ -127,7 +125,7 @@ App.CategoryButtonEdit.prototype.swipeEnd = function swipeEnd()
 };
 
 /**
- * @method swipe
+ * @method _swipe
  * @private
  */
 App.CategoryButtonEdit.prototype._swipe = function _swipe()
@@ -183,7 +181,7 @@ App.CategoryButtonEdit.prototype._snap = function _snap()
  * Close Edit button
  * @param {boolean} [immediate=false]
  */
-App.CategoryButtonEdit.prototype.closeEditButton = function closeEditButton(immediate)
+App.CategoryButtonEdit.prototype.close = function close(immediate)
 {
     if (this._editButtonShown)
     {

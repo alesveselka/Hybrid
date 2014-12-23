@@ -29,7 +29,7 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._leftSwipeThreshold = Math.round(30 * pixelRatio);
     this._rightSwipeThreshold = Math.round(5 * pixelRatio);
     this._swipeEnabled = false;
-    this._preferScroll = false;
+    this._preferScroll = true;
 
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
     this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));

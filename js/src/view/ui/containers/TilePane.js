@@ -43,13 +43,18 @@ App.TilePane.prototype.setContent = function setContent(content)
  */
 App.TilePane.prototype.resize = function resize(width,height)
 {
-    this._width = width;
-    this._height = height;
+    this._width = width || this._width;
+    this._height = height || this._height;
 
     if (this._content)
     {
         this._contentHeight = Math.round(this._content.boundingBox.height);
         this._contentWidth = Math.round(this._content.boundingBox.width);
+
+        if (this._content.x > 0) this._updateX(0);
+        else if (this._content.y > 0) this._updateY(0);
+        else if (this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
+        else if (this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
 
         this._updateScrollers();
     }

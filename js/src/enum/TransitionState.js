@@ -8,6 +8,7 @@ App.TransitionState = {
     SHOWN:"SHOWN",
     HIDING:"HIDING",
     HIDDEN:"HIDDEN",
+
     OPEN:"OPEN",
     OPENING:"OPENING",
     CLOSED:"CLOSED",

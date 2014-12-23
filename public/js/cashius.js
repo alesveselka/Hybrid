@@ -219,6 +219,7 @@ App.TransitionState = {
     SHOWN:"SHOWN",
     HIDING:"HIDING",
     HIDDEN:"HIDDEN",
+
     OPEN:"OPEN",
     OPENING:"OPENING",
     CLOSED:"CLOSED",
@@ -1209,13 +1210,18 @@ App.Pane.prototype.removeContent = function removeContent()
  */
 App.Pane.prototype.resize = function resize(width,height)
 {
-    this._width = width;
-    this._height = height;
+    this._width = width || this._width;
+    this._height = height || this._height;
 
     if (this._content)
     {
         this._contentHeight = Math.round(this._content.height);
         this._contentWidth = Math.round(this._content.width);
+
+        if (this._content.x > 0) this._updateX(0);
+        else if (this._content.y > 0) this._updateY(0);
+        else if (this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
+        else if (this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
 
         this._updateScrollers();
     }
@@ -1844,8 +1850,9 @@ App.TileList.prototype.updateY = function updateY(position)
 
 /**
  * Update layout
+ * @param {boolean} [updatePosition=false]
  */
-App.TileList.prototype.updateLayout = function updateLayout()
+App.TileList.prototype.updateLayout = function updateLayout(updatePosition)
 {
     var i = 0,
         l = this._items.length,
@@ -1864,6 +1871,8 @@ App.TileList.prototype.updateLayout = function updateLayout()
 
         this.boundingBox.width = position;
         this.boundingBox.height = child.boundingBox.height;
+
+        if (updatePosition) this.updateY(this.x);
     }
     else if (this._direction === Direction.Y)
     {
@@ -1876,6 +1885,8 @@ App.TileList.prototype.updateLayout = function updateLayout()
 
         this.boundingBox.height = position;
         this.boundingBox.width = child.boundingBox.width;
+
+        if (updatePosition) this.updateY(this.y);
     }
 };
 
@@ -1929,13 +1940,18 @@ App.TilePane.prototype.setContent = function setContent(content)
  */
 App.TilePane.prototype.resize = function resize(width,height)
 {
-    this._width = width;
-    this._height = height;
+    this._width = width || this._width;
+    this._height = height || this._height;
 
     if (this._content)
     {
         this._contentHeight = Math.round(this._content.boundingBox.height);
         this._contentWidth = Math.round(this._content.boundingBox.width);
+
+        if (this._content.x > 0) this._updateX(0);
+        else if (this._content.y > 0) this._updateY(0);
+        else if (this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
+        else if (this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
 
         this._updateScrollers();
     }
@@ -2174,7 +2190,7 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._leftSwipeThreshold = Math.round(30 * pixelRatio);
     this._rightSwipeThreshold = Math.round(5 * pixelRatio);
     this._swipeEnabled = false;
-    this._preferScroll = false;
+    this._preferScroll = true;
 
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
     this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
@@ -2888,9 +2904,8 @@ App.CategoryButtonEdit.prototype._onTick = function _onTick()
 };
 
 /**
- * @method swipe
+ * @method swipeStart
  * @param {string} direction
- * @private
  */
 App.CategoryButtonEdit.prototype.swipeStart = function swipeStart(direction)
 {
@@ -2913,8 +2928,7 @@ App.CategoryButtonEdit.prototype.swipeStart = function swipeStart(direction)
 };
 
 /**
- * @method swipe
- * @private
+ * @method swipeEnd
  */
 App.CategoryButtonEdit.prototype.swipeEnd = function swipeEnd()
 {
@@ -2922,7 +2936,7 @@ App.CategoryButtonEdit.prototype.swipeEnd = function swipeEnd()
 };
 
 /**
- * @method swipe
+ * @method _swipe
  * @private
  */
 App.CategoryButtonEdit.prototype._swipe = function _swipe()
@@ -2978,7 +2992,7 @@ App.CategoryButtonEdit.prototype._snap = function _snap()
  * Close Edit button
  * @param {boolean} [immediate=false]
  */
-App.CategoryButtonEdit.prototype.closeEditButton = function closeEditButton(immediate)
+App.CategoryButtonEdit.prototype.close = function close(immediate)
 {
     if (this._editButtonShown)
     {
@@ -3003,6 +3017,220 @@ App.CategoryButtonEdit.prototype.destroy = function destroy()
     //TODO implement
 };
 
+App.CategoryButtonExpand = function CategoryButtonExpand(model,layout,nameLabelStyle)
+{
+    App.CategoryButton.call(this,model,layout,nameLabelStyle);
+
+    var eventListenerPool = App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL);
+
+    this._eventsRegistered = false;
+    this._transitionState = App.TransitionState.CLOSED;
+    this._buttonHeight = this.boundingBox.height;
+    this._subCategoryListHeight = Math.round(150 * this._layout.pixelRatio);//TODO temporary
+
+    this._openCloseTween = new App.TweenProxy(0.4,App.Easing.outExpo,0,eventListenerPool);
+    this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
+
+    this._subCategoryList = new PIXI.Graphics();
+    this._subCategoryList.visible = false;
+
+    this._render();
+
+    this.addChildAt(this._subCategoryList,0);
+};
+
+App.CategoryButtonExpand.prototype = Object.create(App.CategoryButton.prototype);
+App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
+
+/**
+ * Render
+ * @private
+ */
+App.CategoryButtonExpand.prototype._render = function _render()
+{
+    App.CategoryButton.prototype._render.call(this);
+
+    this._subCategoryList.beginFill(0xffffff);
+    this._subCategoryList.drawRect(0,0,this.boundingBox.width,this._subCategoryListHeight);
+    this._subCategoryList.endFill();
+    this._subCategoryList.y = this._buttonHeight;
+};
+
+/**
+ * Enable interaction
+ * @private
+ */
+App.CategoryButtonExpand.prototype._registerEventListeners = function _registerEventListeners()
+{
+    if (!this._eventsRegistered)
+    {
+        this._eventsRegistered = true;
+
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._openCloseTween.addEventListener(App.EventType.COMPLETE,this,this._onTransitionComplete);
+    }
+};
+
+/**
+ * Disable interaction
+ * @private
+ */
+App.CategoryButtonExpand.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    this._openCloseTween.removeEventListener(App.EventType.COMPLETE,this,this._onTransitionComplete);
+
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._eventsRegistered = false;
+};
+
+/**
+ * Tick handler
+ * @private
+ */
+App.CategoryButtonExpand.prototype._onTick = function _onTick()
+{
+    if (this._openCloseTween.isRunning()) this._updateTransition();
+};
+
+/**
+ * Update transition
+ * @private
+ */
+App.CategoryButtonExpand.prototype._updateTransition = function _updateTransition()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.OPENING)
+    {
+        this.boundingBox.height = Math.round(this._buttonHeight + this._subCategoryListHeight * this._openCloseTween.progress);
+    }
+    else if (this._transitionState === TransitionState.CLOSING)
+    {
+        this.boundingBox.height = Math.round(this._buttonHeight + this._subCategoryListHeight * (1 - this._openCloseTween.progress));
+    }
+
+    this._eventDispatcher.dispatchEvent(App.EventType.LAYOUT_UPDATE);
+};
+
+/**
+ * On transition complete
+ * @private
+ */
+App.CategoryButtonExpand.prototype._onTransitionComplete = function _onTransitionComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.OPENING)
+    {
+        this._transitionState = TransitionState.OPEN;
+
+        this.boundingBox.height = this._buttonHeight + this._subCategoryListHeight;
+    }
+    else if (this._transitionState === TransitionState.CLOSING)
+    {
+        this._transitionState = TransitionState.CLOSED;
+
+        this.boundingBox.height = this._buttonHeight;
+
+        this._subCategoryList.visible = false;
+    }
+
+    this._unRegisterEventListeners();
+
+    this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
+};
+
+/**
+ * Click handler
+ * @param {Point} position
+ */
+App.CategoryButtonExpand.prototype.onClick = function onClick(position)
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING) this.open();
+    else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING) this.close();
+
+    //TODO pass in click point and determine action accordingly, dispatch 'COMPLETE' if there is no action
+};
+
+/**
+ * Check if its open
+ * @returns {boolean}
+ */
+App.CategoryButtonExpand.prototype.isOpen = function isOpen()
+{
+    return this._transitionState !== App.TransitionState.CLOSED;
+};
+
+/**
+ * Open
+ */
+App.CategoryButtonExpand.prototype.open = function open()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
+    {
+        this._registerEventListeners();
+
+        this._subCategoryList.visible = true;
+
+        this._transitionState = TransitionState.OPENING;
+
+        this._openCloseTween.restart();
+    }
+};
+
+/**
+ * Close
+ * @param {boolean} [immediate=false]
+ */
+App.CategoryButtonExpand.prototype.close = function close(immediate)
+{
+    //TODO implement 'immediate' close
+
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
+    {
+        this._registerEventListeners();
+
+        this._transitionState = TransitionState.CLOSING;
+
+        this._openCloseTween.start(true);
+    }
+    else
+    {
+        // Already closed - but dispatch event so parent can cancel its processes
+        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
+    }
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.CategoryButtonExpand.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.CategoryButtonExpand.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
+};
+
 /**
  * @class CategoryScreen
  * @extends Screen
@@ -3014,7 +3242,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
-    var CategoryButton = App.CategoryButtonEdit,
+    var CategoryButton = App.CategoryButtonExpand,
         font = Math.round(18 * layout.pixelRatio)+"px HelveticaNeueCond",
         nameLabelStyle = {font:font,fill:"#394264"},
         editLabelStyle = {font:font,fill:"#ffffff"},
@@ -3028,19 +3256,22 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 
     for (;i<l;i++)
     {
-        button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle,editLabelStyle);
+        //button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle,editLabelStyle);
+        button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle);
         this._buttons[i] = button;
         this._buttonList.add(button);
     }
     this._buttonList.updateLayout();
+
+    this._buttonsInTransition = [];
+    this._layoutDirty = false;
 
     this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
 
-    this._swipeEnabled = true;
-    this._preferScroll = false;
+//    this._swipeEnabled = true;
 };
 
 App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
@@ -3070,6 +3301,17 @@ App.CategoryScreen.prototype.disable = function disable()
 };
 
 /**
+ * On tick
+ * @private
+ */
+App.CategoryScreen.prototype._onTick = function _onTick()
+{
+    App.Screen.prototype._onTick.call(this);
+
+    if (this._layoutDirty) this._updateLayout();
+};
+
+/**
  * On tween complete
  * @private
  */
@@ -3077,7 +3319,7 @@ App.CategoryScreen.prototype._onTweenComplete = function _onTweenComplete()
 {
     App.Screen.prototype._onTweenComplete.call(this);
 
-    if (this._transitionState === App.TransitionState.HIDDEN) this._closeOpenedButtons(true);
+    if (this._transitionState === App.TransitionState.HIDDEN) this._closeOpenButtons(true);
 };
 
 /**
@@ -3093,7 +3335,7 @@ App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,dir
     this._interactiveButton = this._getButtonUnderPoint(this.stage.getTouchPosition());
     this._interactiveButton.swipeStart(direction);
 
-    this._closeOpenedButtons(false);
+    this._closeOpenButtons(false);
 };
 
 /**
@@ -3113,16 +3355,29 @@ App.CategoryScreen.prototype._swipeEnd = function _swipeEnd()
  * Close opened buttons
  * @private
  */
-App.CategoryScreen.prototype._closeOpenedButtons = function _closeOpenedButtons(immediate)
+App.CategoryScreen.prototype._closeOpenButtons = function _closeOpenButtons(immediate)
 {
     var i = 0,
         l = this._buttons.length,
-        button = null;
+        button = null,
+        EventType = App.EventType;
 
     for (;i<l;)
     {
         button = this._buttons[i++];
-        if (button !== this._interactiveButton) button.closeEditButton(immediate);
+        //if (button !== this._interactiveButton) button.close(immediate);
+        if (button !== this._interactiveButton && button.isOpen()) // For ~Expand button ...
+        {
+            if (this._buttonsInTransition.indexOf(button) === -1)
+            {
+                this._buttonsInTransition.push(button);
+
+                button.addEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
+                button.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+            }
+
+            button.close(immediate);
+        }
     }
 };
 
@@ -3132,9 +3387,75 @@ App.CategoryScreen.prototype._closeOpenedButtons = function _closeOpenedButtons(
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    //this._getButtonUnderPoint(this._getPointerPosition()).open();
+    var position = this.stage.getTouchPosition(),
+        EventType = App.EventType;
 
-    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ACCOUNT);
+    this._interactiveButton = this._getButtonUnderPoint(position);
+
+    if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
+    {
+        this._buttonsInTransition.push(this._interactiveButton);
+
+        this._interactiveButton.addEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
+        this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+    }
+
+    this._interactiveButton.onClick(position);
+
+    //this._closeOpenButtons();
+
+    //App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ACCOUNT);
+};
+
+/**
+ * On button layout update
+ * @private
+ */
+App.CategoryScreen.prototype._onButtonLayoutUpdate = function _onButtonLayoutUpdate()
+{
+    this._layoutDirty = true;
+};
+
+/**
+ * On button transition complete
+ * @param {CategoryButtonExpand} button
+ * @private
+ */
+App.CategoryScreen.prototype._onButtonTransitionComplete = function _onButtonTransitionComplete(button)
+{
+    var i = 0,
+        l = this._buttonsInTransition.length,
+        EventType = App.EventType;
+
+    button.removeEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
+    button.removeEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+
+    for (;i<l;i++)
+    {
+        if (button === this._buttonsInTransition[i])
+        {
+            this._buttonsInTransition.splice(i,1);
+            break;
+        }
+    }
+
+    if (this._buttonsInTransition.length === 0)
+    {
+        this._interactiveButton = null;
+
+        this._layoutDirty = false;
+        this._updateLayout();
+    }
+};
+
+/**
+ * Update layout
+ * @private
+ */
+App.CategoryScreen.prototype._updateLayout = function _updateLayout()
+{
+    this._buttonList.updateLayout(true);
+    this._pane.resize();
 };
 
 /**
@@ -3144,20 +3465,22 @@ App.CategoryScreen.prototype._onClick = function _onClick()
  */
 App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoint(point)
 {
-    //TODO also check 'x'?
     var i = 0,
         l = this._buttons.length,
-        height = this._buttons[0].boundingBox.height,
         y = point.y,
+        height = 0,
         buttonY = 0,
-        containerY = this._buttonList.y;
+        containerY = this._buttonList.y,
+        button = null;
 
-    for (;i<l;i++)
+    for (;i<l;)
     {
-        buttonY = this._buttons[i].y + containerY;
+        button = this._buttons[i++];
+        buttonY = button.y + containerY;
+        height = button.boundingBox.height;
         if (buttonY <= y && buttonY + height >= y)
         {
-            return this._buttons[i];
+            return button;
         }
     }
 
@@ -3971,7 +4294,7 @@ App.Initialize.prototype._initModel = function _initModel(data)
 
     //TODO initiate all proxies in once 'init' method? Same as Controller ...
     ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
-    ModelLocator.addProxy(ModelName.RECTANGLE_POOL,new App.ObjectPool(App.Rectangle,20));
+    ModelLocator.addProxy(ModelName.RECTANGLE_POOL,new App.ObjectPool(App.Rectangle,20));//TODO use this pool - some classes still dont use it!
     ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
     ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(
         JSON.parse(data).accounts,//TODO parse JSON on data from localStorage

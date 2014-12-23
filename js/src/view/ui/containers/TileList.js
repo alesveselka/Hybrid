@@ -83,8 +83,9 @@ App.TileList.prototype.updateY = function updateY(position)
 
 /**
  * Update layout
+ * @param {boolean} [updatePosition=false]
  */
-App.TileList.prototype.updateLayout = function updateLayout()
+App.TileList.prototype.updateLayout = function updateLayout(updatePosition)
 {
     var i = 0,
         l = this._items.length,
@@ -103,6 +104,8 @@ App.TileList.prototype.updateLayout = function updateLayout()
 
         this.boundingBox.width = position;
         this.boundingBox.height = child.boundingBox.height;
+
+        if (updatePosition) this.updateY(this.x);
     }
     else if (this._direction === Direction.Y)
     {
@@ -115,6 +118,8 @@ App.TileList.prototype.updateLayout = function updateLayout()
 
         this.boundingBox.height = position;
         this.boundingBox.width = child.boundingBox.width;
+
+        if (updatePosition) this.updateY(this.y);
     }
 };
 

@@ -42,6 +42,7 @@ module.exports = function(grunt)
         "js/src/view/screens/accounts/AccountScreen.js",
         "js/src/view/screens/categories/CategoryButton.js",
         "js/src/view/screens/categories/CategoryButtonEdit.js",
+        "js/src/view/screens/categories/CategoryButtonExpand.js",
         "js/src/view/screens/categories/CategoryScreen.js",
         "js/src/view/ApplicationView.js",
         "js/src/tween/Easing.js",
