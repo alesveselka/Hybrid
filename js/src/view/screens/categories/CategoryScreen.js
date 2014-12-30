@@ -168,6 +168,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
     }
 
     this._interactiveButton.onClick(position);
+    this._pane.cancelScroll();
 
     //this._closeButtons();
 

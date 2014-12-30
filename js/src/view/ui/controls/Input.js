@@ -149,13 +149,16 @@ App.Input.prototype._unRegisterEventListeners = function _unRegisterEventListene
  */
 App.Input.prototype._onClick = function _onClick(data)
 {
-    if (this._inputProxy === document.activeElement)
+    if (this._inputProxy !== document.activeElement) this._inputProxy.focus();
+
+    if (this._icon)
     {
-        this._inputProxy.blur();
-    }
-    else
-    {
-        this._inputProxy.focus();
+        // If user click/tap at 'close' icon, erase actual text; 40 is the icon width
+        if (data.getLocalPosition(this).x >= Math.round(this._width - 40 * this._pixelRatio))
+        {
+            this._inputProxy.value = "";
+            this._onChange();
+        }
     }
 };
 
@@ -173,6 +176,7 @@ App.Input.prototype._onFocus = function _onFocus()
     this._inputProxy.style.top = Math.round(this.y / r) + "px";
     this._inputProxy.style.width = Math.round((this._width / 2) - x) + "px";
     this._inputProxy.style.fontSize = this._fontSize + "px";
+    this._inputProxy.style.lineHeight = this._fontSize + "px";
     this._inputProxy.value = this._text;
     this._inputProxy.style.display = "block";
 };
@@ -189,11 +193,11 @@ App.Input.prototype._onBlur = function _onBlur()
 
 /**
  * Input change handler
+ * @param {Event} [e=null]
  * @private
  */
-App.Input.prototype._onChange = function _onChange()
+App.Input.prototype._onChange = function _onChange(e)
 {
-    //TODO check for key_press ENTER and blur afterwards?
     this._text = this._inputProxy.value;
 
     if (this._text === this._placeholder || this._text.length === 0)
@@ -216,4 +220,7 @@ App.Input.prototype._onChange = function _onChange()
 
         this._textField.setText(this._text);
     }
+
+    // If RETURN is hit, remove focus
+    if (e && e.keyCode === 13) this._inputProxy.blur();
 };

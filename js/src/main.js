@@ -1,5 +1,7 @@
 (function()
 {
+    //TODO move to index.html and also build simply pre-preloader
+
     function onInitComplete()
     {
         initCommand.destroy();

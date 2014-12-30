@@ -37,27 +37,14 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     //TODO use ScreenFactory for the screens?
     this._screenStack = new App.ViewStack([
         new App.AccountScreen(categories,this._layout),
-        new App.CategoryScreen(categories,this._layout)
+        new App.CategoryScreen(categories,this._layout),
+        new App.SelectTimeScreen(null,this._layout)
     ]);
-    this._screenStack.y = Math.round(40 * pixelRatio);
-    this._screenStack.selectChildByIndex(1);
+    this._screenStack.selectChildByIndex(App.ScreenName.SELECT_TIME);//TODO move this into separate command?
     this._screenStack.show();
-
-    this._input = new App.Input(
-        "Enter category name",
-        App.InputType.STRING,
-        App.Align.LEFT,
-        24,
-        Math.round(this._layout.width - 50 * pixelRatio),
-        Math.round(40 * pixelRatio),
-        pixelRatio,
-        true
-    );
-    this._input.x = Math.round(50 * pixelRatio);
 
     this.addChild(this._background);
     this.addChild(this._screenStack);
-    this.addChild(this._input);
 
     this._registerEventListeners();
 };
@@ -74,8 +61,6 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
     App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._input.enable();
 
     /*window.addEventListener(App.EventType.RESIZE,function()
     {

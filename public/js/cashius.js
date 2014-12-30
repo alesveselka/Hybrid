@@ -265,11 +265,12 @@ App.Direction = {
 /**
  * Screen Name
  * @enum {number}
- * @return {{ACCOUNT:number,CATEGORY:number}}
+ * @return {{ACCOUNT:number,CATEGORY:number,SELECT_TIME:number}}
  */
 App.ScreenName = {
     ACCOUNT:0,
-    CATEGORY:1
+    CATEGORY:1,
+    SELECT_TIME:2
 };
 
 /**
@@ -940,6 +941,49 @@ App.ViewLocator = {
 };
 
 /**
+ * @class ListHeader
+ * @param {string} label
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.ListHeader = function ListHeader(label,width,pixelRatio)
+{
+    PIXI.Graphics.call(this);
+
+    this._width = width;
+    this._pixelRatio = pixelRatio;
+    this._textField = new PIXI.Text(label,{font:Math.round(12 * pixelRatio)+"px HelveticaNeueCond",fill:"#ffffff"});
+
+    this._render();
+
+    this.addChild(this._textField);
+};
+
+App.ListHeader.prototype = Object.create(PIXI.Graphics.prototype);
+App.ListHeader.prototype.constructor = App.ListHeader;
+
+/**
+ * Render
+ * @private
+ */
+App.ListHeader.prototype._render = function _render()
+{
+    var r = this._pixelRatio,
+        h = Math.round(30 * r);
+
+    this.clear();
+    this.beginFill(0x394264);
+    this.drawRect(0,0,this._width,h);
+    this.beginFill(0x252B44);
+    this.drawRect(0,h-r,this._width,r);
+    this.endFill();
+
+    this._textField.x = Math.round((this._width - this._textField.width) / 2);
+    this._textField.y = Math.round((h - this._textField.height) / 2);
+};
+
+/**
  * @class ScrollIndicator
  * @extends Graphics
  * @param {string} direction
@@ -1306,13 +1350,16 @@ App.Input.prototype._unRegisterEventListeners = function _unRegisterEventListene
  */
 App.Input.prototype._onClick = function _onClick(data)
 {
-    if (this._inputProxy === document.activeElement)
+    if (this._inputProxy !== document.activeElement) this._inputProxy.focus();
+
+    if (this._icon)
     {
-        this._inputProxy.blur();
-    }
-    else
-    {
-        this._inputProxy.focus();
+        // If user click/tap at 'close' icon, erase actual text; 40 is the icon width
+        if (data.getLocalPosition(this).x >= Math.round(this._width - 40 * this._pixelRatio))
+        {
+            this._inputProxy.value = "";
+            this._onChange();
+        }
     }
 };
 
@@ -1330,6 +1377,7 @@ App.Input.prototype._onFocus = function _onFocus()
     this._inputProxy.style.top = Math.round(this.y / r) + "px";
     this._inputProxy.style.width = Math.round((this._width / 2) - x) + "px";
     this._inputProxy.style.fontSize = this._fontSize + "px";
+    this._inputProxy.style.lineHeight = this._fontSize + "px";
     this._inputProxy.value = this._text;
     this._inputProxy.style.display = "block";
 };
@@ -1346,11 +1394,11 @@ App.Input.prototype._onBlur = function _onBlur()
 
 /**
  * Input change handler
+ * @param {Event} [e=null]
  * @private
  */
-App.Input.prototype._onChange = function _onChange()
+App.Input.prototype._onChange = function _onChange(e)
 {
-    //TODO check for key_press ENTER and blur afterwards?
     this._text = this._inputProxy.value;
 
     if (this._text === this._placeholder || this._text.length === 0)
@@ -1373,7 +1421,88 @@ App.Input.prototype._onChange = function _onChange()
 
         this._textField.setText(this._text);
     }
+
+    // If RETURN is hit, remove focus
+    if (e && e.keyCode === 13) this._inputProxy.blur();
 };
+
+App.CalendarWeekRow = function CalendarWeekRow(date,week,firstDay)
+{
+    PIXI.Graphics.call(this);
+
+    var daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31],
+        firstDayInWeek = firstDay,
+        days = new Array(7);
+
+    if (firstDay > 1)
+    {
+        var previousMonthDays = date.getMonth() ? daysInMonth[date.getMonth()-1] : daysInMonth[daysInMonth.length-1];
+
+        firstDayInWeek = (previousMonthDays - firstDay + 2);
+    }
+
+    if (firstDayInWeek > daysInMonth[date.getMonth()-1]) firstDayInWeek -= daysInMonth[date.getMonth()-1];
+
+    firstDayInWeek += week * 7;
+
+    if (week > 0 && firstDayInWeek > daysInMonth[date.getMonth()-1]) firstDayInWeek = week * 7 - firstDay + 2;
+
+    console.log("firstDayInWeek ",firstDayInWeek);
+
+    for (var i = 0;i<7;i++)
+    {
+        if (firstDayInWeek > daysInMonth[date.getMonth()-1] && week === 0)
+        {
+            console.log("first week exceeded");
+            firstDayInWeek = week * 7 + 1;
+        }
+        if (firstDayInWeek > daysInMonth[date.getMonth()] && week > 0)
+        {
+            console.log("last week exceeded");
+            firstDayInWeek = 1;
+        }
+
+        days[i] = firstDayInWeek++;
+    }
+
+    //console.log("#of days: ",daysInMonth[date.getMonth()],", first day: ",firstDay);
+    console.log("Week ",week,": ",days[0],days[1],days[2],days[3],days[4],days[5],days[6]);
+};
+
+App.CalendarWeekRow.prototype = Object.create(PIXI.Graphics.prototype);
+App.CalendarWeekRow.prototype.constructor = App.CalendarWeekRow;
+
+App.Calendar = function Calendar(date,firstDay,width,pixelRatio)
+{
+    PIXI.Graphics.call(this);
+
+    //console.log(date.getHours(),date.getUTCHours(),date.toTimeString());
+
+    var dayLabelStyle = {font:Math.round(12 * pixelRatio)+"px Arial",fill:"#999999"},//TODO use Arial bold
+        CalendarWeekRow = App.CalendarWeekRow;
+
+    this._monthField = new PIXI.Text(date,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    this._prevButton = PIXI.Sprite.fromFrame("arrow");
+    this._nextButton = PIXI.Sprite.fromFrame("arrow");
+    this._monLabel = new PIXI.Text("M",dayLabelStyle);
+    this._tueLabel = new PIXI.Text("T",dayLabelStyle);
+    this._wedLabel = new PIXI.Text("W",dayLabelStyle);
+    this._thuLabel = new PIXI.Text("T",dayLabelStyle);
+    this._friLabel = new PIXI.Text("F",dayLabelStyle);
+    this._satLabel = new PIXI.Text("S",dayLabelStyle);
+    this._sunLabel = new PIXI.Text("S",dayLabelStyle);
+
+    this._weekRows = [
+        new CalendarWeekRow(date,0,firstDay),
+        new CalendarWeekRow(date,1,firstDay),
+        new CalendarWeekRow(date,2,firstDay),
+        new CalendarWeekRow(date,3,firstDay),
+        new CalendarWeekRow(date,4,firstDay)
+    ];
+};
+
+App.Calendar.prototype = Object.create(PIXI.Graphics.prototype);
+App.Calendar.prototype.constructor = App.Calendar;
 
 /**
  * @class Pane
@@ -2773,6 +2902,89 @@ App.Screen.prototype.destroy = function destroy()
     //TODO make sure everything is destroyed
 };
 
+App.SelectTimeScreen = function SelectTimeScreen(model,layout)
+{
+    App.Screen.call(this,model,layout,0.4);
+
+    var pixelRatio = layout.pixelRatio,
+        w = layout.width,
+        date = new Date(2014,10),
+        firstDay = new Date(1900+date.getYear(),date.getMonth(),1).getDay();
+
+    console.log("firstDay ",firstDay);
+
+    this._inputBackground = new PIXI.Graphics();
+    //TODO also make sure only numeric keyboard shows up
+    this._input = new App.Input(
+        "00:00",
+        App.InputType.NUMBER,//TODO add 'TIME' type?
+        App.Align.CENTER,
+        30,
+        w - Math.round(20 * pixelRatio),
+        Math.round(40 * pixelRatio),
+        pixelRatio
+    );
+    this._header = new App.ListHeader("Select Date",w,pixelRatio);
+    this._calendar = new App.Calendar(date,firstDay,w,pixelRatio);
+
+    //TODO also add overlay to receive click to blur input's focus
+
+    this._render();
+
+    this.addChild(this._inputBackground);
+    this.addChild(this._input);
+    this.addChild(this._header);
+    this.addChild(this._calendar);
+};
+
+App.SelectTimeScreen.prototype = Object.create(App.Screen.prototype);
+App.SelectTimeScreen.prototype.constructor = App.SelectTimeScreen;
+
+/**
+ * Render
+ * @private
+ */
+App.SelectTimeScreen.prototype._render = function _render()
+{
+    var r = this._layout.pixelRatio,
+        inputBgHeight = Math.round(60 * r),
+        w = this._layout.width;
+
+    this._inputBackground.clear();
+    this._inputBackground.beginFill(0xefefef);
+    this._inputBackground.drawRect(0,0,w,inputBgHeight);
+    this._inputBackground.beginFill(0xcccccc);
+    this._inputBackground.drawRect(0,inputBgHeight-r,w,r);
+    this._inputBackground.endFill();
+
+    this._input.x = Math.round(10 * r);
+    this._input.y = Math.round((inputBgHeight - this._input.height) / 2);
+
+    this._header.y = inputBgHeight;
+
+    this._calendar.y = Math.round(this._header.y + this._header.height);
+};
+
+/**
+ * Enable
+ */
+App.SelectTimeScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._input.enable();
+};
+
+/**
+ * Disable
+ */
+App.SelectTimeScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._input.disable();
+};
+
 /**
  * @class AccountButton
  * @extends Graphics
@@ -3659,6 +3871,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
     }
 
     this._interactiveButton.onClick(position);
+    this._pane.cancelScroll();
 
     //this._closeButtons();
 
@@ -3811,27 +4024,14 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     //TODO use ScreenFactory for the screens?
     this._screenStack = new App.ViewStack([
         new App.AccountScreen(categories,this._layout),
-        new App.CategoryScreen(categories,this._layout)
+        new App.CategoryScreen(categories,this._layout),
+        new App.SelectTimeScreen(null,this._layout)
     ]);
-    this._screenStack.y = Math.round(40 * pixelRatio);
-    this._screenStack.selectChildByIndex(1);
+    this._screenStack.selectChildByIndex(App.ScreenName.SELECT_TIME);//TODO move this into separate command?
     this._screenStack.show();
-
-    this._input = new App.Input(
-        "Enter category name",
-        App.InputType.STRING,
-        App.Align.LEFT,
-        24,
-        Math.round(this._layout.width - 50 * pixelRatio),
-        Math.round(40 * pixelRatio),
-        pixelRatio,
-        true
-    );
-    this._input.x = Math.round(50 * pixelRatio);
 
     this.addChild(this._background);
     this.addChild(this._screenStack);
-    this.addChild(this._input);
 
     this._registerEventListeners();
 };
@@ -3848,8 +4048,6 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
     App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._input.enable();
 
     /*window.addEventListener(App.EventType.RESIZE,function()
     {
@@ -4721,6 +4919,8 @@ App.ChangeScreen.prototype.destroy = function destroy()
 
 (function()
 {
+    //TODO move to index.html and also build simply pre-preloader
+
     function onInitComplete()
     {
         initCommand.destroy();
