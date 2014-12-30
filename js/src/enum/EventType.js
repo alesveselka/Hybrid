@@ -18,7 +18,13 @@
  *      MOUSE_DOWN:string,
  *      MOUSE_UP:string,
  *      MOUSE_MOVE:string,
- *      CLICK:string}}
+ *      CLICK:string,
+ *      FOCUS:string,
+ *      BLUR:string,
+ *      KEY_PRESS:string,
+ *      PASTE:string,
+ *      TEXT_INPUT:string,
+ *      INPUT:string}}
  */
 App.EventType = {
     // Commands
@@ -29,7 +35,7 @@ App.EventType = {
     UPDATE:"UPDATE",
     PROGRESS:"PROGRESS",
     ERROR:"ERROR",
-    CHANGE:"CHANGE",
+    CHANGE:"change",
     LAYOUT_UPDATE:"LAYOUT_UPDATE",
     TICK:"TICK",
 
@@ -44,5 +50,11 @@ App.EventType = {
     MOUSE_DOWN:"mousedown",
     MOUSE_UP:"mouseup",
     MOUSE_MOVE:"mousemove",
-    CLICK:"click"
+    CLICK:"click",
+    FOCUS:"focus",
+    BLUR:"blur",
+    KEY_PRESS:"keypress",
+    PASTE:"paste",
+    TEXT_INPUT:"textInput",
+    INPUT:"input"
 };

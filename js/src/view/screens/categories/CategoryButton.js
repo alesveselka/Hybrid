@@ -68,12 +68,9 @@ App.CategoryButton.prototype._render = function _render()
     this._colorStripe.drawRect(0,0,Math.round(4 * pixelRatio),h);
     this._colorStripe.endFill();
 
-    if (pixelRatio === 1)
-    {
-        this._icon.scale.x *= 0.5;
-        this._icon.scale.y *= 0.5;
-    }
-    this._icon.x = Math.round(15 * pixelRatio);
+    this._icon.width = Math.round(20 * pixelRatio);
+    this._icon.height = Math.round(20 * pixelRatio);
+    this._icon.x = Math.round(25 * pixelRatio);
     this._icon.y = Math.round((h - this._icon.height) / 2);
     this._icon.tint = 0x394264;
 

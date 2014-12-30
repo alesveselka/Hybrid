@@ -131,7 +131,13 @@ App.Device = {
  *      MOUSE_DOWN:string,
  *      MOUSE_UP:string,
  *      MOUSE_MOVE:string,
- *      CLICK:string}}
+ *      CLICK:string,
+ *      FOCUS:string,
+ *      BLUR:string,
+ *      KEY_PRESS:string,
+ *      PASTE:string,
+ *      TEXT_INPUT:string,
+ *      INPUT:string}}
  */
 App.EventType = {
     // Commands
@@ -142,7 +148,7 @@ App.EventType = {
     UPDATE:"UPDATE",
     PROGRESS:"PROGRESS",
     ERROR:"ERROR",
-    CHANGE:"CHANGE",
+    CHANGE:"change",
     LAYOUT_UPDATE:"LAYOUT_UPDATE",
     TICK:"TICK",
 
@@ -157,7 +163,13 @@ App.EventType = {
     MOUSE_DOWN:"mousedown",
     MOUSE_UP:"mouseup",
     MOUSE_MOVE:"mousemove",
-    CLICK:"click"
+    CLICK:"click",
+    FOCUS:"focus",
+    BLUR:"blur",
+    KEY_PRESS:"keypress",
+    PASTE:"paste",
+    TEXT_INPUT:"textInput",
+    INPUT:"input"
 };
 
 /**
@@ -258,6 +270,27 @@ App.Direction = {
 App.ScreenName = {
     ACCOUNT:0,
     CATEGORY:1
+};
+
+/**
+ * Align
+ * @enum {string}
+ * @return {{LEFT:string,RIGHT:string,CENTER:string}}
+ */
+App.Align = {
+    LEFT:"LEFT",
+    RIGHT:"RIGHT",
+    CENTER:"CENTER"
+};
+
+/**
+ * InputType
+ * @enum {number}
+ * @return {{STRING:number,NUMBER:number}}
+ */
+App.InputType = {
+    STRING:1,
+    NUMBER:2
 };
 
 /**
@@ -1120,6 +1153,226 @@ App.ScrollIndicator.prototype.destroy = function destroy()
     this._state = null;
 
     this.clear();
+};
+
+/**
+ * @class Input
+ * @extends Graphics
+ * @param {string} placeholder
+ * @param {number} type
+ * @param {string} align
+ * @param {number} fontSize
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @param {boolean} displayIcon
+ * @constructor
+ */
+App.Input = function Input(placeholder,type,align,fontSize,width,height,pixelRatio,displayIcon)
+{
+    PIXI.Graphics.call(this);
+
+    var fontStyle = Math.round(fontSize * pixelRatio)+"px HelveticaNeueCond";
+
+    this._type = type;
+    this._align = align;
+    this._fontSize = fontSize;
+    this._width = width;
+    this._height = height;
+    this._pixelRatio = pixelRatio;
+    this._enabled = false;
+
+    this._placeholder = placeholder;
+    this._placeholderStyle = {font:fontStyle,fill:"#efefef"};
+    this._currentStyle = this._placeholderStyle;
+    this._textStyle = {font:fontStyle,fill:"#394264"};
+
+    this._text = "";
+    this._textField = new PIXI.Text(this._placeholder,this._currentStyle);
+    this._inputProxy = document.getElementById("inputProxy");
+    this._inputProxyListeners = {
+        focus:this._onFocus.bind(this),
+        blur:this._onBlur.bind(this),
+        change:this._onChange.bind(this)
+    };
+    if (displayIcon) this._icon = PIXI.Sprite.fromFrame("clear");
+
+    this._render();
+
+    this.addChild(this._textField);
+    if (this._icon) this.addChild(this._icon);
+};
+
+App.Input.prototype = Object.create(PIXI.Graphics.prototype);
+App.Input.prototype.constructor = App.Input;
+
+/**
+ * Render
+ * @private
+ */
+App.Input.prototype._render = function _render()
+{
+    var r = this._pixelRatio;
+
+    this.clear();
+    this.beginFill(0xcccccc);
+    this.drawRoundedRect(0,0,this._width,this._height,Math.round(5 * r));
+    this.beginFill(0xffffff);
+    this.drawRoundedRect(Math.round(r),Math.round(r),this._width-Math.round(2 * r),this._height-Math.round(2 * r),Math.round(5 * r));
+    this.endFill();
+
+    this._textField.x = Math.round(10 * r);
+    this._textField.y = Math.round(10 * r);
+
+    if (this._icon)
+    {
+        this._icon.width = Math.round(20 * r);
+        this._icon.height = Math.round(20 * r);
+        this._icon.x = Math.round(this._width - this._icon.width - 10 * r);
+        this._icon.y = Math.round((this._height - this._icon.height) / 2);
+        this._icon.tint = 0xdddddd;
+    }
+};
+
+/**
+ * Enable
+ */
+App.Input.prototype.enable = function enable()
+{
+    if (!this._enabled)
+    {
+        this._enabled = true;
+
+        this._registerEventListeners();
+
+        this.interactive = true;//TODO do I need this?
+    }
+};
+
+/**
+ * Disable
+ */
+App.Input.prototype.disable = function disable()
+{
+    this._unRegisterEventListeners();
+
+    this.interactive = false;
+
+    this._enabled = false;
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.Input.prototype._registerEventListeners = function _registerEventListeners()
+{
+    if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
+    else this.click = this._onClick;
+
+    var EventType = App.EventType;
+    this._inputProxy.addEventListener(EventType.FOCUS,this._inputProxyListeners.focus,false);
+    this._inputProxy.addEventListener(EventType.BLUR,this._inputProxyListeners.blur,false);
+    this._inputProxy.addEventListener(EventType.CHANGE,this._inputProxyListeners.change,false);
+    this._inputProxy.addEventListener(EventType.KEY_PRESS,this._inputProxyListeners.change,false);
+    this._inputProxy.addEventListener(EventType.PASTE,this._inputProxyListeners.change,false);
+    this._inputProxy.addEventListener(EventType.TEXT_INPUT,this._inputProxyListeners.change,false);
+    this._inputProxy.addEventListener(EventType.INPUT,this._inputProxyListeners.change,false);
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.Input.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    if (App.Device.TOUCH_SUPPORTED) this.tap = null;
+    else this.click = null;
+
+    var EventType = App.EventType;
+    this._inputProxy.removeEventListener(EventType.FOCUS,this._inputProxyListeners.focus,false);
+    this._inputProxy.removeEventListener(EventType.BLUR,this._inputProxyListeners.blur,false);
+    this._inputProxy.removeEventListener(EventType.CHANGE,this._inputProxyListeners.change,false);
+    this._inputProxy.removeEventListener(EventType.KEY_PRESS,this._inputProxyListeners.change,false);
+    this._inputProxy.removeEventListener(EventType.PASTE,this._inputProxyListeners.change,false);
+    this._inputProxy.removeEventListener(EventType.TEXT_INPUT,this._inputProxyListeners.change,false);
+    this._inputProxy.removeEventListener(EventType.INPUT,this._inputProxyListeners.change,false);
+};
+
+/**
+ * On click
+ * @param {InteractionData} data
+ * @private
+ */
+App.Input.prototype._onClick = function _onClick(data)
+{
+    if (this._inputProxy === document.activeElement)
+    {
+        this._inputProxy.blur();
+    }
+    else
+    {
+        this._inputProxy.focus();
+    }
+};
+
+/**
+ * On input proxy focus
+ * @private
+ */
+App.Input.prototype._onFocus = function _onFocus()
+{
+    var r = this._pixelRatio,
+        x = Math.round(this.x / r);
+
+    this._inputProxy.style.display = "none";
+    this._inputProxy.style.left = x +"px";
+    this._inputProxy.style.top = Math.round(this.y / r) + "px";
+    this._inputProxy.style.width = Math.round((this._width / 2) - x) + "px";
+    this._inputProxy.style.fontSize = this._fontSize + "px";
+    this._inputProxy.value = this._text;
+    this._inputProxy.style.display = "block";
+};
+
+/**
+ * On input proxy blur
+ * @private
+ */
+App.Input.prototype._onBlur = function _onBlur()
+{
+    this._inputProxy.style.top = "-1000px";
+    this._inputProxy.value = "";
+};
+
+/**
+ * Input change handler
+ * @private
+ */
+App.Input.prototype._onChange = function _onChange()
+{
+    //TODO check for key_press ENTER and blur afterwards?
+    this._text = this._inputProxy.value;
+
+    if (this._text === this._placeholder || this._text.length === 0)
+    {
+        if (this._currentStyle === this._textStyle)
+        {
+            this._currentStyle = this._placeholderStyle;
+            this._textField.setStyle(this._currentStyle);
+        }
+
+        this._textField.setText(this._placeholder);
+    }
+    else
+    {
+        if (this._currentStyle === this._placeholderStyle)
+        {
+            this._currentStyle = this._textStyle;
+            this._textField.setStyle(this._currentStyle);
+        }
+
+        this._textField.setText(this._text);
+    }
 };
 
 /**
@@ -2763,12 +3016,9 @@ App.CategoryButton.prototype._render = function _render()
     this._colorStripe.drawRect(0,0,Math.round(4 * pixelRatio),h);
     this._colorStripe.endFill();
 
-    if (pixelRatio === 1)
-    {
-        this._icon.scale.x *= 0.5;
-        this._icon.scale.y *= 0.5;
-    }
-    this._icon.x = Math.round(15 * pixelRatio);
+    this._icon.width = Math.round(20 * pixelRatio);
+    this._icon.height = Math.round(20 * pixelRatio);
+    this._icon.x = Math.round(25 * pixelRatio);
     this._icon.y = Math.round((h - this._icon.height) / 2);
     this._icon.tint = 0x394264;
 
@@ -3017,6 +3267,14 @@ App.CategoryButtonEdit.prototype.destroy = function destroy()
     //TODO implement
 };
 
+/**
+ * @class CategoryButtonExpand
+ * @extends CategoryButton
+ * @param {Category} model
+ * @param {Object} layout
+ * @param {{font:string,fill:string}} nameLabelStyle
+ * @constructor
+ */
 App.CategoryButtonExpand = function CategoryButtonExpand(model,layout,nameLabelStyle)
 {
     App.CategoryButton.call(this,model,layout,nameLabelStyle);
@@ -3319,7 +3577,7 @@ App.CategoryScreen.prototype._onTweenComplete = function _onTweenComplete()
 {
     App.Screen.prototype._onTweenComplete.call(this);
 
-    if (this._transitionState === App.TransitionState.HIDDEN) this._closeOpenButtons(true);
+    if (this._transitionState === App.TransitionState.HIDDEN) this._closeButtons(true);
 };
 
 /**
@@ -3335,7 +3593,7 @@ App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,dir
     this._interactiveButton = this._getButtonUnderPoint(this.stage.getTouchPosition());
     this._interactiveButton.swipeStart(direction);
 
-    this._closeOpenButtons(false);
+    this._closeButtons(false);
 };
 
 /**
@@ -3355,7 +3613,7 @@ App.CategoryScreen.prototype._swipeEnd = function _swipeEnd()
  * Close opened buttons
  * @private
  */
-App.CategoryScreen.prototype._closeOpenButtons = function _closeOpenButtons(immediate)
+App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
 {
     var i = 0,
         l = this._buttons.length,
@@ -3387,7 +3645,7 @@ App.CategoryScreen.prototype._closeOpenButtons = function _closeOpenButtons(imme
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    var position = this.stage.getTouchPosition(),
+    var position = this.stage.getTouchData().getLocalPosition(this),
         EventType = App.EventType;
 
     this._interactiveButton = this._getButtonUnderPoint(position);
@@ -3402,7 +3660,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
 
     this._interactiveButton.onClick(position);
 
-    //this._closeOpenButtons();
+    //this._closeButtons();
 
     //App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ACCOUNT);
 };
@@ -3470,7 +3728,7 @@ App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoin
         y = point.y,
         height = 0,
         buttonY = 0,
-        containerY = this._buttonList.y,
+        containerY = this.y + this._buttonList.y,
         button = null;
 
     for (;i<l;)
@@ -3555,11 +3813,25 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.AccountScreen(categories,this._layout),
         new App.CategoryScreen(categories,this._layout)
     ]);
+    this._screenStack.y = Math.round(40 * pixelRatio);
     this._screenStack.selectChildByIndex(1);
     this._screenStack.show();
 
+    this._input = new App.Input(
+        "Enter category name",
+        App.InputType.STRING,
+        App.Align.LEFT,
+        24,
+        Math.round(this._layout.width - 50 * pixelRatio),
+        Math.round(40 * pixelRatio),
+        pixelRatio,
+        true
+    );
+    this._input.x = Math.round(50 * pixelRatio);
+
     this.addChild(this._background);
     this.addChild(this._screenStack);
+    this.addChild(this._input);
 
     this._registerEventListeners();
 };
@@ -3576,6 +3848,13 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
     App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._input.enable();
+
+    /*window.addEventListener(App.EventType.RESIZE,function()
+    {
+        this._input.resize();
+    }.bind(this));*/
 };
 
 /**

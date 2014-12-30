@@ -86,7 +86,7 @@ App.CategoryScreen.prototype._onTweenComplete = function _onTweenComplete()
 {
     App.Screen.prototype._onTweenComplete.call(this);
 
-    if (this._transitionState === App.TransitionState.HIDDEN) this._closeOpenButtons(true);
+    if (this._transitionState === App.TransitionState.HIDDEN) this._closeButtons(true);
 };
 
 /**
@@ -102,7 +102,7 @@ App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,dir
     this._interactiveButton = this._getButtonUnderPoint(this.stage.getTouchPosition());
     this._interactiveButton.swipeStart(direction);
 
-    this._closeOpenButtons(false);
+    this._closeButtons(false);
 };
 
 /**
@@ -122,7 +122,7 @@ App.CategoryScreen.prototype._swipeEnd = function _swipeEnd()
  * Close opened buttons
  * @private
  */
-App.CategoryScreen.prototype._closeOpenButtons = function _closeOpenButtons(immediate)
+App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
 {
     var i = 0,
         l = this._buttons.length,
@@ -154,7 +154,7 @@ App.CategoryScreen.prototype._closeOpenButtons = function _closeOpenButtons(imme
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    var position = this.stage.getTouchPosition(),
+    var position = this.stage.getTouchData().getLocalPosition(this),
         EventType = App.EventType;
 
     this._interactiveButton = this._getButtonUnderPoint(position);
@@ -169,7 +169,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
 
     this._interactiveButton.onClick(position);
 
-    //this._closeOpenButtons();
+    //this._closeButtons();
 
     //App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ACCOUNT);
 };
@@ -237,7 +237,7 @@ App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoin
         y = point.y,
         height = 0,
         buttonY = 0,
-        containerY = this._buttonList.y,
+        containerY = this.y + this._buttonList.y,
         button = null;
 
     for (;i<l;)

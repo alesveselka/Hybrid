@@ -21,14 +21,39 @@
             /*font-family: HelveticaNeueCond, Arial, sans-serif;*/
         }
         canvas {
+            position: absolute;
             background-color: #ffffff;
             margin: 0;
             padding: 0;
+        }
+        #fontInfo {
+            position: absolute;
+            top: -1000px;
+        }
+        #inputProxy {
+            position: absolute;
+            top: -1000px;
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+            -webkit-box-shadow: none;
+            -moz-box-shadow: none;
+            box-shadow: none;
+            -webkit-appearance : none;
+            padding: 6px 0 0 10px;
+            line-height: 24px;
+            font-size: 24px;
+            font-family: HelveticaNeueCond, Arial, sans-serif;
+            color: transparent;
+            background-color: transparent;
+            border: none;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
         }
     </style>
 </head>
 <body>
     <span id="fontInfo" style="position:absolute; top:-1000px; font-family: Arial, sans-serif; border:1px solid #000000; display: inline-block; visibility: visible; font-size: 250px;">QW@HhsXJ</span>
+    <input id="inputProxy" type="text" autocapitalize="off" autocorrect="off" />
     <canvas></canvas>
     <script type="text/javascript" src="./js/pixi.dev.js"></script>
     <script type="text/javascript" src="./js/cashius.js"></script>
