@@ -1,11 +1,12 @@
-App.Calendar = function Calendar(date,firstDay,width,pixelRatio)
+App.Calendar = function Calendar(date,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
     //console.log(date.getHours(),date.getUTCHours(),date.toTimeString());
 
     var dayLabelStyle = {font:Math.round(12 * pixelRatio)+"px Arial",fill:"#999999"},//TODO use Arial bold
-        CalendarWeekRow = App.CalendarWeekRow;
+        CalendarWeekRow = App.CalendarWeekRow,
+        month = App.DateUtils.getMonth(date,1);
 
     this._monthField = new PIXI.Text(date,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
     this._prevButton = PIXI.Sprite.fromFrame("arrow");
@@ -19,11 +20,12 @@ App.Calendar = function Calendar(date,firstDay,width,pixelRatio)
     this._sunLabel = new PIXI.Text("S",dayLabelStyle);
 
     this._weekRows = [
-        new CalendarWeekRow(date,0,firstDay),
-        new CalendarWeekRow(date,1,firstDay),
-        new CalendarWeekRow(date,2,firstDay),
-        new CalendarWeekRow(date,3,firstDay),
-        new CalendarWeekRow(date,4,firstDay)
+        new CalendarWeekRow(month[0]),
+        new CalendarWeekRow(month[1]),
+        new CalendarWeekRow(month[2]),
+        new CalendarWeekRow(month[3]),
+        new CalendarWeekRow(month[4]),
+        new CalendarWeekRow(month[5])
     ];
 };
 

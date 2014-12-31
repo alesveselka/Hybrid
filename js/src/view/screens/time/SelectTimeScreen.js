@@ -4,10 +4,7 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
 
     var pixelRatio = layout.pixelRatio,
         w = layout.width,
-        date = new Date(2014,10),
-        firstDay = new Date(1900+date.getYear(),date.getMonth(),1).getDay();
-
-    console.log("firstDay ",firstDay);
+        date = new Date(2014,10);
 
     this._inputBackground = new PIXI.Graphics();
     //TODO also make sure only numeric keyboard shows up
@@ -21,7 +18,7 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
         pixelRatio
     );
     this._header = new App.ListHeader("Select Date",w,pixelRatio);
-    this._calendar = new App.Calendar(date,firstDay,w,pixelRatio);
+    this._calendar = new App.Calendar(date,w,pixelRatio);
 
     //TODO also add overlay to receive click to blur input's focus
 

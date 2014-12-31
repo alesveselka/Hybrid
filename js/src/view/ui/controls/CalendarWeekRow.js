@@ -1,23 +1,27 @@
-App.CalendarWeekRow = function CalendarWeekRow(date,week,firstDay)
+App.CalendarWeekRow = function CalendarWeekRow(week)
 {
     PIXI.Graphics.call(this);
 
-    var daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31],
-        firstDayInWeek = firstDay,
-        days = new Array(7);
+    /*var daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31],
+        firstDayInWeek = 1,
+        days = new Array(7),
+        START_OF_WEEK = 3;
 
-    if (firstDay > 1)
+    if (date.getYear() % 4 === 0) daysInMonth[1] = 29;
+
+    // if first day of week is not Monday, calculate the previous days in week from previous month end
+    if (firstDay !== START_OF_WEEK && week === 0)
     {
         var previousMonthDays = date.getMonth() ? daysInMonth[date.getMonth()-1] : daysInMonth[daysInMonth.length-1];
 
-        firstDayInWeek = (previousMonthDays - firstDay + 2);//TODO hard-code '8'?
+        firstDayInWeek = (previousMonthDays - firstDay + 1 + START_OF_WEEK);
     }
+    else
+    {
+        firstDayInWeek = week * 7 - (firstDay - 1 - START_OF_WEEK);
 
-    if (firstDayInWeek > daysInMonth[date.getMonth()-1]) firstDayInWeek -= daysInMonth[date.getMonth()-1];
-
-    firstDayInWeek += week * 7;
-
-    if (week > 0 && firstDayInWeek > daysInMonth[date.getMonth()-1]) firstDayInWeek = week * 7 - firstDay + 2;//TODO hard-code '8'?
+        if (firstDayInWeek > daysInMonth[date.getMonth()]) firstDayInWeek = firstDayInWeek - daysInMonth[date.getMonth()];
+    }
 
     console.log("firstDayInWeek ",firstDayInWeek);
 
@@ -25,20 +29,20 @@ App.CalendarWeekRow = function CalendarWeekRow(date,week,firstDay)
     {
         if (firstDayInWeek > daysInMonth[date.getMonth()-1] && week === 0)
         {
-            console.log("first week exceeded");
-            firstDayInWeek = week * 7 + 1;
+//            console.log("first week exceeded");
+            firstDayInWeek = 1;
         }
         if (firstDayInWeek > daysInMonth[date.getMonth()] && week > 0)
         {
-            console.log("last week exceeded");
+//            console.log("last week exceeded");
             firstDayInWeek = 1;
         }
 
         days[i] = firstDayInWeek++;
-    }
+    }*/
 
     //console.log("#of days: ",daysInMonth[date.getMonth()],", first day: ",firstDay);
-    console.log("Week ",week,": ",days[0],days[1],days[2],days[3],days[4],days[5],days[6]);
+    console.log(week[0],week[1],week[2],week[3],week[4],week[5],week[6]);
 };
 
 App.CalendarWeekRow.prototype = Object.create(PIXI.Graphics.prototype);

@@ -12,6 +12,7 @@ module.exports = function(grunt)
     var source = [
         "js/src/intro.js",
         "js/src/utils/MathUtils.js",
+        "js/src/utils/DateUtils.js",
         "js/src/utils/Device.js",
         "js/src/enum/EventType.js",
         "js/src/enum/ModelName.js",
