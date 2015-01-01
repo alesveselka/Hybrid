@@ -101,16 +101,33 @@ App.MathUtils = {
     }
 };
 
-/** @type {{daysInMonth:Array.<number>,getMonth:Function,getDaysInMonth:Function}} */
+/** @type {{_daysInMonth:Array.<number>,_dayLabels:Array.<string>,getMonth:Function,getDaysInMonth:Function}} */
 App.DateUtils = {
-    daysInMonth:[31,28,31,30,31,30,31,31,30,31,30,31],
+    _daysInMonth:[31,28,31,30,31,30,31,31,30,31,30,31],
+    _dayLabels:["S","M","T","W","T","F","S"],
+
+    /**
+     * Return array of day labels in order from start of week passed in
+     * @param {number} startOfWeek
+     * @return {Array.<string>}
+     */
+    getDayLabels:function getDayLabels(startOfWeek)
+    {
+        var i = startOfWeek;
+        while (i)
+        {
+            this._dayLabels.push(this._dayLabels.shift());
+            i--;
+        }
+        return this._dayLabels;
+    },
 
     /**
      * Calculate and generate all days in a month, based on starting day of a week passed in
      * Returns 2-dimensional array, where rows are weeks, and columns particular days in a week
      * @param {Date} date
-     * @param {number} startOfWeek 0 = Sunday ... 6 = Saturday
-     * @return {Array.<Array.<number>>}
+     * @param {number} startOfWeek 0 = Sunday, 1 = Monday, ... , 6 = Saturday
+     * @return {Array.<Array.<number>>} Days in Week array is twice as long, as the second offsetting number indicate if the day belongs to current month or now
      */
     getMonth:function getMonth(date,startOfWeek)
     {
@@ -122,11 +139,14 @@ App.DateUtils = {
             daysInPreviousMonth = this.getDaysInMonth(year,previousMonth),
             firstDayOfMonth = new Date(1900+year,currentMonth,1).getDay(),
             weeks = new Array(6),
-            days = null;
+            days = null,
+            otherMonth = 1;
 
         // Loop through 6 weeks
         for (var i = 0;i<6;i++)
         {
+            otherMonth = i ? 0 : 1;
+
             // if first day of week is not start of a week, calculate the previous days in week from previous month end
             if (i === 0 && firstDayOfMonth !== startOfWeek)
             {
@@ -136,18 +156,32 @@ App.DateUtils = {
             {
                 firstDateOfWeek = i * 7 - (firstDayOfMonth - 1 - startOfWeek);
 
-                if (firstDateOfWeek > daysInCurrentMonth) firstDateOfWeek = firstDateOfWeek - daysInCurrentMonth;
+                if (firstDateOfWeek > daysInCurrentMonth)
+                {
+                    firstDateOfWeek = firstDateOfWeek - daysInCurrentMonth;
+                    otherMonth = 1;
+                }
             }
 
-            days = new Array(7);
+            days = new Array(7*2);
 
             // Loop through 7 days of a week
-            for (var j = 0;j<7;j++)
+            for (var j = 0;j<7*2;j++)
             {
-                if (firstDateOfWeek > daysInPreviousMonth && i === 0) firstDateOfWeek = 1;
-                else if (firstDateOfWeek > daysInCurrentMonth && i > 0) firstDateOfWeek = 1;
+                if (firstDateOfWeek > daysInPreviousMonth && i === 0)
+                {
+                    firstDateOfWeek = 1;
+                    otherMonth = 0;
+                }
 
-                days[j] = firstDateOfWeek++;
+                if (firstDateOfWeek > daysInCurrentMonth && i > 0)
+                {
+                    firstDateOfWeek = 1;
+                    otherMonth = 1;
+                }
+
+                days[j++] = firstDateOfWeek++;
+                days[j] = otherMonth;
             }
 
             weeks[i] = days;
@@ -158,13 +192,14 @@ App.DateUtils = {
 
     /**
      * Return number of days in particular month passed in
+     * Also check for Leap year
      * @param {number} year
      * @param {number} month zero-based
      * @return {number}
      */
     getDaysInMonth:function getDaysInMonth(year,month)
     {
-        return (month === 1 && year % 4 === 0) ? 29 : this.daysInMonth[month];
+        return (month === 1 && year % 4 === 0) ? 29 : this._daysInMonth[month];
     }
 };
 
@@ -1493,89 +1528,202 @@ App.Input.prototype._onChange = function _onChange(e)
     if (e && e.keyCode === 13) this._inputProxy.blur();
 };
 
-App.CalendarWeekRow = function CalendarWeekRow(week)
+App.CalendarWeekRow = function CalendarWeekRow(week,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
-    /*var daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31],
-        firstDayInWeek = 1,
-        days = new Array(7),
-        START_OF_WEEK = 3;
+    var textStyle = {font:Math.round(14 * pixelRatio)+"px HelveticaNeueCond",fill:"#cccccc"},
+        daysInWeek = week.length / 2,
+        Text = PIXI.Text,
+        index = 0,
+        i = 0;
 
-    if (date.getYear() % 4 === 0) daysInMonth[1] = 29;
+    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
+    this.boundingBox.width = this._width;
+    this.boundingBox.height = Math.round(40 * pixelRatio);
 
-    // if first day of week is not Monday, calculate the previous days in week from previous month end
-    if (firstDay !== START_OF_WEEK && week === 0)
-    {
-        var previousMonthDays = date.getMonth() ? daysInMonth[date.getMonth()-1] : daysInMonth[daysInMonth.length-1];
+    this._week = week;
+    this._width = width;
+    this._pixelRatio = pixelRatio;
+    this._dateFields = new Array(7);
 
-        firstDayInWeek = (previousMonthDays - firstDay + 1 + START_OF_WEEK);
-    }
-    else
-    {
-        firstDayInWeek = week * 7 - (firstDay - 1 - START_OF_WEEK);
+    for (;i<daysInWeek;i++,index+=2) this._dateFields[i] = new Text(week[index],textStyle);
 
-        if (firstDayInWeek > daysInMonth[date.getMonth()]) firstDayInWeek = firstDayInWeek - daysInMonth[date.getMonth()];
-    }
+    this._render();
 
-    console.log("firstDayInWeek ",firstDayInWeek);
-
-    for (var i = 0;i<7;i++)
-    {
-        if (firstDayInWeek > daysInMonth[date.getMonth()-1] && week === 0)
-        {
-//            console.log("first week exceeded");
-            firstDayInWeek = 1;
-        }
-        if (firstDayInWeek > daysInMonth[date.getMonth()] && week > 0)
-        {
-//            console.log("last week exceeded");
-            firstDayInWeek = 1;
-        }
-
-        days[i] = firstDayInWeek++;
-    }*/
-
-    //console.log("#of days: ",daysInMonth[date.getMonth()],", first day: ",firstDay);
-    console.log(week[0],week[1],week[2],week[3],week[4],week[5],week[6]);
+    for (i = 0;i<daysInWeek;) this.addChild(this._dateFields[i++]);
 };
 
 App.CalendarWeekRow.prototype = Object.create(PIXI.Graphics.prototype);
 App.CalendarWeekRow.prototype.constructor = App.CalendarWeekRow;
 
+/**
+ * Render
+ * @private
+ */
+App.CalendarWeekRow.prototype._render = function _render()
+{
+    var rounderRatio = Math.round(this._pixelRatio),
+        daysInWeek = this._week.length / 2,
+        cellWidth = Math.round(this._width / daysInWeek),
+        cellHeight = this.boundingBox.height,
+        textField = null,
+        otherBGStart = -1,
+        otherBGEnd = -1,
+        index = 0,
+        i = 0;
+
+    this.clear();
+    this.beginFill(0xffffff);
+    this.drawRect(0,0,this._width,cellHeight);
+    this.beginFill(0xefefef);
+
+    for (;i<daysInWeek;i++,index+=2)
+    {
+        textField = this._dateFields[i];
+        textField.x = Math.round((i * cellWidth) + (cellWidth - textField.width) / 2 + 1);
+        textField.y = Math.round((cellHeight - textField.height) / 2 + 1);
+
+        if (this._week[index+1])
+        {
+            if (otherBGStart === -1) otherBGStart = i;
+        }
+        else
+        {
+            if (otherBGEnd === -1 && otherBGStart > -1) otherBGEnd = i;
+            if (i) this.drawRect(Math.round(i * cellWidth),0,rounderRatio,cellHeight);
+        }
+    }
+
+    if (otherBGStart > -1)
+    {
+        this.drawRect(
+            otherBGStart ? otherBGStart * cellWidth : 0,
+            0,
+            otherBGEnd === -1 ? this._width : otherBGEnd * cellWidth,
+            cellHeight);
+    }
+
+    this.endFill();
+};
+
 App.Calendar = function Calendar(date,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
-    //console.log(date.getHours(),date.getUTCHours(),date.toTimeString());
-
-    var dayLabelStyle = {font:Math.round(12 * pixelRatio)+"px Arial",fill:"#999999"},//TODO use Arial bold
+    var dayLabelStyle = {font:"bold " + Math.round(12 * pixelRatio)+"px Arial",fill:"#999999"},
         CalendarWeekRow = App.CalendarWeekRow,
-        month = App.DateUtils.getMonth(date,1);
+        Text = PIXI.Text,
+        month = App.DateUtils.getMonth(date,1),
+        dayLabels = App.DateUtils.getDayLabels(1),
+        daysInWeek = dayLabels.length,
+        weeksInMonth = month.length,
+        i = 0;
 
-    this._monthField = new PIXI.Text(date,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
+    this.boundingBox.width = this._width;
+    this.boundingBox.height = Math.round(321 * pixelRatio);
+
+    this._width = width;
+    this._pixelRatio = pixelRatio;
+
+    this._monthField = new PIXI.Text("January 2015",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
     this._prevButton = PIXI.Sprite.fromFrame("arrow");
     this._nextButton = PIXI.Sprite.fromFrame("arrow");
-    this._monLabel = new PIXI.Text("M",dayLabelStyle);
-    this._tueLabel = new PIXI.Text("T",dayLabelStyle);
-    this._wedLabel = new PIXI.Text("W",dayLabelStyle);
-    this._thuLabel = new PIXI.Text("T",dayLabelStyle);
-    this._friLabel = new PIXI.Text("F",dayLabelStyle);
-    this._satLabel = new PIXI.Text("S",dayLabelStyle);
-    this._sunLabel = new PIXI.Text("S",dayLabelStyle);
+    this._dayLabelFields = new Array(daysInWeek);
+    this._weekRows = new Array(weeksInMonth);
+    this._separatorContainer = new PIXI.Graphics();
 
-    this._weekRows = [
-        new CalendarWeekRow(month[0]),
-        new CalendarWeekRow(month[1]),
-        new CalendarWeekRow(month[2]),
-        new CalendarWeekRow(month[3]),
-        new CalendarWeekRow(month[4]),
-        new CalendarWeekRow(month[5])
-    ];
+    for (;i<daysInWeek;i++) this._dayLabelFields[i] = new Text(dayLabels[i],dayLabelStyle);
+
+    for (i = 0;i<weeksInMonth;i++) this._weekRows[i] = new CalendarWeekRow(month[i],width,pixelRatio);
+
+    this._render();
+
+    this.addChild(this._monthField);
+    this.addChild(this._prevButton);
+    this.addChild(this._nextButton);
+    for (i = 0;i<daysInWeek;) this.addChild(this._dayLabelFields[i++]);
+    for (i = 0;i<weeksInMonth;) this.addChild(this._weekRows[i++]);
+    this.addChild(this._separatorContainer);
 };
 
 App.Calendar.prototype = Object.create(PIXI.Graphics.prototype);
 App.Calendar.prototype.constructor = App.Calendar;
+
+/**
+ * Render
+ *
+ * @private
+ */
+App.Calendar.prototype._render = function _render()
+{
+    var r = this._pixelRatio,
+        roundedRatio = Math.round(r),
+        w = this._width,
+        h = this.boundingBox.height,
+        arrowResizeRatio = Math.round(12 * r) / this._prevButton.height,
+        separatorPadding = Math.round(15 * r),
+        separatorWidth = w - separatorPadding * 2,
+        dayLabel = null,
+        daysInWeek = this._dayLabelFields.length,
+        dayLabelWidth = Math.round(w / daysInWeek),
+        dayLabelOffset = Math.round(40 * r),
+        weekRow = this._weekRows[0],
+        weekRowHeight = weekRow.boundingBox.height,
+        weekRowPosition = Math.round(81 * r),
+        l = this._dayLabelFields.length,
+        i = 0;
+
+    this.clear();
+    this.beginFill(0xefefef);
+    this.drawRect(0,0,w,h);
+    this.beginFill(0xcccccc);
+    this.drawRect(0,Math.round(80 * r),w,roundedRatio);
+    this.drawRect(separatorPadding,dayLabelOffset,separatorWidth,roundedRatio);
+    this.beginFill(0xffffff);
+    this.drawRect(separatorPadding,dayLabelOffset+roundedRatio,separatorWidth,roundedRatio);
+    this.endFill();
+
+    this._monthField.x = Math.round((w - this._monthField.width) / 2);
+    this._monthField.y = Math.round((dayLabelOffset - this._monthField.height) / 2);
+
+    this._prevButton.scale.x = arrowResizeRatio;
+    this._prevButton.scale.y = arrowResizeRatio;
+    this._prevButton.x = Math.round(20 * r + this._prevButton.width);
+    this._prevButton.y = Math.round((dayLabelOffset - this._prevButton.height) / 2 + this._prevButton.height);
+    this._prevButton.rotation = Math.PI;
+    this._prevButton.tint = 0x394264;
+
+    this._nextButton.scale.x = arrowResizeRatio;
+    this._nextButton.scale.y = arrowResizeRatio;
+    this._nextButton.x = Math.round(w - 20 * r - this._nextButton.width);
+    this._nextButton.y = Math.round((dayLabelOffset - this._prevButton.height) / 2);
+    this._nextButton.tint = 0x394264;
+
+    for (;i<l;i++)
+    {
+        dayLabel = this._dayLabelFields[i];
+        dayLabel.x = Math.round((i * dayLabelWidth) + (dayLabelWidth - dayLabel.width) / 2);
+        dayLabel.y = Math.round(dayLabelOffset + r + (dayLabelOffset - dayLabel.height) / 2);
+    }
+
+    i = 0;
+    l = this._weekRows.length;
+
+    this._separatorContainer.clear();
+    this._separatorContainer.beginFill(0xefefef,1.0);
+
+    for (;i<l;i++)
+    {
+        weekRow = this._weekRows[i];
+        weekRow.y = weekRowPosition + i * weekRowHeight;
+
+        this._separatorContainer.drawRect(0,weekRow.y + weekRowHeight,w,roundedRatio);
+    }
+
+    this._separatorContainer.endFill();
+};
 
 /**
  * @class Pane
@@ -2980,8 +3128,7 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
     App.Screen.call(this,model,layout,0.4);
 
     var pixelRatio = layout.pixelRatio,
-        w = layout.width,
-        date = new Date(2014,10);
+        w = layout.width;
 
     this._inputBackground = new PIXI.Graphics();
     //TODO also make sure only numeric keyboard shows up
@@ -2995,7 +3142,7 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
         pixelRatio
     );
     this._header = new App.ListHeader("Select Date",w,pixelRatio);
-    this._calendar = new App.Calendar(date,w,pixelRatio);
+    this._calendar = new App.Calendar(new Date(),w,pixelRatio);
 
     //TODO also add overlay to receive click to blur input's focus
 

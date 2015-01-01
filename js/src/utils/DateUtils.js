@@ -1,13 +1,30 @@
-/** @type {{daysInMonth:Array.<number>,getMonth:Function,getDaysInMonth:Function}} */
+/** @type {{_daysInMonth:Array.<number>,_dayLabels:Array.<string>,getMonth:Function,getDaysInMonth:Function}} */
 App.DateUtils = {
-    daysInMonth:[31,28,31,30,31,30,31,31,30,31,30,31],
+    _daysInMonth:[31,28,31,30,31,30,31,31,30,31,30,31],
+    _dayLabels:["S","M","T","W","T","F","S"],
+
+    /**
+     * Return array of day labels in order from start of week passed in
+     * @param {number} startOfWeek
+     * @return {Array.<string>}
+     */
+    getDayLabels:function getDayLabels(startOfWeek)
+    {
+        var i = startOfWeek;
+        while (i)
+        {
+            this._dayLabels.push(this._dayLabels.shift());
+            i--;
+        }
+        return this._dayLabels;
+    },
 
     /**
      * Calculate and generate all days in a month, based on starting day of a week passed in
      * Returns 2-dimensional array, where rows are weeks, and columns particular days in a week
      * @param {Date} date
      * @param {number} startOfWeek 0 = Sunday, 1 = Monday, ... , 6 = Saturday
-     * @return {Array.<Array.<number>>}
+     * @return {Array.<Array.<number>>} Days in Week array is twice as long, as the second offsetting number indicate if the day belongs to other month(1) or not(0)
      */
     getMonth:function getMonth(date,startOfWeek)
     {
@@ -19,11 +36,14 @@ App.DateUtils = {
             daysInPreviousMonth = this.getDaysInMonth(year,previousMonth),
             firstDayOfMonth = new Date(1900+year,currentMonth,1).getDay(),
             weeks = new Array(6),
-            days = null;
+            days = null,
+            otherMonth = 1;
 
         // Loop through 6 weeks
         for (var i = 0;i<6;i++)
         {
+            otherMonth = i ? 0 : 1;
+
             // if first day of week is not start of a week, calculate the previous days in week from previous month end
             if (i === 0 && firstDayOfMonth !== startOfWeek)
             {
@@ -33,18 +53,32 @@ App.DateUtils = {
             {
                 firstDateOfWeek = i * 7 - (firstDayOfMonth - 1 - startOfWeek);
 
-                if (firstDateOfWeek > daysInCurrentMonth) firstDateOfWeek = firstDateOfWeek - daysInCurrentMonth;
+                if (firstDateOfWeek > daysInCurrentMonth)
+                {
+                    firstDateOfWeek = firstDateOfWeek - daysInCurrentMonth;
+                    otherMonth = 1;
+                }
             }
 
-            days = new Array(7);
+            days = new Array(7*2);
 
             // Loop through 7 days of a week
-            for (var j = 0;j<7;j++)
+            for (var j = 0;j<7*2;j++)
             {
-                if (firstDateOfWeek > daysInPreviousMonth && i === 0) firstDateOfWeek = 1;
-                else if (firstDateOfWeek > daysInCurrentMonth && i > 0) firstDateOfWeek = 1;
+                if (firstDateOfWeek > daysInPreviousMonth && i === 0)
+                {
+                    firstDateOfWeek = 1;
+                    otherMonth = 0;
+                }
 
-                days[j] = firstDateOfWeek++;
+                if (firstDateOfWeek > daysInCurrentMonth && i > 0)
+                {
+                    firstDateOfWeek = 1;
+                    otherMonth = 1;
+                }
+
+                days[j++] = firstDateOfWeek++;
+                days[j] = otherMonth;
             }
 
             weeks[i] = days;
@@ -62,6 +96,6 @@ App.DateUtils = {
      */
     getDaysInMonth:function getDaysInMonth(year,month)
     {
-        return (month === 1 && year % 4 === 0) ? 29 : this.daysInMonth[month];
+        return (month === 1 && year % 4 === 0) ? 29 : this._daysInMonth[month];
     }
 };

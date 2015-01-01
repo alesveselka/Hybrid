@@ -1,49 +1,78 @@
-App.CalendarWeekRow = function CalendarWeekRow(week)
+App.CalendarWeekRow = function CalendarWeekRow(week,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
-    /*var daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31],
-        firstDayInWeek = 1,
-        days = new Array(7),
-        START_OF_WEEK = 3;
+    var textStyle = {font:Math.round(14 * pixelRatio)+"px HelveticaNeueCond",fill:"#cccccc"},
+        daysInWeek = week.length / 2,
+        Text = PIXI.Text,
+        index = 0,
+        i = 0;
 
-    if (date.getYear() % 4 === 0) daysInMonth[1] = 29;
+    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
+    this.boundingBox.width = this._width;
+    this.boundingBox.height = Math.round(40 * pixelRatio);
 
-    // if first day of week is not Monday, calculate the previous days in week from previous month end
-    if (firstDay !== START_OF_WEEK && week === 0)
-    {
-        var previousMonthDays = date.getMonth() ? daysInMonth[date.getMonth()-1] : daysInMonth[daysInMonth.length-1];
+    this._week = week;
+    this._width = width;
+    this._pixelRatio = pixelRatio;
+    this._dateFields = new Array(7);
 
-        firstDayInWeek = (previousMonthDays - firstDay + 1 + START_OF_WEEK);
-    }
-    else
-    {
-        firstDayInWeek = week * 7 - (firstDay - 1 - START_OF_WEEK);
+    for (;i<daysInWeek;i++,index+=2) this._dateFields[i] = new Text(week[index],textStyle);
 
-        if (firstDayInWeek > daysInMonth[date.getMonth()]) firstDayInWeek = firstDayInWeek - daysInMonth[date.getMonth()];
-    }
+    this._render();
 
-    console.log("firstDayInWeek ",firstDayInWeek);
-
-    for (var i = 0;i<7;i++)
-    {
-        if (firstDayInWeek > daysInMonth[date.getMonth()-1] && week === 0)
-        {
-//            console.log("first week exceeded");
-            firstDayInWeek = 1;
-        }
-        if (firstDayInWeek > daysInMonth[date.getMonth()] && week > 0)
-        {
-//            console.log("last week exceeded");
-            firstDayInWeek = 1;
-        }
-
-        days[i] = firstDayInWeek++;
-    }*/
-
-    //console.log("#of days: ",daysInMonth[date.getMonth()],", first day: ",firstDay);
-    console.log(week[0],week[1],week[2],week[3],week[4],week[5],week[6]);
+    for (i = 0;i<daysInWeek;) this.addChild(this._dateFields[i++]);
 };
 
 App.CalendarWeekRow.prototype = Object.create(PIXI.Graphics.prototype);
 App.CalendarWeekRow.prototype.constructor = App.CalendarWeekRow;
+
+/**
+ * Render
+ * @private
+ */
+App.CalendarWeekRow.prototype._render = function _render()
+{
+    var rounderRatio = Math.round(this._pixelRatio),
+        daysInWeek = this._week.length / 2,
+        cellWidth = Math.round(this._width / daysInWeek),
+        cellHeight = this.boundingBox.height,
+        textField = null,
+        otherBGStart = -1,
+        otherBGEnd = -1,
+        index = 0,
+        i = 0;
+
+    this.clear();
+    this.beginFill(0xffffff);
+    this.drawRect(0,0,this._width,cellHeight);
+    this.beginFill(0xefefef);
+
+    for (;i<daysInWeek;i++,index+=2)
+    {
+        textField = this._dateFields[i];
+        textField.x = Math.round((i * cellWidth) + (cellWidth - textField.width) / 2 + 1);
+        textField.y = Math.round((cellHeight - textField.height) / 2 + 1);
+
+        if (this._week[index+1])
+        {
+            if (otherBGStart === -1) otherBGStart = i;
+        }
+        else
+        {
+            if (otherBGEnd === -1 && otherBGStart > -1) otherBGEnd = i;
+            if (i) this.drawRect(Math.round(i * cellWidth),0,rounderRatio,cellHeight);
+        }
+    }
+
+    if (otherBGStart > -1)
+    {
+        this.drawRect(
+            otherBGStart ? otherBGStart * cellWidth : 0,
+            0,
+            otherBGEnd === -1 ? this._width : otherBGEnd * cellWidth,
+            cellHeight);
+    }
+
+    this.endFill();
+};
