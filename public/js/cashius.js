@@ -127,7 +127,7 @@ App.DateUtils = {
      * Returns 2-dimensional array, where rows are weeks, and columns particular days in a week
      * @param {Date} date
      * @param {number} startOfWeek 0 = Sunday, 1 = Monday, ... , 6 = Saturday
-     * @return {Array.<Array.<number>>} Days in Week array is twice as long, as the second offsetting number indicate if the day belongs to current month or now
+     * @return {Array.<Array.<number>>} Days in Week array is twice as long, as the second offsetting number indicate if the day belongs to other month(1) or not(0)
      */
     getMonth:function getMonth(date,startOfWeek)
     {
@@ -162,6 +162,8 @@ App.DateUtils = {
                     otherMonth = 1;
                 }
             }
+
+            if (firstDateOfWeek === 1 && i === 0) otherMonth = 0;
 
             days = new Array(7*2);
 
@@ -373,27 +375,6 @@ App.ScreenName = {
     ACCOUNT:0,
     CATEGORY:1,
     SELECT_TIME:2
-};
-
-/**
- * Align
- * @enum {string}
- * @return {{LEFT:string,RIGHT:string,CENTER:string}}
- */
-App.Align = {
-    LEFT:"LEFT",
-    RIGHT:"RIGHT",
-    CENTER:"CENTER"
-};
-
-/**
- * InputType
- * @enum {number}
- * @return {{STRING:number,NUMBER:number}}
- */
-App.InputType = {
-    STRING:1,
-    NUMBER:2
 };
 
 /**
@@ -1305,8 +1286,6 @@ App.ScrollIndicator.prototype.destroy = function destroy()
  * @class Input
  * @extends Graphics
  * @param {string} placeholder
- * @param {number} type
- * @param {string} align
  * @param {number} fontSize
  * @param {number} width
  * @param {number} height
@@ -1314,14 +1293,12 @@ App.ScrollIndicator.prototype.destroy = function destroy()
  * @param {boolean} displayIcon
  * @constructor
  */
-App.Input = function Input(placeholder,type,align,fontSize,width,height,pixelRatio,displayIcon)
+App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayIcon)
 {
     PIXI.Graphics.call(this);
 
     var fontStyle = Math.round(fontSize * pixelRatio)+"px HelveticaNeueCond";
 
-    this._type = type;
-    this._align = align;
     this._fontSize = fontSize;
     this._width = width;
     this._height = height;
@@ -1331,11 +1308,11 @@ App.Input = function Input(placeholder,type,align,fontSize,width,height,pixelRat
     this._placeholder = placeholder;
     this._placeholderStyle = {font:fontStyle,fill:"#efefef"};
     this._currentStyle = this._placeholderStyle;
-    this._textStyle = {font:fontStyle,fill:"#394264"};
+    this._textStyle = {font:fontStyle,fill:"#394264"};//TODO remove hard-coded values?
 
     this._text = "";
     this._textField = new PIXI.Text(this._placeholder,this._currentStyle);
-    this._inputProxy = document.getElementById("inputProxy");
+    this._inputProxy = document.getElementById("textInputProxy");
     this._inputProxyListeners = {
         focus:this._onFocus.bind(this),
         blur:this._onBlur.bind(this),
@@ -1360,15 +1337,10 @@ App.Input.prototype._render = function _render()
 {
     var r = this._pixelRatio;
 
-    this.clear();
-    this.beginFill(0xcccccc);
-    this.drawRoundedRect(0,0,this._width,this._height,Math.round(5 * r));
-    this.beginFill(0xffffff);
-    this.drawRoundedRect(Math.round(r),Math.round(r),this._width-Math.round(2 * r),this._height-Math.round(2 * r),Math.round(5 * r));
-    this.endFill();
+    this._renderBackground(false,r);
 
     this._textField.x = Math.round(10 * r);
-    this._textField.y = Math.round(10 * r);
+    this._textField.y = Math.round(9 * r);
 
     if (this._icon)
     {
@@ -1378,6 +1350,22 @@ App.Input.prototype._render = function _render()
         this._icon.y = Math.round((this._height - this._icon.height) / 2);
         this._icon.tint = 0xdddddd;
     }
+};
+
+/**
+ * Highlight focused input
+ * @param {boolean} highlight
+ * @param {number} r pixelRatio
+ * @private
+ */
+App.Input.prototype._renderBackground = function _renderBackground(highlight,r)
+{
+    this.clear();
+    this.beginFill(highlight ? 0x0099ff : 0xcccccc);
+    this.drawRoundedRect(0,0,this._width,this._height,Math.round(5 * r));
+    this.beginFill(0xffffff);
+    this.drawRoundedRect(Math.round(r),Math.round(r),this._width-Math.round(2 * r),this._height-Math.round(2 * r),Math.round(4 * r));
+    this.endFill();
 };
 
 /**
@@ -1471,13 +1459,15 @@ App.Input.prototype._onClick = function _onClick(data)
  */
 App.Input.prototype._onFocus = function _onFocus()
 {
-    var r = this._pixelRatio,
-        x = Math.round(this.x / r);
+    var r = this._pixelRatio;
+
+    this._renderBackground(true,r);
 
     this._inputProxy.style.display = "none";
-    this._inputProxy.style.left = x +"px";
+    this._inputProxy.style.left = Math.round(this.x / r) +"px";
     this._inputProxy.style.top = Math.round(this.y / r) + "px";
-    this._inputProxy.style.width = Math.round((this._width / 2) - x) + "px";
+    this._inputProxy.style.width = Math.round((this._width / r) - 0) + "px";
+    this._inputProxy.style.height = Math.round(this._height / r) + "px";
     this._inputProxy.style.fontSize = this._fontSize + "px";
     this._inputProxy.style.lineHeight = this._fontSize + "px";
     this._inputProxy.value = this._text;
@@ -1490,8 +1480,12 @@ App.Input.prototype._onFocus = function _onFocus()
  */
 App.Input.prototype._onBlur = function _onBlur()
 {
+    this._updateText(true);
+
     this._inputProxy.style.top = "-1000px";
     this._inputProxy.value = "";
+
+    this._renderBackground(false,this._pixelRatio);
 };
 
 /**
@@ -1501,7 +1495,20 @@ App.Input.prototype._onBlur = function _onBlur()
  */
 App.Input.prototype._onChange = function _onChange(e)
 {
-    this._text = this._inputProxy.value;
+    this._updateText(false);
+
+    // If RETURN is hit, remove focus
+    if (e && e.keyCode === 13) this._inputProxy.blur();
+};
+
+/**
+ * Update text
+ * @param {boolean} [finish=false]
+ * @private
+ */
+App.Input.prototype._updateText = function _updateText(finish)
+{
+    this._text = this._format(finish);
 
     if (this._text === this._placeholder || this._text.length === 0)
     {
@@ -1523,9 +1530,115 @@ App.Input.prototype._onChange = function _onChange(e)
 
         this._textField.setText(this._text);
     }
+};
 
-    // If RETURN is hit, remove focus
-    if (e && e.keyCode === 13) this._inputProxy.blur();
+/**
+ * Format the text input
+ * @param {boolean} [finish=false]
+ * @private
+ */
+App.Input.prototype._format = function _format(finish)
+{
+    return this._inputProxy.value;
+};
+
+/**
+ * @class TimeInput
+ * @extends Input
+ * @param {string} placeholder
+ * @param {number} fontSize
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @param {boolean} displayIcon
+ * @constructor
+ */
+App.TimeInput = function TimeInput(placeholder,fontSize,width,height,pixelRatio,displayIcon)
+{
+    App.Input.call(this,placeholder,fontSize,width,height,pixelRatio,displayIcon);
+
+    this._inputProxy = document.getElementById("numberInputProxy");
+};
+
+App.TimeInput.prototype = Object.create(App.Input.prototype);
+App.TimeInput.prototype.constructor = App.TimeInput;
+
+/**
+ * Render
+ * @private
+ */
+App.TimeInput.prototype._render = function _render()
+{
+    var r = this._pixelRatio;
+
+    this._renderBackground(false,r);
+
+    this._updateAlignment();
+
+    this._textField.y = Math.round(9 * r);
+};
+
+/**
+ * Update text
+ * @param {boolean} [finish=false]
+ * @private
+ */
+App.TimeInput.prototype._updateText = function _updateText(finish)
+{
+    App.Input.prototype._updateText.call(this,finish);
+
+    this._updateAlignment();
+};
+
+/**
+ * Format the text input
+ * @param {boolean} [finish=false]
+ * @private
+ */
+App.TimeInput.prototype._format = function _format(finish)
+{
+    if (this._inputProxy.value.length === 0) return "";
+
+    var nValue = parseInt(this._inputProxy.value.replace(/\D/g,"")),
+        sValue = nValue.toString(),
+        hours = sValue.substr(0,2),
+        minutes = sValue.substr(2,2);
+
+    if (isNaN(nValue))
+    {
+        sValue = "";
+    }
+    else
+    {
+        if (hours.length === 1 && parseInt(hours) > 2) hours = "2";
+        else if (hours.length === 2 && parseInt(hours) > 24) hours = "24";
+        else if (minutes.length === 1 && parseInt(minutes) > 5) minutes = "5";
+        else if (minutes.length >= 2 && parseInt(minutes) > 59) minutes = "59";
+
+        if (finish)
+        {
+            if (hours.length === 1) hours += "0";
+
+            if (minutes.length === 0) minutes += "00";
+            else if (minutes.length === 1) minutes += "0";
+        }
+
+        if (minutes.length > 0) sValue = hours + ":" + minutes;
+        else sValue = hours;
+    }
+
+    this._inputProxy.value = sValue;
+
+    return sValue;
+};
+
+/**
+ * Update text's alignment
+ * @private
+ */
+App.TimeInput.prototype._updateAlignment = function _updateAlignment()
+{
+    this._textField.x = Math.round((this._width - this._textField.width) / 2);
 };
 
 App.CalendarWeekRow = function CalendarWeekRow(week,width,pixelRatio)
@@ -1688,18 +1801,19 @@ App.Calendar.prototype._render = function _render()
     this._monthField.x = Math.round((w - this._monthField.width) / 2);
     this._monthField.y = Math.round((dayLabelOffset - this._monthField.height) / 2);
 
+    //TODO also implement double-arrows for navigating years directly? See TOS
     this._prevButton.scale.x = arrowResizeRatio;
     this._prevButton.scale.y = arrowResizeRatio;
     this._prevButton.x = Math.round(20 * r + this._prevButton.width);
     this._prevButton.y = Math.round((dayLabelOffset - this._prevButton.height) / 2 + this._prevButton.height);
     this._prevButton.rotation = Math.PI;
-    this._prevButton.tint = 0x394264;
+    this._prevButton.tint = 0x394264;// TODO pass color from global setting?
 
     this._nextButton.scale.x = arrowResizeRatio;
     this._nextButton.scale.y = arrowResizeRatio;
     this._nextButton.x = Math.round(w - 20 * r - this._nextButton.width);
     this._nextButton.y = Math.round((dayLabelOffset - this._prevButton.height) / 2);
-    this._nextButton.tint = 0x394264;
+    this._nextButton.tint = 0x394264;// TODO pass color from global setting?
 
     for (;i<l;i++)
     {
@@ -3132,10 +3246,8 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
 
     this._inputBackground = new PIXI.Graphics();
     //TODO also make sure only numeric keyboard shows up
-    this._input = new App.Input(
+    this._input = new App.TimeInput(
         "00:00",
-        App.InputType.NUMBER,//TODO add 'TIME' type?
-        App.Align.CENTER,
         30,
         w - Math.round(20 * pixelRatio),
         Math.round(40 * pixelRatio),

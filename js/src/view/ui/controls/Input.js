@@ -2,8 +2,6 @@
  * @class Input
  * @extends Graphics
  * @param {string} placeholder
- * @param {number} type
- * @param {string} align
  * @param {number} fontSize
  * @param {number} width
  * @param {number} height
@@ -11,14 +9,12 @@
  * @param {boolean} displayIcon
  * @constructor
  */
-App.Input = function Input(placeholder,type,align,fontSize,width,height,pixelRatio,displayIcon)
+App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayIcon)
 {
     PIXI.Graphics.call(this);
 
     var fontStyle = Math.round(fontSize * pixelRatio)+"px HelveticaNeueCond";
 
-    this._type = type;
-    this._align = align;
     this._fontSize = fontSize;
     this._width = width;
     this._height = height;
@@ -28,11 +24,11 @@ App.Input = function Input(placeholder,type,align,fontSize,width,height,pixelRat
     this._placeholder = placeholder;
     this._placeholderStyle = {font:fontStyle,fill:"#efefef"};
     this._currentStyle = this._placeholderStyle;
-    this._textStyle = {font:fontStyle,fill:"#394264"};
+    this._textStyle = {font:fontStyle,fill:"#394264"};//TODO remove hard-coded values?
 
     this._text = "";
     this._textField = new PIXI.Text(this._placeholder,this._currentStyle);
-    this._inputProxy = document.getElementById("inputProxy");
+    this._inputProxy = document.getElementById("textInputProxy");
     this._inputProxyListeners = {
         focus:this._onFocus.bind(this),
         blur:this._onBlur.bind(this),
@@ -57,15 +53,10 @@ App.Input.prototype._render = function _render()
 {
     var r = this._pixelRatio;
 
-    this.clear();
-    this.beginFill(0xcccccc);
-    this.drawRoundedRect(0,0,this._width,this._height,Math.round(5 * r));
-    this.beginFill(0xffffff);
-    this.drawRoundedRect(Math.round(r),Math.round(r),this._width-Math.round(2 * r),this._height-Math.round(2 * r),Math.round(5 * r));
-    this.endFill();
+    this._renderBackground(false,r);
 
     this._textField.x = Math.round(10 * r);
-    this._textField.y = Math.round(10 * r);
+    this._textField.y = Math.round(9 * r);
 
     if (this._icon)
     {
@@ -75,6 +66,22 @@ App.Input.prototype._render = function _render()
         this._icon.y = Math.round((this._height - this._icon.height) / 2);
         this._icon.tint = 0xdddddd;
     }
+};
+
+/**
+ * Highlight focused input
+ * @param {boolean} highlight
+ * @param {number} r pixelRatio
+ * @private
+ */
+App.Input.prototype._renderBackground = function _renderBackground(highlight,r)
+{
+    this.clear();
+    this.beginFill(highlight ? 0x0099ff : 0xcccccc);
+    this.drawRoundedRect(0,0,this._width,this._height,Math.round(5 * r));
+    this.beginFill(0xffffff);
+    this.drawRoundedRect(Math.round(r),Math.round(r),this._width-Math.round(2 * r),this._height-Math.round(2 * r),Math.round(4 * r));
+    this.endFill();
 };
 
 /**
@@ -168,13 +175,15 @@ App.Input.prototype._onClick = function _onClick(data)
  */
 App.Input.prototype._onFocus = function _onFocus()
 {
-    var r = this._pixelRatio,
-        x = Math.round(this.x / r);
+    var r = this._pixelRatio;
+
+    this._renderBackground(true,r);
 
     this._inputProxy.style.display = "none";
-    this._inputProxy.style.left = x +"px";
+    this._inputProxy.style.left = Math.round(this.x / r) +"px";
     this._inputProxy.style.top = Math.round(this.y / r) + "px";
-    this._inputProxy.style.width = Math.round((this._width / 2) - x) + "px";
+    this._inputProxy.style.width = Math.round((this._width / r) - 0) + "px";
+    this._inputProxy.style.height = Math.round(this._height / r) + "px";
     this._inputProxy.style.fontSize = this._fontSize + "px";
     this._inputProxy.style.lineHeight = this._fontSize + "px";
     this._inputProxy.value = this._text;
@@ -187,8 +196,12 @@ App.Input.prototype._onFocus = function _onFocus()
  */
 App.Input.prototype._onBlur = function _onBlur()
 {
+    this._updateText(true);
+
     this._inputProxy.style.top = "-1000px";
     this._inputProxy.value = "";
+
+    this._renderBackground(false,this._pixelRatio);
 };
 
 /**
@@ -198,7 +211,20 @@ App.Input.prototype._onBlur = function _onBlur()
  */
 App.Input.prototype._onChange = function _onChange(e)
 {
-    this._text = this._inputProxy.value;
+    this._updateText(false);
+
+    // If RETURN is hit, remove focus
+    if (e && e.keyCode === 13) this._inputProxy.blur();
+};
+
+/**
+ * Update text
+ * @param {boolean} [finish=false]
+ * @private
+ */
+App.Input.prototype._updateText = function _updateText(finish)
+{
+    this._text = this._format(finish);
 
     if (this._text === this._placeholder || this._text.length === 0)
     {
@@ -220,7 +246,14 @@ App.Input.prototype._onChange = function _onChange(e)
 
         this._textField.setText(this._text);
     }
+};
 
-    // If RETURN is hit, remove focus
-    if (e && e.keyCode === 13) this._inputProxy.blur();
+/**
+ * Format the text input
+ * @param {boolean} [finish=false]
+ * @private
+ */
+App.Input.prototype._format = function _format(finish)
+{
+    return this._inputProxy.value;
 };

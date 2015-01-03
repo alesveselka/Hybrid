@@ -7,10 +7,8 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
 
     this._inputBackground = new PIXI.Graphics();
     //TODO also make sure only numeric keyboard shows up
-    this._input = new App.Input(
+    this._input = new App.TimeInput(
         "00:00",
-        App.InputType.NUMBER,//TODO add 'TIME' type?
-        App.Align.CENTER,
         30,
         w - Math.round(20 * pixelRatio),
         Math.round(40 * pixelRatio),

@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Cashius</title>
-    <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, target-densitydpi=device-dpi">
+    <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, target-densitydpi=device-dpi">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
@@ -30,7 +30,7 @@
             position: absolute;
             top: -1000px;
         }
-        #inputProxy {
+        .inputProxy {
             position: absolute;
             top: -1000px;
             -webkit-box-sizing: border-box;
@@ -40,21 +40,28 @@
             -moz-box-shadow: none;
             box-shadow: none;
             -webkit-appearance : none;
-            padding: 6px 0 0 10px;
+            padding: 6px 10px 0 10px;
             line-height: 24px;
             font-size: 24px;
             font-family: HelveticaNeueCond, Arial, sans-serif;
             color: transparent;
             background-color: transparent;
             border: none;
+            outline: none;
             -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #numberInputProxy {
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <span id="fontInfo" style="position:absolute; top:-1000px; font-family: Arial, sans-serif; border:1px solid #000000; display: inline-block; visibility: visible; font-size: 250px;">QW@HhsXJ</span>
-    <input id="inputProxy" type="text" autocapitalize="off" autocorrect="off" />
     <canvas></canvas>
+    <input id="textInputProxy" class="inputProxy" type="text" autocapitalize="off" autocorrect="off" />
+    <input id="numberInputProxy" class="inputProxy" type="tel" autocapitalize="off" autocorrect="off" />
     <script type="text/javascript" src="./js/pixi.dev.js"></script>
     <script type="text/javascript" src="./js/cashius.js"></script>
 </body>

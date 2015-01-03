@@ -60,6 +60,8 @@ App.DateUtils = {
                 }
             }
 
+            if (firstDateOfWeek === 1 && i === 0) otherMonth = 0;
+
             days = new Array(7*2);
 
             // Loop through 7 days of a week
