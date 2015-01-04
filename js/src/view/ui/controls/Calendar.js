@@ -1,3 +1,11 @@
+/**
+ * @class Calendar
+ * @extend Graphic
+ * @param {Date} date
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
 App.Calendar = function Calendar(date,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
@@ -5,8 +13,10 @@ App.Calendar = function Calendar(date,width,pixelRatio)
     var dayLabelStyle = {font:"bold " + Math.round(12 * pixelRatio)+"px Arial",fill:"#999999"},
         CalendarWeekRow = App.CalendarWeekRow,
         Text = PIXI.Text,
-        month = App.DateUtils.getMonth(date,1),
-        dayLabels = App.DateUtils.getDayLabels(1),
+        DateUtils = App.DateUtils,
+        month = DateUtils.getMonth(date,1),//TODO remove hard-coded value
+        dayLabels = DateUtils.getDayLabels(1),//TODO remove hard-coded value
+        currentDay = date.getDate(),
         daysInWeek = dayLabels.length,
         weeksInMonth = month.length,
         i = 0;
@@ -17,6 +27,8 @@ App.Calendar = function Calendar(date,width,pixelRatio)
 
     this._width = width;
     this._pixelRatio = pixelRatio;
+    this._enabled = false;
+    this._weekRowPosition = Math.round(81 * pixelRatio);
 
     this._monthField = new PIXI.Text("January 2015",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
     this._prevButton = PIXI.Sprite.fromFrame("arrow");
@@ -27,7 +39,7 @@ App.Calendar = function Calendar(date,width,pixelRatio)
 
     for (;i<daysInWeek;i++) this._dayLabelFields[i] = new Text(dayLabels[i],dayLabelStyle);
 
-    for (i = 0;i<weeksInMonth;i++) this._weekRows[i] = new CalendarWeekRow(month[i],width,pixelRatio);
+    for (i = 0;i<weeksInMonth;i++) this._weekRows[i] = new CalendarWeekRow(month[i],currentDay,width,pixelRatio);
 
     this._render();
 
@@ -62,7 +74,6 @@ App.Calendar.prototype._render = function _render()
         dayLabelOffset = Math.round(40 * r),
         weekRow = this._weekRows[0],
         weekRowHeight = weekRow.boundingBox.height,
-        weekRowPosition = Math.round(81 * r),
         l = this._dayLabelFields.length,
         i = 0;
 
@@ -109,10 +120,89 @@ App.Calendar.prototype._render = function _render()
     for (;i<l;i++)
     {
         weekRow = this._weekRows[i];
-        weekRow.y = weekRowPosition + i * weekRowHeight;
+        weekRow.y = this._weekRowPosition + i * weekRowHeight;
 
         this._separatorContainer.drawRect(0,weekRow.y + weekRowHeight,w,roundedRatio);
     }
 
     this._separatorContainer.endFill();
+};
+
+/**
+ * Enable
+ */
+App.Calendar.prototype.enable = function enable()
+{
+    if (!this._enabled)
+    {
+        this._enabled = true;
+
+        this._registerEventListeners();
+
+        this.interactive = true;
+    }
+};
+
+/**
+ * Disable
+ */
+App.Calendar.prototype.disable = function disable()
+{
+    this._unRegisterEventListeners();
+
+    this.interactive = false;
+
+    this._enabled = false;
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.Calendar.prototype._registerEventListeners = function _registerEventListeners()
+{
+    if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
+    else this.click = this._onClick;
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.Calendar.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    if (App.Device.TOUCH_SUPPORTED) this.tap = null;
+    else this.click = null;
+};
+
+/**
+ * On click
+ * @param {InteractionData} data
+ * @private
+ */
+App.Calendar.prototype._onClick = function _onClick(data)
+{
+    var position = data.getLocalPosition(this);
+
+    if (position.y >= this._weekRowPosition) this._selectDay(position);
+};
+
+/**
+ * Return week row under point passed in
+ * @param {Point} position
+ * @private
+ */
+App.Calendar.prototype._selectDay = function _selectDay(position)
+{
+    var i = 0,
+        l = this._weekRows.length,
+        y = position.y,
+        weekRowHeight = this._weekRows[0].boundingBox.height,
+        weekRow = null;
+
+    for (;i<l;i++)
+    {
+        weekRow = this._weekRows[i];
+        weekRow.updateSelection(weekRow.y <= y && weekRow.y + weekRowHeight > y,position.x);
+    }
 };

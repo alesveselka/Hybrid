@@ -1379,7 +1379,7 @@ App.Input.prototype.enable = function enable()
 
         this._registerEventListeners();
 
-        this.interactive = true;//TODO do I need this?
+        this.interactive = true;
     }
 };
 
@@ -1641,11 +1641,20 @@ App.TimeInput.prototype._updateAlignment = function _updateAlignment()
     this._textField.x = Math.round((this._width - this._textField.width) / 2);
 };
 
-App.CalendarWeekRow = function CalendarWeekRow(week,width,pixelRatio)
+/**
+ * @class CalendarWeekRow
+ * @extend Graphics
+ * @param {Array.<number>} week
+ * @param {number} currentDay
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.CalendarWeekRow = function CalendarWeekRow(week,currentDay,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
-    var textStyle = {font:Math.round(14 * pixelRatio)+"px HelveticaNeueCond",fill:"#cccccc"},
+    var fontStyle = Math.round(14 * pixelRatio)+"px HelveticaNeueCond",
         daysInWeek = week.length / 2,
         Text = PIXI.Text,
         index = 0,
@@ -1658,12 +1667,21 @@ App.CalendarWeekRow = function CalendarWeekRow(week,width,pixelRatio)
     this._week = week;
     this._width = width;
     this._pixelRatio = pixelRatio;
-    this._dateFields = new Array(7);
 
-    for (;i<daysInWeek;i++,index+=2) this._dateFields[i] = new Text(week[index],textStyle);
+    this._textStyle = {font:fontStyle,fill:"#cccccc"};
+    this._selectedStyle = {font:fontStyle,fill:"#ffffff"};
+    this._dateFields = new Array(7);
+    this._selectedDayIndex = -1;
+    this._highlightBackground = new PIXI.Graphics();
+
+    for (;i<daysInWeek;i++,index+=2) this._dateFields[i] = new Text(week[index],this._textStyle);
 
     this._render();
 
+    var dayToHighlight = this._getDayByDate(currentDay);
+    if (dayToHighlight && !dayToHighlight.otherMonth) this._selectDay(dayToHighlight);
+
+    this.addChild(this._highlightBackground);
     for (i = 0;i<daysInWeek;) this.addChild(this._dateFields[i++]);
 };
 
@@ -1708,6 +1726,7 @@ App.CalendarWeekRow.prototype._render = function _render()
         }
     }
 
+    // Highlight days from other months
     if (otherBGStart > -1)
     {
         this.drawRect(
@@ -1718,8 +1737,115 @@ App.CalendarWeekRow.prototype._render = function _render()
     }
 
     this.endFill();
+
+    this._highlightBackground.clear();
+    this._highlightBackground.beginFill(0x394264);
+    this._highlightBackground.drawRect(0,0,cellWidth-rounderRatio,cellHeight);
+    this._highlightBackground.endFill();
+    this._highlightBackground.alpha = 0.0;
 };
 
+/**
+ * Find and return day by date passed in
+ * @param {number} day
+ * @returns {{day:number,otherMonth:number,index:number}} position
+ */
+App.CalendarWeekRow.prototype._getDayByDate = function _getDayByDate(day)
+{
+    var index = 0,
+        i = 0,
+        l = this._week.length / 2,
+        dayInWeek = -1;
+
+    for (;i<l;i++,index+=2)
+    {
+        dayInWeek = this._week[index];
+        if (dayInWeek === day) return {day:dayInWeek,otherMonth:this._week[index+1],index:i};
+    }
+    return null;
+};
+
+/**
+ * Find and return day by position passed in
+ * @param {number} position
+ * @returns {{day:number,otherMonth:number,index:number}} position
+ */
+App.CalendarWeekRow.prototype._getDayByPosition = function _getDayByPosition(position)
+{
+    var index = 0,
+        i = 0,
+        l = this._week.length / 2,
+        cellWidth = Math.round(this._width / l);
+
+    for (;i<l;i++,index+=2)
+    {
+        if (position >= i * cellWidth && position <= i * cellWidth + cellWidth)
+        {
+            return {day:this._week[index],otherMonth:this._week[index+1],index:i};
+        }
+    }
+    return null;
+};
+
+/**
+ * Select day
+ * @param {{day:number,otherMonth:number,index:number}} day
+ * @private
+ */
+App.CalendarWeekRow.prototype._selectDay = function _selectDay(day)
+{
+    this._highlightBackground.x = day.index * Math.round(this._width / (this._week.length / 2)) + Math.round(this._pixelRatio);
+    this._highlightBackground.alpha = 1.0;
+
+    if (this._selectedDayIndex > -1) this._dateFields[this._selectedDayIndex].setStyle(this._textStyle);
+
+    this._selectedDayIndex = day.index;
+    this._dateFields[this._selectedDayIndex].setStyle(this._selectedStyle);
+};
+
+/**
+ * Deselect day
+ * @private
+ */
+App.CalendarWeekRow.prototype._deselectDay = function _deselectDay()
+{
+    if (this._selectedDayIndex > -1)
+    {
+        this._dateFields[this._selectedDayIndex].setStyle(this._textStyle);
+
+        this._selectedDayIndex = -1;
+    }
+
+    this._highlightBackground.alpha = 0.0;
+};
+
+/**
+ * Update selection
+ * @param {boolean} selected
+ * @param {number} position position of day cell that should be selected
+ */
+App.CalendarWeekRow.prototype.updateSelection = function updateSelection(selected,position)
+{
+    if (selected)
+    {
+        var day = this._getDayByPosition(position);
+        if (day) this._selectDay(day);
+        else this._deselectDay();
+    }
+    else
+    {
+        this._deselectDay();
+    }
+};
+
+/**
+ * @class Calendar
+ * @extend Graphic
+ * @param {Date} date
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
 App.Calendar = function Calendar(date,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
@@ -1727,8 +1853,10 @@ App.Calendar = function Calendar(date,width,pixelRatio)
     var dayLabelStyle = {font:"bold " + Math.round(12 * pixelRatio)+"px Arial",fill:"#999999"},
         CalendarWeekRow = App.CalendarWeekRow,
         Text = PIXI.Text,
-        month = App.DateUtils.getMonth(date,1),
-        dayLabels = App.DateUtils.getDayLabels(1),
+        DateUtils = App.DateUtils,
+        month = DateUtils.getMonth(date,1),//TODO remove hard-coded value
+        dayLabels = DateUtils.getDayLabels(1),//TODO remove hard-coded value
+        currentDay = date.getDate(),
         daysInWeek = dayLabels.length,
         weeksInMonth = month.length,
         i = 0;
@@ -1739,6 +1867,8 @@ App.Calendar = function Calendar(date,width,pixelRatio)
 
     this._width = width;
     this._pixelRatio = pixelRatio;
+    this._enabled = false;
+    this._weekRowPosition = Math.round(81 * pixelRatio);
 
     this._monthField = new PIXI.Text("January 2015",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
     this._prevButton = PIXI.Sprite.fromFrame("arrow");
@@ -1749,7 +1879,7 @@ App.Calendar = function Calendar(date,width,pixelRatio)
 
     for (;i<daysInWeek;i++) this._dayLabelFields[i] = new Text(dayLabels[i],dayLabelStyle);
 
-    for (i = 0;i<weeksInMonth;i++) this._weekRows[i] = new CalendarWeekRow(month[i],width,pixelRatio);
+    for (i = 0;i<weeksInMonth;i++) this._weekRows[i] = new CalendarWeekRow(month[i],currentDay,width,pixelRatio);
 
     this._render();
 
@@ -1784,7 +1914,6 @@ App.Calendar.prototype._render = function _render()
         dayLabelOffset = Math.round(40 * r),
         weekRow = this._weekRows[0],
         weekRowHeight = weekRow.boundingBox.height,
-        weekRowPosition = Math.round(81 * r),
         l = this._dayLabelFields.length,
         i = 0;
 
@@ -1831,12 +1960,91 @@ App.Calendar.prototype._render = function _render()
     for (;i<l;i++)
     {
         weekRow = this._weekRows[i];
-        weekRow.y = weekRowPosition + i * weekRowHeight;
+        weekRow.y = this._weekRowPosition + i * weekRowHeight;
 
         this._separatorContainer.drawRect(0,weekRow.y + weekRowHeight,w,roundedRatio);
     }
 
     this._separatorContainer.endFill();
+};
+
+/**
+ * Enable
+ */
+App.Calendar.prototype.enable = function enable()
+{
+    if (!this._enabled)
+    {
+        this._enabled = true;
+
+        this._registerEventListeners();
+
+        this.interactive = true;
+    }
+};
+
+/**
+ * Disable
+ */
+App.Calendar.prototype.disable = function disable()
+{
+    this._unRegisterEventListeners();
+
+    this.interactive = false;
+
+    this._enabled = false;
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.Calendar.prototype._registerEventListeners = function _registerEventListeners()
+{
+    if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
+    else this.click = this._onClick;
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.Calendar.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    if (App.Device.TOUCH_SUPPORTED) this.tap = null;
+    else this.click = null;
+};
+
+/**
+ * On click
+ * @param {InteractionData} data
+ * @private
+ */
+App.Calendar.prototype._onClick = function _onClick(data)
+{
+    var position = data.getLocalPosition(this);
+
+    if (position.y >= this._weekRowPosition) this._selectDay(position);
+};
+
+/**
+ * Return week row under point passed in
+ * @param {Point} position
+ * @private
+ */
+App.Calendar.prototype._selectDay = function _selectDay(position)
+{
+    var i = 0,
+        l = this._weekRows.length,
+        y = position.y,
+        weekRowHeight = this._weekRows[0].boundingBox.height,
+        weekRow = null;
+
+    for (;i<l;i++)
+    {
+        weekRow = this._weekRows[i];
+        weekRow.updateSelection(weekRow.y <= y && weekRow.y + weekRowHeight > y,position.x);
+    }
 };
 
 /**
@@ -3241,20 +3449,14 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
-    var pixelRatio = layout.pixelRatio,
+    var r = layout.pixelRatio,
         w = layout.width;
 
     this._inputBackground = new PIXI.Graphics();
-    //TODO also make sure only numeric keyboard shows up
-    this._input = new App.TimeInput(
-        "00:00",
-        30,
-        w - Math.round(20 * pixelRatio),
-        Math.round(40 * pixelRatio),
-        pixelRatio
-    );
-    this._header = new App.ListHeader("Select Date",w,pixelRatio);
-    this._calendar = new App.Calendar(new Date(),w,pixelRatio);
+
+    this._input = new App.TimeInput("00:00",30,w - Math.round(20 * r),Math.round(40 * r),r);
+    this._header = new App.ListHeader("Select Date",w,r);
+    this._calendar = new App.Calendar(new Date(),w,r);
 
     //TODO also add overlay to receive click to blur input's focus
 
@@ -3302,6 +3504,7 @@ App.SelectTimeScreen.prototype.enable = function enable()
     App.Screen.prototype.enable.call(this);
 
     this._input.enable();
+    this._calendar.enable();
 };
 
 /**
@@ -3312,6 +3515,7 @@ App.SelectTimeScreen.prototype.disable = function disable()
     App.Screen.prototype.disable.call(this);
 
     this._input.disable();
+    this._calendar.disable();
 };
 
 /**

@@ -95,7 +95,7 @@ App.Input.prototype.enable = function enable()
 
         this._registerEventListeners();
 
-        this.interactive = true;//TODO do I need this?
+        this.interactive = true;
     }
 };
 

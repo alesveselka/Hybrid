@@ -1,8 +1,17 @@
-App.CalendarWeekRow = function CalendarWeekRow(week,width,pixelRatio)
+/**
+ * @class CalendarWeekRow
+ * @extend Graphics
+ * @param {Array.<number>} week
+ * @param {number} currentDay
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.CalendarWeekRow = function CalendarWeekRow(week,currentDay,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
-    var textStyle = {font:Math.round(14 * pixelRatio)+"px HelveticaNeueCond",fill:"#cccccc"},
+    var fontStyle = Math.round(14 * pixelRatio)+"px HelveticaNeueCond",
         daysInWeek = week.length / 2,
         Text = PIXI.Text,
         index = 0,
@@ -15,12 +24,21 @@ App.CalendarWeekRow = function CalendarWeekRow(week,width,pixelRatio)
     this._week = week;
     this._width = width;
     this._pixelRatio = pixelRatio;
-    this._dateFields = new Array(7);
 
-    for (;i<daysInWeek;i++,index+=2) this._dateFields[i] = new Text(week[index],textStyle);
+    this._textStyle = {font:fontStyle,fill:"#cccccc"};
+    this._selectedStyle = {font:fontStyle,fill:"#ffffff"};
+    this._dateFields = new Array(7);
+    this._selectedDayIndex = -1;
+    this._highlightBackground = new PIXI.Graphics();
+
+    for (;i<daysInWeek;i++,index+=2) this._dateFields[i] = new Text(week[index],this._textStyle);
 
     this._render();
 
+    var dayToHighlight = this._getDayByDate(currentDay);
+    if (dayToHighlight && !dayToHighlight.otherMonth) this._selectDay(dayToHighlight);
+
+    this.addChild(this._highlightBackground);
     for (i = 0;i<daysInWeek;) this.addChild(this._dateFields[i++]);
 };
 
@@ -65,6 +83,7 @@ App.CalendarWeekRow.prototype._render = function _render()
         }
     }
 
+    // Highlight days from other months
     if (otherBGStart > -1)
     {
         this.drawRect(
@@ -75,4 +94,103 @@ App.CalendarWeekRow.prototype._render = function _render()
     }
 
     this.endFill();
+
+    this._highlightBackground.clear();
+    this._highlightBackground.beginFill(0x394264);
+    this._highlightBackground.drawRect(0,0,cellWidth-rounderRatio,cellHeight);
+    this._highlightBackground.endFill();
+    this._highlightBackground.alpha = 0.0;
+};
+
+/**
+ * Find and return day by date passed in
+ * @param {number} day
+ * @returns {{day:number,otherMonth:number,index:number}} position
+ */
+App.CalendarWeekRow.prototype._getDayByDate = function _getDayByDate(day)
+{
+    var index = 0,
+        i = 0,
+        l = this._week.length / 2,
+        dayInWeek = -1;
+
+    for (;i<l;i++,index+=2)
+    {
+        dayInWeek = this._week[index];
+        if (dayInWeek === day) return {day:dayInWeek,otherMonth:this._week[index+1],index:i};
+    }
+    return null;
+};
+
+/**
+ * Find and return day by position passed in
+ * @param {number} position
+ * @returns {{day:number,otherMonth:number,index:number}} position
+ */
+App.CalendarWeekRow.prototype._getDayByPosition = function _getDayByPosition(position)
+{
+    var index = 0,
+        i = 0,
+        l = this._week.length / 2,
+        cellWidth = Math.round(this._width / l);
+
+    for (;i<l;i++,index+=2)
+    {
+        if (position >= i * cellWidth && position <= i * cellWidth + cellWidth)
+        {
+            return {day:this._week[index],otherMonth:this._week[index+1],index:i};
+        }
+    }
+    return null;
+};
+
+/**
+ * Select day
+ * @param {{day:number,otherMonth:number,index:number}} day
+ * @private
+ */
+App.CalendarWeekRow.prototype._selectDay = function _selectDay(day)
+{
+    this._highlightBackground.x = day.index * Math.round(this._width / (this._week.length / 2)) + Math.round(this._pixelRatio);
+    this._highlightBackground.alpha = 1.0;
+
+    if (this._selectedDayIndex > -1) this._dateFields[this._selectedDayIndex].setStyle(this._textStyle);
+
+    this._selectedDayIndex = day.index;
+    this._dateFields[this._selectedDayIndex].setStyle(this._selectedStyle);
+};
+
+/**
+ * Deselect day
+ * @private
+ */
+App.CalendarWeekRow.prototype._deselectDay = function _deselectDay()
+{
+    if (this._selectedDayIndex > -1)
+    {
+        this._dateFields[this._selectedDayIndex].setStyle(this._textStyle);
+
+        this._selectedDayIndex = -1;
+    }
+
+    this._highlightBackground.alpha = 0.0;
+};
+
+/**
+ * Update selection
+ * @param {boolean} selected
+ * @param {number} position position of day cell that should be selected
+ */
+App.CalendarWeekRow.prototype.updateSelection = function updateSelection(selected,position)
+{
+    if (selected)
+    {
+        var day = this._getDayByPosition(position);
+        if (day) this._selectDay(day);
+        else this._deselectDay();
+    }
+    else
+    {
+        this._deselectDay();
+    }
 };
