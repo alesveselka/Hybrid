@@ -55,37 +55,28 @@ App.TimeInput.prototype._format = function _format(finish)
 {
     if (this._inputProxy.value.length === 0) return "";
 
-    var nValue = parseInt(this._inputProxy.value.replace(/\D/g,"")),
-        sValue = nValue.toString(),
-        hours = sValue.substr(0,2),
-        minutes = sValue.substr(2,2);
+    var value = this._inputProxy.value.replace(/\D/g,""),
+        hours = value.substr(0,2),
+        minutes = value.substr(2,2);
 
-    if (isNaN(nValue))
+    if (hours.length === 2 && parseInt(hours,10) > 24) hours = "24";
+    else if (minutes.length === 1 && parseInt(minutes,10) > 5) minutes = "5";
+    else if (minutes.length >= 2 && parseInt(minutes,10) > 59) minutes = "59";
+
+    if (finish)
     {
-        sValue = "";
-    }
-    else
-    {
-        if (hours.length === 1 && parseInt(hours) > 2) hours = "2";
-        else if (hours.length === 2 && parseInt(hours) > 24) hours = "24";
-        else if (minutes.length === 1 && parseInt(minutes) > 5) minutes = "5";
-        else if (minutes.length >= 2 && parseInt(minutes) > 59) minutes = "59";
+        if (hours.length === 1) hours += "0";
 
-        if (finish)
-        {
-            if (hours.length === 1) hours += "0";
-
-            if (minutes.length === 0) minutes += "00";
-            else if (minutes.length === 1) minutes += "0";
-        }
-
-        if (minutes.length > 0) sValue = hours + ":" + minutes;
-        else sValue = hours;
+        if (minutes.length === 0) minutes += "00";
+        else if (minutes.length === 1) minutes += "0";
     }
 
-    this._inputProxy.value = sValue;
+    if (minutes.length > 0) value = hours + ":" + minutes;
+    else value = hours;
 
-    return sValue;
+    this._inputProxy.value = value;
+
+    return value;
 };
 
 /**
