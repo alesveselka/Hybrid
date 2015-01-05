@@ -1,7 +1,18 @@
 /** @type {{_daysInMonth:Array.<number>,_dayLabels:Array.<string>,getMonth:Function,getDaysInMonth:Function}} */
 App.DateUtils = {
     _daysInMonth:[31,28,31,30,31,30,31,31,30,31,30,31],
+    _monthLabels:["January","February","March","April","May","June","July","August","September","October","November","December"],
     _dayLabels:["S","M","T","W","T","F","S"],
+
+    /**
+     * Return month label according to month index passed in
+     * @param {number} month
+     * @returns {string}
+     */
+    getMonthLabel:function getMonthLabel(month)
+    {
+        return this._monthLabels[month];
+    },
 
     /**
      * Return array of day labels in order from start of week passed in

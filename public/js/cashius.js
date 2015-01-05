@@ -104,7 +104,18 @@ App.MathUtils = {
 /** @type {{_daysInMonth:Array.<number>,_dayLabels:Array.<string>,getMonth:Function,getDaysInMonth:Function}} */
 App.DateUtils = {
     _daysInMonth:[31,28,31,30,31,30,31,31,30,31,30,31],
+    _monthLabels:["January","February","March","April","May","June","July","August","September","October","November","December"],
     _dayLabels:["S","M","T","W","T","F","S"],
+
+    /**
+     * Return month label according to month index passed in
+     * @param {number} month
+     * @returns {string}
+     */
+    getMonthLabel:function getMonthLabel(month)
+    {
+        return this._monthLabels[month];
+    },
 
     /**
      * Return array of day labels in order from start of week passed in
@@ -1599,9 +1610,9 @@ App.TimeInput.prototype._format = function _format(finish)
 {
     if (this._inputProxy.value.length === 0) return "";
 
-    var sValue = this._inputProxy.value.replace(/\D/g,""),
-        hours = sValue.substr(0,2),
-        minutes = sValue.substr(2,2);
+    var value = this._inputProxy.value.replace(/\D/g,""),
+        hours = value.substr(0,2),
+        minutes = value.substr(2,2);
 
     if (hours.length === 2 && parseInt(hours,10) > 24) hours = "24";
     else if (minutes.length === 1 && parseInt(minutes,10) > 5) minutes = "5";
@@ -1615,12 +1626,12 @@ App.TimeInput.prototype._format = function _format(finish)
         else if (minutes.length === 1) minutes += "0";
     }
 
-    if (minutes.length > 0) sValue = hours + ":" + minutes;
-    else sValue = hours;
+    if (minutes.length > 0) value = hours + ":" + minutes;
+    else value = hours;
 
-    this._inputProxy.value = sValue;
+    this._inputProxy.value = value;
 
-    return sValue;
+    return value;
 };
 
 /**
@@ -1761,7 +1772,7 @@ App.CalendarWeekRow.prototype._getDayByDate = function _getDayByDate(day)
  * @param {number} position
  * @returns {{day:number,otherMonth:number,index:number}} position
  */
-App.CalendarWeekRow.prototype._getDayByPosition = function _getDayByPosition(position)
+App.CalendarWeekRow.prototype.getDayByPosition = function getDayByPosition(position)
 {
     var index = 0,
         i = 0,
@@ -1785,6 +1796,7 @@ App.CalendarWeekRow.prototype._getDayByPosition = function _getDayByPosition(pos
  */
 App.CalendarWeekRow.prototype._selectDay = function _selectDay(day)
 {
+    //TODO fade-in?
     this._highlightBackground.x = day.index * Math.round(this._width / (this._week.length / 2)) + Math.round(this._pixelRatio);
     this._highlightBackground.alpha = 1.0;
 
@@ -1807,26 +1819,46 @@ App.CalendarWeekRow.prototype._deselectDay = function _deselectDay()
         this._selectedDayIndex = -1;
     }
 
+    //TODO fade-out?
     this._highlightBackground.alpha = 0.0;
 };
 
 /**
  * Update selection
- * @param {boolean} selected
- * @param {number} position position of day cell that should be selected
+ * @param {number} date Day of a month to select
  */
-App.CalendarWeekRow.prototype.updateSelection = function updateSelection(selected,position)
+App.CalendarWeekRow.prototype.updateSelection = function updateSelection(date)
 {
-    if (selected)
+    var day = this._getDayByDate(date);
+
+    if (day && day.otherMonth === 0) this._selectDay(day);
+    else this._deselectDay();
+};
+
+/**
+ * Change week
+ * @param {Array.<Number>} week
+ * @param {number} currentDay
+ */
+App.CalendarWeekRow.prototype.change = function change(week,currentDay)
+{
+    this._week = week;
+
+    var daysInWeek = week.length / 2,
+        dayField = null,
+        index = 0,
+        i = 0;
+
+    for (;i<daysInWeek;i++,index+=2)
     {
-        var day = this._getDayByPosition(position);
-        if (day) this._selectDay(day);
-        else this._deselectDay();
+        dayField = this._dateFields[i];
+        dayField.setText(week[index]);
+        dayField.setStyle(this._textStyle);
     }
-    else
-    {
-        this._deselectDay();
-    }
+
+    this._render();
+
+    if (currentDay > -1) this.updateSelection(currentDay);
 };
 
 /**
@@ -1847,7 +1879,6 @@ App.Calendar = function Calendar(date,width,pixelRatio)
         DateUtils = App.DateUtils,
         month = DateUtils.getMonth(date,1),//TODO remove hard-coded value
         dayLabels = DateUtils.getDayLabels(1),//TODO remove hard-coded value
-        currentDay = date.getDate(),
         daysInWeek = dayLabels.length,
         weeksInMonth = month.length,
         i = 0;
@@ -1856,12 +1887,14 @@ App.Calendar = function Calendar(date,width,pixelRatio)
     this.boundingBox.width = this._width;
     this.boundingBox.height = Math.round(321 * pixelRatio);
 
+    this._date = date;
+    this._selectedDate = date;
     this._width = width;
     this._pixelRatio = pixelRatio;
     this._enabled = false;
     this._weekRowPosition = Math.round(81 * pixelRatio);
 
-    this._monthField = new PIXI.Text("January 2015",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    this._monthField = new PIXI.Text("",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
     this._prevButton = PIXI.Sprite.fromFrame("arrow");
     this._nextButton = PIXI.Sprite.fromFrame("arrow");
     this._dayLabelFields = new Array(daysInWeek);
@@ -1870,9 +1903,10 @@ App.Calendar = function Calendar(date,width,pixelRatio)
 
     for (;i<daysInWeek;i++) this._dayLabelFields[i] = new Text(dayLabels[i],dayLabelStyle);
 
-    for (i = 0;i<weeksInMonth;i++) this._weekRows[i] = new CalendarWeekRow(month[i],currentDay,width,pixelRatio);
+    for (i = 0;i<weeksInMonth;i++) this._weekRows[i] = new CalendarWeekRow(month[i],this._selectedDate.getDate(),width,pixelRatio);
 
     this._render();
+    this._updateMonthLabel();
 
     this.addChild(this._monthField);
     this.addChild(this._prevButton);
@@ -1918,7 +1952,6 @@ App.Calendar.prototype._render = function _render()
     this.drawRect(separatorPadding,dayLabelOffset+roundedRatio,separatorWidth,roundedRatio);
     this.endFill();
 
-    this._monthField.x = Math.round((w - this._monthField.width) / 2);
     this._monthField.y = Math.round((dayLabelOffset - this._monthField.height) / 2);
 
     //TODO also implement double-arrows for navigating years directly? See TOS
@@ -1957,6 +1990,16 @@ App.Calendar.prototype._render = function _render()
     }
 
     this._separatorContainer.endFill();
+};
+
+/**
+ * Update month label
+ * @private
+ */
+App.Calendar.prototype._updateMonthLabel = function _updateMonthLabel()
+{
+    this._monthField.setText(App.DateUtils.getMonthLabel(this._date.getMonth()) + " " + (1900 + this._date.getYear()));
+    this._monthField.x = Math.round((this._width - this._monthField.width) / 2);
 };
 
 /**
@@ -2015,27 +2058,106 @@ App.Calendar.prototype._onClick = function _onClick(data)
 {
     var position = data.getLocalPosition(this);
 
-    if (position.y >= this._weekRowPosition) this._selectDay(position);
+    // Click into the actual calendar
+    if (position.y >= this._weekRowPosition)
+    {
+        this._selectDay(position);
+    }
+    // Click at one of the prev-, next-buttons
+    else
+    {
+        var prevDX = this._prevButton.x - this._prevButton.width / 2 - position.x,
+            nextDX = this._nextButton.x + this._nextButton.width / 2 - position.x,
+            dy = this._nextButton.y + this._nextButton.height / 2 - position.y,
+            prevDist = prevDX * prevDX - dy * dy,
+            nextDist = nextDX * nextDX - dy * dy,
+            threshold = 20 * this._pixelRatio;
+
+        if (Math.sqrt(Math.abs(prevDist)) < threshold) this._changeDate(App.Direction.LEFT,-1);
+        else if (Math.sqrt(Math.abs(nextDist)) < threshold) this._changeDate(App.Direction.RIGHT,-1);
+    }
 };
 
 /**
- * Return week row under point passed in
+ * Find and return week row by position passed in
+ * @param {number} position
+ * @private
+ */
+App.Calendar.prototype._getWeekByPosition = function _getWeekByPosition(position)
+{
+    var weekRowHeight = this._weekRows[0].boundingBox.height,
+        weekRow = null,
+        l = this._weekRows.length,
+        i = 0;
+
+    for (;i<l;)
+    {
+        weekRow = this._weekRows[i++];
+        if (weekRow.y <= position && weekRow.y + weekRowHeight > position)
+        {
+            return weekRow;
+        }
+    }
+    return null;
+};
+
+/**
+ * Select day by position passed in
  * @param {Point} position
  * @private
  */
 App.Calendar.prototype._selectDay = function _selectDay(position)
 {
-    var i = 0,
+    var week = this._getWeekByPosition(position.y),
+        day = week.getDayByPosition(position.x),
+        date = day.day,
         l = this._weekRows.length,
-        y = position.y,
-        weekRowHeight = this._weekRows[0].boundingBox.height,
-        weekRow = null;
+        i = 0;
 
-    for (;i<l;i++)
+    if (day.otherMonth)
     {
-        weekRow = this._weekRows[i];
-        weekRow.updateSelection(weekRow.y <= y && weekRow.y + weekRowHeight > y,position.x);
+        if (date > 20) this._changeDate(App.Direction.LEFT,date);
+        else this._changeDate(App.Direction.RIGHT,date);
     }
+    else
+    {
+        for (;i<l;)this._weekRows[i++].updateSelection(date);
+
+        this._selectedDate = new Date(1900+this._date.getYear(),this._date.getMonth(),date);
+    }
+};
+
+/**
+ * Change date
+ * @param {string} direction
+ * @param {number} selectDate
+ * @private
+ */
+App.Calendar.prototype._changeDate = function _changeDate(direction,selectDate)
+{
+    var currentMonth = this._date.getMonth(),
+        currentYear = 1900 + this._date.getYear(),
+        newMonth = currentMonth < 11 ? currentMonth + 1 : 0,
+        newYear = newMonth ? currentYear : currentYear + 1;
+
+    if (direction === App.Direction.LEFT)
+    {
+        newMonth = currentMonth ? currentMonth - 1 : 11;
+        newYear = currentMonth ? currentYear : currentYear - 1;
+    }
+
+    this._date = new Date(newYear,newMonth);
+    if (selectDate > -1) this._selectedDate = new Date(newYear,newMonth,selectDate);
+
+    this._updateMonthLabel();
+
+    var month = App.DateUtils.getMonth(this._date,1),
+        weeksInMonth = month.length,
+        selectedMonth = 1900 + this._selectedDate.getYear() === newYear && this._selectedDate.getMonth() === newMonth,
+        selectedDate = selectedMonth ? this._selectedDate.getDate() : -1,
+        i = 0;
+
+    for (i = 0;i<weeksInMonth;i++) this._weekRows[i].change(month[i],selectedDate);
 };
 
 /**

@@ -127,7 +127,7 @@ App.CalendarWeekRow.prototype._getDayByDate = function _getDayByDate(day)
  * @param {number} position
  * @returns {{day:number,otherMonth:number,index:number}} position
  */
-App.CalendarWeekRow.prototype._getDayByPosition = function _getDayByPosition(position)
+App.CalendarWeekRow.prototype.getDayByPosition = function getDayByPosition(position)
 {
     var index = 0,
         i = 0,
@@ -151,6 +151,7 @@ App.CalendarWeekRow.prototype._getDayByPosition = function _getDayByPosition(pos
  */
 App.CalendarWeekRow.prototype._selectDay = function _selectDay(day)
 {
+    //TODO fade-in?
     this._highlightBackground.x = day.index * Math.round(this._width / (this._week.length / 2)) + Math.round(this._pixelRatio);
     this._highlightBackground.alpha = 1.0;
 
@@ -173,24 +174,44 @@ App.CalendarWeekRow.prototype._deselectDay = function _deselectDay()
         this._selectedDayIndex = -1;
     }
 
+    //TODO fade-out?
     this._highlightBackground.alpha = 0.0;
 };
 
 /**
  * Update selection
- * @param {boolean} selected
- * @param {number} position position of day cell that should be selected
+ * @param {number} date Day of a month to select
  */
-App.CalendarWeekRow.prototype.updateSelection = function updateSelection(selected,position)
+App.CalendarWeekRow.prototype.updateSelection = function updateSelection(date)
 {
-    if (selected)
+    var day = this._getDayByDate(date);
+
+    if (day && day.otherMonth === 0) this._selectDay(day);
+    else this._deselectDay();
+};
+
+/**
+ * Change week
+ * @param {Array.<Number>} week
+ * @param {number} currentDay
+ */
+App.CalendarWeekRow.prototype.change = function change(week,currentDay)
+{
+    this._week = week;
+
+    var daysInWeek = week.length / 2,
+        dayField = null,
+        index = 0,
+        i = 0;
+
+    for (;i<daysInWeek;i++,index+=2)
     {
-        var day = this._getDayByPosition(position);
-        if (day) this._selectDay(day);
-        else this._deselectDay();
+        dayField = this._dateFields[i];
+        dayField.setText(week[index]);
+        dayField.setStyle(this._textStyle);
     }
-    else
-    {
-        this._deselectDay();
-    }
+
+    this._render();
+
+    if (currentDay > -1) this.updateSelection(currentDay);
 };
