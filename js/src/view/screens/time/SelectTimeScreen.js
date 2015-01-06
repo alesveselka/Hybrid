@@ -3,10 +3,12 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
     App.Screen.call(this,model,layout,0.4);
 
     var r = layout.pixelRatio,
-        w = layout.width;
+        w = layout.width,
+        ScrollPolicy = App.ScrollPolicy;
 
+    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r);
+    this._container = new PIXI.DisplayObjectContainer();
     this._inputBackground = new PIXI.Graphics();
-
     this._input = new App.TimeInput("00:00",30,w - Math.round(20 * r),Math.round(40 * r),r);
     this._header = new App.ListHeader("Select Date",w,r);
     this._calendar = new App.Calendar(new Date(),w,r);
@@ -15,10 +17,14 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
 
     this._render();
 
-    this.addChild(this._inputBackground);
-    this.addChild(this._input);
-    this.addChild(this._header);
-    this.addChild(this._calendar);
+    this._container.addChild(this._inputBackground);
+    this._container.addChild(this._input);
+    this._container.addChild(this._header);
+    this._container.addChild(this._calendar);
+
+    this._pane.setContent(this._container);
+
+    this.addChild(this._pane);
 };
 
 App.SelectTimeScreen.prototype = Object.create(App.Screen.prototype);
@@ -57,7 +63,8 @@ App.SelectTimeScreen.prototype.enable = function enable()
     App.Screen.prototype.enable.call(this);
 
     this._input.enable();
-    this._calendar.enable();
+//    this._calendar.enable();
+    this._pane.enable();
 };
 
 /**
@@ -68,5 +75,15 @@ App.SelectTimeScreen.prototype.disable = function disable()
     App.Screen.prototype.disable.call(this);
 
     this._input.disable();
-    this._calendar.disable();
+//    this._calendar.disable();
+    this._pane.disable();
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.SelectTimeScreen.prototype._onClick = function _onClick()
+{
+    this._calendar.onClick();
 };

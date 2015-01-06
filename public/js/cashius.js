@@ -101,7 +101,15 @@ App.MathUtils = {
     }
 };
 
-/** @type {{_daysInMonth:Array.<number>,_dayLabels:Array.<string>,getMonth:Function,getDaysInMonth:Function}} */
+/** @type {{
+*   _daysInMonth:Array.<number>,
+*   _monthLabels:Array.<string>,
+*   _dayLabels:Array.<string>,
+*   getMonthLabel:Function,
+*   getDayLabels:Function,
+*   getMonth:Function,
+*   getDaysInMonth:Function
+*   }} */
 App.DateUtils = {
     _daysInMonth:[31,28,31,30,31,30,31,31,30,31,30,31],
     _monthLabels:["January","February","March","April","May","June","July","August","September","October","November","December"],
@@ -1485,13 +1493,17 @@ App.Input.prototype._onClick = function _onClick(data)
  */
 App.Input.prototype._onFocus = function _onFocus()
 {
-    var r = this._pixelRatio;
+    var r = this._pixelRatio,
+        globalPoint = new PIXI.Point(this.x,this.y),
+        localPoint = this.toLocal(globalPoint,this.stage),
+        x = this.x - localPoint.x,
+        y = this.y - localPoint.y;
 
     this._renderBackground(true,r);
 
     this._inputProxy.style.display = "none";
-    this._inputProxy.style.left = Math.round(this.x / r) +"px";
-    this._inputProxy.style.top = Math.round(this.y / r) + "px";
+    this._inputProxy.style.left = Math.round(x / r) +"px";
+    this._inputProxy.style.top = Math.round(y / r) + "px";
     this._inputProxy.style.width = Math.round((this._width / r) - 0) + "px";
     this._inputProxy.style.height = Math.round(this._height / r) + "px";
     this._inputProxy.style.fontSize = this._fontSize + "px";
@@ -2027,9 +2039,9 @@ App.Calendar.prototype.enable = function enable()
     {
         this._enabled = true;
 
-        this._registerEventListeners();
+//        this._registerEventListeners();
 
-        this.interactive = true;
+//        this.interactive = true;
     }
 };
 
@@ -2038,9 +2050,9 @@ App.Calendar.prototype.enable = function enable()
  */
 App.Calendar.prototype.disable = function disable()
 {
-    this._unRegisterEventListeners();
+//    this._unRegisterEventListeners();
 
-    this.interactive = false;
+//    this.interactive = false;
 
     this._enabled = false;
 };
@@ -2049,30 +2061,28 @@ App.Calendar.prototype.disable = function disable()
  * Register event listeners
  * @private
  */
-App.Calendar.prototype._registerEventListeners = function _registerEventListeners()
+/*App.Calendar.prototype._registerEventListeners = function _registerEventListeners()
 {
     if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
     else this.click = this._onClick;
-};
+};*/
 
 /**
  * UnRegister event listeners
  * @private
  */
-App.Calendar.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+/*App.Calendar.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
 {
     if (App.Device.TOUCH_SUPPORTED) this.tap = null;
     else this.click = null;
-};
+};*/
 
 /**
  * On click
- * @param {InteractionData} data
- * @private
  */
-App.Calendar.prototype._onClick = function _onClick(data)
+App.Calendar.prototype.onClick = function onClick()
 {
-    var position = data.getLocalPosition(this);
+    var position = this.stage.getTouchData().getLocalPosition(this);
 
     // Click into the actual calendar
     if (position.y >= this._weekRowPosition)
@@ -3579,10 +3589,12 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
     App.Screen.call(this,model,layout,0.4);
 
     var r = layout.pixelRatio,
-        w = layout.width;
+        w = layout.width,
+        ScrollPolicy = App.ScrollPolicy;
 
+    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r);
+    this._container = new PIXI.DisplayObjectContainer();
     this._inputBackground = new PIXI.Graphics();
-
     this._input = new App.TimeInput("00:00",30,w - Math.round(20 * r),Math.round(40 * r),r);
     this._header = new App.ListHeader("Select Date",w,r);
     this._calendar = new App.Calendar(new Date(),w,r);
@@ -3591,10 +3603,14 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
 
     this._render();
 
-    this.addChild(this._inputBackground);
-    this.addChild(this._input);
-    this.addChild(this._header);
-    this.addChild(this._calendar);
+    this._container.addChild(this._inputBackground);
+    this._container.addChild(this._input);
+    this._container.addChild(this._header);
+    this._container.addChild(this._calendar);
+
+    this._pane.setContent(this._container);
+
+    this.addChild(this._pane);
 };
 
 App.SelectTimeScreen.prototype = Object.create(App.Screen.prototype);
@@ -3633,7 +3649,8 @@ App.SelectTimeScreen.prototype.enable = function enable()
     App.Screen.prototype.enable.call(this);
 
     this._input.enable();
-    this._calendar.enable();
+//    this._calendar.enable();
+    this._pane.enable();
 };
 
 /**
@@ -3644,9 +3661,18 @@ App.SelectTimeScreen.prototype.disable = function disable()
     App.Screen.prototype.disable.call(this);
 
     this._input.disable();
-    this._calendar.disable();
+//    this._calendar.disable();
+    this._pane.disable();
 };
 
+/**
+ * Click handler
+ * @private
+ */
+App.SelectTimeScreen.prototype._onClick = function _onClick()
+{
+    this._calendar.onClick();
+};
 /**
  * @class AccountButton
  * @extends Graphics

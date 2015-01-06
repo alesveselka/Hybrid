@@ -1,4 +1,12 @@
-/** @type {{_daysInMonth:Array.<number>,_dayLabels:Array.<string>,getMonth:Function,getDaysInMonth:Function}} */
+/** @type {{
+*   _daysInMonth:Array.<number>,
+*   _monthLabels:Array.<string>,
+*   _dayLabels:Array.<string>,
+*   getMonthLabel:Function,
+*   getDayLabels:Function,
+*   getMonth:Function,
+*   getDaysInMonth:Function
+*   }} */
 App.DateUtils = {
     _daysInMonth:[31,28,31,30,31,30,31,31,30,31,30,31],
     _monthLabels:["January","February","March","April","May","June","July","August","September","October","November","December"],

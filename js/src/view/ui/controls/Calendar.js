@@ -149,9 +149,9 @@ App.Calendar.prototype.enable = function enable()
     {
         this._enabled = true;
 
-        this._registerEventListeners();
+//        this._registerEventListeners();
 
-        this.interactive = true;
+//        this.interactive = true;
     }
 };
 
@@ -160,9 +160,9 @@ App.Calendar.prototype.enable = function enable()
  */
 App.Calendar.prototype.disable = function disable()
 {
-    this._unRegisterEventListeners();
+//    this._unRegisterEventListeners();
 
-    this.interactive = false;
+//    this.interactive = false;
 
     this._enabled = false;
 };
@@ -171,30 +171,28 @@ App.Calendar.prototype.disable = function disable()
  * Register event listeners
  * @private
  */
-App.Calendar.prototype._registerEventListeners = function _registerEventListeners()
+/*App.Calendar.prototype._registerEventListeners = function _registerEventListeners()
 {
     if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
     else this.click = this._onClick;
-};
+};*/
 
 /**
  * UnRegister event listeners
  * @private
  */
-App.Calendar.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+/*App.Calendar.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
 {
     if (App.Device.TOUCH_SUPPORTED) this.tap = null;
     else this.click = null;
-};
+};*/
 
 /**
  * On click
- * @param {InteractionData} data
- * @private
  */
-App.Calendar.prototype._onClick = function _onClick(data)
+App.Calendar.prototype.onClick = function onClick()
 {
-    var position = data.getLocalPosition(this);
+    var position = this.stage.getTouchData().getLocalPosition(this);
 
     // Click into the actual calendar
     if (position.y >= this._weekRowPosition)

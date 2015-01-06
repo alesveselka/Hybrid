@@ -175,13 +175,17 @@ App.Input.prototype._onClick = function _onClick(data)
  */
 App.Input.prototype._onFocus = function _onFocus()
 {
-    var r = this._pixelRatio;
+    var r = this._pixelRatio,
+        globalPoint = new PIXI.Point(this.x,this.y),
+        localPoint = this.toLocal(globalPoint,this.stage),
+        x = this.x - localPoint.x,
+        y = this.y - localPoint.y;
 
     this._renderBackground(true,r);
 
     this._inputProxy.style.display = "none";
-    this._inputProxy.style.left = Math.round(this.x / r) +"px";
-    this._inputProxy.style.top = Math.round(this.y / r) + "px";
+    this._inputProxy.style.left = Math.round(x / r) +"px";
+    this._inputProxy.style.top = Math.round(y / r) + "px";
     this._inputProxy.style.width = Math.round((this._width / r) - 0) + "px";
     this._inputProxy.style.height = Math.round(this._height / r) + "px";
     this._inputProxy.style.fontSize = this._fontSize + "px";
