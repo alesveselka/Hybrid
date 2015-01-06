@@ -61,7 +61,7 @@ App.DateUtils = {
             otherMonth = 1;
         }
 
-        for (;i<6*7;i++)
+        for (;i<l;i++)
         {
             if (firstDateOfWeek > daysInPreviousMonth && otherMonth === 1)
             {

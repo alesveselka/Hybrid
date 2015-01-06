@@ -82,6 +82,8 @@ App.Initialize.prototype._initModel = function _initModel(data)
         this._eventListenerPool
     ));*/
 
+    App.Settings.setStartOfWeek(1);
+
     //TODO TextField object pool?
 };
 

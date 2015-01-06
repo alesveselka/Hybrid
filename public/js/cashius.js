@@ -164,7 +164,7 @@ App.DateUtils = {
             otherMonth = 1;
         }
 
-        for (;i<6*7;i++)
+        for (;i<l;i++)
         {
             if (firstDateOfWeek > daysInPreviousMonth && otherMonth === 1)
             {
@@ -884,6 +884,32 @@ App.Collection.prototype.index = function index()
 App.Collection.prototype.length = function length()
 {
     return this._items.length;
+};
+
+/**
+ * @class Settings
+ * @type {{_startOfWeek: number, setStartOfWeek: Function,getStartOfWeek:Function}}
+ */
+App.Settings = {
+    _startOfWeek:0,// 0 = Sun, ..., 6 = Sat
+
+    /**
+     * Set start of a week
+     * @param {number} value
+     */
+    setStartOfWeek:function setStartOfWeek(value)
+    {
+        if (value >= 0 && value <= 6) this._startOfWeek = value;
+    },
+
+    /**
+     * Return start of a week
+     * @returns {number}
+     */
+    getStartOfWeek:function getStartOfWeek()
+    {
+        return this._startOfWeek;
+    }
 };
 
 /**
@@ -1866,8 +1892,9 @@ App.Calendar = function Calendar(date,width,pixelRatio)
         CalendarWeekRow = App.CalendarWeekRow,
         Text = PIXI.Text,
         DateUtils = App.DateUtils,
-        month = DateUtils.getMonth(date,1),//TODO remove hard-coded value
-        dayLabels = DateUtils.getDayLabels(1),//TODO remove hard-coded value
+        startOfWeek = App.Settings.getStartOfWeek(),
+        month = DateUtils.getMonth(date,startOfWeek),
+        dayLabels = DateUtils.getDayLabels(startOfWeek),
         daysInWeek = dayLabels.length,
         weeksInMonth = month.length,
         i = 0;
@@ -2140,7 +2167,7 @@ App.Calendar.prototype._changeDate = function _changeDate(direction,selectDate)
 
     this._updateMonthLabel();
 
-    var month = App.DateUtils.getMonth(this._date,1),
+    var month = App.DateUtils.getMonth(this._date,App.Settings.getStartOfWeek()),
         weeksInMonth = month.length,
         selectedMonth = this._selectedDate.getFullYear() === newYear && this._selectedDate.getMonth() === newMonth,
         selectedDate = selectedMonth ? this._selectedDate.getDate() : -1,
@@ -5426,6 +5453,8 @@ App.Initialize.prototype._initModel = function _initModel(data)
         null,
         this._eventListenerPool
     ));*/
+
+    App.Settings.setStartOfWeek(1);
 
     //TODO TextField object pool?
 };
