@@ -135,7 +135,7 @@ App.Calendar.prototype._render = function _render()
  */
 App.Calendar.prototype._updateMonthLabel = function _updateMonthLabel()
 {
-    this._monthField.setText(App.DateUtils.getMonthLabel(this._date.getMonth()) + " " + (1900 + this._date.getYear()));
+    this._monthField.setText(App.DateUtils.getMonthLabel(this._date.getMonth()) + " " + this._date.getFullYear());
     this._monthField.x = Math.round((this._width - this._monthField.width) / 2);
 };
 
@@ -260,7 +260,7 @@ App.Calendar.prototype._selectDay = function _selectDay(position)
     {
         for (;i<l;)this._weekRows[i++].updateSelection(date);
 
-        this._selectedDate = new Date(1900+this._date.getYear(),this._date.getMonth(),date);
+        this._selectedDate = new Date(this._date.getFullYear(),this._date.getMonth(),date);
     }
 };
 
@@ -273,7 +273,7 @@ App.Calendar.prototype._selectDay = function _selectDay(position)
 App.Calendar.prototype._changeDate = function _changeDate(direction,selectDate)
 {
     var currentMonth = this._date.getMonth(),
-        currentYear = 1900 + this._date.getYear(),
+        currentYear = this._date.getFullYear(),
         newMonth = currentMonth < 11 ? currentMonth + 1 : 0,
         newYear = newMonth ? currentYear : currentYear + 1;
 
@@ -290,7 +290,7 @@ App.Calendar.prototype._changeDate = function _changeDate(direction,selectDate)
 
     var month = App.DateUtils.getMonth(this._date,1),
         weeksInMonth = month.length,
-        selectedMonth = 1900 + this._selectedDate.getYear() === newYear && this._selectedDate.getMonth() === newMonth,
+        selectedMonth = this._selectedDate.getFullYear() === newYear && this._selectedDate.getMonth() === newMonth,
         selectedDate = selectedMonth ? this._selectedDate.getDate() : -1,
         i = 0;
 
