@@ -26,10 +26,9 @@ App.Calendar = function Calendar(date,width,pixelRatio)
     this.boundingBox.height = Math.round(321 * pixelRatio);
 
     this._date = date;
-    this._selectedDate = date;
+    this._selectedDate = date;//TODO use just one date?
     this._width = width;
     this._pixelRatio = pixelRatio;
-    this._enabled = false;
     this._weekRowPosition = Math.round(81 * pixelRatio);
 
     this._monthField = new PIXI.Text("",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
@@ -141,70 +140,25 @@ App.Calendar.prototype._updateMonthLabel = function _updateMonthLabel()
 };
 
 /**
- * Enable
- */
-App.Calendar.prototype.enable = function enable()
-{
-    if (!this._enabled)
-    {
-        this._enabled = true;
-
-//        this._registerEventListeners();
-
-//        this.interactive = true;
-    }
-};
-
-/**
- * Disable
- */
-App.Calendar.prototype.disable = function disable()
-{
-//    this._unRegisterEventListeners();
-
-//    this.interactive = false;
-
-    this._enabled = false;
-};
-
-/**
- * Register event listeners
- * @private
- */
-/*App.Calendar.prototype._registerEventListeners = function _registerEventListeners()
-{
-    if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
-    else this.click = this._onClick;
-};*/
-
-/**
- * UnRegister event listeners
- * @private
- */
-/*App.Calendar.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
-{
-    if (App.Device.TOUCH_SUPPORTED) this.tap = null;
-    else this.click = null;
-};*/
-
-/**
  * On click
  */
 App.Calendar.prototype.onClick = function onClick()
 {
-    var position = this.stage.getTouchData().getLocalPosition(this);
+    var position = this.stage.getTouchData().getLocalPosition(this),
+        x = position.x,
+        y = position.y;
 
     // Click into the actual calendar
-    if (position.y >= this._weekRowPosition)
+    if (y >= this._weekRowPosition)
     {
-        this._selectDay(position);
+        this._selectDay(x,y);
     }
     // Click at one of the prev-, next-buttons
     else
     {
-        var prevDX = this._prevButton.x - this._prevButton.width / 2 - position.x,
-            nextDX = this._nextButton.x + this._nextButton.width / 2 - position.x,
-            dy = this._nextButton.y + this._nextButton.height / 2 - position.y,
+        var prevDX = this._prevButton.x - this._prevButton.width / 2 - x,
+            nextDX = this._nextButton.x + this._nextButton.width / 2 - x,
+            dy = this._nextButton.y + this._nextButton.height / 2 - y,
             prevDist = prevDX * prevDX - dy * dy,
             nextDist = nextDX * nextDX - dy * dy,
             threshold = 20 * this._pixelRatio;
@@ -239,13 +193,14 @@ App.Calendar.prototype._getWeekByPosition = function _getWeekByPosition(position
 
 /**
  * Select day by position passed in
- * @param {Point} position
+ * @param {number} x
+ * @param {number} y
  * @private
  */
-App.Calendar.prototype._selectDay = function _selectDay(position)
+App.Calendar.prototype._selectDay = function _selectDay(x,y)
 {
-    var week = this._getWeekByPosition(position.y),
-        day = week.getDayByPosition(position.x),
+    var week = this._getWeekByPosition(y),
+        day = week.getDayByPosition(x),
         date = day.day,
         l = this._weekRows.length,
         i = 0;
@@ -259,6 +214,7 @@ App.Calendar.prototype._selectDay = function _selectDay(position)
     {
         for (;i<l;)this._weekRows[i++].updateSelection(date);
 
+        //TODO modify current object instead of setting new one?
         this._selectedDate = new Date(this._date.getFullYear(),this._date.getMonth(),date);
     }
 };
@@ -282,6 +238,7 @@ App.Calendar.prototype._changeDate = function _changeDate(direction,selectDate)
         newYear = currentMonth ? currentYear : currentYear - 1;
     }
 
+    //TODO modify current object instead of setting new one?
     this._date = new Date(newYear,newMonth);
     if (selectDate > -1) this._selectedDate = new Date(newYear,newMonth,selectDate);
 

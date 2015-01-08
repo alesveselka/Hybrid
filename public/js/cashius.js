@@ -1339,6 +1339,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
     this._pixelRatio = pixelRatio;
     this._enabled = false;
 
+    this._eventDispatcher = new App.EventDispatcher(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._placeholder = placeholder;
     this._placeholderStyle = {font:fontStyle,fill:"#efefef"};
     this._currentStyle = this._placeholderStyle;
@@ -1430,6 +1431,36 @@ App.Input.prototype.disable = function disable()
 };
 
 /**
+ * Remove focus
+ */
+App.Input.prototype.blur = function blur()
+{
+    this._inputProxy.blur();
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Input.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Input.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
+};
+
+/**
  * Register event listeners
  * @private
  */
@@ -1494,22 +1525,21 @@ App.Input.prototype._onClick = function _onClick(data)
 App.Input.prototype._onFocus = function _onFocus()
 {
     var r = this._pixelRatio,
-        globalPoint = new PIXI.Point(this.x,this.y),
-        localPoint = this.toLocal(globalPoint,this.stage),
-        x = this.x - localPoint.x,
-        y = this.y - localPoint.y;
+        localPoint = this.toLocal(new PIXI.Point(this.x,this.y),this.stage);
 
     this._renderBackground(true,r);
 
     this._inputProxy.style.display = "none";
-    this._inputProxy.style.left = Math.round(x / r) +"px";
-    this._inputProxy.style.top = Math.round(y / r) + "px";
+    this._inputProxy.style.left = Math.round((this.x - localPoint.x) / r) +"px";
+    this._inputProxy.style.top = Math.round((this.y - localPoint.y) / r) + "px";
     this._inputProxy.style.width = Math.round((this._width / r) - 0) + "px";
     this._inputProxy.style.height = Math.round(this._height / r) + "px";
     this._inputProxy.style.fontSize = this._fontSize + "px";
     this._inputProxy.style.lineHeight = this._fontSize + "px";
     this._inputProxy.value = this._text;
     this._inputProxy.style.display = "block";
+
+    this._eventDispatcher.dispatchEvent(App.EventType.FOCUS);
 };
 
 /**
@@ -1524,6 +1554,8 @@ App.Input.prototype._onBlur = function _onBlur()
     this._inputProxy.value = "";
 
     this._renderBackground(false,this._pixelRatio);
+
+    this._eventDispatcher.dispatchEvent(App.EventType.BLUR);
 };
 
 /**
@@ -1647,7 +1679,7 @@ App.TimeInput.prototype._format = function _format(finish)
 
     if (finish)
     {
-        if (hours.length === 1) hours += "0";
+        if (hours.length === 1) hours = "0" + hours;
 
         if (minutes.length === 0) minutes += "00";
         else if (minutes.length === 1) minutes += "0";
@@ -1916,10 +1948,9 @@ App.Calendar = function Calendar(date,width,pixelRatio)
     this.boundingBox.height = Math.round(321 * pixelRatio);
 
     this._date = date;
-    this._selectedDate = date;
+    this._selectedDate = date;//TODO use just one date?
     this._width = width;
     this._pixelRatio = pixelRatio;
-    this._enabled = false;
     this._weekRowPosition = Math.round(81 * pixelRatio);
 
     this._monthField = new PIXI.Text("",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
@@ -2031,70 +2062,25 @@ App.Calendar.prototype._updateMonthLabel = function _updateMonthLabel()
 };
 
 /**
- * Enable
- */
-App.Calendar.prototype.enable = function enable()
-{
-    if (!this._enabled)
-    {
-        this._enabled = true;
-
-//        this._registerEventListeners();
-
-//        this.interactive = true;
-    }
-};
-
-/**
- * Disable
- */
-App.Calendar.prototype.disable = function disable()
-{
-//    this._unRegisterEventListeners();
-
-//    this.interactive = false;
-
-    this._enabled = false;
-};
-
-/**
- * Register event listeners
- * @private
- */
-/*App.Calendar.prototype._registerEventListeners = function _registerEventListeners()
-{
-    if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
-    else this.click = this._onClick;
-};*/
-
-/**
- * UnRegister event listeners
- * @private
- */
-/*App.Calendar.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
-{
-    if (App.Device.TOUCH_SUPPORTED) this.tap = null;
-    else this.click = null;
-};*/
-
-/**
  * On click
  */
 App.Calendar.prototype.onClick = function onClick()
 {
-    var position = this.stage.getTouchData().getLocalPosition(this);
+    var position = this.stage.getTouchData().getLocalPosition(this),
+        x = position.x,
+        y = position.y;
 
     // Click into the actual calendar
-    if (position.y >= this._weekRowPosition)
+    if (y >= this._weekRowPosition)
     {
-        this._selectDay(position);
+        this._selectDay(x,y);
     }
     // Click at one of the prev-, next-buttons
     else
     {
-        var prevDX = this._prevButton.x - this._prevButton.width / 2 - position.x,
-            nextDX = this._nextButton.x + this._nextButton.width / 2 - position.x,
-            dy = this._nextButton.y + this._nextButton.height / 2 - position.y,
+        var prevDX = this._prevButton.x - this._prevButton.width / 2 - x,
+            nextDX = this._nextButton.x + this._nextButton.width / 2 - x,
+            dy = this._nextButton.y + this._nextButton.height / 2 - y,
             prevDist = prevDX * prevDX - dy * dy,
             nextDist = nextDX * nextDX - dy * dy,
             threshold = 20 * this._pixelRatio;
@@ -2129,13 +2115,14 @@ App.Calendar.prototype._getWeekByPosition = function _getWeekByPosition(position
 
 /**
  * Select day by position passed in
- * @param {Point} position
+ * @param {number} x
+ * @param {number} y
  * @private
  */
-App.Calendar.prototype._selectDay = function _selectDay(position)
+App.Calendar.prototype._selectDay = function _selectDay(x,y)
 {
-    var week = this._getWeekByPosition(position.y),
-        day = week.getDayByPosition(position.x),
+    var week = this._getWeekByPosition(y),
+        day = week.getDayByPosition(x),
         date = day.day,
         l = this._weekRows.length,
         i = 0;
@@ -2149,6 +2136,7 @@ App.Calendar.prototype._selectDay = function _selectDay(position)
     {
         for (;i<l;)this._weekRows[i++].updateSelection(date);
 
+        //TODO modify current object instead of setting new one?
         this._selectedDate = new Date(this._date.getFullYear(),this._date.getMonth(),date);
     }
 };
@@ -2172,6 +2160,7 @@ App.Calendar.prototype._changeDate = function _changeDate(direction,selectDate)
         newYear = currentMonth ? currentYear : currentYear - 1;
     }
 
+    //TODO modify current object instead of setting new one?
     this._date = new Date(newYear,newMonth);
     if (selectDate > -1) this._selectedDate = new Date(newYear,newMonth,selectDate);
 
@@ -3598,8 +3587,7 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
     this._input = new App.TimeInput("00:00",30,w - Math.round(20 * r),Math.round(40 * r),r);
     this._header = new App.ListHeader("Select Date",w,r);
     this._calendar = new App.Calendar(new Date(),w,r);
-
-    //TODO also add overlay to receive click to blur input's focus
+    this._inputFocused = false;
 
     this._render();
 
@@ -3649,8 +3637,9 @@ App.SelectTimeScreen.prototype.enable = function enable()
     App.Screen.prototype.enable.call(this);
 
     this._input.enable();
-//    this._calendar.enable();
     this._pane.enable();
+
+    this._registerEventListener();
 };
 
 /**
@@ -3660,9 +3649,50 @@ App.SelectTimeScreen.prototype.disable = function disable()
 {
     App.Screen.prototype.disable.call(this);
 
+    this._unRegisterEventListener();
+
     this._input.disable();
-//    this._calendar.disable();
     this._pane.disable();
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.SelectTimeScreen.prototype._registerEventListener = function _registerEventListener()
+{
+    var EventType = App.EventType;
+    this._input.addEventListener(EventType.FOCUS,this,this._onInputFocus);
+    this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.SelectTimeScreen.prototype._unRegisterEventListener = function _unRegisterEventListener()
+{
+    var EventType = App.EventType;
+    this._input.removeEventListener(EventType.FOCUS,this,this._onInputFocus);
+    this._input.removeEventListener(EventType.BLUR,this,this._onInputBlur);
+};
+
+/**
+ * On input focus
+ * @private
+ */
+App.SelectTimeScreen.prototype._onInputFocus = function _onInputFocus()
+{
+    this._inputFocused = true;
+};
+
+/**
+ * On input blur
+ * @private
+ */
+App.SelectTimeScreen.prototype._onInputBlur = function _onInputBlur()
+{
+    this._inputFocused = false;
 };
 
 /**
@@ -3671,8 +3701,11 @@ App.SelectTimeScreen.prototype.disable = function disable()
  */
 App.SelectTimeScreen.prototype._onClick = function _onClick()
 {
+    if (this._inputFocused) this._input.blur();
+
     this._calendar.onClick();
 };
+
 /**
  * @class AccountButton
  * @extends Graphics

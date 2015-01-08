@@ -65,7 +65,7 @@ App.TimeInput.prototype._format = function _format(finish)
 
     if (finish)
     {
-        if (hours.length === 1) hours += "0";
+        if (hours.length === 1) hours = "0" + hours;
 
         if (minutes.length === 0) minutes += "00";
         else if (minutes.length === 1) minutes += "0";

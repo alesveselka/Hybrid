@@ -21,6 +21,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
     this._pixelRatio = pixelRatio;
     this._enabled = false;
 
+    this._eventDispatcher = new App.EventDispatcher(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._placeholder = placeholder;
     this._placeholderStyle = {font:fontStyle,fill:"#efefef"};
     this._currentStyle = this._placeholderStyle;
@@ -112,6 +113,36 @@ App.Input.prototype.disable = function disable()
 };
 
 /**
+ * Remove focus
+ */
+App.Input.prototype.blur = function blur()
+{
+    this._inputProxy.blur();
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Input.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Input.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
+};
+
+/**
  * Register event listeners
  * @private
  */
@@ -176,22 +207,21 @@ App.Input.prototype._onClick = function _onClick(data)
 App.Input.prototype._onFocus = function _onFocus()
 {
     var r = this._pixelRatio,
-        globalPoint = new PIXI.Point(this.x,this.y),
-        localPoint = this.toLocal(globalPoint,this.stage),
-        x = this.x - localPoint.x,
-        y = this.y - localPoint.y;
+        localPoint = this.toLocal(new PIXI.Point(this.x,this.y),this.stage);
 
     this._renderBackground(true,r);
 
     this._inputProxy.style.display = "none";
-    this._inputProxy.style.left = Math.round(x / r) +"px";
-    this._inputProxy.style.top = Math.round(y / r) + "px";
+    this._inputProxy.style.left = Math.round((this.x - localPoint.x) / r) +"px";
+    this._inputProxy.style.top = Math.round((this.y - localPoint.y) / r) + "px";
     this._inputProxy.style.width = Math.round((this._width / r) - 0) + "px";
     this._inputProxy.style.height = Math.round(this._height / r) + "px";
     this._inputProxy.style.fontSize = this._fontSize + "px";
     this._inputProxy.style.lineHeight = this._fontSize + "px";
     this._inputProxy.value = this._text;
     this._inputProxy.style.display = "block";
+
+    this._eventDispatcher.dispatchEvent(App.EventType.FOCUS);
 };
 
 /**
@@ -206,6 +236,8 @@ App.Input.prototype._onBlur = function _onBlur()
     this._inputProxy.value = "";
 
     this._renderBackground(false,this._pixelRatio);
+
+    this._eventDispatcher.dispatchEvent(App.EventType.BLUR);
 };
 
 /**

@@ -12,8 +12,7 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
     this._input = new App.TimeInput("00:00",30,w - Math.round(20 * r),Math.round(40 * r),r);
     this._header = new App.ListHeader("Select Date",w,r);
     this._calendar = new App.Calendar(new Date(),w,r);
-
-    //TODO also add overlay to receive click to blur input's focus
+    this._inputFocused = false;
 
     this._render();
 
@@ -63,8 +62,9 @@ App.SelectTimeScreen.prototype.enable = function enable()
     App.Screen.prototype.enable.call(this);
 
     this._input.enable();
-//    this._calendar.enable();
     this._pane.enable();
+
+    this._registerEventListener();
 };
 
 /**
@@ -74,9 +74,50 @@ App.SelectTimeScreen.prototype.disable = function disable()
 {
     App.Screen.prototype.disable.call(this);
 
+    this._unRegisterEventListener();
+
     this._input.disable();
-//    this._calendar.disable();
     this._pane.disable();
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.SelectTimeScreen.prototype._registerEventListener = function _registerEventListener()
+{
+    var EventType = App.EventType;
+    this._input.addEventListener(EventType.FOCUS,this,this._onInputFocus);
+    this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.SelectTimeScreen.prototype._unRegisterEventListener = function _unRegisterEventListener()
+{
+    var EventType = App.EventType;
+    this._input.removeEventListener(EventType.FOCUS,this,this._onInputFocus);
+    this._input.removeEventListener(EventType.BLUR,this,this._onInputBlur);
+};
+
+/**
+ * On input focus
+ * @private
+ */
+App.SelectTimeScreen.prototype._onInputFocus = function _onInputFocus()
+{
+    this._inputFocused = true;
+};
+
+/**
+ * On input blur
+ * @private
+ */
+App.SelectTimeScreen.prototype._onInputBlur = function _onInputBlur()
+{
+    this._inputFocused = false;
 };
 
 /**
@@ -85,5 +126,7 @@ App.SelectTimeScreen.prototype.disable = function disable()
  */
 App.SelectTimeScreen.prototype._onClick = function _onClick()
 {
+    if (this._inputFocused) this._input.blur();
+
     this._calendar.onClick();
 };
