@@ -1,4 +1,4 @@
-App.ColorSample = function ColorSample(color,pixelRatio)
+App.ColorSample = function ColorSample(i,color,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
@@ -10,8 +10,11 @@ App.ColorSample = function ColorSample(color,pixelRatio)
 
     this._pixelRatio = pixelRatio;
     this._color = color;
+    this._label = new PIXI.Text(i,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#ffffff"});
 
     this._render();
+
+    this.addChild(this._label);
 };
 
 App.ColorSample.prototype = Object.create(PIXI.Graphics.prototype);
@@ -30,6 +33,9 @@ App.ColorSample.prototype._render = function _render()
     this.beginFill("0x"+this._color);
     this.drawRoundedRect(padding,padding,size,size,padding);
     this.endFill();
+
+    this._label.x = Math.round((this.boundingBox.width - this._label.width) / 2);
+    this._label.y = Math.round((this.boundingBox.height - this._label.height) / 2);
 };
 
 /**

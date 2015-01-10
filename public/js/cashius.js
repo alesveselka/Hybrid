@@ -2519,6 +2519,8 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
                 contentRight = contentX + this._contentWidth,
                 contentLeft = contentX - this._contentWidth;
 
+            if (mouseX <= -10000) return;
+
             // If content is pulled from beyond screen edges, dump the drag effect
             if (contentX > 0)
             {
@@ -2827,49 +2829,60 @@ App.Pane.prototype.destroy = function destroy()
  * @param {Array.<number>} model
  * @param {Function} itemClass
  * @param {string} direction
- * @param {number} windowSize
+ * @param {number} width
+ * @param {number} height
  * @param {number} pixelRatio
  * @constructor
  */
-App.InfiniteList = function InfiniteList(model,itemClass,direction,windowSize,pixelRatio)
+App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,pixelRatio)
 {
     PIXI.DisplayObjectContainer.call(this);
 
-    var colorSample = new itemClass(model[0],pixelRatio),
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        colorSample = new itemClass(0,model[0],pixelRatio),
         itemSize = colorSample.boundingBox.width,
-        itemCount = Math.ceil(windowSize / itemSize),
-        size = Math.round(50 * pixelRatio),
-        Direction = App.Direction,
-        padding = Math.round((size - itemSize) / 2),
-        positionProperty = direction === Direction.X ? "y" : "x",
+        itemCount = Math.floor(width / itemSize) + 1,
+        padding = Math.round((height - itemSize) / 2),
+        positionProperty = "y",
+        modelLength = model.length - 2,
+        index = 0,
         i = 0;
 
-    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
-    if (direction === Direction.X)
+    if (direction === App.Direction.Y)
     {
-        this.boundingBox.width = windowSize;
-        this.boundingBox.height = size;
-    }
-    else if (direction === Direction.Y)
-    {
-        this.boundingBox.width = size;
-        this.boundingBox.height = windowSize;
+        positionProperty = "x";
+        itemCount = Math.ceil(height / itemSize);
+        padding = Math.round((width - itemSize) / 2);
     }
 
+    this.boundingBox = new PIXI.Rectangle(0,0,width,height);
+    this.hitArea = this.boundingBox;
+
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
     this._model = model;
     this._itemClass = itemClass;//TODO use pool instead of classes?
     this._direction = direction;
-    this._windowSize = windowSize;
+    this._width = width;
+    this._height = height;
     this._pixelRatio = pixelRatio;
     this._items = new Array(itemCount);
-    this._virtualPosition = 0;
     this._itemSize = itemSize;
-    this._modelIndex = 0;
+
     this._enabled = false;
+    this._state = null;
+    this._mouseData = null;
+    this._modelIndex = 0;
+    this._virtualPosition = 0;
+    this._oldMousePosition = 0.0;
+    this._speed = 0.0;
+    this._offset = 0.0;
+    this._friction = 0.9;
 
     for (;i<itemCount;i++)
     {
-        if (i > 0) colorSample = new itemClass(model[i],pixelRatio);
+        index = index > modelLength ? 0 : index + 1;
+        if (i > 0) colorSample = new itemClass(i,model[index],pixelRatio);
 
         this._items[i] = colorSample;
         colorSample[positionProperty] = padding;
@@ -2889,9 +2902,11 @@ App.InfiniteList.prototype.enable = function enable()
 {
     if (!this._enabled)
     {
-        this.interactive = true;
-
         this._enabled = true;
+
+        this._registerEventListeners();
+
+        this.interactive = true;
     }
 };
 
@@ -2902,42 +2917,228 @@ App.InfiniteList.prototype.disable = function disable()
 {
     this.interactive = false;
 
+    this._unRegisterEventListeners();
+
     this._enabled = false;
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.InfiniteList.prototype._registerEventListeners = function _registerEventListeners()
+{
+    if (App.Device.TOUCH_SUPPORTED)
+    {
+        this.touchstart = this._onPointerDown;
+        this.touchend = this._onPointerUp;
+        this.touchendoutside = this._onPointerUp;
+//        this.touchmove = this._onPointerMove;
+    }
+    else
+    {
+        this.mousedown = this._onPointerDown;
+        this.mouseup = this._onPointerUp;
+        this.mouseupoutside = this._onPointerUp;
+//        this.mousemove = this._onPointerMove;
+    }
+
+    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.InfiniteList.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    if (App.Device.TOUCH_SUPPORTED)
+    {
+        this.touchstart = null;
+        this.touchend = null;
+        this.touchendoutside = null;
+//        this.touchmove = null;
+    }
+    else
+    {
+        this.mousedown = null;
+        this.mouseup = null;
+        this.mouseupoutside = null;
+//        this.mousemove = null;
+    }
+};
+
+/**
+ * REF Tick handler
+ * @private
+ */
+App.InfiniteList.prototype._onTick = function _onTick()
+{
+    var InteractiveState = App.InteractiveState;
+
+    if (this._state === InteractiveState.DRAGGING) this._drag(App.Direction);
+    else if (this._state === InteractiveState.SCROLLING) this._scroll(App.Direction);
+};
+
+/**
+ * On pointer down
+ * @param {InteractionData} data
+ * @private
+ */
+App.InfiniteList.prototype._onPointerDown = function _onPointerDown(data)
+{
+    this._mouseData = data;
+
+    var mousePosition = this._mouseData.getLocalPosition(this.stage).x;
+    if (this._direction === App.Direction.Y) mousePosition = this._mouseData.getLocalPosition(this.stage).y;
+
+    this._offset = mousePosition - this._virtualPosition;
+    this._speed = 0.0;
+
+    this._state = App.InteractiveState.DRAGGING;
+};
+
+/**
+ * On pointer up
+ * @param {InteractionData} data
+ * @private
+ */
+App.InfiniteList.prototype._onPointerUp = function _onPointerUp(data)
+{
+    this._state = App.InteractiveState.SCROLLING;
+
+    this._mouseData = null;
+};
+
+/**
+ * Perform drag operation
+ * @param {{X:string,Y:string}} Direction
+ * @private
+ */
+App.InfiniteList.prototype._drag = function _drag(Direction)
+{
+    if (this.stage)
+    {
+        //TODO simplify and remove the condition?
+        if (this._direction === Direction.X)
+        {
+            var mouseX = this._mouseData.getLocalPosition(this.stage).x;
+
+            if (mouseX <= -10000) return;
+
+            this._updateX(mouseX - this._offset);
+
+            this._speed = mouseX - this._oldMousePosition;
+            this._oldMousePosition = mouseX;
+        }
+        else if (this._direction === Direction.Y)
+        {
+            var mouseY = this._mouseData.getLocalPosition(this.stage).y;
+
+            if (mouseY <= -10000) return;
+
+            this._updateY(mouseY - this._offset);
+
+            this._speed = mouseY - this._oldMousePosition;
+            this._oldMousePosition = mouseY;
+        }
+    }
+};
+
+/**
+ * Perform scroll operation
+ *
+ * @param {{X:string,Y:string}} Direction
+ * @private
+ */
+App.InfiniteList.prototype._scroll = function _scroll(Direction)
+{
+    if (this._direction === Direction.X)
+    {
+        this._updateX(this._virtualPosition + this._speed);
+
+        // If the speed is very low, stop it.
+        if (Math.abs(this._speed) < 0.1)
+        {
+            this._speed = 0.0;
+            this._state = null;
+        }
+        else
+        {
+            this._speed *= this._friction;
+        }
+    }
+    else if (this._direction === Direction.Y)
+    {
+        this._updateY(this._virtualPosition + this._speed);
+
+        // If the speed is very low, stop it.
+        if (Math.abs(this._speed) < 0.1)
+        {
+            this._speed = 0.0;
+            this._state = null;
+        }
+        else
+        {
+            this._speed *= this._friction;
+        }
+    }
 };
 
 /**
  * Update X position
  * @param {number} position
+ * @private
  */
-App.InfiniteList.prototype.updateX = function updateX(position)
+App.InfiniteList.prototype._updateX = function _updateX(position)
 {
-    this.x = Math.round(position);
+    //TODO use flag, so it is not called while still processing last loop?
 
     var i = 0,
         l = this._items.length,
-        width = 0,
+        size = this._itemSize,
+        width = this._width,
+        positionDifference = position - this._virtualPosition,
+        itemScreenIndex = 0,
         x = 0,
-        child = null;
+        item = null;
 
-    for (;i<l;)
+    this._virtualPosition = position;
+
+    for (;i<l;i++)
     {
-        child = this._items[i++];
-        width = child.boundingBox.width;
-        x = this.x + child.x;
+        item = this._items[i];
+        x = item.x + positionDifference;
 
-        child.visible = x + width > 0 && x < this._windowSize;
+        if (x + size < 0 || x > width)
+        {
+            //console.log(i);
+            itemScreenIndex = -Math.floor(x / width);
+            console.log(itemScreenIndex);
+            x += itemScreenIndex * (l - 1) * size;
+        }
+
+        item.x = Math.round(x);
+
+        //this._modelIndex = index;
+
+//        child.visible = x + width > 0 && x < this._width;
     }
+    //console.log("------------");
 };
 
 /**
  * Update Y position
  * @param {number} position
+ * @private
  */
-App.InfiniteList.prototype.updateY = function updateY(position)
+App.InfiniteList.prototype._updateY = function _updateY(position)
 {
-    this.y = Math.round(position);
+    this._virtualPosition = Math.round(position);
 
-    var i = 0,
+    /*var i = 0,
         l = this._items.length,
         height = 0,
         y = 0,
@@ -2949,13 +3150,14 @@ App.InfiniteList.prototype.updateY = function updateY(position)
         height = child.boundingBox.height;
         y = this.y + child.y;
 
-        child.visible = y + height > 0 && y < this._windowSize;
-    }
+        child.visible = y + height > 0 && y < this._height;
+    }*/
 };
 
 /**
  * Update layout
  * @param {boolean} [updatePosition=false]
+ * @private
  */
 App.InfiniteList.prototype._updateLayout = function _updateLayout(updatePosition)
 {
@@ -2974,7 +3176,7 @@ App.InfiniteList.prototype._updateLayout = function _updateLayout(updatePosition
             position = Math.round(position + child.boundingBox.width);
         }
 
-        if (updatePosition) this.updateY(this.x);
+        if (updatePosition) this._updateX(this.x);
     }
     else if (this._direction === Direction.Y)
     {
@@ -2985,13 +3187,8 @@ App.InfiniteList.prototype._updateLayout = function _updateLayout(updatePosition
             position = Math.round(position + child.boundingBox.height);
         }
 
-        if (updatePosition) this.updateY(this.y);
+        if (updatePosition) this._updateY(this.y);
     }
-};
-
-App.InfiniteList.prototype.destroy = function destroy()
-{
-    //TODO implement
 };
 
 /**
@@ -4899,7 +5096,7 @@ App.CategoryScreen.prototype.destroy = function destroy()
     this._buttons = null;
 };
 
-App.ColorSample = function ColorSample(color,pixelRatio)
+App.ColorSample = function ColorSample(i,color,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
@@ -4911,8 +5108,11 @@ App.ColorSample = function ColorSample(color,pixelRatio)
 
     this._pixelRatio = pixelRatio;
     this._color = color;
+    this._label = new PIXI.Text(i,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#ffffff"});
 
     this._render();
+
+    this.addChild(this._label);
 };
 
 App.ColorSample.prototype = Object.create(PIXI.Graphics.prototype);
@@ -4931,6 +5131,9 @@ App.ColorSample.prototype._render = function _render()
     this.beginFill("0x"+this._color);
     this.drawRoundedRect(padding,padding,size,size,padding);
     this.endFill();
+
+    this._label.x = Math.round((this.boundingBox.width - this._label.width) / 2);
+    this._label.y = Math.round((this.boundingBox.height - this._label.height) / 2);
 };
 
 /**
@@ -4981,13 +5184,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
             Math.round(Math.sin(frequency * i + 4) * amplitude + center)
         );
     }
-    this._colorList = new App.InfiniteList(colorSamples,App.ColorSample,App.Direction.X,w,r);
-    /*this._colorList = new App.InfiniteList(
-        new App.Collection(colorSamples,App.ColorSample,null,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL)),
-        App.ColorSample,
-        App.Direction.X,
-        w
-    );*/
+    this._colorList = new App.InfiniteList(colorSamples,App.ColorSample,App.Direction.X,w,Math.round(50 * r),r);
 
     this._render();
 

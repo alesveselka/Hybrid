@@ -339,6 +339,8 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
                 contentRight = contentX + this._contentWidth,
                 contentLeft = contentX - this._contentWidth;
 
+            if (mouseX <= -10000) return;
+
             // If content is pulled from beyond screen edges, dump the drag effect
             if (contentX > 0)
             {

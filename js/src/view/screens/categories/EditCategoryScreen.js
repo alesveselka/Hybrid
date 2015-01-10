@@ -35,13 +35,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
             Math.round(Math.sin(frequency * i + 4) * amplitude + center)
         );
     }
-    this._colorList = new App.InfiniteList(colorSamples,App.ColorSample,App.Direction.X,w,r);
-    /*this._colorList = new App.InfiniteList(
-        new App.Collection(colorSamples,App.ColorSample,null,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL)),
-        App.ColorSample,
-        App.Direction.X,
-        w
-    );*/
+    this._colorList = new App.InfiniteList(colorSamples,App.ColorSample,App.Direction.X,w,Math.round(50 * r),r);
 
     this._render();
 
