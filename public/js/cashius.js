@@ -377,12 +377,13 @@ App.Direction = {
 /**
  * Screen Name
  * @enum {number}
- * @return {{ACCOUNT:number,CATEGORY:number,SELECT_TIME:number}}
+ * @return {{ACCOUNT:number,CATEGORY:number,SELECT_TIME:number,EDIT_CATEGORY:number}}
  */
 App.ScreenName = {
     ACCOUNT:0,
     CATEGORY:1,
-    SELECT_TIME:2
+    SELECT_TIME:2,
+    EDIT_CATEGORY:3
 };
 
 /**
@@ -1354,6 +1355,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
         change:this._onChange.bind(this)
     };
     if (displayIcon) this._icon = PIXI.Sprite.fromFrame("clear");
+    this._iconHitThreshold = Math.round(this._width - 40 * this._pixelRatio);
 
     this._render();
 
@@ -1375,7 +1377,7 @@ App.Input.prototype._render = function _render()
     this._renderBackground(false,r);
 
     this._textField.x = Math.round(10 * r);
-    this._textField.y = Math.round(9 * r);
+    this._textField.y = Math.round((this._height - this._textField.height) / 2 + r);
 
     if (this._icon)
     {
@@ -1509,8 +1511,8 @@ App.Input.prototype._onClick = function _onClick(data)
 
     if (this._icon)
     {
-        // If user click/tap at 'close' icon, erase actual text; 40 is the icon width
-        if (data.getLocalPosition(this).x >= Math.round(this._width - 40 * this._pixelRatio))
+        // If user click/tap at 'close' icon, erase actual text
+        if (data.getLocalPosition(this).x >= this._iconHitThreshold)
         {
             this._inputProxy.value = "";
             this._onChange();
@@ -1532,7 +1534,7 @@ App.Input.prototype._onFocus = function _onFocus()
     this._inputProxy.style.display = "none";
     this._inputProxy.style.left = Math.round((this.x - localPoint.x) / r) +"px";
     this._inputProxy.style.top = Math.round((this.y - localPoint.y) / r) + "px";
-    this._inputProxy.style.width = Math.round((this._width / r) - 0) + "px";
+    this._inputProxy.style.width = this._icon ? Math.round(this._iconHitThreshold / r) + "px" : Math.round(this._width / r) + "px";
     this._inputProxy.style.height = Math.round(this._height / r) + "px";
     this._inputProxy.style.fontSize = this._fontSize + "px";
     this._inputProxy.style.lineHeight = this._fontSize + "px";
@@ -2001,6 +2003,7 @@ App.Calendar.prototype._render = function _render()
         l = this._dayLabelFields.length,
         i = 0;
 
+    //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
     this.clear();
     this.beginFill(0xefefef);
     this.drawRect(0,0,w,h);
@@ -2819,6 +2822,179 @@ App.Pane.prototype.destroy = function destroy()
 };
 
 /**
+ * @class InfiniteList
+ * @extends DisplayObjectContainer
+ * @param {Array.<number>} model
+ * @param {Function} itemClass
+ * @param {string} direction
+ * @param {number} windowSize
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.InfiniteList = function InfiniteList(model,itemClass,direction,windowSize,pixelRatio)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    var colorSample = new itemClass(model[0],pixelRatio),
+        itemSize = colorSample.boundingBox.width,
+        itemCount = Math.ceil(windowSize / itemSize),
+        size = Math.round(50 * pixelRatio),
+        Direction = App.Direction,
+        padding = Math.round((size - itemSize) / 2),
+        positionProperty = direction === Direction.X ? "y" : "x",
+        i = 0;
+
+    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
+    if (direction === Direction.X)
+    {
+        this.boundingBox.width = windowSize;
+        this.boundingBox.height = size;
+    }
+    else if (direction === Direction.Y)
+    {
+        this.boundingBox.width = size;
+        this.boundingBox.height = windowSize;
+    }
+
+    this._model = model;
+    this._itemClass = itemClass;//TODO use pool instead of classes?
+    this._direction = direction;
+    this._windowSize = windowSize;
+    this._pixelRatio = pixelRatio;
+    this._items = new Array(itemCount);
+    this._virtualPosition = 0;
+    this._itemSize = itemSize;
+    this._modelIndex = 0;
+    this._enabled = false;
+
+    for (;i<itemCount;i++)
+    {
+        if (i > 0) colorSample = new itemClass(model[i],pixelRatio);
+
+        this._items[i] = colorSample;
+        colorSample[positionProperty] = padding;
+        this.addChild(colorSample);
+    }
+
+    this._updateLayout(false);
+};
+
+App.InfiniteList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.InfiniteList.prototype.constructor = App.InfiniteList;
+
+/**
+ * Enable
+ */
+App.InfiniteList.prototype.enable = function enable()
+{
+    if (!this._enabled)
+    {
+        this.interactive = true;
+
+        this._enabled = true;
+    }
+};
+
+/**
+ * Disable
+ */
+App.InfiniteList.prototype.disable = function disable()
+{
+    this.interactive = false;
+
+    this._enabled = false;
+};
+
+/**
+ * Update X position
+ * @param {number} position
+ */
+App.InfiniteList.prototype.updateX = function updateX(position)
+{
+    this.x = Math.round(position);
+
+    var i = 0,
+        l = this._items.length,
+        width = 0,
+        x = 0,
+        child = null;
+
+    for (;i<l;)
+    {
+        child = this._items[i++];
+        width = child.boundingBox.width;
+        x = this.x + child.x;
+
+        child.visible = x + width > 0 && x < this._windowSize;
+    }
+};
+
+/**
+ * Update Y position
+ * @param {number} position
+ */
+App.InfiniteList.prototype.updateY = function updateY(position)
+{
+    this.y = Math.round(position);
+
+    var i = 0,
+        l = this._items.length,
+        height = 0,
+        y = 0,
+        child = null;
+
+    for (;i<l;)
+    {
+        child = this._items[i++];
+        height = child.boundingBox.height;
+        y = this.y + child.y;
+
+        child.visible = y + height > 0 && y < this._windowSize;
+    }
+};
+
+/**
+ * Update layout
+ * @param {boolean} [updatePosition=false]
+ */
+App.InfiniteList.prototype._updateLayout = function _updateLayout(updatePosition)
+{
+    var i = 0,
+        l = this._items.length,
+        child = null,
+        position = 0,
+        Direction = App.Direction;
+
+    if (this._direction === Direction.X)
+    {
+        for (;i<l;)
+        {
+            child = this._items[i++];
+            child.x = position;
+            position = Math.round(position + child.boundingBox.width);
+        }
+
+        if (updatePosition) this.updateY(this.x);
+    }
+    else if (this._direction === Direction.Y)
+    {
+        for (;i<l;)
+        {
+            child = this._items[i++];
+            child.y = position;
+            position = Math.round(position + child.boundingBox.height);
+        }
+
+        if (updatePosition) this.updateY(this.y);
+    }
+};
+
+App.InfiniteList.prototype.destroy = function destroy()
+{
+    //TODO implement
+};
+
+/**
  * @class TileList
  * @extends DisplayObjectContainer
  * @param {string} direction
@@ -3573,6 +3749,13 @@ App.Screen.prototype.destroy = function destroy()
     //TODO make sure everything is destroyed
 };
 
+/**
+ * @class SelectTimeScreen
+ * @extends Screen
+ * @param {Collection} model
+ * @param {Object} layout
+ * @constructor
+ */
 App.SelectTimeScreen = function SelectTimeScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
@@ -3583,18 +3766,19 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
 
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r);
     this._container = new PIXI.DisplayObjectContainer();
-    this._inputBackground = new PIXI.Graphics();
+    this._inputBackground = new PIXI.Graphics();//TODO do I need BG? I can use BG below whole screen ...
+    this._inputOverlay = new PIXI.Graphics();
     this._input = new App.TimeInput("00:00",30,w - Math.round(20 * r),Math.round(40 * r),r);
     this._header = new App.ListHeader("Select Date",w,r);
     this._calendar = new App.Calendar(new Date(),w,r);
     this._inputFocused = false;
-
+    //TODO enable 'swiping' for interactively changing calendar's months
     this._render();
 
     this._container.addChild(this._inputBackground);
-    this._container.addChild(this._input);
     this._container.addChild(this._header);
     this._container.addChild(this._calendar);
+    this._container.addChild(this._input);
 
     this._pane.setContent(this._container);
 
@@ -3627,6 +3811,11 @@ App.SelectTimeScreen.prototype._render = function _render()
     this._header.y = inputBgHeight;
 
     this._calendar.y = Math.round(this._header.y + this._header.height);
+
+    this._inputOverlay.clear();
+    this._inputOverlay.beginFill(0x000000,0.2);
+    this._inputOverlay.drawRect(0,0,w,this._calendar.y + this._calendar.boundingBox.height);
+    this._inputOverlay.endFill();
 };
 
 /**
@@ -3638,8 +3827,6 @@ App.SelectTimeScreen.prototype.enable = function enable()
 
     this._input.enable();
     this._pane.enable();
-
-    this._registerEventListener();
 };
 
 /**
@@ -3649,8 +3836,6 @@ App.SelectTimeScreen.prototype.disable = function disable()
 {
     App.Screen.prototype.disable.call(this);
 
-    this._unRegisterEventListener();
-
     this._input.disable();
     this._pane.disable();
 };
@@ -3659,8 +3844,10 @@ App.SelectTimeScreen.prototype.disable = function disable()
  * Register event listeners
  * @private
  */
-App.SelectTimeScreen.prototype._registerEventListener = function _registerEventListener()
+App.SelectTimeScreen.prototype._registerEventListeners = function _registerEventListener()
 {
+    App.Screen.prototype._registerEventListeners.call(this);
+
     var EventType = App.EventType;
     this._input.addEventListener(EventType.FOCUS,this,this._onInputFocus);
     this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
@@ -3670,11 +3857,13 @@ App.SelectTimeScreen.prototype._registerEventListener = function _registerEventL
  * UnRegister event listeners
  * @private
  */
-App.SelectTimeScreen.prototype._unRegisterEventListener = function _unRegisterEventListener()
+App.SelectTimeScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener()
 {
     var EventType = App.EventType;
     this._input.removeEventListener(EventType.FOCUS,this,this._onInputFocus);
     this._input.removeEventListener(EventType.BLUR,this,this._onInputBlur);
+
+    App.Screen.prototype._unRegisterEventListeners.call(this);
 };
 
 /**
@@ -3684,6 +3873,8 @@ App.SelectTimeScreen.prototype._unRegisterEventListener = function _unRegisterEv
 App.SelectTimeScreen.prototype._onInputFocus = function _onInputFocus()
 {
     this._inputFocused = true;
+
+    if (!this._container.contains(this._inputOverlay)) this._container.addChildAt(this._inputOverlay,this._container.getChildIndex(this._input));
 };
 
 /**
@@ -3692,6 +3883,8 @@ App.SelectTimeScreen.prototype._onInputFocus = function _onInputFocus()
  */
 App.SelectTimeScreen.prototype._onInputBlur = function _onInputBlur()
 {
+    if (this._container.contains(this._inputOverlay)) this._container.removeChild(this._inputOverlay);
+
     this._inputFocused = false;
 };
 
@@ -4706,6 +4899,222 @@ App.CategoryScreen.prototype.destroy = function destroy()
     this._buttons = null;
 };
 
+App.ColorSample = function ColorSample(color,pixelRatio)
+{
+    PIXI.Graphics.call(this);
+
+    var size = Math.round(40 * pixelRatio);
+
+    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
+    this.boundingBox.width = size;
+    this.boundingBox.height = size;
+
+    this._pixelRatio = pixelRatio;
+    this._color = color;
+
+    this._render();
+};
+
+App.ColorSample.prototype = Object.create(PIXI.Graphics.prototype);
+App.ColorSample.prototype.constructor = App.ColorSample;
+
+/**
+ * Render
+ * @private
+ */
+App.ColorSample.prototype._render = function _render()
+{
+    var padding = Math.round(5 * this._pixelRatio),//TODO padding depends on if its selected or not
+        size = this.boundingBox.width - padding * 2;
+
+    this.clear();
+    this.beginFill("0x"+this._color);
+    this.drawRoundedRect(padding,padding,size,size,padding);
+    this.endFill();
+};
+
+/**
+ * Set color
+ * @param {number} value
+ */
+App.ColorSample.prototype.setColor = function setColor(value)
+{
+    this._color = value;
+
+    this._render();
+};
+
+/**
+ * @class EditCategoryScreen
+ * @extends Screen
+ * @param {Category} model
+ * @param {Object} layout
+ * @constructor
+ */
+App.EditCategoryScreen = function EditCategoryScreen(model,layout)
+{
+    App.Screen.call(this,model,layout,0.4);
+
+    var ScrollPolicy = App.ScrollPolicy,
+        r = layout.pixelRatio,
+        w = layout.width,
+        frequency = .3,
+        amplitude = 127,
+        center = 128,
+        i = 0,
+        l = 32,
+        colorSamples = new Array(l);
+
+    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r);
+    this._container = new PIXI.DisplayObjectContainer();
+    this._background = new PIXI.Graphics();
+    this._colorStripe = new PIXI.Graphics();
+    this._icon = PIXI.Sprite.fromFrame("currencies");
+    this._input = new App.Input("Enter Category Name",20,w - Math.round(70 * r),Math.round(40 * r),r,true);
+    this._separators = new PIXI.Graphics();
+
+    for (;i<l;i++)
+    {
+        colorSamples[i] = App.MathUtils.rgbToHex(
+            Math.round(Math.sin(frequency * i + 0) * amplitude + center),
+            Math.round(Math.sin(frequency * i + 2) * amplitude + center),
+            Math.round(Math.sin(frequency * i + 4) * amplitude + center)
+        );
+    }
+    this._colorList = new App.InfiniteList(colorSamples,App.ColorSample,App.Direction.X,w,r);
+    /*this._colorList = new App.InfiniteList(
+        new App.Collection(colorSamples,App.ColorSample,null,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL)),
+        App.ColorSample,
+        App.Direction.X,
+        w
+    );*/
+
+    this._render();
+
+    this._container.addChild(this._background);
+    this._container.addChild(this._colorStripe);
+    this._container.addChild(this._icon);
+    this._container.addChild(this._input);
+    this._container.addChild(this._separators);
+    this._container.addChild(this._colorList);
+
+    this._pane.setContent(this._container);
+
+    this.addChild(this._pane);
+};
+
+App.EditCategoryScreen.prototype = Object.create(App.Screen.prototype);
+App.EditCategoryScreen.prototype.constructor = App.EditCategoryScreen;
+
+/**
+ * Render
+ * @private
+ */
+App.EditCategoryScreen.prototype._render = function _render()
+{
+    var r = this._layout.pixelRatio,
+        w = this._layout.width,
+        rounderRatio = Math.round(r),
+        inputFragmentHeight = Math.round(60 * r),
+        colorListHeight = this._colorList.boundingBox.height,
+        iconResizeRatio = Math.round(33 * r) / this._icon.height,
+        separatorPadding = Math.round(10 * r),
+        separatorWidth = w - separatorPadding * 2;
+
+    this._background.clear();
+    this._background.beginFill(0xefefef);
+    this._background.drawRect(0,0,w,inputFragmentHeight*2);
+    this._background.endFill();
+
+    this._colorStripe.clear();
+    this._colorStripe.beginFill(0xff6600);
+    this._colorStripe.drawRect(0,0,Math.round(4*r),Math.round(59 * r));
+    this._colorStripe.endFill();
+
+    this._icon.scale.x = iconResizeRatio;
+    this._icon.scale.y = iconResizeRatio;
+    this._icon.x = Math.round(15 * r);
+    this._icon.y = Math.round((inputFragmentHeight - this._icon.height) / 2);
+    this._icon.tint = 0x394264;// TODO pass color from global setting?
+
+    this._input.x = Math.round(60 * r);
+    this._input.y = Math.round((inputFragmentHeight - this._input.height) / 2);
+
+    this._colorList.y = inputFragmentHeight;
+
+    this._separators.clear();
+    this._separators.beginFill(0xcccccc);
+    this._separators.drawRect(0,0,separatorWidth,rounderRatio);
+    this._separators.drawRect(0,colorListHeight,separatorWidth,rounderRatio);
+    this._separators.beginFill(0xffffff);
+    this._separators.drawRect(0,rounderRatio,separatorWidth,rounderRatio);
+    this._separators.drawRect(0,colorListHeight+rounderRatio,separatorWidth,rounderRatio);
+    this._separators.endFill();
+    this._separators.x = separatorPadding;
+    this._separators.y = inputFragmentHeight - rounderRatio;
+};
+
+/**
+ * Enable
+ */
+App.EditCategoryScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._input.enable();
+    this._colorList.enable();
+    this._pane.enable();
+};
+
+/**
+ * Disable
+ */
+App.EditCategoryScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._input.disable();
+    this._colorList.disable();
+    this._pane.disable();
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.EditCategoryScreen.prototype._registerEventListeners = function _registerEventListener()
+{
+    App.Screen.prototype._registerEventListeners.call(this);
+
+//    var EventType = App.EventType;
+//    this._input.addEventListener(EventType.FOCUS,this,this._onInputFocus);
+//    this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener()
+{
+//    var EventType = App.EventType;
+//    this._input.removeEventListener(EventType.FOCUS,this,this._onInputFocus);
+//    this._input.removeEventListener(EventType.BLUR,this,this._onInputBlur);
+
+    App.Screen.prototype._unRegisterEventListeners.call(this);
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.EditCategoryScreen.prototype._onClick = function _onClick()
+{
+//    if (this._inputFocused) this._input.blur();
+
+//    this._calendar.onClick();
+};
+
 /**
  * @class ApplicationView
  * @extends DisplayObjectContainer
@@ -4746,9 +5155,10 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     this._screenStack = new App.ViewStack([
         new App.AccountScreen(categories,this._layout),
         new App.CategoryScreen(categories,this._layout),
-        new App.SelectTimeScreen(null,this._layout)
+        new App.SelectTimeScreen(null,this._layout),
+        new App.EditCategoryScreen(null,this._layout)
     ]);
-    this._screenStack.selectChildByIndex(App.ScreenName.SELECT_TIME);//TODO move this into separate command?
+    this._screenStack.selectChildByIndex(App.ScreenName.EDIT_CATEGORY);//TODO move this into separate command?
     this._screenStack.show();
 
     this.addChild(this._background);

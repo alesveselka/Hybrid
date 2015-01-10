@@ -79,6 +79,7 @@ App.Calendar.prototype._render = function _render()
         l = this._dayLabelFields.length,
         i = 0;
 
+    //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
     this.clear();
     this.beginFill(0xefefef);
     this.drawRect(0,0,w,h);

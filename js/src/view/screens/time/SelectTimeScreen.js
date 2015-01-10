@@ -1,3 +1,10 @@
+/**
+ * @class SelectTimeScreen
+ * @extends Screen
+ * @param {Collection} model
+ * @param {Object} layout
+ * @constructor
+ */
 App.SelectTimeScreen = function SelectTimeScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
@@ -8,18 +15,19 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
 
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r);
     this._container = new PIXI.DisplayObjectContainer();
-    this._inputBackground = new PIXI.Graphics();
+    this._inputBackground = new PIXI.Graphics();//TODO do I need BG? I can use BG below whole screen ...
+    this._inputOverlay = new PIXI.Graphics();
     this._input = new App.TimeInput("00:00",30,w - Math.round(20 * r),Math.round(40 * r),r);
     this._header = new App.ListHeader("Select Date",w,r);
     this._calendar = new App.Calendar(new Date(),w,r);
     this._inputFocused = false;
-
+    //TODO enable 'swiping' for interactively changing calendar's months
     this._render();
 
     this._container.addChild(this._inputBackground);
-    this._container.addChild(this._input);
     this._container.addChild(this._header);
     this._container.addChild(this._calendar);
+    this._container.addChild(this._input);
 
     this._pane.setContent(this._container);
 
@@ -52,6 +60,11 @@ App.SelectTimeScreen.prototype._render = function _render()
     this._header.y = inputBgHeight;
 
     this._calendar.y = Math.round(this._header.y + this._header.height);
+
+    this._inputOverlay.clear();
+    this._inputOverlay.beginFill(0x000000,0.2);
+    this._inputOverlay.drawRect(0,0,w,this._calendar.y + this._calendar.boundingBox.height);
+    this._inputOverlay.endFill();
 };
 
 /**
@@ -63,8 +76,6 @@ App.SelectTimeScreen.prototype.enable = function enable()
 
     this._input.enable();
     this._pane.enable();
-
-    this._registerEventListener();
 };
 
 /**
@@ -74,8 +85,6 @@ App.SelectTimeScreen.prototype.disable = function disable()
 {
     App.Screen.prototype.disable.call(this);
 
-    this._unRegisterEventListener();
-
     this._input.disable();
     this._pane.disable();
 };
@@ -84,8 +93,10 @@ App.SelectTimeScreen.prototype.disable = function disable()
  * Register event listeners
  * @private
  */
-App.SelectTimeScreen.prototype._registerEventListener = function _registerEventListener()
+App.SelectTimeScreen.prototype._registerEventListeners = function _registerEventListener()
 {
+    App.Screen.prototype._registerEventListeners.call(this);
+
     var EventType = App.EventType;
     this._input.addEventListener(EventType.FOCUS,this,this._onInputFocus);
     this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
@@ -95,11 +106,13 @@ App.SelectTimeScreen.prototype._registerEventListener = function _registerEventL
  * UnRegister event listeners
  * @private
  */
-App.SelectTimeScreen.prototype._unRegisterEventListener = function _unRegisterEventListener()
+App.SelectTimeScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener()
 {
     var EventType = App.EventType;
     this._input.removeEventListener(EventType.FOCUS,this,this._onInputFocus);
     this._input.removeEventListener(EventType.BLUR,this,this._onInputBlur);
+
+    App.Screen.prototype._unRegisterEventListeners.call(this);
 };
 
 /**
@@ -109,6 +122,8 @@ App.SelectTimeScreen.prototype._unRegisterEventListener = function _unRegisterEv
 App.SelectTimeScreen.prototype._onInputFocus = function _onInputFocus()
 {
     this._inputFocused = true;
+
+    if (!this._container.contains(this._inputOverlay)) this._container.addChildAt(this._inputOverlay,this._container.getChildIndex(this._input));
 };
 
 /**
@@ -117,6 +132,8 @@ App.SelectTimeScreen.prototype._onInputFocus = function _onInputFocus()
  */
 App.SelectTimeScreen.prototype._onInputBlur = function _onInputBlur()
 {
+    if (this._container.contains(this._inputOverlay)) this._container.removeChild(this._inputOverlay);
+
     this._inputFocused = false;
 };
 

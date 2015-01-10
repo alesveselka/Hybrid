@@ -36,6 +36,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
         change:this._onChange.bind(this)
     };
     if (displayIcon) this._icon = PIXI.Sprite.fromFrame("clear");
+    this._iconHitThreshold = Math.round(this._width - 40 * this._pixelRatio);
 
     this._render();
 
@@ -57,7 +58,7 @@ App.Input.prototype._render = function _render()
     this._renderBackground(false,r);
 
     this._textField.x = Math.round(10 * r);
-    this._textField.y = Math.round(9 * r);
+    this._textField.y = Math.round((this._height - this._textField.height) / 2 + r);
 
     if (this._icon)
     {
@@ -191,8 +192,8 @@ App.Input.prototype._onClick = function _onClick(data)
 
     if (this._icon)
     {
-        // If user click/tap at 'close' icon, erase actual text; 40 is the icon width
-        if (data.getLocalPosition(this).x >= Math.round(this._width - 40 * this._pixelRatio))
+        // If user click/tap at 'close' icon, erase actual text
+        if (data.getLocalPosition(this).x >= this._iconHitThreshold)
         {
             this._inputProxy.value = "";
             this._onChange();
@@ -214,7 +215,7 @@ App.Input.prototype._onFocus = function _onFocus()
     this._inputProxy.style.display = "none";
     this._inputProxy.style.left = Math.round((this.x - localPoint.x) / r) +"px";
     this._inputProxy.style.top = Math.round((this.y - localPoint.y) / r) + "px";
-    this._inputProxy.style.width = Math.round((this._width / r) - 0) + "px";
+    this._inputProxy.style.width = this._icon ? Math.round(this._iconHitThreshold / r) + "px" : Math.round(this._width / r) + "px";
     this._inputProxy.style.height = Math.round(this._height / r) + "px";
     this._inputProxy.style.fontSize = this._fontSize + "px";
     this._inputProxy.style.lineHeight = this._fontSize + "px";
