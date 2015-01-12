@@ -2842,10 +2842,10 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
         ModelName = App.ModelName,
         colorSample = new itemClass(0,model[0],pixelRatio),
         itemSize = colorSample.boundingBox.width,
-        itemCount = Math.floor(width / itemSize) + 1,
+        itemCount = Math.ceil(width / itemSize) + 1,
         padding = Math.round((height - itemSize) / 2),
         positionProperty = "y",
-        modelLength = model.length - 2,
+        modelLength = model.length - 1,
         index = 0,
         i = 0;
 
@@ -2872,17 +2872,16 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
     this._enabled = false;
     this._state = null;
     this._mouseData = null;
-    this._modelIndex = 0;
     this._virtualPosition = 0;
     this._oldMousePosition = 0.0;
     this._speed = 0.0;
     this._offset = 0.0;
     this._friction = 0.9;
 
-    for (;i<itemCount;i++)
+    for (;i<itemCount;i++,index++)
     {
-        index = index > modelLength ? 0 : index + 1;
-        if (i > 0) colorSample = new itemClass(i,model[index],pixelRatio);
+        if(index > modelLength) index = 0;
+        if (i > 0) colorSample = new itemClass(index,model[index],pixelRatio);
 
         this._items[i] = colorSample;
         colorSample[positionProperty] = padding;
@@ -3094,7 +3093,7 @@ App.InfiniteList.prototype._scroll = function _scroll(Direction)
  */
 App.InfiniteList.prototype._updateX = function _updateX(position)
 {
-    //TODO use flag, so it is not called while still processing last loop?
+    position = Math.round(position);
 
     var i = 0,
         l = this._items.length,
@@ -3102,6 +3101,11 @@ App.InfiniteList.prototype._updateX = function _updateX(position)
         width = this._width,
         positionDifference = position - this._virtualPosition,
         itemScreenIndex = 0,
+        otherItem = null,
+        virtualIndex = 0,
+        xIndex = 0,
+        indexOffset = l - Math.ceil(width/size),
+        modelIndex = 0,
         x = 0,
         item = null;
 
@@ -3112,21 +3116,42 @@ App.InfiniteList.prototype._updateX = function _updateX(position)
         item = this._items[i];
         x = item.x + positionDifference;
 
-        if (x + size < 0 || x > width)
+        if (x + size < 0 && positionDifference < 0)
         {
-            //console.log(i);
             itemScreenIndex = -Math.floor(x / width);
-            console.log(itemScreenIndex);
-            x += itemScreenIndex * (l - 1) * size;
+            x += itemScreenIndex * l * size;
+
+            virtualIndex = Math.floor(this._virtualPosition / size);
+            xIndex = Math.floor(x / size);
+
+            if (virtualIndex >= 0) modelIndex = (xIndex - (virtualIndex % this._model.length)) % this._model.length;
+            else modelIndex = (xIndex - virtualIndex) % this._model.length;
+            if (modelIndex < 0) modelIndex = this._model.length + modelIndex;
+
+            console.log(virtualIndex,xIndex,modelIndex,(this._model.length - 1 - ((virtualIndex - xIndex - 1) % this._model.length)));
+
+            item.setModel(modelIndex,this._model[modelIndex]);
+        }
+        else if (x > width && positionDifference > 0)
+        {
+            itemScreenIndex = -Math.floor(x / width);
+            x += itemScreenIndex * l * size;
+
+            virtualIndex = Math.floor(this._virtualPosition / size);
+            xIndex = Math.floor(x / size);
+
+            if (virtualIndex >= 0) modelIndex = this._model.length - 1 - ((virtualIndex - xIndex - 1) % this._model.length);//TODO replace 1 by indexOffset?
+            else modelIndex = (xIndex - virtualIndex) % this._model.length;
+            if (modelIndex < 0) modelIndex = this._model.length + modelIndex;
+
+            console.log(virtualIndex,xIndex,modelIndex,((xIndex - virtualIndex)%this._model.length));
+
+            item.setModel(modelIndex,this._model[modelIndex]);
         }
 
-        item.x = Math.round(x);
-
-        //this._modelIndex = index;
-
-//        child.visible = x + width > 0 && x < this._width;
+        item.x = x;
     }
-    //console.log("------------");
+    console.log("------------");
 };
 
 /**
@@ -5096,7 +5121,7 @@ App.CategoryScreen.prototype.destroy = function destroy()
     this._buttons = null;
 };
 
-App.ColorSample = function ColorSample(i,color,pixelRatio)
+App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
@@ -5106,9 +5131,10 @@ App.ColorSample = function ColorSample(i,color,pixelRatio)
     this.boundingBox.width = size;
     this.boundingBox.height = size;
 
+    this._modelIndex = modelIndex;
     this._pixelRatio = pixelRatio;
     this._color = color;
-    this._label = new PIXI.Text(i,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#ffffff"});
+    this._label = new PIXI.Text(modelIndex,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#000000"});
 
     this._render();
 
@@ -5132,19 +5158,31 @@ App.ColorSample.prototype._render = function _render()
     this.drawRoundedRect(padding,padding,size,size,padding);
     this.endFill();
 
+    this._label.setText(this._modelIndex);
     this._label.x = Math.round((this.boundingBox.width - this._label.width) / 2);
     this._label.y = Math.round((this.boundingBox.height - this._label.height) / 2);
 };
 
 /**
  * Set color
- * @param {number} value
+ * @param {number} index
+ * @param {number} color
  */
-App.ColorSample.prototype.setColor = function setColor(value)
+App.ColorSample.prototype.setModel = function setModel(index,color)
 {
-    this._color = value;
+    this._modelIndex = index;
+    this._color = color;
 
     this._render();
+};
+
+/**
+ * Return model index
+ * @return {number}
+ */
+App.ColorSample.prototype.getModelIndex = function getModelIndex()
+{
+    return this._modelIndex;
 };
 
 /**

@@ -1,6 +1,7 @@
 'use strict';
 
-var server,
+var port = process.argv[2] && parseInt(process.argv[2],10) || 80,
+    server,
     dir;
 
 /**
@@ -12,7 +13,7 @@ function init()
 
     server = require('http').createServer();
     server.on('request',onServerRequest);
-    server.listen(80);
+    server.listen(port);
 }
 
 /**

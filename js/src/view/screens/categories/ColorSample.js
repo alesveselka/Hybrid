@@ -1,4 +1,4 @@
-App.ColorSample = function ColorSample(i,color,pixelRatio)
+App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
@@ -8,9 +8,10 @@ App.ColorSample = function ColorSample(i,color,pixelRatio)
     this.boundingBox.width = size;
     this.boundingBox.height = size;
 
+    this._modelIndex = modelIndex;
     this._pixelRatio = pixelRatio;
     this._color = color;
-    this._label = new PIXI.Text(i,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#ffffff"});
+    this._label = new PIXI.Text(modelIndex,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#000000"});
 
     this._render();
 
@@ -34,17 +35,29 @@ App.ColorSample.prototype._render = function _render()
     this.drawRoundedRect(padding,padding,size,size,padding);
     this.endFill();
 
+    this._label.setText(this._modelIndex);
     this._label.x = Math.round((this.boundingBox.width - this._label.width) / 2);
     this._label.y = Math.round((this.boundingBox.height - this._label.height) / 2);
 };
 
 /**
  * Set color
- * @param {number} value
+ * @param {number} index
+ * @param {number} color
  */
-App.ColorSample.prototype.setColor = function setColor(value)
+App.ColorSample.prototype.setModel = function setModel(index,color)
 {
-    this._color = value;
+    this._modelIndex = index;
+    this._color = color;
 
     this._render();
+};
+
+/**
+ * Return model index
+ * @return {number}
+ */
+App.ColorSample.prototype.getModelIndex = function getModelIndex()
+{
+    return this._modelIndex;
 };
