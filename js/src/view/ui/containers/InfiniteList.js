@@ -17,19 +17,10 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
         ModelName = App.ModelName,
         colorSample = new itemClass(0,model[0],pixelRatio),
         itemSize = colorSample.boundingBox.width,
-        itemCount = Math.ceil(width / itemSize) + 1,
-        padding = Math.round((height - itemSize) / 2),
-        positionProperty = "y",
+        itemCount = direction === App.Direction.X ? Math.ceil(width / itemSize) + 1 : Math.ceil(height / itemSize) + 1,
         modelLength = model.length - 1,
         index = 0,
         i = 0;
-
-    if (direction === App.Direction.Y)
-    {
-        positionProperty = "x";
-        itemCount = Math.ceil(height / itemSize);
-        padding = Math.round((width - itemSize) / 2);
-    }
 
     this.boundingBox = new PIXI.Rectangle(0,0,width,height);
     this.hitArea = this.boundingBox;
@@ -59,7 +50,6 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
         if (i > 0) colorSample = new itemClass(index,model[index],pixelRatio);
 
         this._items[i] = colorSample;
-        colorSample[positionProperty] = padding;
         this.addChild(colorSample);
     }
 

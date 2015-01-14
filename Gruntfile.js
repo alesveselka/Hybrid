@@ -54,6 +54,7 @@ module.exports = function(grunt)
         "js/src/view/screens/categories/CategoryButtonExpand.js",
         "js/src/view/screens/categories/CategoryScreen.js",
         "js/src/view/screens/categories/ColorSample.js",
+        "js/src/view/screens/categories/IconSample.js",
         "js/src/view/screens/categories/EditCategoryScreen.js",
         "js/src/view/ApplicationView.js",
         "js/src/tween/Easing.js",

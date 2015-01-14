@@ -9,7 +9,8 @@
  *      TRANSACTIONS:string,
  *      SETTINGS:string,
  *      FILTERS:string,
- *      CURRENCIES:string
+ *      CURRENCIES:string,
+ *      ICONS:string
  * }}
  */
 App.ModelName = {
@@ -20,5 +21,6 @@ App.ModelName = {
     TRANSACTIONS:"TRANSACTIONS",
     SETTINGS:"SETTINGS",
     FILTERS:"FILTERS",
-    CURRENCIES:"CURRENCIES"
+    CURRENCIES:"CURRENCIES",
+    ICONS:"ICONS"
 };

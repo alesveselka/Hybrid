@@ -11,6 +11,7 @@ App.LoadData = function LoadData(pool)
     this._jsonLoader = null;
     this._fontLoadingInterval = -1;
     this._fontInfoElement = null;
+    this._icons = null;
 };
 
 App.LoadData.prototype = Object.create(App.Command.prototype);
@@ -38,6 +39,7 @@ App.LoadData.prototype._loadAssets = function _loadAssets()
 
     this._jsonLoader.on("loaded",function()
     {
+        this._icons = this._jsonLoader.json.frames;
         this._jsonLoader.removeAllListeners("loaded");
         this._jsonLoader = null;
 
@@ -90,7 +92,7 @@ App.LoadData.prototype._loadData = function _loadData()
     request.onload = function() {
         if (request.status >= 200 && request.status < 400)
         {
-            this.dispatchEvent(App.EventType.COMPLETE,request.responseText);
+            this.dispatchEvent(App.EventType.COMPLETE,{accounts:request.responseText,icons:this._icons});
         } else {
             console.log("error");
         }

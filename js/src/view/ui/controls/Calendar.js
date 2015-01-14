@@ -32,8 +32,8 @@ App.Calendar = function Calendar(date,width,pixelRatio)
     this._weekRowPosition = Math.round(81 * pixelRatio);
 
     this._monthField = new PIXI.Text("",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
-    this._prevButton = PIXI.Sprite.fromFrame("arrow");
-    this._nextButton = PIXI.Sprite.fromFrame("arrow");
+    this._prevButton = PIXI.Sprite.fromFrame("arrow-app");
+    this._nextButton = PIXI.Sprite.fromFrame("arrow-app");
     this._dayLabelFields = new Array(daysInWeek);
     this._weekRows = new Array(weeksInMonth);
     this._separatorContainer = new PIXI.Graphics();

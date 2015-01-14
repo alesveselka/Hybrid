@@ -50,21 +50,22 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  * Initialize application model
  *
  * @method _initModel
- * @param {string} data
+ * @param {{accounts:string,icons:Object}} data
  * @private
  */
 App.Initialize.prototype._initModel = function _initModel(data)
 {
-    var ModelLocator = App.ModelLocator;
-    var ModelName = App.ModelName;
-    var Collection = App.Collection;
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        Collection = App.Collection;
 
     //TODO initiate all proxies in once 'init' method? Same as Controller ...
     ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
     ModelLocator.addProxy(ModelName.RECTANGLE_POOL,new App.ObjectPool(App.Rectangle,20));//TODO use this pool - some classes still dont use it!
     ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
+    ModelLocator.addProxy(ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}));
     ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(
-        JSON.parse(data).accounts,//TODO parse JSON on data from localStorage
+        JSON.parse(data.accounts).accounts,//TODO parse JSON on data from localStorage
         App.Account,
         null,
         this._eventListenerPool

@@ -10,14 +10,20 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     App.Screen.call(this,model,layout,0.4);
 
     var ScrollPolicy = App.ScrollPolicy,
+        InfiniteList = App.InfiniteList,
+        Direction = App.Direction,
+        MathUtils = App.MathUtils,
+        IconSample = App.IconSample,
         r = layout.pixelRatio,
         w = layout.width,
-        frequency = .3,
+        i = 0,
+        l = 30,
+        frequency = 2 * Math.PI/l,
         amplitude = 127,
         center = 128,
-        i = 0,
-        l = 32,
-        colorSamples = new Array(l);
+        colorSamples = new Array(l),
+        icons = App.ModelLocator.getProxy(App.ModelName.ICONS),
+        iconsHeight = Math.round(64 * r);
 
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r);
     this._container = new PIXI.DisplayObjectContainer();
@@ -29,13 +35,21 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
 
     for (;i<l;i++)
     {
-        colorSamples[i] = App.MathUtils.rgbToHex(
+        colorSamples[i] = MathUtils.rgbToHex(
             Math.round(Math.sin(frequency * i + 0) * amplitude + center),
             Math.round(Math.sin(frequency * i + 2) * amplitude + center),
             Math.round(Math.sin(frequency * i + 4) * amplitude + center)
         );
     }
-    this._colorList = new App.InfiniteList(colorSamples,App.ColorSample,App.Direction.X,w,Math.round(50 * r),r);
+    this._colorList = new InfiniteList(colorSamples,App.ColorSample,Direction.X,w,Math.round(50 * r),r);
+
+    //i = 0;
+    //l = iconSamples.length;
+    //for (;i<l;i++) iconSamples[i] = {top:icons[i],bottom:icons[l+i]};
+    //this._iconList = new App.IconList(icons,w,r);
+
+    this._topIconList = new InfiniteList(icons.slice(0,Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
+    this._bottomIconList = new InfiniteList(icons.slice(Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
 
     this._render();
 
@@ -45,6 +59,8 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._container.addChild(this._input);
     this._container.addChild(this._separators);
     this._container.addChild(this._colorList);
+    this._container.addChild(this._topIconList);
+    this._container.addChild(this._bottomIconList);
 
     this._pane.setContent(this._container);
 
@@ -65,14 +81,9 @@ App.EditCategoryScreen.prototype._render = function _render()
         rounderRatio = Math.round(r),
         inputFragmentHeight = Math.round(60 * r),
         colorListHeight = this._colorList.boundingBox.height,
-        iconResizeRatio = Math.round(33 * r) / this._icon.height,
+        iconResizeRatio = Math.round(32 * r) / this._icon.height,
         separatorPadding = Math.round(10 * r),
         separatorWidth = w - separatorPadding * 2;
-
-    this._background.clear();
-    this._background.beginFill(0xefefef);
-    this._background.drawRect(0,0,w,inputFragmentHeight*2);
-    this._background.endFill();
 
     this._colorStripe.clear();
     this._colorStripe.beginFill(0xff6600);
@@ -89,6 +100,14 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._input.y = Math.round((inputFragmentHeight - this._input.height) / 2);
 
     this._colorList.y = inputFragmentHeight;
+
+    this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
+    this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
+
+    this._background.clear();
+    this._background.beginFill(0xefefef);
+    this._background.drawRect(0,0,w,this._bottomIconList.y+this._bottomIconList.boundingBox.height);
+    this._background.endFill();
 
     this._separators.clear();
     this._separators.beginFill(0xcccccc);
@@ -111,6 +130,8 @@ App.EditCategoryScreen.prototype.enable = function enable()
 
     this._input.enable();
     this._colorList.enable();
+    this._topIconList.enable();
+    this._bottomIconList.enable();
     this._pane.enable();
 };
 
@@ -123,6 +144,8 @@ App.EditCategoryScreen.prototype.disable = function disable()
 
     this._input.disable();
     this._colorList.disable();
+    this._topIconList.disable();
+    this._bottomIconList.disable();
     this._pane.disable();
 };
 

@@ -295,7 +295,8 @@ App.EventType = {
  *      TRANSACTIONS:string,
  *      SETTINGS:string,
  *      FILTERS:string,
- *      CURRENCIES:string
+ *      CURRENCIES:string,
+ *      ICONS:string
  * }}
  */
 App.ModelName = {
@@ -306,7 +307,8 @@ App.ModelName = {
     TRANSACTIONS:"TRANSACTIONS",
     SETTINGS:"SETTINGS",
     FILTERS:"FILTERS",
-    CURRENCIES:"CURRENCIES"
+    CURRENCIES:"CURRENCIES",
+    ICONS:"ICONS"
 };
 
 /**
@@ -1354,7 +1356,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
         blur:this._onBlur.bind(this),
         change:this._onChange.bind(this)
     };
-    if (displayIcon) this._icon = PIXI.Sprite.fromFrame("clear");
+    if (displayIcon) this._icon = PIXI.Sprite.fromFrame("clear-app");
     this._iconHitThreshold = Math.round(this._width - 40 * this._pixelRatio);
 
     this._render();
@@ -1956,8 +1958,8 @@ App.Calendar = function Calendar(date,width,pixelRatio)
     this._weekRowPosition = Math.round(81 * pixelRatio);
 
     this._monthField = new PIXI.Text("",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
-    this._prevButton = PIXI.Sprite.fromFrame("arrow");
-    this._nextButton = PIXI.Sprite.fromFrame("arrow");
+    this._prevButton = PIXI.Sprite.fromFrame("arrow-app");
+    this._nextButton = PIXI.Sprite.fromFrame("arrow-app");
     this._dayLabelFields = new Array(daysInWeek);
     this._weekRows = new Array(weeksInMonth);
     this._separatorContainer = new PIXI.Graphics();
@@ -2842,19 +2844,10 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
         ModelName = App.ModelName,
         colorSample = new itemClass(0,model[0],pixelRatio),
         itemSize = colorSample.boundingBox.width,
-        itemCount = Math.ceil(width / itemSize) + 1,
-        padding = Math.round((height - itemSize) / 2),
-        positionProperty = "y",
+        itemCount = direction === App.Direction.X ? Math.ceil(width / itemSize) + 1 : Math.ceil(height / itemSize) + 1,
         modelLength = model.length - 1,
         index = 0,
         i = 0;
-
-    if (direction === App.Direction.Y)
-    {
-        positionProperty = "x";
-        itemCount = Math.ceil(height / itemSize);
-        padding = Math.round((width - itemSize) / 2);
-    }
 
     this.boundingBox = new PIXI.Rectangle(0,0,width,height);
     this.hitArea = this.boundingBox;
@@ -2884,7 +2877,6 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
         if (i > 0) colorSample = new itemClass(index,model[index],pixelRatio);
 
         this._items[i] = colorSample;
-        colorSample[positionProperty] = padding;
         this.addChild(colorSample);
     }
 
@@ -5105,11 +5097,12 @@ App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
-    var size = Math.round(40 * pixelRatio);
+    var width = Math.round(40 * pixelRatio),
+        height = Math.round(50 * pixelRatio);
 
     this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
-    this.boundingBox.width = size;
-    this.boundingBox.height = size;
+    this.boundingBox.width = width;
+    this.boundingBox.height = height;
 
     this._modelIndex = modelIndex;
     this._pixelRatio = pixelRatio;
@@ -5130,17 +5123,19 @@ App.ColorSample.prototype.constructor = App.ColorSample;
  */
 App.ColorSample.prototype._render = function _render()
 {
-    var padding = Math.round(5 * this._pixelRatio),//TODO padding depends on if its selected or not
-        size = this.boundingBox.width - padding * 2;
+    var xPadding = Math.round(5 * this._pixelRatio),//TODO padding depends on if its selected or not
+        yPadding = Math.round(10 * this._pixelRatio),//TODO padding depends on if its selected or not
+        w = this.boundingBox.width,
+        h = this.boundingBox.height;
 
     this.clear();
     this.beginFill("0x"+this._color);
-    this.drawRoundedRect(padding,padding,size,size,padding);
+    this.drawRoundedRect(xPadding,yPadding,w-xPadding*2,h-yPadding*2,Math.round(5*this._pixelRatio));
     this.endFill();
 
     this._label.setText(this._modelIndex);
-    this._label.x = Math.round((this.boundingBox.width - this._label.width) / 2);
-    this._label.y = Math.round((this.boundingBox.height - this._label.height) / 2);
+    this._label.x = Math.round((w - this._label.width) / 2);
+    this._label.y = Math.round((h - this._label.height) / 2);
 };
 
 /**
@@ -5165,6 +5160,78 @@ App.ColorSample.prototype.getModelIndex = function getModelIndex()
     return this._modelIndex;
 };
 
+App.IconSample = function IconSample(modelIndex,model,pixelRatio)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    var size = Math.round(64 * pixelRatio);
+
+    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
+    this.boundingBox.width = size;
+    this.boundingBox.height = size * 2;
+
+    this._modelIndex = modelIndex;
+    this._model = model;
+    this._pixelRatio = pixelRatio;
+    this._topIcon = PIXI.Sprite.fromFrame(model/*.top*/);
+    //this._bottomIcon = PIXI.Sprite.fromFrame(model.bottom);
+    this._iconResizeRatio = Math.round(32 * pixelRatio) / this._topIcon.height;
+
+    this._render();
+
+    this.addChild(this._topIcon);
+    //this.addChild(this._bottomIcon);
+};
+
+App.IconSample.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.IconSample.prototype.constructor = App.IconSample;
+
+/**
+ * Render
+ * @private
+ */
+App.IconSample.prototype._render = function _render()
+{
+    var size = this.boundingBox.width;
+
+    this._topIcon.scale.x = this._iconResizeRatio;
+    this._topIcon.scale.y = this._iconResizeRatio;
+    this._topIcon.x = Math.round((size - this._topIcon.width) / 2);
+    this._topIcon.y = Math.round((size - this._topIcon.height) / 2);
+    this._topIcon.tint = 0xcccccc;// TODO pass color from global setting?
+
+    /*this._bottomIcon.scale.x = this._iconResizeRatio;
+    this._bottomIcon.scale.y = this._iconResizeRatio;
+    this._bottomIcon.x = Math.round((size - this._bottomIcon.width) / 2);
+    this._bottomIcon.y = size + Math.round((size - this._bottomIcon.height) / 2);
+    this._bottomIcon.tint = 0x394264;// TODO pass color from global setting?*/
+};
+
+/**
+ * Set color
+ * @param {number} index
+ * @param {{top:string,bottom:string}} model
+ */
+App.IconSample.prototype.setModel = function setModel(index,model)
+{
+    this._modelIndex = index;
+    this._model = model;
+
+    this._topIcon.setTexture(PIXI.TextureCache[model/*.top*/]);
+    //this._bottomIcon.setTexture(PIXI.TextureCache[model.bottom]);
+
+    this._render();
+};
+
+/**
+ * Return model index
+ * @return {number}
+ */
+App.IconSample.prototype.getModelIndex = function getModelIndex()
+{
+    return this._modelIndex;
+};
+
 /**
  * @class EditCategoryScreen
  * @extends Screen
@@ -5177,14 +5244,20 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     App.Screen.call(this,model,layout,0.4);
 
     var ScrollPolicy = App.ScrollPolicy,
+        InfiniteList = App.InfiniteList,
+        Direction = App.Direction,
+        MathUtils = App.MathUtils,
+        IconSample = App.IconSample,
         r = layout.pixelRatio,
         w = layout.width,
-        frequency = .3,
+        i = 0,
+        l = 30,
+        frequency = 2 * Math.PI/l,
         amplitude = 127,
         center = 128,
-        i = 0,
-        l = 32,
-        colorSamples = new Array(l);
+        colorSamples = new Array(l),
+        icons = App.ModelLocator.getProxy(App.ModelName.ICONS),
+        iconsHeight = Math.round(64 * r);
 
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r);
     this._container = new PIXI.DisplayObjectContainer();
@@ -5196,13 +5269,21 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
 
     for (;i<l;i++)
     {
-        colorSamples[i] = App.MathUtils.rgbToHex(
+        colorSamples[i] = MathUtils.rgbToHex(
             Math.round(Math.sin(frequency * i + 0) * amplitude + center),
             Math.round(Math.sin(frequency * i + 2) * amplitude + center),
             Math.round(Math.sin(frequency * i + 4) * amplitude + center)
         );
     }
-    this._colorList = new App.InfiniteList(colorSamples,App.ColorSample,App.Direction.X,w,Math.round(50 * r),r);
+    this._colorList = new InfiniteList(colorSamples,App.ColorSample,Direction.X,w,Math.round(50 * r),r);
+
+    //i = 0;
+    //l = iconSamples.length;
+    //for (;i<l;i++) iconSamples[i] = {top:icons[i],bottom:icons[l+i]};
+    //this._iconList = new App.IconList(icons,w,r);
+
+    this._topIconList = new InfiniteList(icons.slice(0,Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
+    this._bottomIconList = new InfiniteList(icons.slice(Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
 
     this._render();
 
@@ -5212,6 +5293,8 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._container.addChild(this._input);
     this._container.addChild(this._separators);
     this._container.addChild(this._colorList);
+    this._container.addChild(this._topIconList);
+    this._container.addChild(this._bottomIconList);
 
     this._pane.setContent(this._container);
 
@@ -5232,14 +5315,9 @@ App.EditCategoryScreen.prototype._render = function _render()
         rounderRatio = Math.round(r),
         inputFragmentHeight = Math.round(60 * r),
         colorListHeight = this._colorList.boundingBox.height,
-        iconResizeRatio = Math.round(33 * r) / this._icon.height,
+        iconResizeRatio = Math.round(32 * r) / this._icon.height,
         separatorPadding = Math.round(10 * r),
         separatorWidth = w - separatorPadding * 2;
-
-    this._background.clear();
-    this._background.beginFill(0xefefef);
-    this._background.drawRect(0,0,w,inputFragmentHeight*2);
-    this._background.endFill();
 
     this._colorStripe.clear();
     this._colorStripe.beginFill(0xff6600);
@@ -5256,6 +5334,14 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._input.y = Math.round((inputFragmentHeight - this._input.height) / 2);
 
     this._colorList.y = inputFragmentHeight;
+
+    this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
+    this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
+
+    this._background.clear();
+    this._background.beginFill(0xefefef);
+    this._background.drawRect(0,0,w,this._bottomIconList.y+this._bottomIconList.boundingBox.height);
+    this._background.endFill();
 
     this._separators.clear();
     this._separators.beginFill(0xcccccc);
@@ -5278,6 +5364,8 @@ App.EditCategoryScreen.prototype.enable = function enable()
 
     this._input.enable();
     this._colorList.enable();
+    this._topIconList.enable();
+    this._bottomIconList.enable();
     this._pane.enable();
 };
 
@@ -5290,6 +5378,8 @@ App.EditCategoryScreen.prototype.disable = function disable()
 
     this._input.disable();
     this._colorList.disable();
+    this._topIconList.disable();
+    this._bottomIconList.disable();
     this._pane.disable();
 };
 
@@ -5945,6 +6035,7 @@ App.LoadData = function LoadData(pool)
     this._jsonLoader = null;
     this._fontLoadingInterval = -1;
     this._fontInfoElement = null;
+    this._icons = null;
 };
 
 App.LoadData.prototype = Object.create(App.Command.prototype);
@@ -5972,6 +6063,7 @@ App.LoadData.prototype._loadAssets = function _loadAssets()
 
     this._jsonLoader.on("loaded",function()
     {
+        this._icons = this._jsonLoader.json.frames;
         this._jsonLoader.removeAllListeners("loaded");
         this._jsonLoader = null;
 
@@ -6024,7 +6116,7 @@ App.LoadData.prototype._loadData = function _loadData()
     request.onload = function() {
         if (request.status >= 200 && request.status < 400)
         {
-            this.dispatchEvent(App.EventType.COMPLETE,request.responseText);
+            this.dispatchEvent(App.EventType.COMPLETE,{accounts:request.responseText,icons:this._icons});
         } else {
             console.log("error");
         }
@@ -6106,21 +6198,22 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  * Initialize application model
  *
  * @method _initModel
- * @param {string} data
+ * @param {{accounts:string,icons:Object}} data
  * @private
  */
 App.Initialize.prototype._initModel = function _initModel(data)
 {
-    var ModelLocator = App.ModelLocator;
-    var ModelName = App.ModelName;
-    var Collection = App.Collection;
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        Collection = App.Collection;
 
     //TODO initiate all proxies in once 'init' method? Same as Controller ...
     ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
     ModelLocator.addProxy(ModelName.RECTANGLE_POOL,new App.ObjectPool(App.Rectangle,20));//TODO use this pool - some classes still dont use it!
     ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
+    ModelLocator.addProxy(ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}));
     ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(
-        JSON.parse(data).accounts,//TODO parse JSON on data from localStorage
+        JSON.parse(data.accounts).accounts,//TODO parse JSON on data from localStorage
         App.Account,
         null,
         this._eventListenerPool

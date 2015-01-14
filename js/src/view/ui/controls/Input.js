@@ -35,7 +35,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
         blur:this._onBlur.bind(this),
         change:this._onChange.bind(this)
     };
-    if (displayIcon) this._icon = PIXI.Sprite.fromFrame("clear");
+    if (displayIcon) this._icon = PIXI.Sprite.fromFrame("clear-app");
     this._iconHitThreshold = Math.round(this._width - 40 * this._pixelRatio);
 
     this._render();
