@@ -2932,14 +2932,12 @@ App.InfiniteList.prototype._registerEventListeners = function _registerEventList
         this.touchstart = this._onPointerDown;
         this.touchend = this._onPointerUp;
         this.touchendoutside = this._onPointerUp;
-//        this.touchmove = this._onPointerMove;
     }
     else
     {
         this.mousedown = this._onPointerDown;
         this.mouseup = this._onPointerUp;
         this.mouseupoutside = this._onPointerUp;
-//        this.mousemove = this._onPointerMove;
     }
 
     this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
@@ -2958,14 +2956,12 @@ App.InfiniteList.prototype._unRegisterEventListeners = function _unRegisterEvent
         this.touchstart = null;
         this.touchend = null;
         this.touchendoutside = null;
-//        this.touchmove = null;
     }
     else
     {
         this.mousedown = null;
         this.mouseup = null;
         this.mouseupoutside = null;
-//        this.mousemove = null;
     }
 };
 
@@ -3020,29 +3016,25 @@ App.InfiniteList.prototype._drag = function _drag(Direction)
 {
     if (this.stage)
     {
-        //TODO simplify and remove the condition?
         if (this._direction === Direction.X)
         {
-            var mouseX = this._mouseData.getLocalPosition(this.stage).x;
+            var mousePosition = this._mouseData.getLocalPosition(this.stage).x;
 
-            if (mouseX <= -10000) return;
+            if (mousePosition <= -10000) return;
 
-            this._updateX(mouseX - this._offset);
-
-            this._speed = mouseX - this._oldMousePosition;
-            this._oldMousePosition = mouseX;
+            this._updateX(mousePosition - this._offset);
         }
         else if (this._direction === Direction.Y)
         {
-            var mouseY = this._mouseData.getLocalPosition(this.stage).y;
+            mousePosition = this._mouseData.getLocalPosition(this.stage).y;
 
-            if (mouseY <= -10000) return;
+            if (mousePosition <= -10000) return;
 
-            this._updateY(mouseY - this._offset);
-
-            this._speed = mouseY - this._oldMousePosition;
-            this._oldMousePosition = mouseY;
+            this._updateY(mousePosition - this._offset);
         }
+
+        this._speed = mousePosition - this._oldMousePosition;
+        this._oldMousePosition = mousePosition;
     }
 };
 
@@ -3054,35 +3046,18 @@ App.InfiniteList.prototype._drag = function _drag(Direction)
  */
 App.InfiniteList.prototype._scroll = function _scroll(Direction)
 {
-    if (this._direction === Direction.X)
-    {
-        this._updateX(this._virtualPosition + this._speed);
+    if (this._direction === Direction.X) this._updateX(this._virtualPosition + this._speed);
+    else if (this._direction === Direction.Y) this._updateY(this._virtualPosition + this._speed);
 
-        // If the speed is very low, stop it.
-        if (Math.abs(this._speed) < 0.1)
-        {
-            this._speed = 0.0;
-            this._state = null;
-        }
-        else
-        {
-            this._speed *= this._friction;
-        }
+    // If the speed is very low, stop it.
+    if (Math.abs(this._speed) < 0.1)
+    {
+        this._speed = 0.0;
+        this._state = null;
     }
-    else if (this._direction === Direction.Y)
+    else
     {
-        this._updateY(this._virtualPosition + this._speed);
-
-        // If the speed is very low, stop it.
-        if (Math.abs(this._speed) < 0.1)
-        {
-            this._speed = 0.0;
-            this._state = null;
-        }
-        else
-        {
-            this._speed *= this._friction;
-        }
+        this._speed *= this._friction;
     }
 };
 
@@ -3097,61 +3072,42 @@ App.InfiniteList.prototype._updateX = function _updateX(position)
 
     var i = 0,
         l = this._items.length,
-        size = this._itemSize,
+        itemSize = this._itemSize,
         width = this._width,
         positionDifference = position - this._virtualPosition,
         itemScreenIndex = 0,
-        otherItem = null,
         virtualIndex = 0,
         xIndex = 0,
-        indexOffset = l - Math.ceil(width/size),
         modelIndex = 0,
+        modelLength = this._model.length,
         x = 0,
         item = null;
 
     this._virtualPosition = position;
 
-    for (;i<l;i++)
+    for (;i<l;)
     {
-        item = this._items[i];
+        item = this._items[i++];
         x = item.x + positionDifference;
 
-        if (x + size < 0 && positionDifference < 0)
+        if (x + itemSize < 0 || x > width)
         {
             itemScreenIndex = -Math.floor(x / width);
-            x += itemScreenIndex * l * size;
+            x += itemScreenIndex * l * itemSize;
 
-            virtualIndex = Math.floor(this._virtualPosition / size);
-            xIndex = Math.floor(x / size);
+            virtualIndex = Math.floor(this._virtualPosition / itemSize);
+            xIndex = Math.floor(x / itemSize);
 
-            if (virtualIndex >= 0) modelIndex = (xIndex - (virtualIndex % this._model.length)) % this._model.length;
-            else modelIndex = (xIndex - virtualIndex) % this._model.length;
-            if (modelIndex < 0) modelIndex = this._model.length + modelIndex;
-
-            console.log(virtualIndex,xIndex,modelIndex,(this._model.length - 1 - ((virtualIndex - xIndex - 1) % this._model.length)));
-
-            item.setModel(modelIndex,this._model[modelIndex]);
-        }
-        else if (x > width && positionDifference > 0)
-        {
-            itemScreenIndex = -Math.floor(x / width);
-            x += itemScreenIndex * l * size;
-
-            virtualIndex = Math.floor(this._virtualPosition / size);
-            xIndex = Math.floor(x / size);
-
-            if (virtualIndex >= 0) modelIndex = this._model.length - 1 - ((virtualIndex - xIndex - 1) % this._model.length);//TODO replace 1 by indexOffset?
-            else modelIndex = (xIndex - virtualIndex) % this._model.length;
-            if (modelIndex < 0) modelIndex = this._model.length + modelIndex;
-
-            console.log(virtualIndex,xIndex,modelIndex,((xIndex - virtualIndex)%this._model.length));
+            if (virtualIndex >= 0) modelIndex = (xIndex - (virtualIndex % modelLength)) % modelLength;
+            else modelIndex = (xIndex - virtualIndex) % modelLength;
+            if (modelIndex < 0) modelIndex = modelLength + modelIndex;
+            else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
 
             item.setModel(modelIndex,this._model[modelIndex]);
         }
 
         item.x = x;
     }
-    console.log("------------");
 };
 
 /**
@@ -3161,22 +3117,46 @@ App.InfiniteList.prototype._updateX = function _updateX(position)
  */
 App.InfiniteList.prototype._updateY = function _updateY(position)
 {
-    this._virtualPosition = Math.round(position);
+    position = Math.round(position);
 
-    /*var i = 0,
+    var i = 0,
         l = this._items.length,
-        height = 0,
+        itemSize = this._itemSize,
+        height = this._height,
+        positionDifference = position - this._virtualPosition,
+        itemScreenIndex = 0,
+        virtualIndex = 0,
+        yIndex = 0,
+        modelIndex = 0,
+        modelLength = this._model.length,
         y = 0,
-        child = null;
+        item = null;
+
+    this._virtualPosition = position;
 
     for (;i<l;)
     {
-        child = this._items[i++];
-        height = child.boundingBox.height;
-        y = this.y + child.y;
+        item = this._items[i++];
+        y = item.y + positionDifference;
 
-        child.visible = y + height > 0 && y < this._height;
-    }*/
+        if (y + itemSize < 0 || y > height)
+        {
+            itemScreenIndex = -Math.floor(y / height);
+            y += itemScreenIndex * l * itemSize;
+
+            virtualIndex = Math.floor(this._virtualPosition / itemSize);
+            yIndex = Math.floor(y / itemSize);
+
+            if (virtualIndex >= 0) modelIndex = (yIndex - (virtualIndex % modelLength)) % modelLength;
+            else modelIndex = (yIndex - virtualIndex) % modelLength;
+            if (modelIndex < 0) modelIndex = modelLength + modelIndex;
+            else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
+
+            item.setModel(modelIndex,this._model[modelIndex]);
+        }
+
+        item.y = y;
+    }
 };
 
 /**
