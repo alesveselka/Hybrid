@@ -2842,9 +2842,10 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
 
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName,
-        colorSample = new itemClass(0,model[0],pixelRatio),
-        itemSize = colorSample.boundingBox.width,
-        itemCount = direction === App.Direction.X ? Math.ceil(width / itemSize) + 1 : Math.ceil(height / itemSize) + 1,
+        Direction = App.Direction,
+        item = new itemClass(0,model[0],pixelRatio),
+        itemSize = direction === Direction.X ? item.boundingBox.width : item.boundingBox.height,
+        itemCount = direction === Direction.X ? Math.ceil(width / itemSize) + 1 : Math.ceil(height / itemSize) + 1,
         modelLength = model.length - 1,
         index = 0,
         i = 0;
@@ -2861,6 +2862,7 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
     this._pixelRatio = pixelRatio;
     this._items = new Array(itemCount);
     this._itemSize = itemSize;
+    this._selectedModelIndex = -1;
 
     this._enabled = false;
     this._state = null;
@@ -2874,10 +2876,10 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
     for (;i<itemCount;i++,index++)
     {
         if(index > modelLength) index = 0;
-        if (i > 0) colorSample = new itemClass(index,model[index],pixelRatio);
+        if (i > 0) item = new itemClass(index,model[index],pixelRatio);
 
-        this._items[i] = colorSample;
-        this.addChild(colorSample);
+        this._items[i] = item;
+        this.addChild(item);
     }
 
     this._updateLayout(false);
@@ -2911,6 +2913,36 @@ App.InfiniteList.prototype.disable = function disable()
     this._unRegisterEventListeners();
 
     this._enabled = false;
+};
+
+/**
+ * Find and select item under position passed in
+ * @param {number} position
+ */
+App.InfiniteList.prototype.selectItemByPosition = function selectItemByPosition(position)
+{
+    var i = 0,
+        l = this._items.length,
+        itemSize = this._itemSize,
+        itemProperty = this._direction === App.Direction.X ? "x" : "y",
+        item = null,
+        itemPosition = 0;
+
+    this._selectedModelIndex = -1;
+
+    for (;i<l;)
+    {
+        item = this._items[i++];
+        itemPosition = item[itemProperty];
+
+        if (itemPosition <= position && itemPosition + itemSize > position)
+        {
+            this._selectedModelIndex = item.getModelIndex();
+            break;
+        }
+    }
+
+    for (i=0;i<l;) this._items[i++].select(this._selectedModelIndex);
 };
 
 /**
@@ -3095,7 +3127,7 @@ App.InfiniteList.prototype._updateX = function _updateX(position)
             if (modelIndex < 0) modelIndex = modelLength + modelIndex;
             else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
 
-            item.setModel(modelIndex,this._model[modelIndex]);
+            item.setModel(modelIndex,this._model[modelIndex],this._selectedModelIndex);
         }
 
         item.x = x;
@@ -3144,7 +3176,7 @@ App.InfiniteList.prototype._updateY = function _updateY(position)
             if (modelIndex < 0) modelIndex = modelLength + modelIndex;
             else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
 
-            item.setModel(modelIndex,this._model[modelIndex]);
+            item.setModel(modelIndex,this._model[modelIndex],this._selectedModelIndex);
         }
 
         item.y = y;
@@ -5108,6 +5140,7 @@ App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
     this._pixelRatio = pixelRatio;
     this._color = color;
     this._label = new PIXI.Text(modelIndex,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#000000"});
+    this._selected = false;
 
     this._render();
 
@@ -5123,8 +5156,8 @@ App.ColorSample.prototype.constructor = App.ColorSample;
  */
 App.ColorSample.prototype._render = function _render()
 {
-    var xPadding = Math.round(5 * this._pixelRatio),//TODO padding depends on if its selected or not
-        yPadding = Math.round(10 * this._pixelRatio),//TODO padding depends on if its selected or not
+    var xPadding = Math.round((this._selected ? 0 : 5) * this._pixelRatio),
+        yPadding = Math.round((this._selected ? 5 : 10) * this._pixelRatio),
         w = this.boundingBox.width,
         h = this.boundingBox.height;
 
@@ -5142,11 +5175,14 @@ App.ColorSample.prototype._render = function _render()
  * Set color
  * @param {number} index
  * @param {number} color
+ * @param {number} selectedIndex
  */
-App.ColorSample.prototype.setModel = function setModel(index,color)
+App.ColorSample.prototype.setModel = function setModel(index,color,selectedIndex)
 {
     this._modelIndex = index;
     this._color = color;
+
+    this._selected = selectedIndex === this._modelIndex;
 
     this._render();
 };
@@ -5158,6 +5194,21 @@ App.ColorSample.prototype.setModel = function setModel(index,color)
 App.ColorSample.prototype.getModelIndex = function getModelIndex()
 {
     return this._modelIndex;
+};
+
+/**
+ * Select
+ * @param {number} selectedIndex Index of selected item in the collection
+ */
+App.ColorSample.prototype.select = function select(selectedIndex)
+{
+    var selected = this._modelIndex === selectedIndex;
+
+    if (this._selected === selected) return;
+
+    this._selected = selected;
+
+    this._render();
 };
 
 App.IconSample = function IconSample(modelIndex,model,pixelRatio)
@@ -5173,14 +5224,13 @@ App.IconSample = function IconSample(modelIndex,model,pixelRatio)
     this._modelIndex = modelIndex;
     this._model = model;
     this._pixelRatio = pixelRatio;
-    this._topIcon = PIXI.Sprite.fromFrame(model/*.top*/);
-    //this._bottomIcon = PIXI.Sprite.fromFrame(model.bottom);
+    this._topIcon = PIXI.Sprite.fromFrame(model);
     this._iconResizeRatio = Math.round(32 * pixelRatio) / this._topIcon.height;
+    this._selected = false;
 
     this._render();
 
     this.addChild(this._topIcon);
-    //this.addChild(this._bottomIcon);
 };
 
 App.IconSample.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -5198,27 +5248,23 @@ App.IconSample.prototype._render = function _render()
     this._topIcon.scale.y = this._iconResizeRatio;
     this._topIcon.x = Math.round((size - this._topIcon.width) / 2);
     this._topIcon.y = Math.round((size - this._topIcon.height) / 2);
-    this._topIcon.tint = 0xcccccc;// TODO pass color from global setting?
-
-    /*this._bottomIcon.scale.x = this._iconResizeRatio;
-    this._bottomIcon.scale.y = this._iconResizeRatio;
-    this._bottomIcon.x = Math.round((size - this._bottomIcon.width) / 2);
-    this._bottomIcon.y = size + Math.round((size - this._bottomIcon.height) / 2);
-    this._bottomIcon.tint = 0x394264;// TODO pass color from global setting?*/
+    this._topIcon.tint = this._selected ? 0x394264 : 0xcccccc;// TODO pass color from global setting?
 };
 
 /**
  * Set color
  * @param {number} index
  * @param {{top:string,bottom:string}} model
+ * @param {number} selectedIndex
  */
-App.IconSample.prototype.setModel = function setModel(index,model)
+App.IconSample.prototype.setModel = function setModel(index,model,selectedIndex)
 {
     this._modelIndex = index;
     this._model = model;
 
-    this._topIcon.setTexture(PIXI.TextureCache[model/*.top*/]);
-    //this._bottomIcon.setTexture(PIXI.TextureCache[model.bottom]);
+    this._topIcon.setTexture(PIXI.TextureCache[model]);
+
+    this._selected = selectedIndex === this._modelIndex;
 
     this._render();
 };
@@ -5230,6 +5276,21 @@ App.IconSample.prototype.setModel = function setModel(index,model)
 App.IconSample.prototype.getModelIndex = function getModelIndex()
 {
     return this._modelIndex;
+};
+
+/**
+ * Select
+ * @param {number} selectedIndex Index of selected item in the collection
+ */
+App.IconSample.prototype.select = function select(selectedIndex)
+{
+    var selected = this._modelIndex === selectedIndex;
+
+    if (this._selected === selected) return;
+
+    this._selected = selected;
+
+    this._render();
 };
 
 /**
@@ -5387,27 +5448,27 @@ App.EditCategoryScreen.prototype.disable = function disable()
  * Register event listeners
  * @private
  */
-App.EditCategoryScreen.prototype._registerEventListeners = function _registerEventListener()
+/*App.EditCategoryScreen.prototype._registerEventListeners = function _registerEventListener()
 {
     App.Screen.prototype._registerEventListeners.call(this);
 
 //    var EventType = App.EventType;
 //    this._input.addEventListener(EventType.FOCUS,this,this._onInputFocus);
 //    this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
-};
+};*/
 
 /**
  * UnRegister event listeners
  * @private
  */
-App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener()
+/*App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener()
 {
 //    var EventType = App.EventType;
 //    this._input.removeEventListener(EventType.FOCUS,this,this._onInputFocus);
 //    this._input.removeEventListener(EventType.BLUR,this,this._onInputBlur);
 
     App.Screen.prototype._unRegisterEventListeners.call(this);
-};
+};*/
 
 /**
  * Click handler
@@ -5415,9 +5476,27 @@ App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegiste
  */
 App.EditCategoryScreen.prototype._onClick = function _onClick()
 {
-//    if (this._inputFocused) this._input.blur();
+    var position = this.stage.getTouchData().getLocalPosition(this),
+        y = position.y,
+        list = null;
 
-//    this._calendar.onClick();
+    if (y >= this._colorList.y && y < this._colorList.y + this._colorList.boundingBox.height)
+    {
+        list = this._colorList;
+        list.selectItemByPosition(position.x);
+    }
+    else if (y >= this._topIconList.y && y < this._topIconList.y + this._topIconList.boundingBox.height)
+    {
+        list = this._topIconList;
+        list.selectItemByPosition(position.x);
+        this._bottomIconList.selectItemByPosition(-1000);
+    }
+    else if (y >= this._bottomIconList.y && y < this._bottomIconList.y + this._bottomIconList.boundingBox.height)
+    {
+        list = this._bottomIconList;
+        list.selectItemByPosition(position.x);
+        this._topIconList.selectItemByPosition(-1000);
+    }
 };
 
 /**

@@ -13,6 +13,7 @@ App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
     this._pixelRatio = pixelRatio;
     this._color = color;
     this._label = new PIXI.Text(modelIndex,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#000000"});
+    this._selected = false;
 
     this._render();
 
@@ -28,8 +29,8 @@ App.ColorSample.prototype.constructor = App.ColorSample;
  */
 App.ColorSample.prototype._render = function _render()
 {
-    var xPadding = Math.round(5 * this._pixelRatio),//TODO padding depends on if its selected or not
-        yPadding = Math.round(10 * this._pixelRatio),//TODO padding depends on if its selected or not
+    var xPadding = Math.round((this._selected ? 0 : 5) * this._pixelRatio),
+        yPadding = Math.round((this._selected ? 5 : 10) * this._pixelRatio),
         w = this.boundingBox.width,
         h = this.boundingBox.height;
 
@@ -47,11 +48,14 @@ App.ColorSample.prototype._render = function _render()
  * Set color
  * @param {number} index
  * @param {number} color
+ * @param {number} selectedIndex
  */
-App.ColorSample.prototype.setModel = function setModel(index,color)
+App.ColorSample.prototype.setModel = function setModel(index,color,selectedIndex)
 {
     this._modelIndex = index;
     this._color = color;
+
+    this._selected = selectedIndex === this._modelIndex;
 
     this._render();
 };
@@ -63,4 +67,19 @@ App.ColorSample.prototype.setModel = function setModel(index,color)
 App.ColorSample.prototype.getModelIndex = function getModelIndex()
 {
     return this._modelIndex;
+};
+
+/**
+ * Select
+ * @param {number} selectedIndex Index of selected item in the collection
+ */
+App.ColorSample.prototype.select = function select(selectedIndex)
+{
+    var selected = this._modelIndex === selectedIndex;
+
+    if (this._selected === selected) return;
+
+    this._selected = selected;
+
+    this._render();
 };

@@ -15,9 +15,10 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
 
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName,
-        colorSample = new itemClass(0,model[0],pixelRatio),
-        itemSize = colorSample.boundingBox.width,
-        itemCount = direction === App.Direction.X ? Math.ceil(width / itemSize) + 1 : Math.ceil(height / itemSize) + 1,
+        Direction = App.Direction,
+        item = new itemClass(0,model[0],pixelRatio),
+        itemSize = direction === Direction.X ? item.boundingBox.width : item.boundingBox.height,
+        itemCount = direction === Direction.X ? Math.ceil(width / itemSize) + 1 : Math.ceil(height / itemSize) + 1,
         modelLength = model.length - 1,
         index = 0,
         i = 0;
@@ -34,6 +35,7 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
     this._pixelRatio = pixelRatio;
     this._items = new Array(itemCount);
     this._itemSize = itemSize;
+    this._selectedModelIndex = -1;
 
     this._enabled = false;
     this._state = null;
@@ -47,10 +49,10 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
     for (;i<itemCount;i++,index++)
     {
         if(index > modelLength) index = 0;
-        if (i > 0) colorSample = new itemClass(index,model[index],pixelRatio);
+        if (i > 0) item = new itemClass(index,model[index],pixelRatio);
 
-        this._items[i] = colorSample;
-        this.addChild(colorSample);
+        this._items[i] = item;
+        this.addChild(item);
     }
 
     this._updateLayout(false);
@@ -84,6 +86,36 @@ App.InfiniteList.prototype.disable = function disable()
     this._unRegisterEventListeners();
 
     this._enabled = false;
+};
+
+/**
+ * Find and select item under position passed in
+ * @param {number} position
+ */
+App.InfiniteList.prototype.selectItemByPosition = function selectItemByPosition(position)
+{
+    var i = 0,
+        l = this._items.length,
+        itemSize = this._itemSize,
+        itemProperty = this._direction === App.Direction.X ? "x" : "y",
+        item = null,
+        itemPosition = 0;
+
+    this._selectedModelIndex = -1;
+
+    for (;i<l;)
+    {
+        item = this._items[i++];
+        itemPosition = item[itemProperty];
+
+        if (itemPosition <= position && itemPosition + itemSize > position)
+        {
+            this._selectedModelIndex = item.getModelIndex();
+            break;
+        }
+    }
+
+    for (i=0;i<l;) this._items[i++].select(this._selectedModelIndex);
 };
 
 /**
@@ -268,7 +300,7 @@ App.InfiniteList.prototype._updateX = function _updateX(position)
             if (modelIndex < 0) modelIndex = modelLength + modelIndex;
             else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
 
-            item.setModel(modelIndex,this._model[modelIndex]);
+            item.setModel(modelIndex,this._model[modelIndex],this._selectedModelIndex);
         }
 
         item.x = x;
@@ -317,7 +349,7 @@ App.InfiniteList.prototype._updateY = function _updateY(position)
             if (modelIndex < 0) modelIndex = modelLength + modelIndex;
             else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
 
-            item.setModel(modelIndex,this._model[modelIndex]);
+            item.setModel(modelIndex,this._model[modelIndex],this._selectedModelIndex);
         }
 
         item.y = y;

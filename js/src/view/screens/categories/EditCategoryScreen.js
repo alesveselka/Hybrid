@@ -153,27 +153,27 @@ App.EditCategoryScreen.prototype.disable = function disable()
  * Register event listeners
  * @private
  */
-App.EditCategoryScreen.prototype._registerEventListeners = function _registerEventListener()
+/*App.EditCategoryScreen.prototype._registerEventListeners = function _registerEventListener()
 {
     App.Screen.prototype._registerEventListeners.call(this);
 
 //    var EventType = App.EventType;
 //    this._input.addEventListener(EventType.FOCUS,this,this._onInputFocus);
 //    this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
-};
+};*/
 
 /**
  * UnRegister event listeners
  * @private
  */
-App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener()
+/*App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener()
 {
 //    var EventType = App.EventType;
 //    this._input.removeEventListener(EventType.FOCUS,this,this._onInputFocus);
 //    this._input.removeEventListener(EventType.BLUR,this,this._onInputBlur);
 
     App.Screen.prototype._unRegisterEventListeners.call(this);
-};
+};*/
 
 /**
  * Click handler
@@ -181,7 +181,25 @@ App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegiste
  */
 App.EditCategoryScreen.prototype._onClick = function _onClick()
 {
-//    if (this._inputFocused) this._input.blur();
+    var position = this.stage.getTouchData().getLocalPosition(this),
+        y = position.y,
+        list = null;
 
-//    this._calendar.onClick();
+    if (y >= this._colorList.y && y < this._colorList.y + this._colorList.boundingBox.height)
+    {
+        list = this._colorList;
+        list.selectItemByPosition(position.x);
+    }
+    else if (y >= this._topIconList.y && y < this._topIconList.y + this._topIconList.boundingBox.height)
+    {
+        list = this._topIconList;
+        list.selectItemByPosition(position.x);
+        this._bottomIconList.selectItemByPosition(-1000);
+    }
+    else if (y >= this._bottomIconList.y && y < this._bottomIconList.y + this._bottomIconList.boundingBox.height)
+    {
+        list = this._bottomIconList;
+        list.selectItemByPosition(position.x);
+        this._topIconList.selectItemByPosition(-1000);
+    }
 };
