@@ -1,3 +1,11 @@
+/**
+ * @class ColorSample
+ * @extends Graphics
+ * @param {number} modelIndex
+ * @param {number} color
+ * @param {number} pixelRatio
+ * @constructor
+ */
 App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
 {
     PIXI.Graphics.call(this);

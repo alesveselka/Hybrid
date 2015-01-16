@@ -42,12 +42,6 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
         );
     }
     this._colorList = new InfiniteList(colorSamples,App.ColorSample,Direction.X,w,Math.round(50 * r),r);
-
-    //i = 0;
-    //l = iconSamples.length;
-    //for (;i<l;i++) iconSamples[i] = {top:icons[i],bottom:icons[l+i]};
-    //this._iconList = new App.IconList(icons,w,r);
-
     this._topIconList = new InfiniteList(icons.slice(0,Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._bottomIconList = new InfiniteList(icons.slice(Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
 
@@ -76,7 +70,8 @@ App.EditCategoryScreen.prototype.constructor = App.EditCategoryScreen;
  */
 App.EditCategoryScreen.prototype._render = function _render()
 {
-    var r = this._layout.pixelRatio,
+    var GraphicUtils = App.GraphicUtils,
+        r = this._layout.pixelRatio,
         w = this._layout.width,
         rounderRatio = Math.round(r),
         inputFragmentHeight = Math.round(60 * r),
@@ -85,10 +80,7 @@ App.EditCategoryScreen.prototype._render = function _render()
         separatorPadding = Math.round(10 * r),
         separatorWidth = w - separatorPadding * 2;
 
-    this._colorStripe.clear();
-    this._colorStripe.beginFill(0xff6600);
-    this._colorStripe.drawRect(0,0,Math.round(4*r),Math.round(59 * r));
-    this._colorStripe.endFill();
+    GraphicUtils.drawRect(this._colorStripe,0xff6600,1,0,0,Math.round(4*r),Math.round(59 * r));
 
     this._icon.scale.x = iconResizeRatio;
     this._icon.scale.y = iconResizeRatio;
@@ -104,19 +96,25 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
     this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
 
-    this._background.clear();
-    this._background.beginFill(0xefefef);
-    this._background.drawRect(0,0,w,this._bottomIconList.y+this._bottomIconList.boundingBox.height);
-    this._background.endFill();
+    GraphicUtils.drawRect(this._background,0xefefef,1,0,0,w,this._bottomIconList.y+this._bottomIconList.boundingBox.height);
 
-    this._separators.clear();
-    this._separators.beginFill(0xcccccc);
-    this._separators.drawRect(0,0,separatorWidth,rounderRatio);
-    this._separators.drawRect(0,colorListHeight,separatorWidth,rounderRatio);
-    this._separators.beginFill(0xffffff);
-    this._separators.drawRect(0,rounderRatio,separatorWidth,rounderRatio);
-    this._separators.drawRect(0,colorListHeight+rounderRatio,separatorWidth,rounderRatio);
-    this._separators.endFill();
+    GraphicUtils.drawRects(
+        this._separators,
+        0xcccccc,
+        1,
+        [0,0,separatorWidth,rounderRatio,0,colorListHeight,separatorWidth,rounderRatio],
+        true,
+        false
+    );
+    GraphicUtils.drawRects(
+        this._separators,
+        0xffffff,
+        1,
+        [0,rounderRatio,separatorWidth,rounderRatio,0,colorListHeight+rounderRatio,separatorWidth,rounderRatio],
+        false,
+        true
+    );
+
     this._separators.x = separatorPadding;
     this._separators.y = inputFragmentHeight - rounderRatio;
 };

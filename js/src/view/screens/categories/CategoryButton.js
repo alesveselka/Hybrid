@@ -44,29 +44,29 @@ App.CategoryButton.prototype.constructor = App.CategoryButton;
  */
 App.CategoryButton.prototype._render = function _render()
 {
-    var pixelRatio = this._layout.pixelRatio,
+    var GraphicUtils = App.GraphicUtils,
+        pixelRatio = this._layout.pixelRatio,
         padding = Math.round(10 * pixelRatio),
         w = this.boundingBox.width,
         h = this.boundingBox.height;
 
-    //TODO cache this as texture?
-    this._surfaceSkin.clear();
-    this._surfaceSkin.beginFill(0xefefef);
-    this._surfaceSkin.drawRect(0,0,w,h);
-    this._surfaceSkin.beginFill(0xffffff);
-    this._surfaceSkin.drawRect(padding,0,w-padding*2,1);
-    this._surfaceSkin.beginFill(0xcccccc);
-    this._surfaceSkin.drawRect(padding,h-1,w-padding*2,1);
-    this._surfaceSkin.endFill();
+    GraphicUtils.drawRects(this._surfaceSkin,0xefefef,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this._surfaceSkin,0xffffff,1,[padding,0,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this._surfaceSkin,0xcccccc,1,[padding,h-1,w-padding*2,1],false,true);
 
-    this._colorStripe.clear();
-    this._colorStripe.beginFill("0x"+App.MathUtils.rgbToHex(
-        Math.round(Math.sin(0.3 * 10 + 0) * 127 + 128),
-        Math.round(Math.sin(0.3 * 10 + 2) * 127 + 128),
-        Math.round(Math.sin(0.3 * 10 + 4) * 127 + 128)
-    ));
-    this._colorStripe.drawRect(0,0,Math.round(4 * pixelRatio),h);
-    this._colorStripe.endFill();
+    GraphicUtils.drawRect(
+        this._colorStripe,
+        "0x"+App.MathUtils.rgbToHex(
+            Math.round(Math.sin(0.3 * 10 + 0) * 127 + 128),
+            Math.round(Math.sin(0.3 * 10 + 2) * 127 + 128),
+            Math.round(Math.sin(0.3 * 10 + 4) * 127 + 128)
+        ),
+        1,
+        0,
+        0,
+        Math.round(4 * pixelRatio),
+        h
+    );
 
     this._icon.width = Math.round(20 * pixelRatio);
     this._icon.height = Math.round(20 * pixelRatio);

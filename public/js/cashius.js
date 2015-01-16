@@ -224,6 +224,52 @@ App.Device = {
 };
 
 /**
+ * GraphicUtils
+ * @type {{drawRect: Function,drawRects:Function}}
+ */
+App.GraphicUtils = {
+    /**
+     * Draw rectangle into graphics passed in
+     * @param {PIXI.Graphics} graphics
+     * @param {number} color
+     * @param {number} alpha
+     * @param {number} x
+     * @param {number} y
+     * @param {number} width
+     * @param {number} height
+     */
+    drawRect:function drawRect(graphics,color,alpha,x,y,width,height)
+    {
+        graphics.clear();
+        graphics.beginFill(color,alpha);
+        graphics.drawRect(x,y,width,height);
+        graphics.endFill();
+    },
+
+    /**
+     * Draw multiple rectangles
+     * @param {PIXI.Graphics} graphics
+     * @param {number} color
+     * @param {number} alpha
+     * @param {Array.<number>} data
+     * @param {boolean} clear
+     * @param {boolean} end
+     */
+    drawRects:function drawRects(graphics,color,alpha,data,clear,end)
+    {
+        if (clear) graphics.clear();
+        graphics.beginFill(color,alpha);
+
+        var i = 0,
+            l = data.length;
+
+        for (;i<l;) graphics.drawRect(data[i++],data[i++],data[i++],data[i++]);
+
+        if (end) graphics.endFill();
+    }
+};
+
+/**
  * Event type
  * @enum {string}
  * @return {{
@@ -1089,15 +1135,12 @@ App.ListHeader.prototype.constructor = App.ListHeader;
  */
 App.ListHeader.prototype._render = function _render()
 {
-    var r = this._pixelRatio,
+    var GraphicUtils = App.GraphicUtils,
+        r = this._pixelRatio,
         h = Math.round(30 * r);
 
-    this.clear();
-    this.beginFill(0x394264);
-    this.drawRect(0,0,this._width,h);
-    this.beginFill(0x252B44);
-    this.drawRect(0,h-r,this._width,r);
-    this.endFill();
+    GraphicUtils.drawRects(this,0x394264,1,[0,0,this._width,h],true,false);
+    GraphicUtils.drawRects(this,0x252B44,1,[0,h-r,this._width,r],false,true);
 
     this._textField.x = Math.round((this._width - this._textField.width) / 2);
     this._textField.y = Math.round((h - this._textField.height) / 2);
@@ -1803,10 +1846,7 @@ App.CalendarWeekRow.prototype._render = function _render()
 
     this.endFill();
 
-    this._highlightBackground.clear();
-    this._highlightBackground.beginFill(0x394264);
-    this._highlightBackground.drawRect(0,0,cellWidth-rounderRatio,cellHeight);
-    this._highlightBackground.endFill();
+    App.GraphicUtils.drawRect(this._highlightBackground,0x394264,1,0,0,cellWidth-rounderRatio,cellHeight);
     this._highlightBackground.alpha = 0.0;
 };
 
@@ -1989,7 +2029,8 @@ App.Calendar.prototype.constructor = App.Calendar;
  */
 App.Calendar.prototype._render = function _render()
 {
-    var r = this._pixelRatio,
+    var GraphicUtils = App.GraphicUtils,
+        r = this._pixelRatio,
         roundedRatio = Math.round(r),
         w = this._width,
         h = this.boundingBox.height,
@@ -1997,8 +2038,7 @@ App.Calendar.prototype._render = function _render()
         separatorPadding = Math.round(15 * r),
         separatorWidth = w - separatorPadding * 2,
         dayLabel = null,
-        daysInWeek = this._dayLabelFields.length,
-        dayLabelWidth = Math.round(w / daysInWeek),
+        dayLabelWidth = Math.round(w / this._dayLabelFields.length),
         dayLabelOffset = Math.round(40 * r),
         weekRow = this._weekRows[0],
         weekRowHeight = weekRow.boundingBox.height,
@@ -2006,15 +2046,9 @@ App.Calendar.prototype._render = function _render()
         i = 0;
 
     //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
-    this.clear();
-    this.beginFill(0xefefef);
-    this.drawRect(0,0,w,h);
-    this.beginFill(0xcccccc);
-    this.drawRect(0,Math.round(80 * r),w,roundedRatio);
-    this.drawRect(separatorPadding,dayLabelOffset,separatorWidth,roundedRatio);
-    this.beginFill(0xffffff);
-    this.drawRect(separatorPadding,dayLabelOffset+roundedRatio,separatorWidth,roundedRatio);
-    this.endFill();
+    GraphicUtils.drawRects(this,0xefefef,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this,0xcccccc,1,[0,Math.round(80 * r),w,roundedRatio,separatorPadding,dayLabelOffset,separatorWidth,roundedRatio],false,false);
+    GraphicUtils.drawRects(this,0xffffff,1,[separatorPadding,dayLabelOffset+roundedRatio,separatorWidth,roundedRatio],false,true);
 
     this._monthField.y = Math.round((dayLabelOffset - this._monthField.height) / 2);
 
@@ -4020,16 +4054,13 @@ App.SelectTimeScreen.prototype.constructor = App.SelectTimeScreen;
  */
 App.SelectTimeScreen.prototype._render = function _render()
 {
-    var r = this._layout.pixelRatio,
+    var GraphicUtils = App.GraphicUtils,
+        r = this._layout.pixelRatio,
         inputBgHeight = Math.round(60 * r),
         w = this._layout.width;
 
-    this._inputBackground.clear();
-    this._inputBackground.beginFill(0xefefef);
-    this._inputBackground.drawRect(0,0,w,inputBgHeight);
-    this._inputBackground.beginFill(0xcccccc);
-    this._inputBackground.drawRect(0,inputBgHeight-r,w,r);
-    this._inputBackground.endFill();
+    GraphicUtils.drawRects(this._inputBackground,0xefefef,1,[0,0,w,inputBgHeight],true,false);
+    GraphicUtils.drawRects(this._inputBackground,0xefefef,1,[0,inputBgHeight-r,w,r],false,true);
 
     this._input.x = Math.round(10 * r);
     this._input.y = Math.round((inputBgHeight - this._input.height) / 2);
@@ -4038,10 +4069,7 @@ App.SelectTimeScreen.prototype._render = function _render()
 
     this._calendar.y = Math.round(this._header.y + this._header.height);
 
-    this._inputOverlay.clear();
-    this._inputOverlay.beginFill(0x000000,0.2);
-    this._inputOverlay.drawRect(0,0,w,this._calendar.y + this._calendar.boundingBox.height);
-    this._inputOverlay.endFill();
+    GraphicUtils.drawRect(this._inputOverlay,0x000000,0.2,0,0,w,this._calendar.y+this._calendar.boundingBox.height);
 };
 
 /**
@@ -4185,16 +4213,12 @@ App.AccountButton.prototype._render = function _render()
 {
     //TODO cache this as texture?
 
-    var padding = Math.round(10 * this._layout.pixelRatio);
+    var GraphicUtils = App.GraphicUtils,
+        padding = Math.round(10 * this._layout.pixelRatio);
 
-    this.clear();
-    this.beginFill(0xefefef);
-    this.drawRect(0,0,this.boundingBox.width,this.boundingBox.height);
-    this.beginFill(0xffffff);
-    this.drawRect(padding,0,this.boundingBox.width-padding*2,1);
-    this.beginFill(0xcccccc);
-    this.drawRect(padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1);
-    this.endFill();
+    GraphicUtils.drawRects(this,0xefefef,1,[0,0,this.boundingBox.width,this.boundingBox.height],true,false);
+    GraphicUtils.drawRects(this,0xffffff,1,[padding,0,this.boundingBox.width-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,0xcccccc,1,[padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1],false,true);
 };
 
 /**
@@ -4298,6 +4322,11 @@ App.AccountScreen.prototype.destroy = function destroy()
     this._buttons = null;
 };
 
+App.SubCategoryList = function SubCategoryList()
+{
+    this._header = new App.ListHeader();
+};
+
 /**
  * @class CategoryButton
  * @extends DisplayObjectContainer
@@ -4344,29 +4373,29 @@ App.CategoryButton.prototype.constructor = App.CategoryButton;
  */
 App.CategoryButton.prototype._render = function _render()
 {
-    var pixelRatio = this._layout.pixelRatio,
+    var GraphicUtils = App.GraphicUtils,
+        pixelRatio = this._layout.pixelRatio,
         padding = Math.round(10 * pixelRatio),
         w = this.boundingBox.width,
         h = this.boundingBox.height;
 
-    //TODO cache this as texture?
-    this._surfaceSkin.clear();
-    this._surfaceSkin.beginFill(0xefefef);
-    this._surfaceSkin.drawRect(0,0,w,h);
-    this._surfaceSkin.beginFill(0xffffff);
-    this._surfaceSkin.drawRect(padding,0,w-padding*2,1);
-    this._surfaceSkin.beginFill(0xcccccc);
-    this._surfaceSkin.drawRect(padding,h-1,w-padding*2,1);
-    this._surfaceSkin.endFill();
+    GraphicUtils.drawRects(this._surfaceSkin,0xefefef,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this._surfaceSkin,0xffffff,1,[padding,0,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this._surfaceSkin,0xcccccc,1,[padding,h-1,w-padding*2,1],false,true);
 
-    this._colorStripe.clear();
-    this._colorStripe.beginFill("0x"+App.MathUtils.rgbToHex(
-        Math.round(Math.sin(0.3 * 10 + 0) * 127 + 128),
-        Math.round(Math.sin(0.3 * 10 + 2) * 127 + 128),
-        Math.round(Math.sin(0.3 * 10 + 4) * 127 + 128)
-    ));
-    this._colorStripe.drawRect(0,0,Math.round(4 * pixelRatio),h);
-    this._colorStripe.endFill();
+    GraphicUtils.drawRect(
+        this._colorStripe,
+        "0x"+App.MathUtils.rgbToHex(
+            Math.round(Math.sin(0.3 * 10 + 0) * 127 + 128),
+            Math.round(Math.sin(0.3 * 10 + 2) * 127 + 128),
+            Math.round(Math.sin(0.3 * 10 + 4) * 127 + 128)
+        ),
+        1,
+        0,
+        0,
+        Math.round(4 * pixelRatio),
+        h
+    );
 
     this._icon.width = Math.round(20 * pixelRatio);
     this._icon.height = Math.round(20 * pixelRatio);
@@ -4455,9 +4484,7 @@ App.CategoryButtonEdit.prototype._render = function _render()
         w = this.boundingBox.width,
         h = this.boundingBox.height;
 
-    this._background.beginFill(0xE53013);
-    this._background.drawRect(0,0,w,h);
-    this._background.endFill();
+    App.GraphicUtils.drawRect(this._background,0xE53013,1,0,0,w,h);
 
     this._editLabel.x = Math.round(w - 50 * pixelRatio);
     this._editLabel.y = Math.round(18 * pixelRatio);
@@ -4660,9 +4687,7 @@ App.CategoryButtonExpand.prototype._render = function _render()
 {
     App.CategoryButton.prototype._render.call(this);
 
-    this._subCategoryList.beginFill(0xffffff);
-    this._subCategoryList.drawRect(0,0,this.boundingBox.width,this._subCategoryListHeight);
-    this._subCategoryList.endFill();
+    App.GraphicUtils.drawRect(this._subCategoryList,0xffffff,1,0,0,this.boundingBox.width,this._subCategoryListHeight);
     this._subCategoryList.y = this._buttonHeight;
 };
 
@@ -5125,6 +5150,14 @@ App.CategoryScreen.prototype.destroy = function destroy()
     this._buttons = null;
 };
 
+/**
+ * @class ColorSample
+ * @extends Graphics
+ * @param {number} modelIndex
+ * @param {number} color
+ * @param {number} pixelRatio
+ * @constructor
+ */
 App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
 {
     PIXI.Graphics.call(this);
@@ -5211,6 +5244,14 @@ App.ColorSample.prototype.select = function select(selectedIndex)
     this._render();
 };
 
+/**
+ * @class IconSample
+ * @extends DisplayObjectContainer
+ * @param {number} modelIndex
+ * @param {string} model
+ * @param {number} pixelRatio
+ * @constructor
+ */
 App.IconSample = function IconSample(modelIndex,model,pixelRatio)
 {
     PIXI.DisplayObjectContainer.call(this);
@@ -5224,13 +5265,13 @@ App.IconSample = function IconSample(modelIndex,model,pixelRatio)
     this._modelIndex = modelIndex;
     this._model = model;
     this._pixelRatio = pixelRatio;
-    this._topIcon = PIXI.Sprite.fromFrame(model);
-    this._iconResizeRatio = Math.round(32 * pixelRatio) / this._topIcon.height;
+    this._icon = PIXI.Sprite.fromFrame(model);
+    this._iconResizeRatio = Math.round(32 * pixelRatio) / this._icon.height;
     this._selected = false;
 
     this._render();
 
-    this.addChild(this._topIcon);
+    this.addChild(this._icon);
 };
 
 App.IconSample.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -5244,17 +5285,17 @@ App.IconSample.prototype._render = function _render()
 {
     var size = this.boundingBox.width;
 
-    this._topIcon.scale.x = this._iconResizeRatio;
-    this._topIcon.scale.y = this._iconResizeRatio;
-    this._topIcon.x = Math.round((size - this._topIcon.width) / 2);
-    this._topIcon.y = Math.round((size - this._topIcon.height) / 2);
-    this._topIcon.tint = this._selected ? 0x394264 : 0xcccccc;// TODO pass color from global setting?
+    this._icon.scale.x = this._iconResizeRatio;
+    this._icon.scale.y = this._iconResizeRatio;
+    this._icon.x = Math.round((size - this._icon.width) / 2);
+    this._icon.y = Math.round((size - this._icon.height) / 2);
+    this._icon.tint = this._selected ? 0x394264 : 0xcccccc;// TODO pass color from global setting?
 };
 
 /**
  * Set color
  * @param {number} index
- * @param {{top:string,bottom:string}} model
+ * @param {string} model
  * @param {number} selectedIndex
  */
 App.IconSample.prototype.setModel = function setModel(index,model,selectedIndex)
@@ -5262,7 +5303,7 @@ App.IconSample.prototype.setModel = function setModel(index,model,selectedIndex)
     this._modelIndex = index;
     this._model = model;
 
-    this._topIcon.setTexture(PIXI.TextureCache[model]);
+    this._icon.setTexture(PIXI.TextureCache[model]);
 
     this._selected = selectedIndex === this._modelIndex;
 
@@ -5337,12 +5378,6 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
         );
     }
     this._colorList = new InfiniteList(colorSamples,App.ColorSample,Direction.X,w,Math.round(50 * r),r);
-
-    //i = 0;
-    //l = iconSamples.length;
-    //for (;i<l;i++) iconSamples[i] = {top:icons[i],bottom:icons[l+i]};
-    //this._iconList = new App.IconList(icons,w,r);
-
     this._topIconList = new InfiniteList(icons.slice(0,Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._bottomIconList = new InfiniteList(icons.slice(Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
 
@@ -5371,7 +5406,8 @@ App.EditCategoryScreen.prototype.constructor = App.EditCategoryScreen;
  */
 App.EditCategoryScreen.prototype._render = function _render()
 {
-    var r = this._layout.pixelRatio,
+    var GraphicUtils = App.GraphicUtils,
+        r = this._layout.pixelRatio,
         w = this._layout.width,
         rounderRatio = Math.round(r),
         inputFragmentHeight = Math.round(60 * r),
@@ -5380,10 +5416,7 @@ App.EditCategoryScreen.prototype._render = function _render()
         separatorPadding = Math.round(10 * r),
         separatorWidth = w - separatorPadding * 2;
 
-    this._colorStripe.clear();
-    this._colorStripe.beginFill(0xff6600);
-    this._colorStripe.drawRect(0,0,Math.round(4*r),Math.round(59 * r));
-    this._colorStripe.endFill();
+    GraphicUtils.drawRect(this._colorStripe,0xff6600,1,0,0,Math.round(4*r),Math.round(59 * r));
 
     this._icon.scale.x = iconResizeRatio;
     this._icon.scale.y = iconResizeRatio;
@@ -5399,19 +5432,25 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
     this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
 
-    this._background.clear();
-    this._background.beginFill(0xefefef);
-    this._background.drawRect(0,0,w,this._bottomIconList.y+this._bottomIconList.boundingBox.height);
-    this._background.endFill();
+    GraphicUtils.drawRect(this._background,0xefefef,1,0,0,w,this._bottomIconList.y+this._bottomIconList.boundingBox.height);
 
-    this._separators.clear();
-    this._separators.beginFill(0xcccccc);
-    this._separators.drawRect(0,0,separatorWidth,rounderRatio);
-    this._separators.drawRect(0,colorListHeight,separatorWidth,rounderRatio);
-    this._separators.beginFill(0xffffff);
-    this._separators.drawRect(0,rounderRatio,separatorWidth,rounderRatio);
-    this._separators.drawRect(0,colorListHeight+rounderRatio,separatorWidth,rounderRatio);
-    this._separators.endFill();
+    GraphicUtils.drawRects(
+        this._separators,
+        0xcccccc,
+        1,
+        [0,0,separatorWidth,rounderRatio,0,colorListHeight,separatorWidth,rounderRatio],
+        true,
+        false
+    );
+    GraphicUtils.drawRects(
+        this._separators,
+        0xffffff,
+        1,
+        [0,rounderRatio,separatorWidth,rounderRatio,0,colorListHeight+rounderRatio,separatorWidth,rounderRatio],
+        false,
+        true
+    );
+
     this._separators.x = separatorPadding;
     this._separators.y = inputFragmentHeight - rounderRatio;
 };
@@ -5531,9 +5570,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     };
 
     this._background = new PIXI.Graphics();
-    this._background.beginFill(0xbada55,1);
-    this._background.drawRect(0,0,this._layout.width,this._layout.height);
-    this._background.endFill();
+    App.GraphicUtils.drawRect(this._background,0xbada55,1,0,0,this._layout.width,this._layout.height);
 
     //TODO use ScreenFactory for the screens?
     this._screenStack = new App.ViewStack([

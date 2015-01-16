@@ -39,9 +39,7 @@ App.CategoryButtonExpand.prototype._render = function _render()
 {
     App.CategoryButton.prototype._render.call(this);
 
-    this._subCategoryList.beginFill(0xffffff);
-    this._subCategoryList.drawRect(0,0,this.boundingBox.width,this._subCategoryListHeight);
-    this._subCategoryList.endFill();
+    App.GraphicUtils.drawRect(this._subCategoryList,0xffffff,1,0,0,this.boundingBox.width,this._subCategoryListHeight);
     this._subCategoryList.y = this._buttonHeight;
 };
 

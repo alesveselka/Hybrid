@@ -30,9 +30,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     };
 
     this._background = new PIXI.Graphics();
-    this._background.beginFill(0xbada55,1);
-    this._background.drawRect(0,0,this._layout.width,this._layout.height);
-    this._background.endFill();
+    App.GraphicUtils.drawRect(this._background,0xbada55,1,0,0,this._layout.width,this._layout.height);
 
     //TODO use ScreenFactory for the screens?
     this._screenStack = new App.ViewStack([

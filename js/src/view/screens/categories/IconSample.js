@@ -1,3 +1,11 @@
+/**
+ * @class IconSample
+ * @extends DisplayObjectContainer
+ * @param {number} modelIndex
+ * @param {string} model
+ * @param {number} pixelRatio
+ * @constructor
+ */
 App.IconSample = function IconSample(modelIndex,model,pixelRatio)
 {
     PIXI.DisplayObjectContainer.call(this);
@@ -11,13 +19,13 @@ App.IconSample = function IconSample(modelIndex,model,pixelRatio)
     this._modelIndex = modelIndex;
     this._model = model;
     this._pixelRatio = pixelRatio;
-    this._topIcon = PIXI.Sprite.fromFrame(model);
-    this._iconResizeRatio = Math.round(32 * pixelRatio) / this._topIcon.height;
+    this._icon = PIXI.Sprite.fromFrame(model);
+    this._iconResizeRatio = Math.round(32 * pixelRatio) / this._icon.height;
     this._selected = false;
 
     this._render();
 
-    this.addChild(this._topIcon);
+    this.addChild(this._icon);
 };
 
 App.IconSample.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -31,17 +39,17 @@ App.IconSample.prototype._render = function _render()
 {
     var size = this.boundingBox.width;
 
-    this._topIcon.scale.x = this._iconResizeRatio;
-    this._topIcon.scale.y = this._iconResizeRatio;
-    this._topIcon.x = Math.round((size - this._topIcon.width) / 2);
-    this._topIcon.y = Math.round((size - this._topIcon.height) / 2);
-    this._topIcon.tint = this._selected ? 0x394264 : 0xcccccc;// TODO pass color from global setting?
+    this._icon.scale.x = this._iconResizeRatio;
+    this._icon.scale.y = this._iconResizeRatio;
+    this._icon.x = Math.round((size - this._icon.width) / 2);
+    this._icon.y = Math.round((size - this._icon.height) / 2);
+    this._icon.tint = this._selected ? 0x394264 : 0xcccccc;// TODO pass color from global setting?
 };
 
 /**
  * Set color
  * @param {number} index
- * @param {{top:string,bottom:string}} model
+ * @param {string} model
  * @param {number} selectedIndex
  */
 App.IconSample.prototype.setModel = function setModel(index,model,selectedIndex)
@@ -49,7 +57,7 @@ App.IconSample.prototype.setModel = function setModel(index,model,selectedIndex)
     this._modelIndex = index;
     this._model = model;
 
-    this._topIcon.setTexture(PIXI.TextureCache[model]);
+    this._icon.setTexture(PIXI.TextureCache[model]);
 
     this._selected = selectedIndex === this._modelIndex;
 

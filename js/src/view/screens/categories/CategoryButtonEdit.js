@@ -42,9 +42,7 @@ App.CategoryButtonEdit.prototype._render = function _render()
         w = this.boundingBox.width,
         h = this.boundingBox.height;
 
-    this._background.beginFill(0xE53013);
-    this._background.drawRect(0,0,w,h);
-    this._background.endFill();
+    App.GraphicUtils.drawRect(this._background,0xE53013,1,0,0,w,h);
 
     this._editLabel.x = Math.round(w - 50 * pixelRatio);
     this._editLabel.y = Math.round(18 * pixelRatio);

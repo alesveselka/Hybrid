@@ -95,10 +95,7 @@ App.CalendarWeekRow.prototype._render = function _render()
 
     this.endFill();
 
-    this._highlightBackground.clear();
-    this._highlightBackground.beginFill(0x394264);
-    this._highlightBackground.drawRect(0,0,cellWidth-rounderRatio,cellHeight);
-    this._highlightBackground.endFill();
+    App.GraphicUtils.drawRect(this._highlightBackground,0x394264,1,0,0,cellWidth-rounderRatio,cellHeight);
     this._highlightBackground.alpha = 0.0;
 };
 

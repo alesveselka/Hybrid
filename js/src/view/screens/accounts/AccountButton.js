@@ -58,16 +58,12 @@ App.AccountButton.prototype._render = function _render()
 {
     //TODO cache this as texture?
 
-    var padding = Math.round(10 * this._layout.pixelRatio);
+    var GraphicUtils = App.GraphicUtils,
+        padding = Math.round(10 * this._layout.pixelRatio);
 
-    this.clear();
-    this.beginFill(0xefefef);
-    this.drawRect(0,0,this.boundingBox.width,this.boundingBox.height);
-    this.beginFill(0xffffff);
-    this.drawRect(padding,0,this.boundingBox.width-padding*2,1);
-    this.beginFill(0xcccccc);
-    this.drawRect(padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1);
-    this.endFill();
+    GraphicUtils.drawRects(this,0xefefef,1,[0,0,this.boundingBox.width,this.boundingBox.height],true,false);
+    GraphicUtils.drawRects(this,0xffffff,1,[padding,0,this.boundingBox.width-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,0xcccccc,1,[padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1],false,true);
 };
 
 /**

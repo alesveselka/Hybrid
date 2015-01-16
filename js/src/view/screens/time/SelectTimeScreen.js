@@ -43,16 +43,13 @@ App.SelectTimeScreen.prototype.constructor = App.SelectTimeScreen;
  */
 App.SelectTimeScreen.prototype._render = function _render()
 {
-    var r = this._layout.pixelRatio,
+    var GraphicUtils = App.GraphicUtils,
+        r = this._layout.pixelRatio,
         inputBgHeight = Math.round(60 * r),
         w = this._layout.width;
 
-    this._inputBackground.clear();
-    this._inputBackground.beginFill(0xefefef);
-    this._inputBackground.drawRect(0,0,w,inputBgHeight);
-    this._inputBackground.beginFill(0xcccccc);
-    this._inputBackground.drawRect(0,inputBgHeight-r,w,r);
-    this._inputBackground.endFill();
+    GraphicUtils.drawRects(this._inputBackground,0xefefef,1,[0,0,w,inputBgHeight],true,false);
+    GraphicUtils.drawRects(this._inputBackground,0xefefef,1,[0,inputBgHeight-r,w,r],false,true);
 
     this._input.x = Math.round(10 * r);
     this._input.y = Math.round((inputBgHeight - this._input.height) / 2);
@@ -61,10 +58,7 @@ App.SelectTimeScreen.prototype._render = function _render()
 
     this._calendar.y = Math.round(this._header.y + this._header.height);
 
-    this._inputOverlay.clear();
-    this._inputOverlay.beginFill(0x000000,0.2);
-    this._inputOverlay.drawRect(0,0,w,this._calendar.y + this._calendar.boundingBox.height);
-    this._inputOverlay.endFill();
+    GraphicUtils.drawRect(this._inputOverlay,0x000000,0.2,0,0,w,this._calendar.y+this._calendar.boundingBox.height);
 };
 
 /**

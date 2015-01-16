@@ -63,7 +63,8 @@ App.Calendar.prototype.constructor = App.Calendar;
  */
 App.Calendar.prototype._render = function _render()
 {
-    var r = this._pixelRatio,
+    var GraphicUtils = App.GraphicUtils,
+        r = this._pixelRatio,
         roundedRatio = Math.round(r),
         w = this._width,
         h = this.boundingBox.height,
@@ -71,8 +72,7 @@ App.Calendar.prototype._render = function _render()
         separatorPadding = Math.round(15 * r),
         separatorWidth = w - separatorPadding * 2,
         dayLabel = null,
-        daysInWeek = this._dayLabelFields.length,
-        dayLabelWidth = Math.round(w / daysInWeek),
+        dayLabelWidth = Math.round(w / this._dayLabelFields.length),
         dayLabelOffset = Math.round(40 * r),
         weekRow = this._weekRows[0],
         weekRowHeight = weekRow.boundingBox.height,
@@ -80,15 +80,9 @@ App.Calendar.prototype._render = function _render()
         i = 0;
 
     //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
-    this.clear();
-    this.beginFill(0xefefef);
-    this.drawRect(0,0,w,h);
-    this.beginFill(0xcccccc);
-    this.drawRect(0,Math.round(80 * r),w,roundedRatio);
-    this.drawRect(separatorPadding,dayLabelOffset,separatorWidth,roundedRatio);
-    this.beginFill(0xffffff);
-    this.drawRect(separatorPadding,dayLabelOffset+roundedRatio,separatorWidth,roundedRatio);
-    this.endFill();
+    GraphicUtils.drawRects(this,0xefefef,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this,0xcccccc,1,[0,Math.round(80 * r),w,roundedRatio,separatorPadding,dayLabelOffset,separatorWidth,roundedRatio],false,false);
+    GraphicUtils.drawRects(this,0xffffff,1,[separatorPadding,dayLabelOffset+roundedRatio,separatorWidth,roundedRatio],false,true);
 
     this._monthField.y = Math.round((dayLabelOffset - this._monthField.height) / 2);
 

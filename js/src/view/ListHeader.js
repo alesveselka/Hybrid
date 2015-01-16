@@ -27,15 +27,12 @@ App.ListHeader.prototype.constructor = App.ListHeader;
  */
 App.ListHeader.prototype._render = function _render()
 {
-    var r = this._pixelRatio,
+    var GraphicUtils = App.GraphicUtils,
+        r = this._pixelRatio,
         h = Math.round(30 * r);
 
-    this.clear();
-    this.beginFill(0x394264);
-    this.drawRect(0,0,this._width,h);
-    this.beginFill(0x252B44);
-    this.drawRect(0,h-r,this._width,r);
-    this.endFill();
+    GraphicUtils.drawRects(this,0x394264,1,[0,0,this._width,h],true,false);
+    GraphicUtils.drawRects(this,0x252B44,1,[0,h-r,this._width,r],false,true);
 
     this._textField.x = Math.round((this._width - this._textField.width) / 2);
     this._textField.y = Math.round((h - this._textField.height) / 2);
