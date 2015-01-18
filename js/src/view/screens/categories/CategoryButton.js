@@ -13,12 +13,9 @@ App.CategoryButton = function CategoryButton(model,layout,labelStyle)
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName;
 
-    this._model = model;
-    this._layout = layout;
-
-    this.boundingBox = ModelLocator.getProxy(ModelName.RECTANGLE_POOL).allocate();
-    this.boundingBox.width = layout.width;
-    this.boundingBox.height = Math.round(50 * layout.pixelRatio);
+//    this.boundingBox = ModelLocator.getProxy(ModelName.RECTANGLE_POOL).allocate();
+//    this.boundingBox.width = layout.width;
+//    this.boundingBox.height = Math.round(50 * layout.pixelRatio);
 
     this._model = model;
     this._layout = layout;
@@ -85,11 +82,8 @@ App.CategoryButton.prototype.destroy = function destroy()
 {
     this.clear();
 
-    this.allocated = false;
     this.interactive = false;
 
-    App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).release(this.boundingBox);
-    this.boundingBox.reset();
     this.boundingBox = null;
 
     this._layout = null;

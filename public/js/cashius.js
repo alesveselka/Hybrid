@@ -270,6 +270,46 @@ App.GraphicUtils = {
 };
 
 /**
+ * LayoutUtils
+ * @type {{update: Function}}
+ */
+App.LayoutUtils = {
+    /**
+     * Update layout
+     * @param {Array.<{x:number,y:number,boundingBox:Rectangle}>} items
+     * @param {string} direction
+     * @param {number} originalPosition
+     */
+    update:function update(items,direction,originalPosition)
+    {
+        var i = 0,
+            l = items.length,
+            item = null,
+            position = originalPosition || 0,
+            Direction = App.Direction;
+
+        if (direction === Direction.X)
+        {
+            for (;i<l;)
+            {
+                item = items[i++];
+                item.x = position;
+                position = Math.round(position + item.boundingBox.width);
+            }
+        }
+        else if (direction === Direction.Y)
+        {
+            for (;i<l;)
+            {
+                item = items[i++];
+                item.y = position;
+                position = Math.round(position + item.boundingBox.height);
+            }
+        }
+    }
+};
+
+/**
  * Event type
  * @enum {string}
  * @return {{
@@ -336,7 +376,6 @@ App.EventType = {
  * @return {{
  *      TICKER:string,
  *      EVENT_LISTENER_POOL:string,
- *      RECTANGLE_POOL:string,
  *      ACCOUNTS:string,
  *      TRANSACTIONS:string,
  *      SETTINGS:string,
@@ -348,7 +387,6 @@ App.EventType = {
 App.ModelName = {
     TICKER:"TICKER",
     EVENT_LISTENER_POOL:"EVENT_LISTENER_POOL",
-    RECTANGLE_POOL:"RECTANGLE_POOL",
     ACCOUNTS:"ACCOUNTS",
     TRANSACTIONS:"TRANSACTIONS",
     SETTINGS:"SETTINGS",
@@ -621,30 +659,33 @@ App.EventDispatcher.prototype.destroy = function destroy()
 
 /**
  * @class Rectangle
- * @param {number} poolIndex
+ * @param {number} x
+ * @param {number} y
+ * @param {number} width
+ * @param {number} height
  * @constructor
  */
-App.Rectangle = function Rectangle(poolIndex)
+App.Rectangle = function Rectangle(x,y,width,height)
 {
-    this.allocated = false;
-    this.poolIndex = poolIndex;
-    this.x = 0;
-    this.y = 0;
-    this.width = 0;
-    this.height = 0;
+    //this.allocated = false;
+    //this.poolIndex = poolIndex;
+    this.x = x || 0;
+    this.y = y || 0;
+    this.width = width || 0;
+    this.height = height || 0;
 };
 
 /**
  * @method reset Reset item returning to pool
  */
-App.EventListener.prototype.reset = function reset()
+/*App.EventListener.prototype.reset = function reset()
 {
     this.allocated = false;
     this.x = 0;
     this.y = 0;
     this.width = 0;
     this.height = 0;
-};
+};*/
 /**
  * @class ModelLocator
  * @type {{_proxies:Object,addProxy:Function,hasProxy:Function,getProxy:Function}}
@@ -1104,46 +1145,6 @@ App.ViewLocator = {
     {
         return this._viewSegments[segmentName];
     }
-};
-
-/**
- * @class ListHeader
- * @param {string} label
- * @param {number} width
- * @param {number} pixelRatio
- * @constructor
- */
-App.ListHeader = function ListHeader(label,width,pixelRatio)
-{
-    PIXI.Graphics.call(this);
-
-    this._width = width;
-    this._pixelRatio = pixelRatio;
-    this._textField = new PIXI.Text(label,{font:Math.round(12 * pixelRatio)+"px HelveticaNeueCond",fill:"#ffffff"});
-
-    this._render();
-
-    this.addChild(this._textField);
-};
-
-App.ListHeader.prototype = Object.create(PIXI.Graphics.prototype);
-App.ListHeader.prototype.constructor = App.ListHeader;
-
-/**
- * Render
- * @private
- */
-App.ListHeader.prototype._render = function _render()
-{
-    var GraphicUtils = App.GraphicUtils,
-        r = this._pixelRatio,
-        h = Math.round(30 * r);
-
-    GraphicUtils.drawRects(this,0x394264,1,[0,0,this._width,h],true,false);
-    GraphicUtils.drawRects(this,0x252B44,1,[0,h-r,this._width,r],false,true);
-
-    this._textField.x = Math.round((this._width - this._textField.width) / 2);
-    this._textField.y = Math.round((h - this._textField.height) / 2);
 };
 
 /**
@@ -1768,9 +1769,7 @@ App.CalendarWeekRow = function CalendarWeekRow(week,currentDay,width,pixelRatio)
         index = 0,
         i = 0;
 
-    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
-    this.boundingBox.width = this._width;
-    this.boundingBox.height = Math.round(40 * pixelRatio);
+    this.boundingBox = new App.Rectangle(0,0,width,Math.round(40*pixelRatio));
 
     this._week = week;
     this._width = width;
@@ -1987,9 +1986,7 @@ App.Calendar = function Calendar(date,width,pixelRatio)
         weeksInMonth = month.length,
         i = 0;
 
-    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
-    this.boundingBox.width = this._width;
-    this.boundingBox.height = Math.round(321 * pixelRatio);
+    this.boundingBox = new App.Rectangle(0,0,width,Math.round(321*pixelRatio));
 
     this._date = date;
     this._selectedDate = date;//TODO use just one date?
@@ -2248,13 +2245,13 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
     this._mouseData = null;
     this._oldMouseX = 0.0;
     this._oldMouseY = 0.0;
-    this._xSpeed = 0.0;
+    this._xSpeed = 0.0;//TODO Average speed to avoid 'jumps'?
     this._ySpeed = 0.0;
     this._xOffset = 0.0;
     this._yOffset = 0.0;
     this._friction = 0.9;
     this._dumpForce = 0.5;
-    this._snapForce = 0.2;
+    this._snapForce = 0.2;//TODO allow to disable snapping?
 };
 
 App.Pane.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -3269,7 +3266,7 @@ App.TileList = function TileList(direction,windowSize)
     this._windowSize = windowSize;
     this._items = [];
 
-    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
+    this.boundingBox = new App.Rectangle();
 };
 
 App.TileList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -4010,6 +4007,283 @@ App.Screen.prototype.destroy = function destroy()
 };
 
 /**
+ * @class ListHeader
+ * @param {string} label
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.ListHeader = function ListHeader(label,width,pixelRatio)
+{
+    PIXI.Graphics.call(this);
+
+    this._width = width;
+    this._pixelRatio = pixelRatio;
+    this._textField = new PIXI.Text(label,{font:Math.round(12 * pixelRatio)+"px HelveticaNeueCond",fill:"#ffffff"});
+
+    this._render();
+
+    this.addChild(this._textField);
+};
+
+App.ListHeader.prototype = Object.create(PIXI.Graphics.prototype);
+App.ListHeader.prototype.constructor = App.ListHeader;
+
+/**
+ * Render
+ * @private
+ */
+App.ListHeader.prototype._render = function _render()
+{
+    var GraphicUtils = App.GraphicUtils,
+        r = Math.round(this._pixelRatio),
+        h = Math.round(30 * this._pixelRatio);
+
+    GraphicUtils.drawRects(this,0x394264,1,[0,0,this._width,h],true,false);
+    GraphicUtils.drawRects(this,0x252B44,1,[0,h-r,this._width,r],false,true);
+
+    this._textField.x = Math.round((this._width - this._textField.width) / 2);
+    this._textField.y = Math.round((h - this._textField.height) / 2);
+};
+
+App.AddNewButton = function AddNewButton(label,fontStyle,width,height,pixelRatio)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this.boundingBox = new App.Rectangle(0,0,width,height);
+
+    this._label = label;
+    this._pixelRatio = pixelRatio;
+    this._icon = PIXI.Sprite.fromFrame("plus-app");
+    this._iconResizeRatio = Math.round(20 * pixelRatio) / this._icon.height;
+    this._labelField = new PIXI.Text(label,fontStyle);
+
+    this._render();
+
+    this.addChild(this._icon);
+    this.addChild(this._labelField);
+};
+
+App.AddNewButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.AddNewButton.prototype.constructor = App.AddNewButton;
+
+/**
+ * Render
+ * @private
+ */
+App.AddNewButton.prototype._render = function _render()
+{
+    var w = this._labelField.width,
+        gap = Math.round(10 * this._pixelRatio),
+        height = this.boundingBox.height,
+        x = 0;
+
+    this._icon.scale.x = this._iconResizeRatio;
+    this._icon.scale.y = this._iconResizeRatio;
+
+    w += this._icon.width + gap;
+    x = Math.round((this.boundingBox.width - w) / 2);
+
+    this._icon.x = x;
+    this._icon.y = Math.round((height - this._icon.height) / 2);
+    this._icon.tint = 0xcccccc;
+
+    this._labelField.x = x + this._icon.width + gap;
+    this._labelField.y = Math.round((height - this._labelField.height) / 2);
+};
+
+/**
+ * @class SwipeButton
+ * @extends DisplayObjectContainer
+ * @param {number} width
+ * @param {number} openOffset
+ * @constructor
+ */
+App.SwipeButton = function SwipeButton(width,openOffset)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this._width = width;
+    this._interactionEnabled = false;
+    this._interactiveState = null;
+    this._dragFriction = 0.5;
+    this._snapForce = 0.5;
+    this._openOffset = openOffset;
+    this._open = false;
+    this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
+};
+
+App.SwipeButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.SwipeButton.prototype.constructor = App.SwipeButton;
+
+/**
+ * Enable interaction
+ * @private
+ */
+App.SwipeButton.prototype._enableInteraction = function _enableInteraction()
+{
+    if (!this._interactionEnabled)
+    {
+        this._interactionEnabled = true;
+
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this.interactive = true;
+    }
+};
+
+/**
+ * Disable interaction
+ * @private
+ */
+App.SwipeButton.prototype._disableInteraction = function _disableInteraction()
+{
+    this.interactive = false;
+
+    this._interactiveState = null;
+
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._interactionEnabled = false;
+};
+
+/**
+ * Tick handler
+ * @private
+ */
+App.SwipeButton.prototype._onTick = function _onTick()
+{
+    var InteractiveState = App.InteractiveState;
+    if (this._interactiveState === InteractiveState.SWIPING) this._swipe();
+    else if (this._interactiveState === InteractiveState.SNAPPING) this._snap();
+};
+
+/**
+ * @method swipeStart
+ * @param {string} direction
+ */
+App.SwipeButton.prototype.swipeStart = function swipeStart(direction)
+{
+    var Direction = App.Direction,
+        InteractiveState = App.InteractiveState;
+
+    if (!this._interactiveState)
+    {
+        if (!this._open && direction === Direction.LEFT)
+        {
+            this._interactiveState = InteractiveState.SWIPING;
+            this._enableInteraction();
+        }
+        else if (this._open && direction === Direction.RIGHT)
+        {
+            this._interactiveState = InteractiveState.SNAPPING;
+            this._enableInteraction();
+        }
+    }
+};
+
+/**
+ * @method swipeEnd
+ */
+App.SwipeButton.prototype.swipeEnd = function swipeEnd()
+{
+    if (this._interactiveState === App.InteractiveState.SWIPING) this._interactiveState = App.InteractiveState.SNAPPING;
+};
+
+/**
+ * @method _swipe
+ * @private
+ */
+App.SwipeButton.prototype._swipe = function _swipe()
+{
+    if (this.stage && !this._open)
+    {
+        this._updateSwipePosition(-Math.round(this._width * (1 - (this.stage.getTouchPosition().x / this._width)) * this._dragFriction));
+    }
+};
+
+/**
+ * @method _snap
+ * @private
+ */
+App.SwipeButton.prototype._snap = function _snap()
+{
+    var swipePosition = this._getSwipePosition(),
+        result = Math.round(swipePosition * this._snapForce);
+
+    // Snap to open
+    if (swipePosition < -this._openOffset)
+    {
+        if (result >= -this._openOffset)
+        {
+            this._open = true;
+            this._disableInteraction();
+
+            this._updateSwipePosition(-this._openOffset);
+        }
+        else
+        {
+            this._updateSwipePosition(result);
+        }
+    }
+    // Snap to close
+    else
+    {
+        if (result >= -1)
+        {
+            this._open = false;
+            this._disableInteraction();
+
+            this._updateSwipePosition(0);
+        }
+        else
+        {
+            this._updateSwipePosition(result);
+        }
+    }
+};
+
+/**
+ * Close Edit button
+ * @param {boolean} [immediate=false]
+ */
+App.SwipeButton.prototype.close = function close(immediate)
+{
+    if (this._open)
+    {
+        if (immediate)
+        {
+            this._updateSwipePosition(0);
+            this._open = false;
+        }
+        else
+        {
+            this._interactiveState = App.InteractiveState.SNAPPING;
+            this._enableInteraction();
+        }
+    }
+};
+
+/**
+ * Update swipe position
+ * @param {number} position
+ * @private
+ */
+App.SwipeButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
+{
+    // Abstract
+};
+
+/**
+ * Return swipe position
+ * @private
+ */
+App.SwipeButton.prototype._getSwipePosition = function _getSwipePosition()
+{
+    // Abstract
+};
+
+/**
  * @class SelectTimeScreen
  * @extends Screen
  * @param {Collection} model
@@ -4322,85 +4596,135 @@ App.AccountScreen.prototype.destroy = function destroy()
     this._buttons = null;
 };
 
-App.SubCategoryList = function SubCategoryList()
-{
-    this._header = new App.ListHeader();
-};
-
-/**
- * @class CategoryButton
- * @extends DisplayObjectContainer
- * @param {Category} model
- * @param {Object} layout
- * @param {Object} labelStyle
- * @constructor
- */
-App.CategoryButton = function CategoryButton(model,layout,labelStyle)
+App.SubCategoryButton = function SubCategoryButton(label,width,pixelRatio)
 {
     PIXI.DisplayObjectContainer.call(this);
 
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName;
+    this.boundingBox = new App.Rectangle(0,0,width,Math.round(40*pixelRatio));
 
-    this._model = model;
-    this._layout = layout;
+    this._label = label;
+    this._pixelRatio = pixelRatio;
+    this._labelField = new PIXI.Text(label,{font:Math.round(14 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
 
-    this.boundingBox = ModelLocator.getProxy(ModelName.RECTANGLE_POOL).allocate();
-    this.boundingBox.width = layout.width;
-    this.boundingBox.height = Math.round(50 * layout.pixelRatio);
+    this._render();
 
-    this._model = model;
-    this._layout = layout;
-    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-
-    this._surfaceSkin = new PIXI.Graphics();
-    this._colorStripe = new PIXI.Graphics();
-    this._icon = PIXI.Sprite.fromFrame(model.icon);
-    this._nameLabel = new PIXI.Text(model.name,labelStyle);
-
-    this._surfaceSkin.addChild(this._colorStripe);
-    this._surfaceSkin.addChild(this._icon);
-    this._surfaceSkin.addChild(this._nameLabel);
-    this.addChild(this._surfaceSkin);
+    this.addChild(this._labelField);
 };
 
-App.CategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.CategoryButton.prototype.constructor = App.CategoryButton;
+App.SubCategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.SubCategoryButton.prototype.constructor = App.SubCategoryButton;
 
 /**
- * @method render
+ * Render
  * @private
  */
-App.CategoryButton.prototype._render = function _render()
+App.SubCategoryButton.prototype._render = function _render()
+{
+    this._labelField.x = Math.round(20 * this._pixelRatio);
+    this._labelField.y = Math.round((this.boundingBox.height - this._labelField.height) / 2);
+};
+
+App.SubCategoryList = function SubCategoryList(category,width,pixelRatio)
+{
+    PIXI.Graphics.call(this);
+
+    var subs = ["Cinema","Theatre","Gallery"],
+        SubCategoryButton = App.SubCategoryButton,
+        i = 0,
+        l = subs.length;
+
+    this.boundingBox = new App.Rectangle(0,0,width,0);
+
+    this._category = category;
+    this._width = width;
+    this._pixelRatio = pixelRatio;
+    this._header = new App.ListHeader("Sub-Categories",width,pixelRatio);
+    this._subButtons = new Array(l);
+    this._addNewButton = new App.AddNewButton(
+        "ADD SUB-CATEGORY",
+        {font:Math.round(14 * pixelRatio)+"px HelveticaNeueCond",fill:"#cccccc"},
+        width,
+        Math.round(40 * pixelRatio),
+        pixelRatio
+    );
+
+    for (;i<l;i++) this._subButtons[i] = new SubCategoryButton(subs[i],width,pixelRatio);
+
+    this._render();
+
+    this.addChild(this._header);
+    for (i=0;i<l;) this.addChild(this._subButtons[i++]);
+    this.addChild(this._addNewButton);
+};
+
+App.SubCategoryList.prototype = Object.create(PIXI.Graphics.prototype);
+App.SubCategoryList.prototype.constructor = App.SubCategoryList;
+
+/**
+ * Update layout
+ * @private
+ */
+App.SubCategoryList.prototype._render = function _render()
 {
     var GraphicUtils = App.GraphicUtils,
-        pixelRatio = this._layout.pixelRatio,
+        lastButton = this._subButtons[this._subButtons.length-1],
+        padding = Math.round(10 * this._pixelRatio),
+        r = Math.round(this._pixelRatio),
+        w = this.boundingBox.width;
+
+    App.LayoutUtils.update(this._subButtons,App.Direction.Y,this._header.height);
+
+    this._addNewButton.y = lastButton.y + lastButton.boundingBox.height;
+
+    this.boundingBox.height = this._addNewButton.y + this._addNewButton.boundingBox.height;
+};
+
+/**
+ * @class CategoryButtonSurface
+ * @extends Graphics
+ * @param {string} iconName
+ * @param {string} label
+ * @param {{font:string,fill:string}} labelStyle
+ * @constructor
+ */
+App.CategoryButtonSurface = function CategoryButtonSurface(iconName,label,labelStyle)
+{
+    PIXI.Graphics.call(this);
+
+    this._colorStripe = new PIXI.Graphics();
+    this._icon = PIXI.Sprite.fromFrame(iconName);
+    this._nameLabel = new PIXI.Text(label,labelStyle);
+
+    this.addChild(this._colorStripe);
+    this.addChild(this._icon);
+    this.addChild(this._nameLabel);
+};
+
+App.CategoryButtonSurface.prototype = Object.create(PIXI.Graphics.prototype);
+App.CategoryButtonSurface.prototype.constructor = App.CategoryButtonSurface;
+
+/**
+ * Render
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ */
+App.CategoryButtonSurface.prototype.render = function render(width,height,pixelRatio)
+{
+    var GraphicUtils = App.GraphicUtils,
         padding = Math.round(10 * pixelRatio),
-        w = this.boundingBox.width,
-        h = this.boundingBox.height;
+        r = Math.round(pixelRatio);
 
-    GraphicUtils.drawRects(this._surfaceSkin,0xefefef,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this._surfaceSkin,0xffffff,1,[padding,0,w-padding*2,1],false,false);
-    GraphicUtils.drawRects(this._surfaceSkin,0xcccccc,1,[padding,h-1,w-padding*2,1],false,true);
+    GraphicUtils.drawRects(this,0xefefef,1,[0,0,width,height],true,false);
+    GraphicUtils.drawRects(this,0xffffff,1,[padding,0,width-padding*2,r],false,false);
+    GraphicUtils.drawRects(this,0xcccccc,1,[padding,height-r,width-padding*2,r],false,true);
 
-    GraphicUtils.drawRect(
-        this._colorStripe,
-        "0x"+App.MathUtils.rgbToHex(
-            Math.round(Math.sin(0.3 * 10 + 0) * 127 + 128),
-            Math.round(Math.sin(0.3 * 10 + 2) * 127 + 128),
-            Math.round(Math.sin(0.3 * 10 + 4) * 127 + 128)
-        ),
-        1,
-        0,
-        0,
-        Math.round(4 * pixelRatio),
-        h
-    );
+    GraphicUtils.drawRect(this._colorStripe,0xffcc00,1,0,0,Math.round(4 * pixelRatio),height);
 
     this._icon.width = Math.round(20 * pixelRatio);
     this._icon.height = Math.round(20 * pixelRatio);
     this._icon.x = Math.round(25 * pixelRatio);
-    this._icon.y = Math.round((h - this._icon.height) / 2);
+    this._icon.y = Math.round((height - this._icon.height) / 2);
     this._icon.tint = 0x394264;
 
     this._nameLabel.x = Math.round(64 * pixelRatio);
@@ -4408,41 +4732,8 @@ App.CategoryButton.prototype._render = function _render()
 };
 
 /**
- * Destroy
- */
-App.CategoryButton.prototype.destroy = function destroy()
-{
-    this.clear();
-
-    this.allocated = false;
-    this.interactive = false;
-
-    App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).release(this.boundingBox);
-    this.boundingBox.reset();
-    this.boundingBox = null;
-
-    this._layout = null;
-    this._model = null;
-    this._ticker = null;
-
-    this._surfaceSkin.removeChild(this._colorStripe);
-    this._colorStripe.clear();
-    this._colorStripe = null;
-
-    this._surfaceSkin.removeChild(this._icon);
-    this._icon = null;
-
-    this._surfaceSkin.removeChild(this._nameLabel);
-    this._nameLabel = null;
-
-    this.removeChild(this._surfaceSkin);
-    this._surfaceSkin.clear();
-    this._surfaceSkin = null;
-};
-
-/**
  * @class CategoryButtonEdit
- * @extends CategoryButton
+ * @extends SwipeButton
  * @param {Category} model
  * @param {Object} layout
  * @param {{font:string,fill:string}} nameLabelStyle
@@ -4451,25 +4742,24 @@ App.CategoryButton.prototype.destroy = function destroy()
  */
 App.CategoryButtonEdit = function CategoryButtonEdit(model,layout,nameLabelStyle,editLabelStyle)
 {
-    App.CategoryButton.call(this,model,layout,nameLabelStyle);
+    App.SwipeButton.call(this,layout.width,Math.round(80*layout.pixelRatio));
 
-    this._enabled = false;
-    this._interactiveState = null;
-    this._dragFriction = 0.5;
-    this._snapForce = 0.5;
-    this._editOffset = Math.round(80 * layout.pixelRatio);
-    this._editButtonShown = false;
+    this.boundingBox = new App.Rectangle(0,0,layout.width,Math.round(50*layout.pixelRatio));
 
+    this._model = model;
+    this._layout = layout;
+    this._swipeSurface = new App.CategoryButtonSurface(model.icon,model.name,nameLabelStyle);
     this._background = new PIXI.Graphics();
     this._editLabel = new PIXI.Text("Edit",editLabelStyle);
 
     this._render();
 
-    this.addChildAt(this._editLabel,0);
-    this.addChildAt(this._background,0);
+    this.addChild(this._background);
+    this.addChild(this._editLabel);
+    this.addChild(this._swipeSurface);
 };
 
-App.CategoryButtonEdit.prototype = Object.create(App.CategoryButton.prototype);
+App.CategoryButtonEdit.prototype = Object.create(App.SwipeButton.prototype);
 App.CategoryButtonEdit.prototype.constructor = App.CategoryButtonEdit;
 
 /**
@@ -4478,11 +4768,11 @@ App.CategoryButtonEdit.prototype.constructor = App.CategoryButtonEdit;
  */
 App.CategoryButtonEdit.prototype._render = function _render()
 {
-    App.CategoryButton.prototype._render.call(this);
-
     var pixelRatio = this._layout.pixelRatio,
         w = this.boundingBox.width,
         h = this.boundingBox.height;
+
+    this._swipeSurface.render(w,h,pixelRatio);
 
     App.GraphicUtils.drawRect(this._background,0xE53013,1,0,0,w,h);
 
@@ -4491,164 +4781,27 @@ App.CategoryButtonEdit.prototype._render = function _render()
 };
 
 /**
- * Enable interaction
+ * Update swipe position
+ * @param {number} position
  * @private
  */
-App.CategoryButtonEdit.prototype._enableInteraction = function _enableInteraction()
+App.CategoryButtonEdit.prototype._updateSwipePosition = function _updateSwipePosition(position)
 {
-    if (!this._enabled)
-    {
-        this._enabled = true;
-
-        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-
-        this.interactive = true;
-    }
+    this._swipeSurface.x = position;
 };
 
 /**
- * Disable interaction
+ * Return swipe position
  * @private
  */
-App.CategoryButtonEdit.prototype._disableInteraction = function _disableInteraction()
+App.CategoryButtonEdit.prototype._getSwipePosition = function _getSwipePosition()
 {
-    this.interactive = false;
-
-    this._interactiveState = null;
-
-    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._enabled = false;
-};
-
-/**
- * Tick handler
- * @private
- */
-App.CategoryButtonEdit.prototype._onTick = function _onTick()
-{
-    var InteractiveState = App.InteractiveState;
-    if (this._interactiveState === InteractiveState.SWIPING) this._swipe();
-    else if (this._interactiveState === InteractiveState.SNAPPING) this._snap();
-};
-
-/**
- * @method swipeStart
- * @param {string} direction
- */
-App.CategoryButtonEdit.prototype.swipeStart = function swipeStart(direction)
-{
-    var Direction = App.Direction,
-        InteractiveState = App.InteractiveState;
-
-    if (!this._interactiveState)
-    {
-        if (!this._editButtonShown && direction === Direction.LEFT)
-        {
-            this._interactiveState = InteractiveState.SWIPING;
-            this._enableInteraction();
-        }
-        else if (this._editButtonShown && direction === Direction.RIGHT)
-        {
-            this._interactiveState = InteractiveState.SNAPPING;
-            this._enableInteraction();
-        }
-    }
-};
-
-/**
- * @method swipeEnd
- */
-App.CategoryButtonEdit.prototype.swipeEnd = function swipeEnd()
-{
-    if (this._interactiveState === App.InteractiveState.SWIPING) this._interactiveState = App.InteractiveState.SNAPPING;
-};
-
-/**
- * @method _swipe
- * @private
- */
-App.CategoryButtonEdit.prototype._swipe = function _swipe()
-{
-    if (this.stage && !this._editButtonShown)
-    {
-        var w = this._layout.width;
-        this._surfaceSkin.x = -Math.round(w * (1 - (this.stage.getTouchPosition().x / w)) * this._dragFriction);
-    }
-};
-
-/**
- * @method _snap
- * @private
- */
-App.CategoryButtonEdit.prototype._snap = function _snap()
-{
-    var result = Math.round(this._surfaceSkin.x * this._snapForce);
-
-    // Snap to show edit button
-    if (this._surfaceSkin.x < -this._editOffset)
-    {
-        if (result >= -this._editOffset)
-        {
-            this._editButtonShown = true;
-            this._disableInteraction();
-
-            this._surfaceSkin.x = -this._editOffset;
-        }
-        else
-        {
-            this._surfaceSkin.x = result;
-        }
-    }
-    // Snap to close edit button
-    else
-    {
-        if (result >= -1)
-        {
-            this._editButtonShown = false;
-            this._disableInteraction();
-
-            this._surfaceSkin.x = 0;
-        }
-        else
-        {
-            this._surfaceSkin.x = result;
-        }
-    }
-};
-
-/**
- * Close Edit button
- * @param {boolean} [immediate=false]
- */
-App.CategoryButtonEdit.prototype.close = function close(immediate)
-{
-    if (this._editButtonShown)
-    {
-        if (immediate)
-        {
-            this._surfaceSkin.x = 0;
-            this._editButtonShown = false;
-        }
-        else
-        {
-            this._interactiveState = App.InteractiveState.SNAPPING;
-            this._enableInteraction();
-        }
-    }
-};
-
-/**
- * Destroy
- */
-App.CategoryButtonEdit.prototype.destroy = function destroy()
-{
-    //TODO implement
+    return this._swipeSurface.x;
 };
 
 /**
  * @class CategoryButtonExpand
- * @extends CategoryButton
+ * @extends DisplayObjectContainer
  * @param {Category} model
  * @param {Object} layout
  * @param {{font:string,fill:string}} nameLabelStyle
@@ -4656,27 +4809,36 @@ App.CategoryButtonEdit.prototype.destroy = function destroy()
  */
 App.CategoryButtonExpand = function CategoryButtonExpand(model,layout,nameLabelStyle)
 {
-    App.CategoryButton.call(this,model,layout,nameLabelStyle);
+    PIXI.DisplayObjectContainer.call(this);
 
-    var eventListenerPool = App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL);
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        eventListenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
 
+    this.boundingBox = new App.Rectangle(0,0,layout.width,Math.round(50*layout.pixelRatio));
+
+    this._model = model;
+    this._layout = layout;
     this._eventsRegistered = false;
     this._transitionState = App.TransitionState.CLOSED;
     this._buttonHeight = this.boundingBox.height;
-    this._subCategoryListHeight = Math.round(150 * this._layout.pixelRatio);//TODO temporary
+    this._subCategoryListHeight = Math.round(150 * layout.pixelRatio);//TODO temporary
 
     this._openCloseTween = new App.TweenProxy(0.4,App.Easing.outExpo,0,eventListenerPool);
     this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
 
+    this._surface = new App.CategoryButtonSurface(model.icon,model.name,nameLabelStyle);
     this._subCategoryList = new PIXI.Graphics();
     this._subCategoryList.visible = false;
 
     this._render();
 
-    this.addChildAt(this._subCategoryList,0);
+    this.addChild(this._subCategoryList);
+    this.addChild(this._surface);
 };
 
-App.CategoryButtonExpand.prototype = Object.create(App.CategoryButton.prototype);
+App.CategoryButtonExpand.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
 
 /**
@@ -4685,9 +4847,11 @@ App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
  */
 App.CategoryButtonExpand.prototype._render = function _render()
 {
-    App.CategoryButton.prototype._render.call(this);
+    var w = this.boundingBox.width;
 
-    App.GraphicUtils.drawRect(this._subCategoryList,0xffffff,1,0,0,this.boundingBox.width,this._subCategoryListHeight);
+    this._surface.render(w,this.boundingBox.height,this._layout.pixelRatio);
+
+    App.GraphicUtils.drawRect(this._subCategoryList,0xffffff,1,0,0,w,this._subCategoryListHeight);
     this._subCategoryList.y = this._buttonHeight;
 };
 
@@ -4891,7 +5055,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 
     for (;i<l;i++)
     {
-        //button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle,editLabelStyle);
+//        button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle,editLabelStyle);
         button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle);
         this._buttons[i] = button;
         this._buttonList.add(button);
@@ -4968,7 +5132,7 @@ App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,dir
     if (!preferScroll) this._pane.cancelScroll();
 
     this._interactiveButton = this._getButtonUnderPoint(this.stage.getTouchPosition());
-    this._interactiveButton.swipeStart(direction);
+    if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
     this._closeButtons(false);
 };
@@ -5162,12 +5326,7 @@ App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
-    var width = Math.round(40 * pixelRatio),
-        height = Math.round(50 * pixelRatio);
-
-    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
-    this.boundingBox.width = width;
-    this.boundingBox.height = height;
+    this.boundingBox = new App.Rectangle(0,0,Math.round(40*pixelRatio),Math.round(50*pixelRatio));
 
     this._modelIndex = modelIndex;
     this._pixelRatio = pixelRatio;
@@ -5258,9 +5417,7 @@ App.IconSample = function IconSample(modelIndex,model,pixelRatio)
 
     var size = Math.round(64 * pixelRatio);
 
-    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
-    this.boundingBox.width = size;
-    this.boundingBox.height = size * 2;
+    this.boundingBox = new App.Rectangle(0,0,size,size);
 
     this._modelIndex = modelIndex;
     this._model = model;
@@ -5380,6 +5537,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._colorList = new InfiniteList(colorSamples,App.ColorSample,Direction.X,w,Math.round(50 * r),r);
     this._topIconList = new InfiniteList(icons.slice(0,Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._bottomIconList = new InfiniteList(icons.slice(Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
+    this._subCategoryList = new App.SubCategoryList(null,w,r);
 
     this._render();
 
@@ -5391,6 +5549,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._container.addChild(this._colorList);
     this._container.addChild(this._topIconList);
     this._container.addChild(this._bottomIconList);
+    this._container.addChild(this._subCategoryList);
 
     this._pane.setContent(this._container);
 
@@ -5428,11 +5587,11 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._input.y = Math.round((inputFragmentHeight - this._input.height) / 2);
 
     this._colorList.y = inputFragmentHeight;
-
     this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
     this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
+    this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
 
-    GraphicUtils.drawRect(this._background,0xefefef,1,0,0,w,this._bottomIconList.y+this._bottomIconList.boundingBox.height);
+    GraphicUtils.drawRect(this._background,0xefefef,1,0,0,w,this._subCategoryList.y+this._subCategoryList.boundingBox.height);
 
     GraphicUtils.drawRects(
         this._separators,
@@ -5515,7 +5674,7 @@ App.EditCategoryScreen.prototype.disable = function disable()
  */
 App.EditCategoryScreen.prototype._onClick = function _onClick()
 {
-    var position = this.stage.getTouchData().getLocalPosition(this),
+    var position = this.stage.getTouchData().getLocalPosition(this._container),
         y = position.y,
         list = null;
 
@@ -5579,7 +5738,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.SelectTimeScreen(null,this._layout),
         new App.EditCategoryScreen(null,this._layout)
     ]);
-    this._screenStack.selectChildByIndex(App.ScreenName.EDIT_CATEGORY);//TODO move this into separate command?
+    this._screenStack.selectChildByIndex(App.ScreenName.CATEGORY);//TODO move this into separate command?
     this._screenStack.show();
 
     this.addChild(this._background);
@@ -6325,7 +6484,6 @@ App.Initialize.prototype._initModel = function _initModel(data)
 
     //TODO initiate all proxies in once 'init' method? Same as Controller ...
     ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
-    ModelLocator.addProxy(ModelName.RECTANGLE_POOL,new App.ObjectPool(App.Rectangle,20));//TODO use this pool - some classes still dont use it!
     ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
     ModelLocator.addProxy(ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}));
     ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(

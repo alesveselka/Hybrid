@@ -23,7 +23,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 
     for (;i<l;i++)
     {
-        //button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle,editLabelStyle);
+//        button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle,editLabelStyle);
         button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle);
         this._buttons[i] = button;
         this._buttonList.add(button);
@@ -100,7 +100,7 @@ App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,dir
     if (!preferScroll) this._pane.cancelScroll();
 
     this._interactiveButton = this._getButtonUnderPoint(this.stage.getTouchPosition());
-    this._interactiveButton.swipeStart(direction);
+    if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
     this._closeButtons(false);
 };

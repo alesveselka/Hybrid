@@ -44,6 +44,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._colorList = new InfiniteList(colorSamples,App.ColorSample,Direction.X,w,Math.round(50 * r),r);
     this._topIconList = new InfiniteList(icons.slice(0,Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._bottomIconList = new InfiniteList(icons.slice(Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
+    this._subCategoryList = new App.SubCategoryList(null,w,r);
 
     this._render();
 
@@ -55,6 +56,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._container.addChild(this._colorList);
     this._container.addChild(this._topIconList);
     this._container.addChild(this._bottomIconList);
+    this._container.addChild(this._subCategoryList);
 
     this._pane.setContent(this._container);
 
@@ -92,11 +94,11 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._input.y = Math.round((inputFragmentHeight - this._input.height) / 2);
 
     this._colorList.y = inputFragmentHeight;
-
     this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
     this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
+    this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
 
-    GraphicUtils.drawRect(this._background,0xefefef,1,0,0,w,this._bottomIconList.y+this._bottomIconList.boundingBox.height);
+    GraphicUtils.drawRect(this._background,0xefefef,1,0,0,w,this._subCategoryList.y+this._subCategoryList.boundingBox.height);
 
     GraphicUtils.drawRects(
         this._separators,
@@ -179,7 +181,7 @@ App.EditCategoryScreen.prototype.disable = function disable()
  */
 App.EditCategoryScreen.prototype._onClick = function _onClick()
 {
-    var position = this.stage.getTouchData().getLocalPosition(this),
+    var position = this.stage.getTouchData().getLocalPosition(this._container),
         y = position.y,
         list = null;
 

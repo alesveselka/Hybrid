@@ -17,9 +17,7 @@ App.IconList = function IconList(model,width,pixelRatio)
     console.log(topIcons,topIcons.length);
     console.log(bottomIcons,bottomIcons.length);
 
-    this.boundingBox = ModelLocator.getProxy(ModelName.RECTANGLE_POOL).allocate();
-    this.boundingBox.width = width;
-    this.boundingBox.height = height * 2;
+    this.boundingBox = new App.Rectangle(0,0,width,height*2);
 
     this._topList = new InfiniteList(topIcons,IconSample,Direction.X,width,height,pixelRatio);
     this._bottomList = new InfiniteList(bottomIcons,IconSample,Direction.X,width,height,pixelRatio);

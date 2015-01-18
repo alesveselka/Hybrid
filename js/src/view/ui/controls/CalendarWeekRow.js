@@ -17,9 +17,7 @@ App.CalendarWeekRow = function CalendarWeekRow(week,currentDay,width,pixelRatio)
         index = 0,
         i = 0;
 
-    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
-    this.boundingBox.width = this._width;
-    this.boundingBox.height = Math.round(40 * pixelRatio);
+    this.boundingBox = new App.Rectangle(0,0,width,Math.round(40*pixelRatio));
 
     this._week = week;
     this._width = width;

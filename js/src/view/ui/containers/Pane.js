@@ -32,13 +32,13 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
     this._mouseData = null;
     this._oldMouseX = 0.0;
     this._oldMouseY = 0.0;
-    this._xSpeed = 0.0;
+    this._xSpeed = 0.0;//TODO Average speed to avoid 'jumps'?
     this._ySpeed = 0.0;
     this._xOffset = 0.0;
     this._yOffset = 0.0;
     this._friction = 0.9;
     this._dumpForce = 0.5;
-    this._snapForce = 0.2;
+    this._snapForce = 0.2;//TODO allow to disable snapping?
 };
 
 App.Pane.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);

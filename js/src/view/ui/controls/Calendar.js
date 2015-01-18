@@ -21,9 +21,7 @@ App.Calendar = function Calendar(date,width,pixelRatio)
         weeksInMonth = month.length,
         i = 0;
 
-    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
-    this.boundingBox.width = this._width;
-    this.boundingBox.height = Math.round(321 * pixelRatio);
+    this.boundingBox = new App.Rectangle(0,0,width,Math.round(321*pixelRatio));
 
     this._date = date;
     this._selectedDate = date;//TODO use just one date?

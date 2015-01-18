@@ -13,7 +13,7 @@ App.TileList = function TileList(direction,windowSize)
     this._windowSize = windowSize;
     this._items = [];
 
-    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
+    this.boundingBox = new App.Rectangle();
 };
 
 App.TileList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);

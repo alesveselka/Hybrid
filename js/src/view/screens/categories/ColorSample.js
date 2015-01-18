@@ -10,12 +10,7 @@ App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
-    var width = Math.round(40 * pixelRatio),
-        height = Math.round(50 * pixelRatio);
-
-    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
-    this.boundingBox.width = width;
-    this.boundingBox.height = height;
+    this.boundingBox = new App.Rectangle(0,0,Math.round(40*pixelRatio),Math.round(50*pixelRatio));
 
     this._modelIndex = modelIndex;
     this._pixelRatio = pixelRatio;

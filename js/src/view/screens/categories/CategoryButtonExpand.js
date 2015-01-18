@@ -1,6 +1,6 @@
 /**
  * @class CategoryButtonExpand
- * @extends CategoryButton
+ * @extends DisplayObjectContainer
  * @param {Category} model
  * @param {Object} layout
  * @param {{font:string,fill:string}} nameLabelStyle
@@ -8,27 +8,36 @@
  */
 App.CategoryButtonExpand = function CategoryButtonExpand(model,layout,nameLabelStyle)
 {
-    App.CategoryButton.call(this,model,layout,nameLabelStyle);
+    PIXI.DisplayObjectContainer.call(this);
 
-    var eventListenerPool = App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL);
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        eventListenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
 
+    this.boundingBox = new App.Rectangle(0,0,layout.width,Math.round(50*layout.pixelRatio));
+
+    this._model = model;
+    this._layout = layout;
     this._eventsRegistered = false;
     this._transitionState = App.TransitionState.CLOSED;
     this._buttonHeight = this.boundingBox.height;
-    this._subCategoryListHeight = Math.round(150 * this._layout.pixelRatio);//TODO temporary
+    this._subCategoryListHeight = Math.round(150 * layout.pixelRatio);//TODO temporary
 
     this._openCloseTween = new App.TweenProxy(0.4,App.Easing.outExpo,0,eventListenerPool);
     this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
 
+    this._surface = new App.CategoryButtonSurface(model.icon,model.name,nameLabelStyle);
     this._subCategoryList = new PIXI.Graphics();
     this._subCategoryList.visible = false;
 
     this._render();
 
-    this.addChildAt(this._subCategoryList,0);
+    this.addChild(this._subCategoryList);
+    this.addChild(this._surface);
 };
 
-App.CategoryButtonExpand.prototype = Object.create(App.CategoryButton.prototype);
+App.CategoryButtonExpand.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
 
 /**
@@ -37,9 +46,11 @@ App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
  */
 App.CategoryButtonExpand.prototype._render = function _render()
 {
-    App.CategoryButton.prototype._render.call(this);
+    var w = this.boundingBox.width;
 
-    App.GraphicUtils.drawRect(this._subCategoryList,0xffffff,1,0,0,this.boundingBox.width,this._subCategoryListHeight);
+    this._surface.render(w,this.boundingBox.height,this._layout.pixelRatio);
+
+    App.GraphicUtils.drawRect(this._subCategoryList,0xffffff,1,0,0,w,this._subCategoryListHeight);
     this._subCategoryList.y = this._buttonHeight;
 };
 

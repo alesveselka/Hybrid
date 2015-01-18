@@ -12,9 +12,7 @@ App.IconSample = function IconSample(modelIndex,model,pixelRatio)
 
     var size = Math.round(64 * pixelRatio);
 
-    this.boundingBox = App.ModelLocator.getProxy(App.ModelName.RECTANGLE_POOL).allocate();
-    this.boundingBox.width = size;
-    this.boundingBox.height = size * 2;
+    this.boundingBox = new App.Rectangle(0,0,size,size);
 
     this._modelIndex = modelIndex;
     this._model = model;

@@ -6,14 +6,15 @@ App.LayoutUtils = {
     /**
      * Update layout
      * @param {Array.<{x:number,y:number,boundingBox:Rectangle}>} items
-     * @param direction
+     * @param {string} direction
+     * @param {number} originalPosition
      */
-    update:function update(items,direction)
+    update:function update(items,direction,originalPosition)
     {
         var i = 0,
             l = items.length,
             item = null,
-            position = 0,
+            position = originalPosition || 0,
             Direction = App.Direction;
 
         if (direction === Direction.X)
