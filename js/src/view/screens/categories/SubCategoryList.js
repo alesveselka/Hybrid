@@ -13,6 +13,7 @@ App.SubCategoryList = function SubCategoryList(category,width,pixelRatio)
     this._width = width;
     this._pixelRatio = pixelRatio;
     this._header = new App.ListHeader("Sub-Categories",width,pixelRatio);
+    this._interactiveButton = null;
     this._subButtons = new Array(l);
     this._addNewButton = new App.AddNewButton(
         "ADD SUB-CATEGORY",
@@ -51,4 +52,74 @@ App.SubCategoryList.prototype._render = function _render()
     this._addNewButton.y = lastButton.y + lastButton.boundingBox.height;
 
     this.boundingBox.height = this._addNewButton.y + this._addNewButton.boundingBox.height;
+};
+
+/**
+ * Called when swipe starts
+ * @param {string} direction
+ * @private
+ */
+App.SubCategoryList.prototype.swipeStart = function swipeStart(direction)
+{
+    this._interactiveButton = this._getButtonUnderPosition(this.stage.getTouchData().getLocalPosition(this).y);
+    if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
+
+    this._closeButtons(false);
+};
+
+/**
+ * Called when swipe ends
+ * @private
+ */
+App.SubCategoryList.prototype.swipeEnd = function swipeEnd()
+{
+    if (this._interactiveButton)
+    {
+        this._interactiveButton.swipeEnd();
+        this._interactiveButton = null;
+    }
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.SubCategoryList.prototype._closeButtons = function _closeButtons(immediate)
+{
+    var i = 0,
+        l = this._subButtons.length,
+        button = null;
+
+    for (;i<l;)
+    {
+        button = this._subButtons[i++];
+        if (button !== this._interactiveButton) button.close(immediate);
+    }
+};
+
+/**
+ * Find button under position passed in
+ * @param {number} position
+ * @private
+ */
+App.SubCategoryList.prototype._getButtonUnderPosition = function _getButtonUnderPosition(position)
+{
+    var i = 0,
+        l = this._subButtons.length,
+        height = 0,
+        buttonY = 0,
+        button = null;
+
+    for (;i<l;)
+    {
+        button = this._subButtons[i++];
+        buttonY = button.y;
+        height = button.boundingBox.height;
+        if (buttonY <= position && buttonY + height >= position)
+        {
+            return button;
+        }
+    }
+
+    return null;
 };

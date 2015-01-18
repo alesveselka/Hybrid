@@ -4598,20 +4598,28 @@ App.AccountScreen.prototype.destroy = function destroy()
 
 App.SubCategoryButton = function SubCategoryButton(label,width,pixelRatio)
 {
-    PIXI.DisplayObjectContainer.call(this);
+    App.SwipeButton.call(this,width,Math.round(80*pixelRatio));
+
+    var font = Math.round(14 * pixelRatio)+"px HelveticaNeueCond";
 
     this.boundingBox = new App.Rectangle(0,0,width,Math.round(40*pixelRatio));
 
     this._label = label;
     this._pixelRatio = pixelRatio;
-    this._labelField = new PIXI.Text(label,{font:Math.round(14 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    this._swipeSurface = new PIXI.Graphics();
+    this._labelField = new PIXI.Text(label,{font:font,fill:"#394264"});
+    this._background = new PIXI.Graphics();
+    this._deleteLabel = new PIXI.Text("Delete",{font:font,fill:"#ffffff"});
 
     this._render();
 
-    this.addChild(this._labelField);
+    this.addChild(this._background);
+    this.addChild(this._deleteLabel);
+    this._swipeSurface.addChild(this._labelField);
+    this.addChild(this._swipeSurface);
 };
 
-App.SubCategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.SubCategoryButton.prototype = Object.create(App.SwipeButton.prototype);
 App.SubCategoryButton.prototype.constructor = App.SubCategoryButton;
 
 /**
@@ -4620,8 +4628,43 @@ App.SubCategoryButton.prototype.constructor = App.SubCategoryButton;
  */
 App.SubCategoryButton.prototype._render = function _render()
 {
-    this._labelField.x = Math.round(20 * this._pixelRatio);
-    this._labelField.y = Math.round((this.boundingBox.height - this._labelField.height) / 2);
+    var GraphicUtils = App.GraphicUtils,
+        r = this._pixelRatio,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height,
+        padding = Math.round(10 * r),
+        roundingRatio = Math.round(r);
+
+    GraphicUtils.drawRect(this._background,0xE53013,1,0,0,w,h);
+
+    this._deleteLabel.x = Math.round(w - 50 * r);
+    this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
+
+    GraphicUtils.drawRects(this._swipeSurface,0xefefef,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this._swipeSurface,0xffffff,1,[padding,0,w-padding*2,r],false,false);
+    GraphicUtils.drawRects(this._swipeSurface,0xcccccc,1,[padding,h-roundingRatio,w-padding*2,roundingRatio],false,true);
+
+    this._labelField.x = Math.round(20 * r);
+    this._labelField.y = Math.round((h - this._labelField.height) / 2);
+};
+
+/**
+ * Update swipe position
+ * @param {number} position
+ * @private
+ */
+App.SubCategoryButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
+{
+    this._swipeSurface.x = position;
+};
+
+/**
+ * Return swipe position
+ * @private
+ */
+App.SubCategoryButton.prototype._getSwipePosition = function _getSwipePosition()
+{
+    return this._swipeSurface.x;
 };
 
 App.SubCategoryList = function SubCategoryList(category,width,pixelRatio)
@@ -4639,6 +4682,7 @@ App.SubCategoryList = function SubCategoryList(category,width,pixelRatio)
     this._width = width;
     this._pixelRatio = pixelRatio;
     this._header = new App.ListHeader("Sub-Categories",width,pixelRatio);
+    this._interactiveButton = null;
     this._subButtons = new Array(l);
     this._addNewButton = new App.AddNewButton(
         "ADD SUB-CATEGORY",
@@ -4677,6 +4721,76 @@ App.SubCategoryList.prototype._render = function _render()
     this._addNewButton.y = lastButton.y + lastButton.boundingBox.height;
 
     this.boundingBox.height = this._addNewButton.y + this._addNewButton.boundingBox.height;
+};
+
+/**
+ * Called when swipe starts
+ * @param {string} direction
+ * @private
+ */
+App.SubCategoryList.prototype.swipeStart = function swipeStart(direction)
+{
+    this._interactiveButton = this._getButtonUnderPosition(this.stage.getTouchData().getLocalPosition(this).y);
+    if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
+
+    this._closeButtons(false);
+};
+
+/**
+ * Called when swipe ends
+ * @private
+ */
+App.SubCategoryList.prototype.swipeEnd = function swipeEnd()
+{
+    if (this._interactiveButton)
+    {
+        this._interactiveButton.swipeEnd();
+        this._interactiveButton = null;
+    }
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.SubCategoryList.prototype._closeButtons = function _closeButtons(immediate)
+{
+    var i = 0,
+        l = this._subButtons.length,
+        button = null;
+
+    for (;i<l;)
+    {
+        button = this._subButtons[i++];
+        if (button !== this._interactiveButton) button.close(immediate);
+    }
+};
+
+/**
+ * Find button under position passed in
+ * @param {number} position
+ * @private
+ */
+App.SubCategoryList.prototype._getButtonUnderPosition = function _getButtonUnderPosition(position)
+{
+    var i = 0,
+        l = this._subButtons.length,
+        height = 0,
+        buttonY = 0,
+        button = null;
+
+    for (;i<l;)
+    {
+        button = this._subButtons[i++];
+        buttonY = button.y;
+        height = button.boundingBox.height;
+        if (buttonY <= position && buttonY + height >= position)
+        {
+            return button;
+        }
+    }
+
+    return null;
 };
 
 /**
@@ -5550,10 +5664,11 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._container.addChild(this._topIconList);
     this._container.addChild(this._bottomIconList);
     this._container.addChild(this._subCategoryList);
-
     this._pane.setContent(this._container);
-
     this.addChild(this._pane);
+
+    this._swipeEnabled = true;
+    this._preferScroll = false;
 };
 
 App.EditCategoryScreen.prototype = Object.create(App.Screen.prototype);
@@ -5643,32 +5758,6 @@ App.EditCategoryScreen.prototype.disable = function disable()
 };
 
 /**
- * Register event listeners
- * @private
- */
-/*App.EditCategoryScreen.prototype._registerEventListeners = function _registerEventListener()
-{
-    App.Screen.prototype._registerEventListeners.call(this);
-
-//    var EventType = App.EventType;
-//    this._input.addEventListener(EventType.FOCUS,this,this._onInputFocus);
-//    this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
-};*/
-
-/**
- * UnRegister event listeners
- * @private
- */
-/*App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener()
-{
-//    var EventType = App.EventType;
-//    this._input.removeEventListener(EventType.FOCUS,this,this._onInputFocus);
-//    this._input.removeEventListener(EventType.BLUR,this,this._onInputBlur);
-
-    App.Screen.prototype._unRegisterEventListeners.call(this);
-};*/
-
-/**
  * Click handler
  * @private
  */
@@ -5695,6 +5784,28 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
         list.selectItemByPosition(position.x);
         this._topIconList.selectItemByPosition(-1000);
     }
+};
+
+/**
+ * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
+ * @param {string} direction
+ * @private
+ */
+App.EditCategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
+{
+    if (!preferScroll) this._pane.cancelScroll();
+
+    this._subCategoryList.swipeStart(direction);
+};
+
+/**
+ * Called when swipe ends
+ * @private
+ */
+App.EditCategoryScreen.prototype._swipeEnd = function _swipeEnd()
+{
+    this._subCategoryList.swipeEnd();
 };
 
 /**
@@ -5738,7 +5849,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.SelectTimeScreen(null,this._layout),
         new App.EditCategoryScreen(null,this._layout)
     ]);
-    this._screenStack.selectChildByIndex(App.ScreenName.CATEGORY);//TODO move this into separate command?
+    this._screenStack.selectChildByIndex(App.ScreenName.EDIT_CATEGORY);//TODO move this into separate command?
     this._screenStack.show();
 
     this.addChild(this._background);

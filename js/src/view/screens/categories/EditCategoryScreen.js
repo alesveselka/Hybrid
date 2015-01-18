@@ -57,10 +57,11 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._container.addChild(this._topIconList);
     this._container.addChild(this._bottomIconList);
     this._container.addChild(this._subCategoryList);
-
     this._pane.setContent(this._container);
-
     this.addChild(this._pane);
+
+    this._swipeEnabled = true;
+    this._preferScroll = false;
 };
 
 App.EditCategoryScreen.prototype = Object.create(App.Screen.prototype);
@@ -150,32 +151,6 @@ App.EditCategoryScreen.prototype.disable = function disable()
 };
 
 /**
- * Register event listeners
- * @private
- */
-/*App.EditCategoryScreen.prototype._registerEventListeners = function _registerEventListener()
-{
-    App.Screen.prototype._registerEventListeners.call(this);
-
-//    var EventType = App.EventType;
-//    this._input.addEventListener(EventType.FOCUS,this,this._onInputFocus);
-//    this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
-};*/
-
-/**
- * UnRegister event listeners
- * @private
- */
-/*App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener()
-{
-//    var EventType = App.EventType;
-//    this._input.removeEventListener(EventType.FOCUS,this,this._onInputFocus);
-//    this._input.removeEventListener(EventType.BLUR,this,this._onInputBlur);
-
-    App.Screen.prototype._unRegisterEventListeners.call(this);
-};*/
-
-/**
  * Click handler
  * @private
  */
@@ -202,4 +177,26 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
         list.selectItemByPosition(position.x);
         this._topIconList.selectItemByPosition(-1000);
     }
+};
+
+/**
+ * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
+ * @param {string} direction
+ * @private
+ */
+App.EditCategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
+{
+    if (!preferScroll) this._pane.cancelScroll();
+
+    this._subCategoryList.swipeStart(direction);
+};
+
+/**
+ * Called when swipe ends
+ * @private
+ */
+App.EditCategoryScreen.prototype._swipeEnd = function _swipeEnd()
+{
+    this._subCategoryList.swipeEnd();
 };
