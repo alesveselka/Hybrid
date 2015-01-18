@@ -1380,6 +1380,8 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
 
     var fontStyle = Math.round(fontSize * pixelRatio)+"px HelveticaNeueCond";
 
+    this.boundingBox = new App.Rectangle(0,0,width,height);
+
     this._fontSize = fontSize;
     this._width = width;
     this._height = height;
@@ -1472,6 +1474,7 @@ App.Input.prototype.enable = function enable()
 App.Input.prototype.disable = function disable()
 {
     this._unRegisterEventListeners();
+    this._unRegisterProxyEventListeners();
 
     this.interactive = false;
 
@@ -1516,7 +1519,24 @@ App.Input.prototype._registerEventListeners = function _registerEventListeners()
 {
     if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
     else this.click = this._onClick;
+};
 
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.Input.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    if (App.Device.TOUCH_SUPPORTED) this.tap = null;
+    else this.click = null;
+};
+
+/**
+ * Register input proxy event listeners
+ * @private
+ */
+App.Input.prototype._registerProxyEventListeners = function _registerEventListeners()
+{
     var EventType = App.EventType;
     this._inputProxy.addEventListener(EventType.FOCUS,this._inputProxyListeners.focus,false);
     this._inputProxy.addEventListener(EventType.BLUR,this._inputProxyListeners.blur,false);
@@ -1528,14 +1548,11 @@ App.Input.prototype._registerEventListeners = function _registerEventListeners()
 };
 
 /**
- * UnRegister event listeners
+ * Register input proxy event listeners
  * @private
  */
-App.Input.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+App.Input.prototype._unRegisterProxyEventListeners = function _registerEventListeners()
 {
-    if (App.Device.TOUCH_SUPPORTED) this.tap = null;
-    else this.click = null;
-
     var EventType = App.EventType;
     this._inputProxy.removeEventListener(EventType.FOCUS,this._inputProxyListeners.focus,false);
     this._inputProxy.removeEventListener(EventType.BLUR,this._inputProxyListeners.blur,false);
@@ -1553,7 +1570,14 @@ App.Input.prototype._unRegisterEventListeners = function _unRegisterEventListene
  */
 App.Input.prototype._onClick = function _onClick(data)
 {
-    if (this._inputProxy !== document.activeElement) this._inputProxy.focus();
+    if (this._inputProxy !== document.activeElement)
+    {
+        this._renderBackground(true,this._pixelRatio);
+
+        this._registerProxyEventListeners();
+
+        this._inputProxy.focus();
+    }
 
     if (this._icon)
     {
@@ -1574,8 +1598,6 @@ App.Input.prototype._onFocus = function _onFocus()
 {
     var r = this._pixelRatio,
         localPoint = this.toLocal(new PIXI.Point(this.x,this.y),this.stage);
-
-    this._renderBackground(true,r);
 
     this._inputProxy.style.display = "none";
     this._inputProxy.style.left = Math.round((this.x - localPoint.x) / r) +"px";
@@ -1602,6 +1624,8 @@ App.Input.prototype._onBlur = function _onBlur()
     this._inputProxy.value = "";
 
     this._renderBackground(false,this._pixelRatio);
+
+    this._unRegisterProxyEventListeners();
 
     this._eventDispatcher.dispatchEvent(App.EventType.BLUR);
 };
@@ -1801,8 +1825,7 @@ App.CalendarWeekRow.prototype.constructor = App.CalendarWeekRow;
  */
 App.CalendarWeekRow.prototype._render = function _render()
 {
-    var rounderRatio = Math.round(this._pixelRatio),
-        daysInWeek = this._week.length / 2,
+    var daysInWeek = this._week.length / 2,
         cellWidth = Math.round(this._width / daysInWeek),
         cellHeight = this.boundingBox.height,
         textField = null,
@@ -1829,7 +1852,7 @@ App.CalendarWeekRow.prototype._render = function _render()
         else
         {
             if (otherBGEnd === -1 && otherBGStart > -1) otherBGEnd = i;
-            if (i) this.drawRect(Math.round(i * cellWidth),0,rounderRatio,cellHeight);
+            if (i) this.drawRect(Math.round(i * cellWidth),0,1,cellHeight);
         }
     }
 
@@ -1845,7 +1868,7 @@ App.CalendarWeekRow.prototype._render = function _render()
 
     this.endFill();
 
-    App.GraphicUtils.drawRect(this._highlightBackground,0x394264,1,0,0,cellWidth-rounderRatio,cellHeight);
+    App.GraphicUtils.drawRect(this._highlightBackground,0x394264,1,0,0,cellWidth-1,cellHeight);
     this._highlightBackground.alpha = 0.0;
 };
 
@@ -2028,7 +2051,6 @@ App.Calendar.prototype._render = function _render()
 {
     var GraphicUtils = App.GraphicUtils,
         r = this._pixelRatio,
-        roundedRatio = Math.round(r),
         w = this._width,
         h = this.boundingBox.height,
         arrowResizeRatio = Math.round(12 * r) / this._prevButton.height,
@@ -2044,8 +2066,8 @@ App.Calendar.prototype._render = function _render()
 
     //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
     GraphicUtils.drawRects(this,0xefefef,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this,0xcccccc,1,[0,Math.round(80 * r),w,roundedRatio,separatorPadding,dayLabelOffset,separatorWidth,roundedRatio],false,false);
-    GraphicUtils.drawRects(this,0xffffff,1,[separatorPadding,dayLabelOffset+roundedRatio,separatorWidth,roundedRatio],false,true);
+    GraphicUtils.drawRects(this,0xcccccc,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
+    GraphicUtils.drawRects(this,0xffffff,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
 
     this._monthField.y = Math.round((dayLabelOffset - this._monthField.height) / 2);
 
@@ -2081,7 +2103,7 @@ App.Calendar.prototype._render = function _render()
         weekRow = this._weekRows[i];
         weekRow.y = this._weekRowPosition + i * weekRowHeight;
 
-        this._separatorContainer.drawRect(0,weekRow.y + weekRowHeight,w,roundedRatio);
+        this._separatorContainer.drawRect(0,weekRow.y + weekRowHeight,w,1);
     }
 
     this._separatorContainer.endFill();
@@ -3673,7 +3695,7 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._mouseDownPosition = null;
     this._mouseX = 0.0;
     this._mouseY = 0.0;
-    this._leftSwipeThreshold = Math.round(30 * pixelRatio);
+    this._leftSwipeThreshold = Math.round(15 * pixelRatio);
     this._rightSwipeThreshold = Math.round(5 * pixelRatio);
     this._swipeEnabled = false;
     this._preferScroll = true;
@@ -4036,11 +4058,11 @@ App.ListHeader.prototype.constructor = App.ListHeader;
 App.ListHeader.prototype._render = function _render()
 {
     var GraphicUtils = App.GraphicUtils,
-        r = Math.round(this._pixelRatio),
+        r = this._pixelRatio,
         h = Math.round(30 * this._pixelRatio);
 
     GraphicUtils.drawRects(this,0x394264,1,[0,0,this._width,h],true,false);
-    GraphicUtils.drawRects(this,0x252B44,1,[0,h-r,this._width,r],false,true);
+    GraphicUtils.drawRects(this,0x252B44,1,[0,h-1,this._width,1],false,true);
 
     this._textField.x = Math.round((this._width - this._textField.width) / 2);
     this._textField.y = Math.round((h - this._textField.height) / 2);
@@ -4048,7 +4070,7 @@ App.ListHeader.prototype._render = function _render()
 
 App.AddNewButton = function AddNewButton(label,fontStyle,width,height,pixelRatio)
 {
-    PIXI.DisplayObjectContainer.call(this);
+    PIXI.Graphics.call(this);
 
     this.boundingBox = new App.Rectangle(0,0,width,height);
 
@@ -4064,7 +4086,7 @@ App.AddNewButton = function AddNewButton(label,fontStyle,width,height,pixelRatio
     this.addChild(this._labelField);
 };
 
-App.AddNewButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.AddNewButton.prototype = Object.create(PIXI.Graphics.prototype);
 App.AddNewButton.prototype.constructor = App.AddNewButton;
 
 /**
@@ -4076,7 +4098,10 @@ App.AddNewButton.prototype._render = function _render()
     var w = this._labelField.width,
         gap = Math.round(10 * this._pixelRatio),
         height = this.boundingBox.height,
+        padding = Math.round(10 * this._pixelRatio),
         x = 0;
+
+    App.GraphicUtils.drawRect(this,0xffffff,1,padding,0,this.boundingBox.width-padding*2,1);
 
     this._icon.scale.x = this._iconResizeRatio;
     this._icon.scale.y = this._iconResizeRatio;
@@ -4334,7 +4359,7 @@ App.SelectTimeScreen.prototype._render = function _render()
         w = this._layout.width;
 
     GraphicUtils.drawRects(this._inputBackground,0xefefef,1,[0,0,w,inputBgHeight],true,false);
-    GraphicUtils.drawRects(this._inputBackground,0xefefef,1,[0,inputBgHeight-r,w,r],false,true);
+    GraphicUtils.drawRects(this._inputBackground,0xcccccc,1,[0,inputBgHeight-1,w,1],false,true);
 
     this._input.x = Math.round(10 * r);
     this._input.y = Math.round((inputBgHeight - this._input.height) / 2);
@@ -4596,6 +4621,13 @@ App.AccountScreen.prototype.destroy = function destroy()
     this._buttons = null;
 };
 
+/**
+ * @class SubCategoryButton
+ * @param {string} label
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
 App.SubCategoryButton = function SubCategoryButton(label,width,pixelRatio)
 {
     App.SwipeButton.call(this,width,Math.round(80*pixelRatio));
@@ -4632,8 +4664,7 @@ App.SubCategoryButton.prototype._render = function _render()
         r = this._pixelRatio,
         w = this.boundingBox.width,
         h = this.boundingBox.height,
-        padding = Math.round(10 * r),
-        roundingRatio = Math.round(r);
+        padding = Math.round(10 * r);
 
     GraphicUtils.drawRect(this._background,0xE53013,1,0,0,w,h);
 
@@ -4641,8 +4672,8 @@ App.SubCategoryButton.prototype._render = function _render()
     this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
 
     GraphicUtils.drawRects(this._swipeSurface,0xefefef,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this._swipeSurface,0xffffff,1,[padding,0,w-padding*2,r],false,false);
-    GraphicUtils.drawRects(this._swipeSurface,0xcccccc,1,[padding,h-roundingRatio,w-padding*2,roundingRatio],false,true);
+    GraphicUtils.drawRects(this._swipeSurface,0xffffff,1,[padding,0,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this._swipeSurface,0xcccccc,1,[padding,h-1,w-padding*2,1],false,true);
 
     this._labelField.x = Math.round(20 * r);
     this._labelField.y = Math.round((h - this._labelField.height) / 2);
@@ -4667,6 +4698,13 @@ App.SubCategoryButton.prototype._getSwipePosition = function _getSwipePosition()
     return this._swipeSurface.x;
 };
 
+/**
+ * @class SubCategoryList
+ * @param {Category} category
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
 App.SubCategoryList = function SubCategoryList(category,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
@@ -4710,11 +4748,7 @@ App.SubCategoryList.prototype.constructor = App.SubCategoryList;
  */
 App.SubCategoryList.prototype._render = function _render()
 {
-    var GraphicUtils = App.GraphicUtils,
-        lastButton = this._subButtons[this._subButtons.length-1],
-        padding = Math.round(10 * this._pixelRatio),
-        r = Math.round(this._pixelRatio),
-        w = this.boundingBox.width;
+    var lastButton = this._subButtons[this._subButtons.length-1];
 
     App.LayoutUtils.update(this._subButtons,App.Direction.Y,this._header.height);
 
@@ -4826,12 +4860,11 @@ App.CategoryButtonSurface.prototype.constructor = App.CategoryButtonSurface;
 App.CategoryButtonSurface.prototype.render = function render(width,height,pixelRatio)
 {
     var GraphicUtils = App.GraphicUtils,
-        padding = Math.round(10 * pixelRatio),
-        r = Math.round(pixelRatio);
+        padding = Math.round(10 * pixelRatio);
 
     GraphicUtils.drawRects(this,0xefefef,1,[0,0,width,height],true,false);
-    GraphicUtils.drawRects(this,0xffffff,1,[padding,0,width-padding*2,r],false,false);
-    GraphicUtils.drawRects(this,0xcccccc,1,[padding,height-r,width-padding*2,r],false,true);
+    GraphicUtils.drawRects(this,0xffffff,1,[padding,0,width-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,0xcccccc,1,[padding,height-1,width-padding*2,1],false,true);
 
     GraphicUtils.drawRect(this._colorStripe,0xffcc00,1,0,0,Math.round(4 * pixelRatio),height);
 
@@ -5652,6 +5685,8 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._topIconList = new InfiniteList(icons.slice(0,Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._bottomIconList = new InfiniteList(icons.slice(Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._subCategoryList = new App.SubCategoryList(null,w,r);
+    this._budgetHeader = new App.ListHeader("Budget",w,r);
+    this._budget = new App.Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);//TODO restrict to numbers only
 
     this._render();
 
@@ -5664,11 +5699,12 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._container.addChild(this._topIconList);
     this._container.addChild(this._bottomIconList);
     this._container.addChild(this._subCategoryList);
+    this._container.addChild(this._budgetHeader);
+    this._container.addChild(this._budget);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
     this._swipeEnabled = true;
-    this._preferScroll = false;
 };
 
 App.EditCategoryScreen.prototype = Object.create(App.Screen.prototype);
@@ -5683,12 +5719,11 @@ App.EditCategoryScreen.prototype._render = function _render()
     var GraphicUtils = App.GraphicUtils,
         r = this._layout.pixelRatio,
         w = this._layout.width,
-        rounderRatio = Math.round(r),
         inputFragmentHeight = Math.round(60 * r),
         colorListHeight = this._colorList.boundingBox.height,
         iconResizeRatio = Math.round(32 * r) / this._icon.height,
-        separatorPadding = Math.round(10 * r),
-        separatorWidth = w - separatorPadding * 2;
+        padding = Math.round(10 * r),
+        separatorWidth = w - padding * 2;
 
     GraphicUtils.drawRect(this._colorStripe,0xff6600,1,0,0,Math.round(4*r),Math.round(59 * r));
 
@@ -5704,29 +5739,18 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._colorList.y = inputFragmentHeight;
     this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
     this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
+
+    GraphicUtils.drawRects(this._separators,0xcccccc,1,[0,0,separatorWidth,1,0,colorListHeight,separatorWidth,1],true,false);
+    GraphicUtils.drawRects(this._separators,0xffffff,1,[0,1,separatorWidth,1,0,colorListHeight+1,separatorWidth,1],false,true);
+    this._separators.x = padding;
+    this._separators.y = inputFragmentHeight - 1;
+
     this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
+    this._budgetHeader.y = this._subCategoryList.y + this._subCategoryList.boundingBox.height;
+    this._budget.x = padding;
+    this._budget.y = this._budgetHeader.y + this._budgetHeader.height + Math.round(10 * r);
 
-    GraphicUtils.drawRect(this._background,0xefefef,1,0,0,w,this._subCategoryList.y+this._subCategoryList.boundingBox.height);
-
-    GraphicUtils.drawRects(
-        this._separators,
-        0xcccccc,
-        1,
-        [0,0,separatorWidth,rounderRatio,0,colorListHeight,separatorWidth,rounderRatio],
-        true,
-        false
-    );
-    GraphicUtils.drawRects(
-        this._separators,
-        0xffffff,
-        1,
-        [0,rounderRatio,separatorWidth,rounderRatio,0,colorListHeight+rounderRatio,separatorWidth,rounderRatio],
-        false,
-        true
-    );
-
-    this._separators.x = separatorPadding;
-    this._separators.y = inputFragmentHeight - rounderRatio;
+    GraphicUtils.drawRect(this._background,0xefefef,1,0,0,w,this._budget.y+this._budget.boundingBox.height+padding);
 };
 
 /**
@@ -5740,6 +5764,7 @@ App.EditCategoryScreen.prototype.enable = function enable()
     this._colorList.enable();
     this._topIconList.enable();
     this._bottomIconList.enable();
+    this._budget.enable();
     this._pane.enable();
 };
 
@@ -5754,6 +5779,7 @@ App.EditCategoryScreen.prototype.disable = function disable()
     this._colorList.disable();
     this._topIconList.disable();
     this._bottomIconList.disable();
+    this._budget.disable();
     this._pane.disable();
 };
 
@@ -5763,6 +5789,8 @@ App.EditCategoryScreen.prototype.disable = function disable()
  */
 App.EditCategoryScreen.prototype._onClick = function _onClick()
 {
+    this._pane.cancelScroll();
+
     var position = this.stage.getTouchData().getLocalPosition(this._container),
         y = position.y,
         list = null;

@@ -63,7 +63,6 @@ App.Calendar.prototype._render = function _render()
 {
     var GraphicUtils = App.GraphicUtils,
         r = this._pixelRatio,
-        roundedRatio = Math.round(r),
         w = this._width,
         h = this.boundingBox.height,
         arrowResizeRatio = Math.round(12 * r) / this._prevButton.height,
@@ -79,8 +78,8 @@ App.Calendar.prototype._render = function _render()
 
     //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
     GraphicUtils.drawRects(this,0xefefef,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this,0xcccccc,1,[0,Math.round(80 * r),w,roundedRatio,separatorPadding,dayLabelOffset,separatorWidth,roundedRatio],false,false);
-    GraphicUtils.drawRects(this,0xffffff,1,[separatorPadding,dayLabelOffset+roundedRatio,separatorWidth,roundedRatio],false,true);
+    GraphicUtils.drawRects(this,0xcccccc,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
+    GraphicUtils.drawRects(this,0xffffff,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
 
     this._monthField.y = Math.round((dayLabelOffset - this._monthField.height) / 2);
 
@@ -116,7 +115,7 @@ App.Calendar.prototype._render = function _render()
         weekRow = this._weekRows[i];
         weekRow.y = this._weekRowPosition + i * weekRowHeight;
 
-        this._separatorContainer.drawRect(0,weekRow.y + weekRowHeight,w,roundedRatio);
+        this._separatorContainer.drawRect(0,weekRow.y + weekRowHeight,w,1);
     }
 
     this._separatorContainer.endFill();

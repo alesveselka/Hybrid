@@ -1,3 +1,10 @@
+/**
+ * @class SubCategoryButton
+ * @param {string} label
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
 App.SubCategoryButton = function SubCategoryButton(label,width,pixelRatio)
 {
     App.SwipeButton.call(this,width,Math.round(80*pixelRatio));
@@ -34,8 +41,7 @@ App.SubCategoryButton.prototype._render = function _render()
         r = this._pixelRatio,
         w = this.boundingBox.width,
         h = this.boundingBox.height,
-        padding = Math.round(10 * r),
-        roundingRatio = Math.round(r);
+        padding = Math.round(10 * r);
 
     GraphicUtils.drawRect(this._background,0xE53013,1,0,0,w,h);
 
@@ -43,8 +49,8 @@ App.SubCategoryButton.prototype._render = function _render()
     this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
 
     GraphicUtils.drawRects(this._swipeSurface,0xefefef,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this._swipeSurface,0xffffff,1,[padding,0,w-padding*2,r],false,false);
-    GraphicUtils.drawRects(this._swipeSurface,0xcccccc,1,[padding,h-roundingRatio,w-padding*2,roundingRatio],false,true);
+    GraphicUtils.drawRects(this._swipeSurface,0xffffff,1,[padding,0,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this._swipeSurface,0xcccccc,1,[padding,h-1,w-padding*2,1],false,true);
 
     this._labelField.x = Math.round(20 * r);
     this._labelField.y = Math.round((h - this._labelField.height) / 2);

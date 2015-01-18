@@ -49,7 +49,7 @@ App.SelectTimeScreen.prototype._render = function _render()
         w = this._layout.width;
 
     GraphicUtils.drawRects(this._inputBackground,0xefefef,1,[0,0,w,inputBgHeight],true,false);
-    GraphicUtils.drawRects(this._inputBackground,0xefefef,1,[0,inputBgHeight-r,w,r],false,true);
+    GraphicUtils.drawRects(this._inputBackground,0xcccccc,1,[0,inputBgHeight-1,w,1],false,true);
 
     this._input.x = Math.round(10 * r);
     this._input.y = Math.round((inputBgHeight - this._input.height) / 2);

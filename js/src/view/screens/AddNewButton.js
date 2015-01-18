@@ -1,6 +1,6 @@
 App.AddNewButton = function AddNewButton(label,fontStyle,width,height,pixelRatio)
 {
-    PIXI.DisplayObjectContainer.call(this);
+    PIXI.Graphics.call(this);
 
     this.boundingBox = new App.Rectangle(0,0,width,height);
 
@@ -16,7 +16,7 @@ App.AddNewButton = function AddNewButton(label,fontStyle,width,height,pixelRatio
     this.addChild(this._labelField);
 };
 
-App.AddNewButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.AddNewButton.prototype = Object.create(PIXI.Graphics.prototype);
 App.AddNewButton.prototype.constructor = App.AddNewButton;
 
 /**
@@ -28,7 +28,10 @@ App.AddNewButton.prototype._render = function _render()
     var w = this._labelField.width,
         gap = Math.round(10 * this._pixelRatio),
         height = this.boundingBox.height,
+        padding = Math.round(10 * this._pixelRatio),
         x = 0;
+
+    App.GraphicUtils.drawRect(this,0xffffff,1,padding,0,this.boundingBox.width-padding*2,1);
 
     this._icon.scale.x = this._iconResizeRatio;
     this._icon.scale.y = this._iconResizeRatio;

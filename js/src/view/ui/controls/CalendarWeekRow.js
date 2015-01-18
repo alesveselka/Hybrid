@@ -49,8 +49,7 @@ App.CalendarWeekRow.prototype.constructor = App.CalendarWeekRow;
  */
 App.CalendarWeekRow.prototype._render = function _render()
 {
-    var rounderRatio = Math.round(this._pixelRatio),
-        daysInWeek = this._week.length / 2,
+    var daysInWeek = this._week.length / 2,
         cellWidth = Math.round(this._width / daysInWeek),
         cellHeight = this.boundingBox.height,
         textField = null,
@@ -77,7 +76,7 @@ App.CalendarWeekRow.prototype._render = function _render()
         else
         {
             if (otherBGEnd === -1 && otherBGStart > -1) otherBGEnd = i;
-            if (i) this.drawRect(Math.round(i * cellWidth),0,rounderRatio,cellHeight);
+            if (i) this.drawRect(Math.round(i * cellWidth),0,1,cellHeight);
         }
     }
 
@@ -93,7 +92,7 @@ App.CalendarWeekRow.prototype._render = function _render()
 
     this.endFill();
 
-    App.GraphicUtils.drawRect(this._highlightBackground,0x394264,1,0,0,cellWidth-rounderRatio,cellHeight);
+    App.GraphicUtils.drawRect(this._highlightBackground,0x394264,1,0,0,cellWidth-1,cellHeight);
     this._highlightBackground.alpha = 0.0;
 };
 

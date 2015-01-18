@@ -45,6 +45,8 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._topIconList = new InfiniteList(icons.slice(0,Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._bottomIconList = new InfiniteList(icons.slice(Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._subCategoryList = new App.SubCategoryList(null,w,r);
+    this._budgetHeader = new App.ListHeader("Budget",w,r);
+    this._budget = new App.Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);//TODO restrict to numbers only
 
     this._render();
 
@@ -57,11 +59,12 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._container.addChild(this._topIconList);
     this._container.addChild(this._bottomIconList);
     this._container.addChild(this._subCategoryList);
+    this._container.addChild(this._budgetHeader);
+    this._container.addChild(this._budget);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
     this._swipeEnabled = true;
-    this._preferScroll = false;
 };
 
 App.EditCategoryScreen.prototype = Object.create(App.Screen.prototype);
@@ -76,12 +79,11 @@ App.EditCategoryScreen.prototype._render = function _render()
     var GraphicUtils = App.GraphicUtils,
         r = this._layout.pixelRatio,
         w = this._layout.width,
-        rounderRatio = Math.round(r),
         inputFragmentHeight = Math.round(60 * r),
         colorListHeight = this._colorList.boundingBox.height,
         iconResizeRatio = Math.round(32 * r) / this._icon.height,
-        separatorPadding = Math.round(10 * r),
-        separatorWidth = w - separatorPadding * 2;
+        padding = Math.round(10 * r),
+        separatorWidth = w - padding * 2;
 
     GraphicUtils.drawRect(this._colorStripe,0xff6600,1,0,0,Math.round(4*r),Math.round(59 * r));
 
@@ -97,29 +99,18 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._colorList.y = inputFragmentHeight;
     this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
     this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
+
+    GraphicUtils.drawRects(this._separators,0xcccccc,1,[0,0,separatorWidth,1,0,colorListHeight,separatorWidth,1],true,false);
+    GraphicUtils.drawRects(this._separators,0xffffff,1,[0,1,separatorWidth,1,0,colorListHeight+1,separatorWidth,1],false,true);
+    this._separators.x = padding;
+    this._separators.y = inputFragmentHeight - 1;
+
     this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
+    this._budgetHeader.y = this._subCategoryList.y + this._subCategoryList.boundingBox.height;
+    this._budget.x = padding;
+    this._budget.y = this._budgetHeader.y + this._budgetHeader.height + Math.round(10 * r);
 
-    GraphicUtils.drawRect(this._background,0xefefef,1,0,0,w,this._subCategoryList.y+this._subCategoryList.boundingBox.height);
-
-    GraphicUtils.drawRects(
-        this._separators,
-        0xcccccc,
-        1,
-        [0,0,separatorWidth,rounderRatio,0,colorListHeight,separatorWidth,rounderRatio],
-        true,
-        false
-    );
-    GraphicUtils.drawRects(
-        this._separators,
-        0xffffff,
-        1,
-        [0,rounderRatio,separatorWidth,rounderRatio,0,colorListHeight+rounderRatio,separatorWidth,rounderRatio],
-        false,
-        true
-    );
-
-    this._separators.x = separatorPadding;
-    this._separators.y = inputFragmentHeight - rounderRatio;
+    GraphicUtils.drawRect(this._background,0xefefef,1,0,0,w,this._budget.y+this._budget.boundingBox.height+padding);
 };
 
 /**
@@ -133,6 +124,7 @@ App.EditCategoryScreen.prototype.enable = function enable()
     this._colorList.enable();
     this._topIconList.enable();
     this._bottomIconList.enable();
+    this._budget.enable();
     this._pane.enable();
 };
 
@@ -147,6 +139,7 @@ App.EditCategoryScreen.prototype.disable = function disable()
     this._colorList.disable();
     this._topIconList.disable();
     this._bottomIconList.disable();
+    this._budget.disable();
     this._pane.disable();
 };
 
@@ -156,6 +149,8 @@ App.EditCategoryScreen.prototype.disable = function disable()
  */
 App.EditCategoryScreen.prototype._onClick = function _onClick()
 {
+    this._pane.cancelScroll();
+
     var position = this.stage.getTouchData().getLocalPosition(this._container),
         y = position.y,
         list = null;

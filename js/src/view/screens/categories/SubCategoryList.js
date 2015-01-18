@@ -1,3 +1,10 @@
+/**
+ * @class SubCategoryList
+ * @param {Category} category
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
 App.SubCategoryList = function SubCategoryList(category,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
@@ -41,11 +48,7 @@ App.SubCategoryList.prototype.constructor = App.SubCategoryList;
  */
 App.SubCategoryList.prototype._render = function _render()
 {
-    var GraphicUtils = App.GraphicUtils,
-        lastButton = this._subButtons[this._subButtons.length-1],
-        padding = Math.round(10 * this._pixelRatio),
-        r = Math.round(this._pixelRatio),
-        w = this.boundingBox.width;
+    var lastButton = this._subButtons[this._subButtons.length-1];
 
     App.LayoutUtils.update(this._subButtons,App.Direction.Y,this._header.height);
 

@@ -31,12 +31,11 @@ App.CategoryButtonSurface.prototype.constructor = App.CategoryButtonSurface;
 App.CategoryButtonSurface.prototype.render = function render(width,height,pixelRatio)
 {
     var GraphicUtils = App.GraphicUtils,
-        padding = Math.round(10 * pixelRatio),
-        r = Math.round(pixelRatio);
+        padding = Math.round(10 * pixelRatio);
 
     GraphicUtils.drawRects(this,0xefefef,1,[0,0,width,height],true,false);
-    GraphicUtils.drawRects(this,0xffffff,1,[padding,0,width-padding*2,r],false,false);
-    GraphicUtils.drawRects(this,0xcccccc,1,[padding,height-r,width-padding*2,r],false,true);
+    GraphicUtils.drawRects(this,0xffffff,1,[padding,0,width-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,0xcccccc,1,[padding,height-1,width-padding*2,1],false,true);
 
     GraphicUtils.drawRect(this._colorStripe,0xffcc00,1,0,0,Math.round(4 * pixelRatio),height);
 

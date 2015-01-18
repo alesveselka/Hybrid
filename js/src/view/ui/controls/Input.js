@@ -15,6 +15,8 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
 
     var fontStyle = Math.round(fontSize * pixelRatio)+"px HelveticaNeueCond";
 
+    this.boundingBox = new App.Rectangle(0,0,width,height);
+
     this._fontSize = fontSize;
     this._width = width;
     this._height = height;
@@ -107,6 +109,7 @@ App.Input.prototype.enable = function enable()
 App.Input.prototype.disable = function disable()
 {
     this._unRegisterEventListeners();
+    this._unRegisterProxyEventListeners();
 
     this.interactive = false;
 
@@ -151,7 +154,24 @@ App.Input.prototype._registerEventListeners = function _registerEventListeners()
 {
     if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
     else this.click = this._onClick;
+};
 
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.Input.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    if (App.Device.TOUCH_SUPPORTED) this.tap = null;
+    else this.click = null;
+};
+
+/**
+ * Register input proxy event listeners
+ * @private
+ */
+App.Input.prototype._registerProxyEventListeners = function _registerEventListeners()
+{
     var EventType = App.EventType;
     this._inputProxy.addEventListener(EventType.FOCUS,this._inputProxyListeners.focus,false);
     this._inputProxy.addEventListener(EventType.BLUR,this._inputProxyListeners.blur,false);
@@ -163,14 +183,11 @@ App.Input.prototype._registerEventListeners = function _registerEventListeners()
 };
 
 /**
- * UnRegister event listeners
+ * Register input proxy event listeners
  * @private
  */
-App.Input.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+App.Input.prototype._unRegisterProxyEventListeners = function _registerEventListeners()
 {
-    if (App.Device.TOUCH_SUPPORTED) this.tap = null;
-    else this.click = null;
-
     var EventType = App.EventType;
     this._inputProxy.removeEventListener(EventType.FOCUS,this._inputProxyListeners.focus,false);
     this._inputProxy.removeEventListener(EventType.BLUR,this._inputProxyListeners.blur,false);
@@ -188,7 +205,14 @@ App.Input.prototype._unRegisterEventListeners = function _unRegisterEventListene
  */
 App.Input.prototype._onClick = function _onClick(data)
 {
-    if (this._inputProxy !== document.activeElement) this._inputProxy.focus();
+    if (this._inputProxy !== document.activeElement)
+    {
+        this._renderBackground(true,this._pixelRatio);
+
+        this._registerProxyEventListeners();
+
+        this._inputProxy.focus();
+    }
 
     if (this._icon)
     {
@@ -209,8 +233,6 @@ App.Input.prototype._onFocus = function _onFocus()
 {
     var r = this._pixelRatio,
         localPoint = this.toLocal(new PIXI.Point(this.x,this.y),this.stage);
-
-    this._renderBackground(true,r);
 
     this._inputProxy.style.display = "none";
     this._inputProxy.style.left = Math.round((this.x - localPoint.x) / r) +"px";
@@ -237,6 +259,8 @@ App.Input.prototype._onBlur = function _onBlur()
     this._inputProxy.value = "";
 
     this._renderBackground(false,this._pixelRatio);
+
+    this._unRegisterProxyEventListeners();
 
     this._eventDispatcher.dispatchEvent(App.EventType.BLUR);
 };
