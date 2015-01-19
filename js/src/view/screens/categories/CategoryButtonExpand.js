@@ -50,7 +50,7 @@ App.CategoryButtonExpand.prototype._render = function _render()
 
     this._surface.render(w,this.boundingBox.height,this._layout.pixelRatio);
 
-    App.GraphicUtils.drawRect(this._subCategoryList,0xffffff,1,0,0,w,this._subCategoryListHeight);
+    App.GraphicUtils.drawRect(this._subCategoryList,App.ColorTheme.LIGHT_SHADE,1,0,0,w,this._subCategoryListHeight);
     this._subCategoryList.y = this._buttonHeight;
 };
 

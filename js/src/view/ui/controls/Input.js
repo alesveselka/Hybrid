@@ -28,7 +28,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
     this._placeholder = placeholder;
     this._placeholderStyle = {font:fontStyle,fill:"#efefef"};
     this._currentStyle = this._placeholderStyle;
-    this._textStyle = {font:fontStyle,fill:"#394264"};//TODO remove hard-coded values?
+    this._textStyle = {font:fontStyle,fill:App.ColorTheme.sBLUE};
     this._restrictPattern = null;
 
     this._text = "";
@@ -82,8 +82,10 @@ App.Input.prototype._render = function _render()
  */
 App.Input.prototype._renderBackground = function _renderBackground(highlight,r)
 {
+    var ColorTheme = App.ColorTheme;
+
     this.clear();
-    this.beginFill(highlight ? 0x0099ff : 0xcccccc);
+    this.beginFill(highlight ? ColorTheme.INPUT_HIGHLIGHT : ColorTheme.DARK_SHADE);
     this.drawRoundedRect(0,0,this._width,this._height,Math.round(5 * r));
     this.beginFill(0xffffff);
     this.drawRoundedRect(Math.round(r),Math.round(r),this._width-Math.round(2 * r),this._height-Math.round(2 * r),Math.round(4 * r));

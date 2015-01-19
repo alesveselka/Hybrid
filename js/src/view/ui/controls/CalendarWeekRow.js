@@ -49,7 +49,8 @@ App.CalendarWeekRow.prototype.constructor = App.CalendarWeekRow;
  */
 App.CalendarWeekRow.prototype._render = function _render()
 {
-    var daysInWeek = this._week.length / 2,
+    var ColorTheme = App.ColorTheme,
+        daysInWeek = this._week.length / 2,
         cellWidth = Math.round(this._width / daysInWeek),
         cellHeight = this.boundingBox.height,
         textField = null,
@@ -59,9 +60,9 @@ App.CalendarWeekRow.prototype._render = function _render()
         i = 0;
 
     this.clear();
-    this.beginFill(0xffffff);
+    this.beginFill(ColorTheme.LIGHT_SHADE);
     this.drawRect(0,0,this._width,cellHeight);
-    this.beginFill(0xefefef);
+    this.beginFill(ColorTheme.BACKGROUND);
 
     for (;i<daysInWeek;i++,index+=2)
     {
@@ -92,7 +93,7 @@ App.CalendarWeekRow.prototype._render = function _render()
 
     this.endFill();
 
-    App.GraphicUtils.drawRect(this._highlightBackground,0x394264,1,0,0,cellWidth-1,cellHeight);
+    App.GraphicUtils.drawRect(this._highlightBackground,ColorTheme.BLUE,1,0,0,cellWidth-1,cellHeight);
     this._highlightBackground.alpha = 0.0;
 };
 

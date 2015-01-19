@@ -29,7 +29,7 @@ App.Calendar = function Calendar(date,width,pixelRatio)
     this._pixelRatio = pixelRatio;
     this._weekRowPosition = Math.round(81 * pixelRatio);
 
-    this._monthField = new PIXI.Text("",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    this._monthField = new PIXI.Text("",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:App.ColorTheme.sBLUE});
     this._prevButton = PIXI.Sprite.fromFrame("arrow-app");
     this._nextButton = PIXI.Sprite.fromFrame("arrow-app");
     this._dayLabelFields = new Array(daysInWeek);
@@ -62,6 +62,7 @@ App.Calendar.prototype.constructor = App.Calendar;
 App.Calendar.prototype._render = function _render()
 {
     var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
         r = this._pixelRatio,
         w = this._width,
         h = this.boundingBox.height,
@@ -77,9 +78,9 @@ App.Calendar.prototype._render = function _render()
         i = 0;
 
     //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
-    GraphicUtils.drawRects(this,0xefefef,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this,0xcccccc,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
-    GraphicUtils.drawRects(this,0xffffff,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.BACKGROUND,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.DARK_SHADE,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.LIGHT_SHADE,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
 
     this._monthField.y = Math.round((dayLabelOffset - this._monthField.height) / 2);
 
@@ -89,13 +90,13 @@ App.Calendar.prototype._render = function _render()
     this._prevButton.x = Math.round(20 * r + this._prevButton.width);
     this._prevButton.y = Math.round((dayLabelOffset - this._prevButton.height) / 2 + this._prevButton.height);
     this._prevButton.rotation = Math.PI;
-    this._prevButton.tint = 0x394264;// TODO pass color from global setting?
+    this._prevButton.tint = ColorTheme.BLUE;
 
     this._nextButton.scale.x = arrowResizeRatio;
     this._nextButton.scale.y = arrowResizeRatio;
     this._nextButton.x = Math.round(w - 20 * r - this._nextButton.width);
     this._nextButton.y = Math.round((dayLabelOffset - this._prevButton.height) / 2);
-    this._nextButton.tint = 0x394264;// TODO pass color from global setting?
+    this._nextButton.tint = ColorTheme.BLUE;
 
     for (;i<l;i++)
     {
@@ -108,7 +109,7 @@ App.Calendar.prototype._render = function _render()
     l = this._weekRows.length;
 
     this._separatorContainer.clear();
-    this._separatorContainer.beginFill(0xefefef,1.0);
+    this._separatorContainer.beginFill(ColorTheme.BACKGROUND,1.0);
 
     for (;i<l;i++)
     {

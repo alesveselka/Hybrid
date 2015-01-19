@@ -30,6 +30,7 @@ module.exports = function(grunt)
         "js/src/model/ModelLocator.js",
         "js/src/model/ObjectPool.js",
         "js/src/model/Collection.js",
+        "js/src/model/ColorTheme.js",
         "js/src/model/Settings.js",
         "js/src/model/Account.js",
         "js/src/model/Transaction.js",

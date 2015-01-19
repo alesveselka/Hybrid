@@ -985,6 +985,21 @@ App.Collection.prototype.length = function length()
 };
 
 /**
+ * ColorTheme
+ * @type {{sBLUE:string,BLUE: number,DARK_BLUE:number, BACKGROUND: number, DARK_SHADE: number, LIGHT_SHADE: number,SWIPE_BACKGROUND:number,INPUT_HIGHLIGHT:number}}
+ */
+App.ColorTheme = {
+    sBLUE:"#394264",//TODO move this to 'font object' pool directly?
+    BLUE:0x394264,
+    DARK_BLUE:0x252B44,
+    BACKGROUND:0xefefef,
+    DARK_SHADE:0xcccccc,
+    LIGHT_SHADE:0xffffff,
+    SWIPE_BACKGROUND:0xE53013,
+    INPUT_HIGHLIGHT:0x0099ff
+};
+
+/**
  * @class Settings
  * @type {{_startOfWeek: number, setStartOfWeek: Function,getStartOfWeek:Function}}
  */
@@ -1393,7 +1408,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
     this._placeholder = placeholder;
     this._placeholderStyle = {font:fontStyle,fill:"#efefef"};
     this._currentStyle = this._placeholderStyle;
-    this._textStyle = {font:fontStyle,fill:"#394264"};//TODO remove hard-coded values?
+    this._textStyle = {font:fontStyle,fill:App.ColorTheme.sBLUE};
     this._restrictPattern = null;
 
     this._text = "";
@@ -1447,8 +1462,10 @@ App.Input.prototype._render = function _render()
  */
 App.Input.prototype._renderBackground = function _renderBackground(highlight,r)
 {
+    var ColorTheme = App.ColorTheme;
+
     this.clear();
-    this.beginFill(highlight ? 0x0099ff : 0xcccccc);
+    this.beginFill(highlight ? ColorTheme.INPUT_HIGHLIGHT : ColorTheme.DARK_SHADE);
     this.drawRoundedRect(0,0,this._width,this._height,Math.round(5 * r));
     this.beginFill(0xffffff);
     this.drawRoundedRect(Math.round(r),Math.round(r),this._width-Math.round(2 * r),this._height-Math.round(2 * r),Math.round(4 * r));
@@ -1856,7 +1873,8 @@ App.CalendarWeekRow.prototype.constructor = App.CalendarWeekRow;
  */
 App.CalendarWeekRow.prototype._render = function _render()
 {
-    var daysInWeek = this._week.length / 2,
+    var ColorTheme = App.ColorTheme,
+        daysInWeek = this._week.length / 2,
         cellWidth = Math.round(this._width / daysInWeek),
         cellHeight = this.boundingBox.height,
         textField = null,
@@ -1866,9 +1884,9 @@ App.CalendarWeekRow.prototype._render = function _render()
         i = 0;
 
     this.clear();
-    this.beginFill(0xffffff);
+    this.beginFill(ColorTheme.LIGHT_SHADE);
     this.drawRect(0,0,this._width,cellHeight);
-    this.beginFill(0xefefef);
+    this.beginFill(ColorTheme.BACKGROUND);
 
     for (;i<daysInWeek;i++,index+=2)
     {
@@ -1899,7 +1917,7 @@ App.CalendarWeekRow.prototype._render = function _render()
 
     this.endFill();
 
-    App.GraphicUtils.drawRect(this._highlightBackground,0x394264,1,0,0,cellWidth-1,cellHeight);
+    App.GraphicUtils.drawRect(this._highlightBackground,ColorTheme.BLUE,1,0,0,cellWidth-1,cellHeight);
     this._highlightBackground.alpha = 0.0;
 };
 
@@ -2048,7 +2066,7 @@ App.Calendar = function Calendar(date,width,pixelRatio)
     this._pixelRatio = pixelRatio;
     this._weekRowPosition = Math.round(81 * pixelRatio);
 
-    this._monthField = new PIXI.Text("",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    this._monthField = new PIXI.Text("",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:App.ColorTheme.sBLUE});
     this._prevButton = PIXI.Sprite.fromFrame("arrow-app");
     this._nextButton = PIXI.Sprite.fromFrame("arrow-app");
     this._dayLabelFields = new Array(daysInWeek);
@@ -2081,6 +2099,7 @@ App.Calendar.prototype.constructor = App.Calendar;
 App.Calendar.prototype._render = function _render()
 {
     var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
         r = this._pixelRatio,
         w = this._width,
         h = this.boundingBox.height,
@@ -2096,9 +2115,9 @@ App.Calendar.prototype._render = function _render()
         i = 0;
 
     //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
-    GraphicUtils.drawRects(this,0xefefef,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this,0xcccccc,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
-    GraphicUtils.drawRects(this,0xffffff,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.BACKGROUND,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.DARK_SHADE,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.LIGHT_SHADE,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
 
     this._monthField.y = Math.round((dayLabelOffset - this._monthField.height) / 2);
 
@@ -2108,13 +2127,13 @@ App.Calendar.prototype._render = function _render()
     this._prevButton.x = Math.round(20 * r + this._prevButton.width);
     this._prevButton.y = Math.round((dayLabelOffset - this._prevButton.height) / 2 + this._prevButton.height);
     this._prevButton.rotation = Math.PI;
-    this._prevButton.tint = 0x394264;// TODO pass color from global setting?
+    this._prevButton.tint = ColorTheme.BLUE;
 
     this._nextButton.scale.x = arrowResizeRatio;
     this._nextButton.scale.y = arrowResizeRatio;
     this._nextButton.x = Math.round(w - 20 * r - this._nextButton.width);
     this._nextButton.y = Math.round((dayLabelOffset - this._prevButton.height) / 2);
-    this._nextButton.tint = 0x394264;// TODO pass color from global setting?
+    this._nextButton.tint = ColorTheme.BLUE;
 
     for (;i<l;i++)
     {
@@ -2127,7 +2146,7 @@ App.Calendar.prototype._render = function _render()
     l = this._weekRows.length;
 
     this._separatorContainer.clear();
-    this._separatorContainer.beginFill(0xefefef,1.0);
+    this._separatorContainer.beginFill(ColorTheme.BACKGROUND,1.0);
 
     for (;i<l;i++)
     {
@@ -4089,11 +4108,12 @@ App.ListHeader.prototype.constructor = App.ListHeader;
 App.ListHeader.prototype._render = function _render()
 {
     var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
         r = this._pixelRatio,
         h = Math.round(30 * this._pixelRatio);
 
-    GraphicUtils.drawRects(this,0x394264,1,[0,0,this._width,h],true,false);
-    GraphicUtils.drawRects(this,0x252B44,1,[0,h-1,this._width,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.BLUE,1,[0,0,this._width,h],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.DARK_BLUE,1,[0,h-1,this._width,1],false,true);
 
     this._textField.x = Math.round((this._width - this._textField.width) / 2);
     this._textField.y = Math.round((h - this._textField.height) / 2);
@@ -4126,13 +4146,14 @@ App.AddNewButton.prototype.constructor = App.AddNewButton;
  */
 App.AddNewButton.prototype._render = function _render()
 {
-    var w = this._labelField.width,
+    var ColorTheme = App.ColorTheme,
+        w = this._labelField.width,
         gap = Math.round(10 * this._pixelRatio),
         height = this.boundingBox.height,
         padding = Math.round(10 * this._pixelRatio),
         x = 0;
 
-    App.GraphicUtils.drawRect(this,0xffffff,1,padding,0,this.boundingBox.width-padding*2,1);
+    App.GraphicUtils.drawRect(this,ColorTheme.LIGHT_SHADE,1,padding,0,this.boundingBox.width-padding*2,1);
 
     this._icon.scale.x = this._iconResizeRatio;
     this._icon.scale.y = this._iconResizeRatio;
@@ -4142,7 +4163,7 @@ App.AddNewButton.prototype._render = function _render()
 
     this._icon.x = x;
     this._icon.y = Math.round((height - this._icon.height) / 2);
-    this._icon.tint = 0xcccccc;
+    this._icon.tint = ColorTheme.DARK_SHADE;
 
     this._labelField.x = x + this._icon.width + gap;
     this._labelField.y = Math.round((height - this._labelField.height) / 2);
@@ -4388,13 +4409,14 @@ App.SelectTimeScreen.prototype.constructor = App.SelectTimeScreen;
  */
 App.SelectTimeScreen.prototype._render = function _render()
 {
-    var GraphicUtils = App.GraphicUtils,
+    var ColorTheme = App.ColorTheme,
+        GraphicUtils = App.GraphicUtils,
         r = this._layout.pixelRatio,
         inputBgHeight = Math.round(60 * r),
         w = this._layout.width;
 
-    GraphicUtils.drawRects(this._inputBackground,0xefefef,1,[0,0,w,inputBgHeight],true,false);
-    GraphicUtils.drawRects(this._inputBackground,0xcccccc,1,[0,inputBgHeight-1,w,1],false,true);
+    GraphicUtils.drawRects(this._inputBackground,ColorTheme.BACKGROUND,1,[0,0,w,inputBgHeight],true,false);
+    GraphicUtils.drawRects(this._inputBackground,ColorTheme.DARK_SHADE,1,[0,inputBgHeight-1,w,1],false,true);
 
     this._input.x = Math.round(10 * r);
     this._input.y = Math.round((inputBgHeight - this._input.height) / 2);
@@ -4507,7 +4529,7 @@ App.AccountButton = function AccountButton(model,layout,index)
     this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
 
     //TODO move texts and their settings objects into pools?
-    this._nameLabel = new PIXI.Text(this._model.name+" "+index,{font:Math.round(24 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    this._nameLabel = new PIXI.Text(this._model.name+" "+index,{font:Math.round(24 * pixelRatio)+"px HelveticaNeueCond",fill:App.ColorTheme.sBLUE});
     this._nameLabel.x = Math.round(15 * pixelRatio);
     this._nameLabel.y = Math.round(15 * pixelRatio);
 
@@ -4545,14 +4567,13 @@ App.AccountButton.prototype.resize = function resize(width)
  */
 App.AccountButton.prototype._render = function _render()
 {
-    //TODO cache this as texture?
-
-    var GraphicUtils = App.GraphicUtils,
+    var ColorTheme = App.ColorTheme,
+        GraphicUtils = App.GraphicUtils,
         padding = Math.round(10 * this._layout.pixelRatio);
 
-    GraphicUtils.drawRects(this,0xefefef,1,[0,0,this.boundingBox.width,this.boundingBox.height],true,false);
-    GraphicUtils.drawRects(this,0xffffff,1,[padding,0,this.boundingBox.width-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,0xcccccc,1,[padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.BACKGROUND,1,[0,0,this.boundingBox.width,this.boundingBox.height],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.LIGHT_SHADE,1,[padding,0,this.boundingBox.width-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.DARK_SHADE,1,[padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1],false,true);
 };
 
 /**
@@ -4674,7 +4695,7 @@ App.SubCategoryButton = function SubCategoryButton(label,width,pixelRatio)
     this._label = label;
     this._pixelRatio = pixelRatio;
     this._swipeSurface = new PIXI.Graphics();
-    this._labelField = new PIXI.Text(label,{font:font,fill:"#394264"});
+    this._labelField = new PIXI.Text(label,{font:font,fill:App.ColorTheme.sBLUE});
     this._background = new PIXI.Graphics();
     this._deleteLabel = new PIXI.Text("Delete",{font:font,fill:"#ffffff"});
 
@@ -4695,20 +4716,21 @@ App.SubCategoryButton.prototype.constructor = App.SubCategoryButton;
  */
 App.SubCategoryButton.prototype._render = function _render()
 {
-    var GraphicUtils = App.GraphicUtils,
+    var ColorTheme = App.ColorTheme,
+        GraphicUtils = App.GraphicUtils,
         r = this._pixelRatio,
         w = this.boundingBox.width,
         h = this.boundingBox.height,
         padding = Math.round(10 * r);
 
-    GraphicUtils.drawRect(this._background,0xE53013,1,0,0,w,h);
+    GraphicUtils.drawRect(this._background,ColorTheme.SWIPE_BACKGROUND,1,0,0,w,h);
 
     this._deleteLabel.x = Math.round(w - 50 * r);
     this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
 
-    GraphicUtils.drawRects(this._swipeSurface,0xefefef,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this._swipeSurface,0xffffff,1,[padding,0,w-padding*2,1],false,false);
-    GraphicUtils.drawRects(this._swipeSurface,0xcccccc,1,[padding,h-1,w-padding*2,1],false,true);
+    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.BACKGROUND,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.LIGHT_SHADE,1,[padding,0,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.DARK_SHADE,1,[padding,h-1,w-padding*2,1],false,true);
 
     this._labelField.x = Math.round(20 * r);
     this._labelField.y = Math.round((h - this._labelField.height) / 2);
@@ -4895,11 +4917,12 @@ App.CategoryButtonSurface.prototype.constructor = App.CategoryButtonSurface;
 App.CategoryButtonSurface.prototype.render = function render(width,height,pixelRatio)
 {
     var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
         padding = Math.round(10 * pixelRatio);
 
-    GraphicUtils.drawRects(this,0xefefef,1,[0,0,width,height],true,false);
-    GraphicUtils.drawRects(this,0xffffff,1,[padding,0,width-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,0xcccccc,1,[padding,height-1,width-padding*2,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.BACKGROUND,1,[0,0,width,height],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.LIGHT_SHADE,1,[padding,0,width-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.DARK_SHADE,1,[padding,height-1,width-padding*2,1],false,true);
 
     GraphicUtils.drawRect(this._colorStripe,0xffcc00,1,0,0,Math.round(4 * pixelRatio),height);
 
@@ -4907,7 +4930,7 @@ App.CategoryButtonSurface.prototype.render = function render(width,height,pixelR
     this._icon.height = Math.round(20 * pixelRatio);
     this._icon.x = Math.round(25 * pixelRatio);
     this._icon.y = Math.round((height - this._icon.height) / 2);
-    this._icon.tint = 0x394264;
+    this._icon.tint = ColorTheme.BLUE;
 
     this._nameLabel.x = Math.round(64 * pixelRatio);
     this._nameLabel.y = Math.round(18 * pixelRatio);
@@ -4956,7 +4979,7 @@ App.CategoryButtonEdit.prototype._render = function _render()
 
     this._swipeSurface.render(w,h,pixelRatio);
 
-    App.GraphicUtils.drawRect(this._background,0xE53013,1,0,0,w,h);
+    App.GraphicUtils.drawRect(this._background,App.ColorTheme.SWIPE_BACKGROUND,1,0,0,w,h);
 
     this._editLabel.x = Math.round(w - 50 * pixelRatio);
     this._editLabel.y = Math.round(18 * pixelRatio);
@@ -5033,7 +5056,7 @@ App.CategoryButtonExpand.prototype._render = function _render()
 
     this._surface.render(w,this.boundingBox.height,this._layout.pixelRatio);
 
-    App.GraphicUtils.drawRect(this._subCategoryList,0xffffff,1,0,0,w,this._subCategoryListHeight);
+    App.GraphicUtils.drawRect(this._subCategoryList,App.ColorTheme.LIGHT_SHADE,1,0,0,w,this._subCategoryListHeight);
     this._subCategoryList.y = this._buttonHeight;
 };
 
@@ -5225,7 +5248,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 
     var CategoryButton = App.CategoryButtonExpand,
         font = Math.round(18 * layout.pixelRatio)+"px HelveticaNeueCond",
-        nameLabelStyle = {font:font,fill:"#394264"},
+        nameLabelStyle = {font:font,fill:App.ColorTheme.sBLUE},
         editLabelStyle = {font:font,fill:"#ffffff"},
         i = 0,
         l = this._model.length(),
@@ -5622,13 +5645,14 @@ App.IconSample.prototype.constructor = App.IconSample;
  */
 App.IconSample.prototype._render = function _render()
 {
-    var size = this.boundingBox.width;
+    var ColorTheme = App.ColorTheme,
+        size = this.boundingBox.width;
 
     this._icon.scale.x = this._iconResizeRatio;
     this._icon.scale.y = this._iconResizeRatio;
     this._icon.x = Math.round((size - this._icon.width) / 2);
     this._icon.y = Math.round((size - this._icon.height) / 2);
-    this._icon.tint = this._selected ? 0x394264 : 0xcccccc;// TODO pass color from global setting?
+    this._icon.tint = this._selected ? ColorTheme.BLUE : ColorTheme.DARK_SHADE;
 };
 
 /**
@@ -5710,6 +5734,9 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._scrollState = App.TransitionState.HIDDEN;
 
+    //TODO add overlay for bluring inputs?
+    //TODO add modal window to confirm deleting sub-category
+
     this._budget.restrict(/\D/);
     this._render();
 
@@ -5740,6 +5767,7 @@ App.EditCategoryScreen.prototype.constructor = App.EditCategoryScreen;
 App.EditCategoryScreen.prototype._render = function _render()
 {
     var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
         r = this._layout.pixelRatio,
         w = this._layout.width,
         inputFragmentHeight = Math.round(60 * r),
@@ -5754,7 +5782,7 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._icon.scale.y = iconResizeRatio;
     this._icon.x = Math.round(15 * r);
     this._icon.y = Math.round((inputFragmentHeight - this._icon.height) / 2);
-    this._icon.tint = 0x394264;// TODO pass color from global setting?
+    this._icon.tint = ColorTheme.BLUE;
 
     this._input.x = Math.round(60 * r);
     this._input.y = Math.round((inputFragmentHeight - this._input.height) / 2);
@@ -5763,8 +5791,8 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
     this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
 
-    GraphicUtils.drawRects(this._separators,0xcccccc,1,[0,0,separatorWidth,1,0,colorListHeight,separatorWidth,1],true,false);
-    GraphicUtils.drawRects(this._separators,0xffffff,1,[0,1,separatorWidth,1,0,colorListHeight+1,separatorWidth,1],false,true);
+    GraphicUtils.drawRects(this._separators,ColorTheme.DARK_SHADE,1,[0,0,separatorWidth,1,0,colorListHeight,separatorWidth,1],true,false);
+    GraphicUtils.drawRects(this._separators,ColorTheme.LIGHT_SHADE,1,[0,1,separatorWidth,1,0,colorListHeight+1,separatorWidth,1],false,true);
     this._separators.x = padding;
     this._separators.y = inputFragmentHeight - 1;
 
@@ -5773,7 +5801,7 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._budget.x = padding;
     this._budget.y = this._budgetHeader.y + this._budgetHeader.height + Math.round(10 * r);
 
-    GraphicUtils.drawRect(this._background,0xefefef,1,0,0,w,this._budget.y+this._budget.boundingBox.height+padding);
+    GraphicUtils.drawRect(this._background,ColorTheme.BACKGROUND,1,0,0,w,this._budget.y+this._budget.boundingBox.height+padding);
 };
 
 /**

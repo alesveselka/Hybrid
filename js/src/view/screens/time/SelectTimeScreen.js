@@ -43,13 +43,14 @@ App.SelectTimeScreen.prototype.constructor = App.SelectTimeScreen;
  */
 App.SelectTimeScreen.prototype._render = function _render()
 {
-    var GraphicUtils = App.GraphicUtils,
+    var ColorTheme = App.ColorTheme,
+        GraphicUtils = App.GraphicUtils,
         r = this._layout.pixelRatio,
         inputBgHeight = Math.round(60 * r),
         w = this._layout.width;
 
-    GraphicUtils.drawRects(this._inputBackground,0xefefef,1,[0,0,w,inputBgHeight],true,false);
-    GraphicUtils.drawRects(this._inputBackground,0xcccccc,1,[0,inputBgHeight-1,w,1],false,true);
+    GraphicUtils.drawRects(this._inputBackground,ColorTheme.BACKGROUND,1,[0,0,w,inputBgHeight],true,false);
+    GraphicUtils.drawRects(this._inputBackground,ColorTheme.DARK_SHADE,1,[0,inputBgHeight-1,w,1],false,true);
 
     this._input.x = Math.round(10 * r);
     this._input.y = Math.round((inputBgHeight - this._input.height) / 2);

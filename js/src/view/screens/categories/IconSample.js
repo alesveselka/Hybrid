@@ -35,13 +35,14 @@ App.IconSample.prototype.constructor = App.IconSample;
  */
 App.IconSample.prototype._render = function _render()
 {
-    var size = this.boundingBox.width;
+    var ColorTheme = App.ColorTheme,
+        size = this.boundingBox.width;
 
     this._icon.scale.x = this._iconResizeRatio;
     this._icon.scale.y = this._iconResizeRatio;
     this._icon.x = Math.round((size - this._icon.width) / 2);
     this._icon.y = Math.round((size - this._icon.height) / 2);
-    this._icon.tint = this._selected ? 0x394264 : 0xcccccc;// TODO pass color from global setting?
+    this._icon.tint = this._selected ? ColorTheme.BLUE : ColorTheme.DARK_SHADE;
 };
 
 /**

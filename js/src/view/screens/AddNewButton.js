@@ -25,13 +25,14 @@ App.AddNewButton.prototype.constructor = App.AddNewButton;
  */
 App.AddNewButton.prototype._render = function _render()
 {
-    var w = this._labelField.width,
+    var ColorTheme = App.ColorTheme,
+        w = this._labelField.width,
         gap = Math.round(10 * this._pixelRatio),
         height = this.boundingBox.height,
         padding = Math.round(10 * this._pixelRatio),
         x = 0;
 
-    App.GraphicUtils.drawRect(this,0xffffff,1,padding,0,this.boundingBox.width-padding*2,1);
+    App.GraphicUtils.drawRect(this,ColorTheme.LIGHT_SHADE,1,padding,0,this.boundingBox.width-padding*2,1);
 
     this._icon.scale.x = this._iconResizeRatio;
     this._icon.scale.y = this._iconResizeRatio;
@@ -41,7 +42,7 @@ App.AddNewButton.prototype._render = function _render()
 
     this._icon.x = x;
     this._icon.y = Math.round((height - this._icon.height) / 2);
-    this._icon.tint = 0xcccccc;
+    this._icon.tint = ColorTheme.DARK_SHADE;
 
     this._labelField.x = x + this._icon.width + gap;
     this._labelField.y = Math.round((height - this._labelField.height) / 2);

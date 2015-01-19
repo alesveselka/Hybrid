@@ -35,6 +35,9 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._scrollState = App.TransitionState.HIDDEN;
 
+    //TODO add overlay for bluring inputs?
+    //TODO add modal window to confirm deleting sub-category
+
     this._budget.restrict(/\D/);
     this._render();
 
@@ -65,6 +68,7 @@ App.EditCategoryScreen.prototype.constructor = App.EditCategoryScreen;
 App.EditCategoryScreen.prototype._render = function _render()
 {
     var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
         r = this._layout.pixelRatio,
         w = this._layout.width,
         inputFragmentHeight = Math.round(60 * r),
@@ -79,7 +83,7 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._icon.scale.y = iconResizeRatio;
     this._icon.x = Math.round(15 * r);
     this._icon.y = Math.round((inputFragmentHeight - this._icon.height) / 2);
-    this._icon.tint = 0x394264;// TODO pass color from global setting?
+    this._icon.tint = ColorTheme.BLUE;
 
     this._input.x = Math.round(60 * r);
     this._input.y = Math.round((inputFragmentHeight - this._input.height) / 2);
@@ -88,8 +92,8 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
     this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
 
-    GraphicUtils.drawRects(this._separators,0xcccccc,1,[0,0,separatorWidth,1,0,colorListHeight,separatorWidth,1],true,false);
-    GraphicUtils.drawRects(this._separators,0xffffff,1,[0,1,separatorWidth,1,0,colorListHeight+1,separatorWidth,1],false,true);
+    GraphicUtils.drawRects(this._separators,ColorTheme.DARK_SHADE,1,[0,0,separatorWidth,1,0,colorListHeight,separatorWidth,1],true,false);
+    GraphicUtils.drawRects(this._separators,ColorTheme.LIGHT_SHADE,1,[0,1,separatorWidth,1,0,colorListHeight+1,separatorWidth,1],false,true);
     this._separators.x = padding;
     this._separators.y = inputFragmentHeight - 1;
 
@@ -98,7 +102,7 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._budget.x = padding;
     this._budget.y = this._budgetHeader.y + this._budgetHeader.height + Math.round(10 * r);
 
-    GraphicUtils.drawRect(this._background,0xefefef,1,0,0,w,this._budget.y+this._budget.boundingBox.height+padding);
+    GraphicUtils.drawRect(this._background,ColorTheme.BACKGROUND,1,0,0,w,this._budget.y+this._budget.boundingBox.height+padding);
 };
 
 /**

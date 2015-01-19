@@ -18,7 +18,7 @@ App.AccountButton = function AccountButton(model,layout,index)
     this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
 
     //TODO move texts and their settings objects into pools?
-    this._nameLabel = new PIXI.Text(this._model.name+" "+index,{font:Math.round(24 * pixelRatio)+"px HelveticaNeueCond",fill:"#394264"});
+    this._nameLabel = new PIXI.Text(this._model.name+" "+index,{font:Math.round(24 * pixelRatio)+"px HelveticaNeueCond",fill:App.ColorTheme.sBLUE});
     this._nameLabel.x = Math.round(15 * pixelRatio);
     this._nameLabel.y = Math.round(15 * pixelRatio);
 
@@ -56,14 +56,13 @@ App.AccountButton.prototype.resize = function resize(width)
  */
 App.AccountButton.prototype._render = function _render()
 {
-    //TODO cache this as texture?
-
-    var GraphicUtils = App.GraphicUtils,
+    var ColorTheme = App.ColorTheme,
+        GraphicUtils = App.GraphicUtils,
         padding = Math.round(10 * this._layout.pixelRatio);
 
-    GraphicUtils.drawRects(this,0xefefef,1,[0,0,this.boundingBox.width,this.boundingBox.height],true,false);
-    GraphicUtils.drawRects(this,0xffffff,1,[padding,0,this.boundingBox.width-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,0xcccccc,1,[padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.BACKGROUND,1,[0,0,this.boundingBox.width,this.boundingBox.height],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.LIGHT_SHADE,1,[padding,0,this.boundingBox.width-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.DARK_SHADE,1,[padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1],false,true);
 };
 
 /**

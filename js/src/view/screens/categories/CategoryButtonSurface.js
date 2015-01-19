@@ -31,11 +31,12 @@ App.CategoryButtonSurface.prototype.constructor = App.CategoryButtonSurface;
 App.CategoryButtonSurface.prototype.render = function render(width,height,pixelRatio)
 {
     var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
         padding = Math.round(10 * pixelRatio);
 
-    GraphicUtils.drawRects(this,0xefefef,1,[0,0,width,height],true,false);
-    GraphicUtils.drawRects(this,0xffffff,1,[padding,0,width-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,0xcccccc,1,[padding,height-1,width-padding*2,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.BACKGROUND,1,[0,0,width,height],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.LIGHT_SHADE,1,[padding,0,width-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.DARK_SHADE,1,[padding,height-1,width-padding*2,1],false,true);
 
     GraphicUtils.drawRect(this._colorStripe,0xffcc00,1,0,0,Math.round(4 * pixelRatio),height);
 
@@ -43,7 +44,7 @@ App.CategoryButtonSurface.prototype.render = function render(width,height,pixelR
     this._icon.height = Math.round(20 * pixelRatio);
     this._icon.x = Math.round(25 * pixelRatio);
     this._icon.y = Math.round((height - this._icon.height) / 2);
-    this._icon.tint = 0x394264;
+    this._icon.tint = ColorTheme.BLUE;
 
     this._nameLabel.x = Math.round(64 * pixelRatio);
     this._nameLabel.y = Math.round(18 * pixelRatio);
