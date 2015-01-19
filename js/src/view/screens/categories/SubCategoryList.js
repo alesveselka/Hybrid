@@ -67,7 +67,7 @@ App.SubCategoryList.prototype.swipeStart = function swipeStart(direction)
     this._interactiveButton = this._getButtonUnderPosition(this.stage.getTouchData().getLocalPosition(this).y);
     if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
-    this._closeButtons(false);
+    this.closeButtons(false);
 };
 
 /**
@@ -87,7 +87,7 @@ App.SubCategoryList.prototype.swipeEnd = function swipeEnd()
  * Close opened buttons
  * @private
  */
-App.SubCategoryList.prototype._closeButtons = function _closeButtons(immediate)
+App.SubCategoryList.prototype.closeButtons = function closeButtons(immediate)
 {
     var i = 0,
         l = this._subButtons.length,

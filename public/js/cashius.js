@@ -1394,6 +1394,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
     this._placeholderStyle = {font:fontStyle,fill:"#efefef"};
     this._currentStyle = this._placeholderStyle;
     this._textStyle = {font:fontStyle,fill:"#394264"};//TODO remove hard-coded values?
+    this._restrictPattern = null;
 
     this._text = "";
     this._textField = new PIXI.Text(this._placeholder,this._currentStyle);
@@ -1483,6 +1484,15 @@ App.Input.prototype.disable = function disable()
 };
 
 /**
+ * Set restriction pattern
+ * @param {RegExp} pattern
+ */
+App.Input.prototype.restrict = function restrict(pattern)
+{
+    this._restrictPattern = pattern;
+};
+
+/**
  * Focus
  */
 App.Input.prototype.focus = function focus()
@@ -1557,7 +1567,7 @@ App.Input.prototype._unRegisterEventListeners = function _unRegisterEventListene
  * Register input proxy event listeners
  * @private
  */
-App.Input.prototype._registerProxyEventListeners = function _registerEventListeners()
+App.Input.prototype._registerProxyEventListeners = function _registerProxyEventListeners()
 {
     var EventType = App.EventType;
     this._inputProxy.addEventListener(EventType.FOCUS,this._inputProxyListeners.focus,false);
@@ -1573,7 +1583,7 @@ App.Input.prototype._registerProxyEventListeners = function _registerEventListen
  * Register input proxy event listeners
  * @private
  */
-App.Input.prototype._unRegisterProxyEventListeners = function _registerEventListeners()
+App.Input.prototype._unRegisterProxyEventListeners = function _unRegisterProxyEventListeners()
 {
     var EventType = App.EventType;
     this._inputProxy.removeEventListener(EventType.FOCUS,this._inputProxyListeners.focus,false);
@@ -1700,6 +1710,8 @@ App.Input.prototype._updateText = function _updateText(finish)
  */
 App.Input.prototype._format = function _format(finish)
 {
+    if (this._restrictPattern) this._inputProxy.value = this._inputProxy.value.replace(this._restrictPattern,"");
+
     return this._inputProxy.value;
 };
 
@@ -1718,7 +1730,7 @@ App.TimeInput = function TimeInput(placeholder,fontSize,width,height,pixelRatio,
 {
     App.Input.call(this,placeholder,fontSize,width,height,pixelRatio,displayIcon);
 
-    this._inputProxy = document.getElementById("numberInputProxy");
+    this._inputProxy = document.getElementById("timeInputProxy");
 };
 
 App.TimeInput.prototype = Object.create(App.Input.prototype);
@@ -4790,7 +4802,7 @@ App.SubCategoryList.prototype.swipeStart = function swipeStart(direction)
     this._interactiveButton = this._getButtonUnderPosition(this.stage.getTouchData().getLocalPosition(this).y);
     if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
-    this._closeButtons(false);
+    this.closeButtons(false);
 };
 
 /**
@@ -4810,7 +4822,7 @@ App.SubCategoryList.prototype.swipeEnd = function swipeEnd()
  * Close opened buttons
  * @private
  */
-App.SubCategoryList.prototype._closeButtons = function _closeButtons(immediate)
+App.SubCategoryList.prototype.closeButtons = function closeButtons(immediate)
 {
     var i = 0,
         l = this._subButtons.length,
@@ -5676,6 +5688,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
         InfiniteList = App.InfiniteList,
         Direction = App.Direction,
         IconSample = App.IconSample,
+        Input = App.Input,
         r = layout.pixelRatio,
         w = layout.width,
         icons = App.ModelLocator.getProxy(App.ModelName.ICONS),
@@ -5686,17 +5699,18 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._background = new PIXI.Graphics();
     this._colorStripe = new PIXI.Graphics();
     this._icon = PIXI.Sprite.fromFrame("currencies");
-    this._input = new App.Input("Enter Category Name",20,w - Math.round(70 * r),Math.round(40 * r),r,true);
+    this._input = new Input("Enter Category Name",20,w - Math.round(70 * r),Math.round(40 * r),r,true);
     this._separators = new PIXI.Graphics();
     this._colorList = new InfiniteList(this._getColorSamples(),App.ColorSample,Direction.X,w,Math.round(50 * r),r);
     this._topIconList = new InfiniteList(icons.slice(0,Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._bottomIconList = new InfiniteList(icons.slice(Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._subCategoryList = new App.SubCategoryList(null,w,r);
     this._budgetHeader = new App.ListHeader("Budget",w,r);
-    this._budget = new App.Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);//TODO restrict to numbers only
+    this._budget = new Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);
     this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._scrollState = App.TransitionState.HIDDEN;
 
+    this._budget.restrict(/\D/);
     this._render();
 
     this._container.addChild(this._background);
@@ -5773,7 +5787,6 @@ App.EditCategoryScreen.prototype.enable = function enable()
     this._colorList.enable();
     this._topIconList.enable();
     this._bottomIconList.enable();
-//    this._budget.enable();
     this._pane.enable();
 };
 
@@ -5898,6 +5911,8 @@ App.EditCategoryScreen.prototype._onScrollTweenComplete = function _onScrollTwee
     if (this._scrollState === TransitionState.SHOWING)
     {
         this._scrollState = TransitionState.SHOWN;
+
+        this._subCategoryList.closeButtons(true);
 
         this._budget.enable();
         this._budget.focus();
@@ -6054,11 +6069,6 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
     App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
-
-    /*window.addEventListener(App.EventType.RESIZE,function()
-    {
-        this._input.resize();
-    }.bind(this));*/
 };
 
 /**

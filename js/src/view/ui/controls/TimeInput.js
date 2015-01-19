@@ -13,7 +13,7 @@ App.TimeInput = function TimeInput(placeholder,fontSize,width,height,pixelRatio,
 {
     App.Input.call(this,placeholder,fontSize,width,height,pixelRatio,displayIcon);
 
-    this._inputProxy = document.getElementById("numberInputProxy");
+    this._inputProxy = document.getElementById("timeInputProxy");
 };
 
 App.TimeInput.prototype = Object.create(App.Input.prototype);

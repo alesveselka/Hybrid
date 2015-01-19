@@ -60,11 +60,6 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
     App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
-
-    /*window.addEventListener(App.EventType.RESIZE,function()
-    {
-        this._input.resize();
-    }.bind(this));*/
 };
 
 /**

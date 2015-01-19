@@ -29,6 +29,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
     this._placeholderStyle = {font:fontStyle,fill:"#efefef"};
     this._currentStyle = this._placeholderStyle;
     this._textStyle = {font:fontStyle,fill:"#394264"};//TODO remove hard-coded values?
+    this._restrictPattern = null;
 
     this._text = "";
     this._textField = new PIXI.Text(this._placeholder,this._currentStyle);
@@ -118,6 +119,15 @@ App.Input.prototype.disable = function disable()
 };
 
 /**
+ * Set restriction pattern
+ * @param {RegExp} pattern
+ */
+App.Input.prototype.restrict = function restrict(pattern)
+{
+    this._restrictPattern = pattern;
+};
+
+/**
  * Focus
  */
 App.Input.prototype.focus = function focus()
@@ -192,7 +202,7 @@ App.Input.prototype._unRegisterEventListeners = function _unRegisterEventListene
  * Register input proxy event listeners
  * @private
  */
-App.Input.prototype._registerProxyEventListeners = function _registerEventListeners()
+App.Input.prototype._registerProxyEventListeners = function _registerProxyEventListeners()
 {
     var EventType = App.EventType;
     this._inputProxy.addEventListener(EventType.FOCUS,this._inputProxyListeners.focus,false);
@@ -208,7 +218,7 @@ App.Input.prototype._registerProxyEventListeners = function _registerEventListen
  * Register input proxy event listeners
  * @private
  */
-App.Input.prototype._unRegisterProxyEventListeners = function _registerEventListeners()
+App.Input.prototype._unRegisterProxyEventListeners = function _unRegisterProxyEventListeners()
 {
     var EventType = App.EventType;
     this._inputProxy.removeEventListener(EventType.FOCUS,this._inputProxyListeners.focus,false);
@@ -335,5 +345,7 @@ App.Input.prototype._updateText = function _updateText(finish)
  */
 App.Input.prototype._format = function _format(finish)
 {
+    if (this._restrictPattern) this._inputProxy.value = this._inputProxy.value.replace(this._restrictPattern,"");
+
     return this._inputProxy.value;
 };

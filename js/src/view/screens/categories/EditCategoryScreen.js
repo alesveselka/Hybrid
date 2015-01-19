@@ -13,6 +13,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
         InfiniteList = App.InfiniteList,
         Direction = App.Direction,
         IconSample = App.IconSample,
+        Input = App.Input,
         r = layout.pixelRatio,
         w = layout.width,
         icons = App.ModelLocator.getProxy(App.ModelName.ICONS),
@@ -23,17 +24,18 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._background = new PIXI.Graphics();
     this._colorStripe = new PIXI.Graphics();
     this._icon = PIXI.Sprite.fromFrame("currencies");
-    this._input = new App.Input("Enter Category Name",20,w - Math.round(70 * r),Math.round(40 * r),r,true);
+    this._input = new Input("Enter Category Name",20,w - Math.round(70 * r),Math.round(40 * r),r,true);
     this._separators = new PIXI.Graphics();
     this._colorList = new InfiniteList(this._getColorSamples(),App.ColorSample,Direction.X,w,Math.round(50 * r),r);
     this._topIconList = new InfiniteList(icons.slice(0,Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._bottomIconList = new InfiniteList(icons.slice(Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._subCategoryList = new App.SubCategoryList(null,w,r);
     this._budgetHeader = new App.ListHeader("Budget",w,r);
-    this._budget = new App.Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);//TODO restrict to numbers only
+    this._budget = new Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);
     this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._scrollState = App.TransitionState.HIDDEN;
 
+    this._budget.restrict(/\D/);
     this._render();
 
     this._container.addChild(this._background);
@@ -234,6 +236,8 @@ App.EditCategoryScreen.prototype._onScrollTweenComplete = function _onScrollTwee
     if (this._scrollState === TransitionState.SHOWING)
     {
         this._scrollState = TransitionState.SHOWN;
+
+        this._subCategoryList.closeButtons(true);
 
         this._budget.enable();
         this._budget.focus();
