@@ -1387,6 +1387,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
     this._height = height;
     this._pixelRatio = pixelRatio;
     this._enabled = false;
+    this._focused = false;
 
     this._eventDispatcher = new App.EventDispatcher(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._placeholder = placeholder;
@@ -1482,11 +1483,32 @@ App.Input.prototype.disable = function disable()
 };
 
 /**
+ * Focus
+ */
+App.Input.prototype.focus = function focus()
+{
+    if (!this._focused)
+    {
+        this._renderBackground(true,this._pixelRatio);
+
+        this._registerProxyEventListeners();
+
+        this._inputProxy.focus();// requires Cordova preference: <preference name="KeyboardDisplayRequiresUserAction" value="false"/>
+
+        this._focused = true;
+    }
+};
+
+/**
  * Remove focus
  */
 App.Input.prototype.blur = function blur()
 {
     this._inputProxy.blur();
+
+    this._unRegisterProxyEventListeners();
+
+    this._focused = false;
 };
 
 /**
@@ -1570,14 +1592,7 @@ App.Input.prototype._unRegisterProxyEventListeners = function _registerEventList
  */
 App.Input.prototype._onClick = function _onClick(data)
 {
-    if (this._inputProxy !== document.activeElement)
-    {
-        this._renderBackground(true,this._pixelRatio);
-
-        this._registerProxyEventListeners();
-
-        this._inputProxy.focus();
-    }
+    if (this._inputProxy !== document.activeElement) this.focus();
 
     if (this._icon)
     {
@@ -1599,6 +1614,8 @@ App.Input.prototype._onFocus = function _onFocus()
     var r = this._pixelRatio,
         localPoint = this.toLocal(new PIXI.Point(this.x,this.y),this.stage);
 
+    this._focused = true;
+
     this._inputProxy.style.display = "none";
     this._inputProxy.style.left = Math.round((this.x - localPoint.x) / r) +"px";
     this._inputProxy.style.top = Math.round((this.y - localPoint.y) / r) + "px";
@@ -1618,6 +1635,8 @@ App.Input.prototype._onFocus = function _onFocus()
  */
 App.Input.prototype._onBlur = function _onBlur()
 {
+    this._focused = false;
+
     this._updateText(true);
 
     this._inputProxy.style.top = "-1000px";
@@ -2331,8 +2350,8 @@ App.Pane.prototype.resize = function resize(width,height)
 
         if (this._content.x > 0) this._updateX(0);
         else if (this._content.y > 0) this._updateY(0);
-        else if (this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
-        else if (this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
+        else if (this._contentWidth > this._width && this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
+        else if (this._contentHeight > this._height && this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
 
         this._updateScrollers();
     }
@@ -2386,8 +2405,8 @@ App.Pane.prototype.disable = function disable()
     // If content is pulled, make sure that the position is reset
     if (this._content.x > 0) this._updateX(0);
     else if (this._content.y > 0) this._updateY(0);
-    else if (this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
-    else if (this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
+    else if (this._contentWidth > this._width && this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
+    else if (this._contentHeight > this._height && this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
 
     this.interactive = false;
 
@@ -3458,8 +3477,8 @@ App.TilePane.prototype.resize = function resize(width,height)
 
         if (this._content.x > 0) this._updateX(0);
         else if (this._content.y > 0) this._updateY(0);
-        else if (this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
-        else if (this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
+        else if (this._contentWidth > this._width && this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
+        else if (this._contentHeight > this._height && this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
 
         this._updateScrollers();
     }
@@ -4223,7 +4242,11 @@ App.SwipeButton.prototype._swipe = function _swipe()
 {
     if (this.stage && !this._open)
     {
-        this._updateSwipePosition(-Math.round(this._width * (1 - (this.stage.getTouchPosition().x / this._width)) * this._dragFriction));
+        var x = this.stage.getTouchPosition().x;
+
+        if (x <= -10000) return;
+
+        this._updateSwipePosition(-Math.round(this._width * (1 - (x / this._width)) * this._dragFriction));
     }
 };
 
@@ -5652,16 +5675,9 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     var ScrollPolicy = App.ScrollPolicy,
         InfiniteList = App.InfiniteList,
         Direction = App.Direction,
-        MathUtils = App.MathUtils,
         IconSample = App.IconSample,
         r = layout.pixelRatio,
         w = layout.width,
-        i = 0,
-        l = 30,
-        frequency = 2 * Math.PI/l,
-        amplitude = 127,
-        center = 128,
-        colorSamples = new Array(l),
         icons = App.ModelLocator.getProxy(App.ModelName.ICONS),
         iconsHeight = Math.round(64 * r);
 
@@ -5672,21 +5688,14 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._icon = PIXI.Sprite.fromFrame("currencies");
     this._input = new App.Input("Enter Category Name",20,w - Math.round(70 * r),Math.round(40 * r),r,true);
     this._separators = new PIXI.Graphics();
-
-    for (;i<l;i++)
-    {
-        colorSamples[i] = MathUtils.rgbToHex(
-            Math.round(Math.sin(frequency * i + 0) * amplitude + center),
-            Math.round(Math.sin(frequency * i + 2) * amplitude + center),
-            Math.round(Math.sin(frequency * i + 4) * amplitude + center)
-        );
-    }
-    this._colorList = new InfiniteList(colorSamples,App.ColorSample,Direction.X,w,Math.round(50 * r),r);
-    this._topIconList = new InfiniteList(icons.slice(0,Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
-    this._bottomIconList = new InfiniteList(icons.slice(Math.floor(l/2)),IconSample,Direction.X,w,iconsHeight,r);
+    this._colorList = new InfiniteList(this._getColorSamples(),App.ColorSample,Direction.X,w,Math.round(50 * r),r);
+    this._topIconList = new InfiniteList(icons.slice(0,Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
+    this._bottomIconList = new InfiniteList(icons.slice(Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._subCategoryList = new App.SubCategoryList(null,w,r);
     this._budgetHeader = new App.ListHeader("Budget",w,r);
     this._budget = new App.Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);//TODO restrict to numbers only
+    this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
+    this._scrollState = App.TransitionState.HIDDEN;
 
     this._render();
 
@@ -5764,7 +5773,7 @@ App.EditCategoryScreen.prototype.enable = function enable()
     this._colorList.enable();
     this._topIconList.enable();
     this._bottomIconList.enable();
-    this._budget.enable();
+//    this._budget.enable();
     this._pane.enable();
 };
 
@@ -5781,6 +5790,36 @@ App.EditCategoryScreen.prototype.disable = function disable()
     this._bottomIconList.disable();
     this._budget.disable();
     this._pane.disable();
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.EditCategoryScreen.prototype._registerEventListeners = function _registerEventListeners()
+{
+    App.Screen.prototype._registerEventListeners.call(this);
+
+    var EventType = App.EventType;
+
+    this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
+
+    this._budget.addEventListener(EventType.BLUR,this,this._onBudgetBlur);
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    App.Screen.prototype._unRegisterEventListeners.call(this);
+
+    var EventType = App.EventType;
+
+    this._scrollTween.removeEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
+
+    this._budget.removeEventListener(EventType.BLUR,this,this._onBudgetBlur);
 };
 
 /**
@@ -5812,6 +5851,97 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
         list.selectItemByPosition(position.x);
         this._topIconList.selectItemByPosition(-1000);
     }
+    else if (y >= this._budget.y && y < this._budget.y + this._budget.boundingBox.height)
+    {
+        this._focusBudget();
+    }
+};
+
+/**
+ * On tick
+ * @private
+ */
+App.EditCategoryScreen.prototype._onTick = function _onTick()
+{
+    App.Screen.prototype._onTick.call(this);
+
+    if (this._scrollTween.isRunning()) this._onScrollTweenUpdate();
+};
+
+/**
+ * On scroll tween update
+ * @private
+ */
+App.EditCategoryScreen.prototype._onScrollTweenUpdate = function _onScrollTweenUpdate()
+{
+    var TransitionState = App.TransitionState;
+    if (this._scrollState === TransitionState.SHOWING)
+    {
+        this._pane.y = -Math.round((this._budgetHeader.y + this._container.y) * this._scrollTween.progress);
+    }
+    else if (this._scrollState === TransitionState.HIDING)
+    {
+        this._pane.y = -Math.round((this._budgetHeader.y + this._container.y) * (1 - this._scrollTween.progress));
+    }
+};
+
+/**
+ * On scroll tween complete
+ * @private
+ */
+App.EditCategoryScreen.prototype._onScrollTweenComplete = function _onScrollTweenComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    this._onScrollTweenUpdate();
+
+    if (this._scrollState === TransitionState.SHOWING)
+    {
+        this._scrollState = TransitionState.SHOWN;
+
+        this._budget.enable();
+        this._budget.focus();
+    }
+    else if (this._scrollState === TransitionState.HIDING)
+    {
+        this._scrollState = TransitionState.HIDDEN;
+
+        this._pane.enable();
+    }
+};
+
+/**
+ * Focus budget
+ * @private
+ */
+App.EditCategoryScreen.prototype._focusBudget = function _focusBudget()
+{
+    var TransitionState = App.TransitionState;
+    if (this._scrollState === TransitionState.HIDDEN || this._scrollState === TransitionState.HIDING)
+    {
+        this._scrollState = TransitionState.SHOWING;
+
+        this._pane.disable();
+
+        this._scrollTween.start();
+    }
+};
+
+/**
+ * On budget field blur
+ * @private
+ */
+App.EditCategoryScreen.prototype._onBudgetBlur = function _onBudgetBlur()
+{
+    var TransitionState = App.TransitionState;
+    if (this._scrollState === TransitionState.SHOWN || this._scrollState === TransitionState.SHOWING)
+    {
+        this._scrollState = TransitionState.HIDING;
+
+        this._budget.disable();
+
+        this._scrollTween.restart();
+    }
 };
 
 /**
@@ -5834,6 +5964,32 @@ App.EditCategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll
 App.EditCategoryScreen.prototype._swipeEnd = function _swipeEnd()
 {
     this._subCategoryList.swipeEnd();
+};
+
+/**
+ * Generate and return array of color samples
+ * @returns {Array.<number>}
+ * @private
+ */
+App.EditCategoryScreen.prototype._getColorSamples = function _getColorSamples()
+{
+    var MathUtils = App.MathUtils,
+        i = 0,
+        l = 30,
+        frequency = 2 * Math.PI/l,
+        amplitude = 127,
+        center = 128,
+        colorSamples = new Array(l);
+
+    for (;i<l;i++)
+    {
+        colorSamples[i] = MathUtils.rgbToHex(
+            Math.round(Math.sin(frequency * i + 0) * amplitude + center),
+            Math.round(Math.sin(frequency * i + 2) * amplitude + center),
+            Math.round(Math.sin(frequency * i + 4) * amplitude + center)
+        );
+    }
+    return colorSamples;
 };
 
 /**

@@ -22,6 +22,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
     this._height = height;
     this._pixelRatio = pixelRatio;
     this._enabled = false;
+    this._focused = false;
 
     this._eventDispatcher = new App.EventDispatcher(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._placeholder = placeholder;
@@ -117,11 +118,32 @@ App.Input.prototype.disable = function disable()
 };
 
 /**
+ * Focus
+ */
+App.Input.prototype.focus = function focus()
+{
+    if (!this._focused)
+    {
+        this._renderBackground(true,this._pixelRatio);
+
+        this._registerProxyEventListeners();
+
+        this._inputProxy.focus();// requires Cordova preference: <preference name="KeyboardDisplayRequiresUserAction" value="false"/>
+
+        this._focused = true;
+    }
+};
+
+/**
  * Remove focus
  */
 App.Input.prototype.blur = function blur()
 {
     this._inputProxy.blur();
+
+    this._unRegisterProxyEventListeners();
+
+    this._focused = false;
 };
 
 /**
@@ -205,14 +227,7 @@ App.Input.prototype._unRegisterProxyEventListeners = function _registerEventList
  */
 App.Input.prototype._onClick = function _onClick(data)
 {
-    if (this._inputProxy !== document.activeElement)
-    {
-        this._renderBackground(true,this._pixelRatio);
-
-        this._registerProxyEventListeners();
-
-        this._inputProxy.focus();
-    }
+    if (this._inputProxy !== document.activeElement) this.focus();
 
     if (this._icon)
     {
@@ -234,6 +249,8 @@ App.Input.prototype._onFocus = function _onFocus()
     var r = this._pixelRatio,
         localPoint = this.toLocal(new PIXI.Point(this.x,this.y),this.stage);
 
+    this._focused = true;
+
     this._inputProxy.style.display = "none";
     this._inputProxy.style.left = Math.round((this.x - localPoint.x) / r) +"px";
     this._inputProxy.style.top = Math.round((this.y - localPoint.y) / r) + "px";
@@ -253,6 +270,8 @@ App.Input.prototype._onFocus = function _onFocus()
  */
 App.Input.prototype._onBlur = function _onBlur()
 {
+    this._focused = false;
+
     this._updateText(true);
 
     this._inputProxy.style.top = "-1000px";

@@ -104,7 +104,11 @@ App.SwipeButton.prototype._swipe = function _swipe()
 {
     if (this.stage && !this._open)
     {
-        this._updateSwipePosition(-Math.round(this._width * (1 - (this.stage.getTouchPosition().x / this._width)) * this._dragFriction));
+        var x = this.stage.getTouchPosition().x;
+
+        if (x <= -10000) return;
+
+        this._updateSwipePosition(-Math.round(this._width * (1 - (x / this._width)) * this._dragFriction));
     }
 };
 

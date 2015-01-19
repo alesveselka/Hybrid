@@ -53,8 +53,8 @@ App.TilePane.prototype.resize = function resize(width,height)
 
         if (this._content.x > 0) this._updateX(0);
         else if (this._content.y > 0) this._updateY(0);
-        else if (this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
-        else if (this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
+        else if (this._contentWidth > this._width && this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
+        else if (this._contentHeight > this._height && this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
 
         this._updateScrollers();
     }
