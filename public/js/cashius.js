@@ -463,13 +463,14 @@ App.Direction = {
 /**
  * Screen Name
  * @enum {number}
- * @return {{ACCOUNT:number,CATEGORY:number,SELECT_TIME:number,EDIT_CATEGORY:number}}
+ * @return {{ACCOUNT:number,CATEGORY:number,SELECT_TIME:number,EDIT_CATEGORY:number,TRANSACTIONS:number}}
  */
 App.ScreenName = {
     ACCOUNT:0,
     CATEGORY:1,
     SELECT_TIME:2,
-    EDIT_CATEGORY:3
+    EDIT_CATEGORY:3,
+    TRANSACTIONS:4
 };
 
 /**
@@ -1159,6 +1160,37 @@ App.ViewLocator = {
     getViewSegment:function getViewSegment(segmentName)
     {
         return this._viewSegments[segmentName];
+    }
+};
+
+/**
+ * FontStyle
+ * @type {{init: Function, get: Function}}
+ */
+App.FontStyle = {
+    /**
+     * @private
+     */
+    _pixelRatio:1,
+    /**
+     * Init
+     * @param {number} pixelRatio
+     */
+    init:function init(pixelRatio)
+    {
+        this._pixelRatio = pixelRatio;
+    },
+
+    /**
+     * Construct and return font style object
+     * @param {number} fontSize
+     * @param {string} color
+     * @param {string} [align=null]
+     * @returns {{font: string, fill: string}}
+     */
+    get:function get(fontSize,color,align)
+    {
+        return {font:Math.round(fontSize * this._pixelRatio)+"px HelveticaNeueCond",fill:color,align:align ? align : "left"};
     }
 };
 
@@ -5247,6 +5279,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     App.Screen.call(this,model,layout,0.4);
 
     var CategoryButton = App.CategoryButtonExpand,
+        ScrollPolicy = App.ScrollPolicy,
         font = Math.round(18 * layout.pixelRatio)+"px HelveticaNeueCond",
         nameLabelStyle = {font:font,fill:App.ColorTheme.sBLUE},
         editLabelStyle = {font:font,fill:"#ffffff"},
@@ -5270,7 +5303,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     this._buttonsInTransition = [];
     this._layoutDirty = false;
 
-    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
@@ -6036,6 +6069,286 @@ App.EditCategoryScreen.prototype._getColorSamples = function _getColorSamples()
 };
 
 /**
+ * @class TransactionButton
+ * @extends SwipeButton
+ * @param {Category} model
+ * @param {Object} layout
+ * @param {Object} labelStyles
+ * @constructor
+ */
+App.TransactionButton = function TransactionButton(model,layout,labelStyles)
+{
+    App.SwipeButton.call(this,layout.width,Math.round(120*layout.pixelRatio));
+
+    var Text = PIXI.Text,
+        Graphics = PIXI.Graphics;
+
+    this.boundingBox = new App.Rectangle(0,0,layout.width,Math.round(70*layout.pixelRatio));
+
+    this._model = model;
+    this._layout = layout;
+    this._isPending = model === 3;
+
+    this._background = new Graphics();
+    this._copyLabel = new Text("Copy",labelStyles.edit);
+    this._editLabel = new Text("Edit",labelStyles.edit);
+    this._swipeSurface = new Graphics();
+    this._icon = PIXI.Sprite.fromFrame("transactions");
+
+    if (this._isPending)
+    {
+        this._accountField = new Text("Personal",labelStyles.accountPending);
+        this._categoryField = new Text("Cinema / Entertainment",labelStyles.accountPending);
+        this._amountField = new Text("100.00",labelStyles.amountPending);
+        this._dateField = new Text("Due by\n10/21/2014",labelStyles.datePending);
+    }
+    else
+    {
+        this._accountField = new Text("Personal",labelStyles.account);
+        this._categoryField = new Text("Cinema / Entertainment",labelStyles.account);
+        this._amountField = new Text("100.00",labelStyles.amount);
+        this._dateField = new Text("10/21/2014",labelStyles.date);
+    }
+
+    this._pendingFlag = new Graphics();
+    this._pendingLabel = new Text("PENDING",labelStyles.pending);
+
+    this._render();
+
+    this._swipeSurface.addChild(this._icon);
+    this._swipeSurface.addChild(this._accountField);
+    this._swipeSurface.addChild(this._categoryField);
+    this._swipeSurface.addChild(this._amountField);
+    this._swipeSurface.addChild(this._dateField);
+    this._pendingFlag.addChild(this._pendingLabel);
+    if (this._isPending) this._swipeSurface.addChild(this._pendingFlag);
+    this.addChild(this._background);
+    this.addChild(this._copyLabel);
+    this.addChild(this._editLabel);
+    this.addChild(this._swipeSurface);
+};
+
+App.TransactionButton.prototype = Object.create(App.SwipeButton.prototype);
+App.TransactionButton.prototype.constructor = App.TransactionButton;
+
+/**
+ * Render
+ * @private
+ */
+App.TransactionButton.prototype._render = function _render()
+{
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        r = this._layout.pixelRatio,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height,
+        swipeOptionWidth = Math.round(60 * r),
+        colorStripeWidth = Math.round(4 * r),
+        padding = Math.round(10 * r),
+        iconResizeRatio = Math.round(32 * r) / this._icon.height;
+
+    GraphicUtils.drawRects(this._background,0x33CC33,1,[0,0,w-swipeOptionWidth,h],true,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.SWIPE_BACKGROUND,1,[w-swipeOptionWidth,0,swipeOptionWidth,h],false,true);
+
+    this._copyLabel.x = w - swipeOptionWidth * 2 + Math.round((swipeOptionWidth - this._copyLabel.width) / 2);
+    this._copyLabel.y = Math.round((h - this._copyLabel.height) / 2);
+    this._editLabel.x = w - swipeOptionWidth + Math.round((swipeOptionWidth - this._editLabel.width) / 2);
+    this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
+
+    if (this._isPending)
+    {
+        GraphicUtils.drawRects(this._swipeSurface,0xff3366,1,[0,0,colorStripeWidth,h],true,false);
+        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.SWIPE_BACKGROUND,1,[colorStripeWidth,0,w-colorStripeWidth,h],false,false);
+        GraphicUtils.drawRects(this._swipeSurface,0xFF3300,1,[padding,0,w-padding*2,1],false,false);
+        GraphicUtils.drawRects(this._swipeSurface,0x990000,1,[padding,h-1,w-padding*2,1],false,true);
+    }
+    else
+    {
+        GraphicUtils.drawRects(this._swipeSurface,0xff3366,1,[0,0,colorStripeWidth,h],true,false);
+        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.BACKGROUND,1,[colorStripeWidth,0,w-colorStripeWidth,h],false,false);
+        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.LIGHT_SHADE,1,[padding,0,w-padding*2,1],false,false);
+        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.DARK_SHADE,1,[padding,h-1,w-padding*2,1],false,true);
+    }
+
+    this._icon.scale.x = iconResizeRatio;
+    this._icon.scale.y = iconResizeRatio;
+    this._icon.x = Math.round(20 * r);
+    this._icon.y = Math.round((h - this._icon.height) / 2);
+    this._icon.tint = this._isPending ? 0x990000 : ColorTheme.BLUE;
+
+    this._accountField.x = Math.round(70 * r);
+    this._accountField.y = Math.round(7 * r);
+    this._amountField.x = Math.round(70 * r);
+    this._amountField.y = Math.round(26 * r);
+    this._categoryField.x = Math.round(70 * r);
+    this._categoryField.y = Math.round(52 * r);
+
+    this._dateField.x = Math.round(w - padding - this._dateField.width);
+    this._dateField.y = this._isPending ? Math.round(38 * r) : Math.round(52 * r);
+
+    GraphicUtils.drawRect(this._pendingFlag,0x000000,1,0,0,Math.round(this._pendingLabel.width+10*r),Math.round(this._pendingLabel.height+6*r));
+    this._pendingLabel.x = Math.round(5 * r);
+    this._pendingLabel.y = Math.round(4 * r);
+    this._pendingFlag.x = Math.round(w - padding - this._pendingFlag.width);
+    this._pendingFlag.y = Math.round(7 * r);
+};
+
+/**
+ * Update swipe position
+ * @param {number} position
+ * @private
+ */
+App.TransactionButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
+{
+    this._swipeSurface.x = position;
+};
+
+/**
+ * Return swipe position
+ * @private
+ */
+App.TransactionButton.prototype._getSwipePosition = function _getSwipePosition()
+{
+    return this._swipeSurface.x;
+};
+
+App.TransactionScreen = function TransactionScreen(model,layout)
+{
+    App.Screen.call(this,model,layout,0.4);
+
+    var TransactionButton = App.TransactionButton,
+        FontStyle = App.FontStyle,
+        labelStyles = {
+            edit:FontStyle.get(18,"#ffffff"),
+            account:FontStyle.get(14,"#50597B"),
+            amount:FontStyle.get(26,"#252B44"),
+            date:FontStyle.get(14,"#cccccc"),
+            pending:FontStyle.get(12,"#ffffff"),
+            accountPending:FontStyle.get(14,"#900000"),
+            amountPending:FontStyle.get(26,"#ffffff"),
+            datePending:FontStyle.get(14,"#ffffff","right")
+        },
+        i = 0,
+        l = 200,
+        button = null;
+
+    this._interactiveButton = null;
+    this._buttons = new Array(l);
+    this._buttonList = new App.TileList(App.Direction.Y,layout.height);
+    //TODO create just screen*2 buttons and postpone creating the rest for later
+    for (;i<l;i++)
+    {
+        button = new TransactionButton(i,layout,labelStyles);
+        this._buttons[i] = button;
+        this._buttonList.add(button);
+    }
+    this._buttonList.updateLayout();
+
+    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
+    this._pane.setContent(this._buttonList);
+
+    this.addChild(this._pane);
+
+    this._swipeEnabled = true;
+};
+
+App.TransactionScreen.prototype = Object.create(App.Screen.prototype);
+App.TransactionScreen.prototype.constructor = App.TransactionScreen;
+
+/**
+ * Enable
+ */
+App.TransactionScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._pane.resetScroll();
+    this._pane.enable();
+};
+
+/**
+ * Disable
+ */
+App.TransactionScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._pane.disable();
+};
+
+/**
+ * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
+ * @param {string} direction
+ * @private
+ */
+App.TransactionScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
+{
+    this._interactiveButton = this._getButtonUnderPosition(this.stage.getTouchPosition().y);
+    if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
+
+    this._closeButtons(false);
+};
+
+/**
+ * Called when swipe ends
+ * @private
+ */
+App.TransactionScreen.prototype._swipeEnd = function _swipeEnd()
+{
+    if (this._interactiveButton)
+    {
+        this._interactiveButton.swipeEnd();
+        this._interactiveButton = null;
+    }
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate)
+{
+    var i = 0,
+        l = this._buttons.length,
+        button = null;
+
+    for (;i<l;)
+    {
+        button = this._buttons[i++];
+        if (button !== this._interactiveButton) button.close(immediate);
+    }
+};
+
+/**
+ * Find button under point passed in
+ * @param {Point} position
+ * @private
+ */
+App.TransactionScreen.prototype._getButtonUnderPosition = function _getButtonUnderPosition(position)
+{
+    var i = 0,
+        l = this._buttons.length,
+        height = 0,
+        buttonY = 0,
+        containerY = this.y + this._buttonList.y,
+        button = null;
+
+    for (;i<l;)
+    {
+        button = this._buttons[i++];
+        buttonY = button.y + containerY;
+        height = button.boundingBox.height;
+        if (buttonY <= position && buttonY + height >= position)
+        {
+            return button;
+        }
+    }
+
+    return null;
+};
+
+/**
  * @class ApplicationView
  * @extends DisplayObjectContainer
  * @param {Stage} stage
@@ -6074,9 +6387,10 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.AccountScreen(categories,this._layout),
         new App.CategoryScreen(categories,this._layout),
         new App.SelectTimeScreen(null,this._layout),
-        new App.EditCategoryScreen(null,this._layout)
+        new App.EditCategoryScreen(null,this._layout),
+        new App.TransactionScreen(null,this._layout)
     ]);
-    this._screenStack.selectChildByIndex(App.ScreenName.EDIT_CATEGORY);//TODO move this into separate command?
+    this._screenStack.selectChildByIndex(App.ScreenName.TRANSACTIONS);//TODO move this into separate command?
     this._screenStack.show();
 
     this.addChild(this._background);
@@ -6902,6 +7216,8 @@ App.Initialize.prototype._initView = function _initView()
     PIXI.CanvasTinter.tintMethod = PIXI.CanvasTinter.tintWithOverlay;
 
     //context.webkitImageSmoothingEnabled = context.mozImageSmoothingEnabled = true;
+
+    App.FontStyle.init(pixelRatio);
 
     App.ViewLocator.addViewSegment(
         App.ViewName.APPLICATION_VIEW,

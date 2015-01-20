@@ -147,6 +147,8 @@ App.Initialize.prototype._initView = function _initView()
 
     //context.webkitImageSmoothingEnabled = context.mozImageSmoothingEnabled = true;
 
+    App.FontStyle.init(pixelRatio);
+
     App.ViewLocator.addViewSegment(
         App.ViewName.APPLICATION_VIEW,
         stage.addChild(new App.ApplicationView(stage,renderer,w,h,pixelRatio))

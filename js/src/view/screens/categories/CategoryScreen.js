@@ -10,6 +10,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     App.Screen.call(this,model,layout,0.4);
 
     var CategoryButton = App.CategoryButtonExpand,
+        ScrollPolicy = App.ScrollPolicy,
         font = Math.round(18 * layout.pixelRatio)+"px HelveticaNeueCond",
         nameLabelStyle = {font:font,fill:App.ColorTheme.sBLUE},
         editLabelStyle = {font:font,fill:"#ffffff"},
@@ -33,7 +34,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     this._buttonsInTransition = [];
     this._layoutDirty = false;
 
-    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);

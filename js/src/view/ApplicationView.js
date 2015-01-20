@@ -37,9 +37,10 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.AccountScreen(categories,this._layout),
         new App.CategoryScreen(categories,this._layout),
         new App.SelectTimeScreen(null,this._layout),
-        new App.EditCategoryScreen(null,this._layout)
+        new App.EditCategoryScreen(null,this._layout),
+        new App.TransactionScreen(null,this._layout)
     ]);
-    this._screenStack.selectChildByIndex(App.ScreenName.EDIT_CATEGORY);//TODO move this into separate command?
+    this._screenStack.selectChildByIndex(App.ScreenName.TRANSACTIONS);//TODO move this into separate command?
     this._screenStack.show();
 
     this.addChild(this._background);
