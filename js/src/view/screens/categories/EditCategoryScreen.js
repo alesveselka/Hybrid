@@ -92,8 +92,8 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
     this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
 
-    GraphicUtils.drawRects(this._separators,ColorTheme.DARK_SHADE,1,[0,0,separatorWidth,1,0,colorListHeight,separatorWidth,1],true,false);
-    GraphicUtils.drawRects(this._separators,ColorTheme.LIGHT_SHADE,1,[0,1,separatorWidth,1,0,colorListHeight+1,separatorWidth,1],false,true);
+    GraphicUtils.drawRects(this._separators,ColorTheme.GREY_DARK,1,[0,0,separatorWidth,1,0,colorListHeight,separatorWidth,1],true,false);
+    GraphicUtils.drawRects(this._separators,ColorTheme.GREY_LIGHT,1,[0,1,separatorWidth,1,0,colorListHeight+1,separatorWidth,1],false,true);
     this._separators.x = padding;
     this._separators.y = inputFragmentHeight - 1;
 
@@ -102,7 +102,7 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._budget.x = padding;
     this._budget.y = this._budgetHeader.y + this._budgetHeader.height + Math.round(10 * r);
 
-    GraphicUtils.drawRect(this._background,ColorTheme.BACKGROUND,1,0,0,w,this._budget.y+this._budget.boundingBox.height+padding);
+    GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w,this._budget.y+this._budget.boundingBox.height+padding);
 };
 
 /**

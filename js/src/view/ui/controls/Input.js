@@ -85,7 +85,7 @@ App.Input.prototype._renderBackground = function _renderBackground(highlight,r)
     var ColorTheme = App.ColorTheme;
 
     this.clear();
-    this.beginFill(highlight ? ColorTheme.INPUT_HIGHLIGHT : ColorTheme.DARK_SHADE);
+    this.beginFill(highlight ? ColorTheme.INPUT_HIGHLIGHT : ColorTheme.GREY_DARK);
     this.drawRoundedRect(0,0,this._width,this._height,Math.round(5 * r));
     this.beginFill(0xffffff);
     this.drawRoundedRect(Math.round(r),Math.round(r),this._width-Math.round(2 * r),this._height-Math.round(2 * r),Math.round(4 * r));

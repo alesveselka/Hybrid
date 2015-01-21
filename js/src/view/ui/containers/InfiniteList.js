@@ -1,7 +1,7 @@
 /**
  * @class InfiniteList
  * @extends DisplayObjectContainer
- * @param {Array.<number>} model
+ * @param {Array} model
  * @param {Function} itemClass
  * @param {string} direction
  * @param {number} width
@@ -13,9 +13,7 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
 {
     PIXI.DisplayObjectContainer.call(this);
 
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        Direction = App.Direction,
+    var Direction = App.Direction,
         item = new itemClass(0,model[0],pixelRatio),
         itemSize = direction === Direction.X ? item.boundingBox.width : item.boundingBox.height,
         itemCount = direction === Direction.X ? Math.ceil(width / itemSize) + 1 : Math.ceil(height / itemSize) + 1,
@@ -26,7 +24,7 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
     this.boundingBox = new PIXI.Rectangle(0,0,width,height);
     this.hitArea = this.boundingBox;
 
-    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
     this._model = model;
     this._itemClass = itemClass;//TODO use pool instead of classes?
     this._direction = direction;
@@ -273,7 +271,7 @@ App.InfiniteList.prototype._updateX = function _updateX(position)
         width = this._width,
         positionDifference = position - this._virtualPosition,
         itemScreenIndex = 0,
-        virtualIndex = 0,
+        virtualIndex = Math.floor(position / itemSize),
         xIndex = 0,
         modelIndex = 0,
         modelLength = this._model.length,
@@ -291,8 +289,6 @@ App.InfiniteList.prototype._updateX = function _updateX(position)
         {
             itemScreenIndex = -Math.floor(x / width);
             x += itemScreenIndex * l * itemSize;
-
-            virtualIndex = Math.floor(this._virtualPosition / itemSize);
             xIndex = Math.floor(x / itemSize);
 
             if (virtualIndex >= 0) modelIndex = (xIndex - (virtualIndex % modelLength)) % modelLength;
@@ -322,7 +318,7 @@ App.InfiniteList.prototype._updateY = function _updateY(position)
         height = this._height,
         positionDifference = position - this._virtualPosition,
         itemScreenIndex = 0,
-        virtualIndex = 0,
+        virtualIndex = Math.floor(position / itemSize),
         yIndex = 0,
         modelIndex = 0,
         modelLength = this._model.length,
@@ -340,8 +336,6 @@ App.InfiniteList.prototype._updateY = function _updateY(position)
         {
             itemScreenIndex = -Math.floor(y / height);
             y += itemScreenIndex * l * itemSize;
-
-            virtualIndex = Math.floor(this._virtualPosition / itemSize);
             yIndex = Math.floor(y / itemSize);
 
             if (virtualIndex >= 0) modelIndex = (yIndex - (virtualIndex % modelLength)) % modelLength;

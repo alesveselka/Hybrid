@@ -60,9 +60,9 @@ App.CalendarWeekRow.prototype._render = function _render()
         i = 0;
 
     this.clear();
-    this.beginFill(ColorTheme.LIGHT_SHADE);
+    this.beginFill(ColorTheme.GREY_LIGHT);
     this.drawRect(0,0,this._width,cellHeight);
-    this.beginFill(ColorTheme.BACKGROUND);
+    this.beginFill(ColorTheme.GREY);
 
     for (;i<daysInWeek;i++,index+=2)
     {

@@ -42,7 +42,7 @@ App.IconSample.prototype._render = function _render()
     this._icon.scale.y = this._iconResizeRatio;
     this._icon.x = Math.round((size - this._icon.width) / 2);
     this._icon.y = Math.round((size - this._icon.height) / 2);
-    this._icon.tint = this._selected ? ColorTheme.BLUE : ColorTheme.DARK_SHADE;
+    this._icon.tint = this._selected ? ColorTheme.BLUE : ColorTheme.GREY_DARK;
 };
 
 /**

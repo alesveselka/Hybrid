@@ -34,9 +34,9 @@ App.CategoryButtonSurface.prototype.render = function render(width,height,pixelR
         ColorTheme = App.ColorTheme,
         padding = Math.round(10 * pixelRatio);
 
-    GraphicUtils.drawRects(this,ColorTheme.BACKGROUND,1,[0,0,width,height],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.LIGHT_SHADE,1,[padding,0,width-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.DARK_SHADE,1,[padding,height-1,width-padding*2,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,width,height],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,width-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,height-1,width-padding*2,1],false,true);
 
     GraphicUtils.drawRect(this._colorStripe,0xffcc00,1,0,0,Math.round(4 * pixelRatio),height);
 

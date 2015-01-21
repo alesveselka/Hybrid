@@ -44,14 +44,14 @@ App.SubCategoryButton.prototype._render = function _render()
         h = this.boundingBox.height,
         padding = Math.round(10 * r);
 
-    GraphicUtils.drawRect(this._background,ColorTheme.SWIPE_BACKGROUND,1,0,0,w,h);
+    GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
 
     this._deleteLabel.x = Math.round(w - 50 * r);
     this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
 
-    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.BACKGROUND,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.LIGHT_SHADE,1,[padding,0,w-padding*2,1],false,false);
-    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.DARK_SHADE,1,[padding,h-1,w-padding*2,1],false,true);
+    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
 
     this._labelField.x = Math.round(20 * r);
     this._labelField.y = Math.round((h - this._labelField.height) / 2);

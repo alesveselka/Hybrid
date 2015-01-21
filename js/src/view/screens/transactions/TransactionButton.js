@@ -1,49 +1,42 @@
 /**
  * @class TransactionButton
  * @extends SwipeButton
- * @param {Category} model
- * @param {Object} layout
- * @param {Object} labelStyles
+ * @param {number} modelIndex
+ * @param {Object} model
+ * @param {{width:number,height:number,pixelRatio:number:labelStyles:Object}} options
  * @constructor
  */
-App.TransactionButton = function TransactionButton(model,layout,labelStyles)
+App.TransactionButton = function TransactionButton(modelIndex,model,options)
 {
-    App.SwipeButton.call(this,layout.width,Math.round(120*layout.pixelRatio));
+    App.SwipeButton.call(this,options.width,Math.round(120*options.pixelRatio));
 
     var Text = PIXI.Text,
-        Graphics = PIXI.Graphics;
+        Graphics = PIXI.Graphics,
+        editStyle = options.labelStyles.edit,
+        placeholder = "";
 
-    this.boundingBox = new App.Rectangle(0,0,layout.width,Math.round(70*layout.pixelRatio));
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
     this._model = model;
-    this._layout = layout;
-    this._isPending = model === 3;
+    this._modelIndex = modelIndex;
+    this._pixelRatio = options.pixelRatio;
+    this._labelStyles = options.labelStyles;
+    this._isPending = void 0;
 
     this._background = new Graphics();
-    this._copyLabel = new Text("Copy",labelStyles.edit);
-    this._editLabel = new Text("Edit",labelStyles.edit);
+    this._copyLabel = new Text("Copy",editStyle);
+    this._editLabel = new Text("Edit",editStyle);
     this._swipeSurface = new Graphics();
-    this._icon = PIXI.Sprite.fromFrame("transactions");
-
-    if (this._isPending)
-    {
-        this._accountField = new Text("Personal",labelStyles.accountPending);
-        this._categoryField = new Text("Cinema / Entertainment",labelStyles.accountPending);
-        this._amountField = new Text("100.00",labelStyles.amountPending);
-        this._dateField = new Text("Due by\n10/21/2014",labelStyles.datePending);
-    }
-    else
-    {
-        this._accountField = new Text("Personal",labelStyles.account);
-        this._categoryField = new Text("Cinema / Entertainment",labelStyles.account);
-        this._amountField = new Text("100.00",labelStyles.amount);
-        this._dateField = new Text("10/21/2014",labelStyles.date);
-    }
-
+    this._icon = PIXI.Sprite.fromFrame(model.iconName);
+    this._iconResizeRatio = Math.round(32 * this._pixelRatio) / this._icon.height;
+    this._accountField = new Text(placeholder,editStyle);
+    this._categoryField = new Text(placeholder,editStyle);
+    this._amountField = new Text(placeholder,editStyle);
+    this._dateField = new Text(placeholder,editStyle);
     this._pendingFlag = new Graphics();
-    this._pendingLabel = new Text("PENDING",labelStyles.pending);
+    this._pendingLabel = new Text("PENDING",this._labelStyles.pending);
 
-    this._render();
+    this._update(true);
 
     this._swipeSurface.addChild(this._icon);
     this._swipeSurface.addChild(this._accountField);
@@ -51,7 +44,6 @@ App.TransactionButton = function TransactionButton(model,layout,labelStyles)
     this._swipeSurface.addChild(this._amountField);
     this._swipeSurface.addChild(this._dateField);
     this._pendingFlag.addChild(this._pendingLabel);
-    if (this._isPending) this._swipeSurface.addChild(this._pendingFlag);
     this.addChild(this._background);
     this.addChild(this._copyLabel);
     this.addChild(this._editLabel);
@@ -62,65 +54,149 @@ App.TransactionButton.prototype = Object.create(App.SwipeButton.prototype);
 App.TransactionButton.prototype.constructor = App.TransactionButton;
 
 /**
- * Render
+ * Update
+ * @param {boolean} [updateAll=false]
  * @private
  */
-App.TransactionButton.prototype._render = function _render()
+App.TransactionButton.prototype._update = function _update(updateAll)
+{
+    var pending = this._model.pending;
+
+    this._accountField.setText(this._model.account);
+    this._amountField.setText(this._model.amount);
+    this._categoryField.setText(this._model.category);
+    this._dateField.setText(pending ? "Due by\n"+this._model.date : this._model.date);
+    this._icon.setTexture(PIXI.TextureCache[this._model.iconName]);
+
+    if (pending !== this._isPending)
+    {
+        if (pending)
+        {
+            this._accountField.setStyle(this._labelStyles.accountPending);
+            this._amountField.setStyle(this._labelStyles.amountPending);
+            this._categoryField.setStyle(this._labelStyles.accountPending);
+            this._dateField.setStyle(this._labelStyles.datePending);
+        }
+        else
+        {
+            this._accountField.setStyle(this._labelStyles.account);
+            this._amountField.setStyle(this._labelStyles.amount);
+            this._categoryField.setStyle(this._labelStyles.account);
+            this._dateField.setStyle(this._labelStyles.date);
+        }
+
+        this._render(updateAll,pending);
+        this._updateLayout(updateAll,pending);
+    }
+
+    this._isPending = pending;
+};
+
+/**
+ * Render
+ * @param {boolean} [renderAll=false]
+ * @param {boolean} pending
+ * @private
+ */
+App.TransactionButton.prototype._render = function _render(renderAll,pending)
 {
     var GraphicUtils = App.GraphicUtils,
         ColorTheme = App.ColorTheme,
-        r = this._layout.pixelRatio,
+        r = this._pixelRatio,
         w = this.boundingBox.width,
         h = this.boundingBox.height,
         swipeOptionWidth = Math.round(60 * r),
         colorStripeWidth = Math.round(4 * r),
         padding = Math.round(10 * r),
-        iconResizeRatio = Math.round(32 * r) / this._icon.height;
+        bgColor = ColorTheme.GREY,
+        lightColor = ColorTheme.GREY_LIGHT,
+        darkColor = ColorTheme.GREY_DARK;
 
-    GraphicUtils.drawRects(this._background,0x33CC33,1,[0,0,w-swipeOptionWidth,h],true,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.SWIPE_BACKGROUND,1,[w-swipeOptionWidth,0,swipeOptionWidth,h],false,true);
-
-    this._copyLabel.x = w - swipeOptionWidth * 2 + Math.round((swipeOptionWidth - this._copyLabel.width) / 2);
-    this._copyLabel.y = Math.round((h - this._copyLabel.height) / 2);
-    this._editLabel.x = w - swipeOptionWidth + Math.round((swipeOptionWidth - this._editLabel.width) / 2);
-    this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
-
-    if (this._isPending)
+    if (renderAll)
     {
-        GraphicUtils.drawRects(this._swipeSurface,0xff3366,1,[0,0,colorStripeWidth,h],true,false);
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.SWIPE_BACKGROUND,1,[colorStripeWidth,0,w-colorStripeWidth,h],false,false);
-        GraphicUtils.drawRects(this._swipeSurface,0xFF3300,1,[padding,0,w-padding*2,1],false,false);
-        GraphicUtils.drawRects(this._swipeSurface,0x990000,1,[padding,h-1,w-padding*2,1],false,true);
+        GraphicUtils.drawRects(this._background,ColorTheme.GREEN,1,[0,0,w-swipeOptionWidth,h],true,false);
+        GraphicUtils.drawRects(this._background,ColorTheme.RED,1,[w-swipeOptionWidth,0,swipeOptionWidth,h],false,true);
+
+        GraphicUtils.drawRect(this._pendingFlag,0x000000,1,0,0,Math.round(this._pendingLabel.width+10*r),Math.round(this._pendingLabel.height+6*r));
+    }
+
+    if (pending)
+    {
+        bgColor = ColorTheme.RED;
+        lightColor = ColorTheme.RED_LIGHT;
+        darkColor = ColorTheme.RED_DARK;
+
+        this._icon.tint = ColorTheme.RED_DARK;
+
+        if (!this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.addChild(this._pendingFlag);
     }
     else
     {
-        GraphicUtils.drawRects(this._swipeSurface,0xff3366,1,[0,0,colorStripeWidth,h],true,false);
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.BACKGROUND,1,[colorStripeWidth,0,w-colorStripeWidth,h],false,false);
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.LIGHT_SHADE,1,[padding,0,w-padding*2,1],false,false);
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.DARK_SHADE,1,[padding,h-1,w-padding*2,1],false,true);
+        this._icon.tint = ColorTheme.BLUE;
+
+        if (this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.removeChild(this._pendingFlag);
     }
 
-    this._icon.scale.x = iconResizeRatio;
-    this._icon.scale.y = iconResizeRatio;
-    this._icon.x = Math.round(20 * r);
-    this._icon.y = Math.round((h - this._icon.height) / 2);
-    this._icon.tint = this._isPending ? 0x990000 : ColorTheme.BLUE;
+    GraphicUtils.drawRects(this._swipeSurface,0xff3366,1,[0,0,colorStripeWidth,h],true,false);
+    GraphicUtils.drawRects(this._swipeSurface,bgColor,1,[colorStripeWidth,0,w-colorStripeWidth,h],false,false);
+    GraphicUtils.drawRects(this._swipeSurface,lightColor,1,[padding,0,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this._swipeSurface,darkColor,1,[padding,h-1,w-padding*2,1],false,true);
+};
 
-    this._accountField.x = Math.round(70 * r);
-    this._accountField.y = Math.round(7 * r);
-    this._amountField.x = Math.round(70 * r);
-    this._amountField.y = Math.round(26 * r);
-    this._categoryField.x = Math.round(70 * r);
-    this._categoryField.y = Math.round(52 * r);
+/**
+ * Update layout
+ * @param {boolean} [updateAll=false]
+ * @param {boolean} pending
+ * @private
+ */
+App.TransactionButton.prototype._updateLayout = function _updateLayout(updateAll,pending)
+{
+    var r = this._pixelRatio,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height,
+        swipeOptionWidth = Math.round(60 * r),
+        padding = Math.round(10 * r);
+
+    if (updateAll)
+    {
+        this._copyLabel.x = w - swipeOptionWidth * 2 + Math.round((swipeOptionWidth - this._copyLabel.width) / 2);
+        this._copyLabel.y = Math.round((h - this._copyLabel.height) / 2);
+        this._editLabel.x = w - swipeOptionWidth + Math.round((swipeOptionWidth - this._editLabel.width) / 2);
+        this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
+
+        this._icon.scale.x = this._iconResizeRatio;
+        this._icon.scale.y = this._iconResizeRatio;
+        this._icon.x = Math.round(20 * r);
+        this._icon.y = Math.round((h - this._icon.height) / 2);
+
+        this._accountField.x = Math.round(70 * r);
+        this._accountField.y = Math.round(7 * r);
+        this._amountField.x = Math.round(70 * r);
+        this._amountField.y = Math.round(26 * r);
+        this._categoryField.x = Math.round(70 * r);
+        this._categoryField.y = Math.round(52 * r);
+
+        this._pendingLabel.x = Math.round(5 * r);
+        this._pendingLabel.y = Math.round(4 * r);
+        this._pendingFlag.x = Math.round(w - padding - this._pendingFlag.width);
+        this._pendingFlag.y = Math.round(7 * r);
+    }
 
     this._dateField.x = Math.round(w - padding - this._dateField.width);
-    this._dateField.y = this._isPending ? Math.round(38 * r) : Math.round(52 * r);
+    this._dateField.y = pending ? Math.round(38 * r) : Math.round(52 * r);
+};
 
-    GraphicUtils.drawRect(this._pendingFlag,0x000000,1,0,0,Math.round(this._pendingLabel.width+10*r),Math.round(this._pendingLabel.height+6*r));
-    this._pendingLabel.x = Math.round(5 * r);
-    this._pendingLabel.y = Math.round(4 * r);
-    this._pendingFlag.x = Math.round(w - padding - this._pendingFlag.width);
-    this._pendingFlag.y = Math.round(7 * r);
+/**
+ * Set model
+ * @param {number} modelIndex
+ * @param {Object} model
+ */
+App.TransactionButton.prototype.setModel = function setModel(modelIndex,model)
+{
+    this._modelIndex = modelIndex;
+    this._model = model;
+
+    this._update(false);
 };
 
 /**

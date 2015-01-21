@@ -2,36 +2,36 @@ App.TransactionScreen = function TransactionScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
-    var TransactionButton = App.TransactionButton,
+    var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
-        labelStyles = {
-            edit:FontStyle.get(18,FontStyle.WHITE),
-            account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
-            amount:FontStyle.get(26,FontStyle.BLUE_DARK),
-            date:FontStyle.get(14,FontStyle.SHADE_DARK),
-            pending:FontStyle.get(12,FontStyle.WHITE),
-            accountPending:FontStyle.get(14,FontStyle.RED_DARK),
-            amountPending:FontStyle.get(26,FontStyle.WHITE),
-            datePending:FontStyle.get(14,FontStyle.WHITE,"right")
+        r = layout.pixelRatio,
+        w = layout.width,
+        h = layout.height,
+        buttonOptions = {
+            labelStyles:{
+                edit:FontStyle.get(18,FontStyle.WHITE),
+                account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
+                amount:FontStyle.get(26,FontStyle.BLUE_DARK),
+                date:FontStyle.get(14,FontStyle.SHADE_DARK),
+                pending:FontStyle.get(12,FontStyle.WHITE),
+                accountPending:FontStyle.get(14,FontStyle.RED_DARK),
+                amountPending:FontStyle.get(26,FontStyle.WHITE),
+                datePending:FontStyle.get(14,FontStyle.WHITE,"right")
+            },
+            width:w,
+            height:Math.round(70*r),
+            pixelRatio:r
         },
         i = 0,
-        l = 200,
-        button = null;
+        l = 50,//TODO don't fill whole screen if there too few items
+        transactions = new Array(l);
 
     this._interactiveButton = null;
-    this._buttons = new Array(l);
-    this._buttonList = new App.TileList(App.Direction.Y,layout.height);
-    //TODO create just screen*2 buttons and postpone creating the rest for later
-    //TODO ... or implement combination of TileList and InfiniteList?
-    for (;i<l;i++)
-    {
-        button = new TransactionButton(i,layout,labelStyles);
-        this._buttons[i] = button;
-        this._buttonList.add(button);
-    }
-    this._buttonList.updateLayout();
 
-    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
+    for (;i<l;i++) transactions[i] = {amount:100+i,account:"Personal",category:"Cinema / Entertainment",date:"10/21/2013",iconName:"transactions",pending:(i % 23) === 0};
+
+    this._buttonList = new App.VirtualList(transactions,App.TransactionButton,buttonOptions,App.Direction.Y,w,h,r);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
@@ -71,10 +71,10 @@ App.TransactionScreen.prototype.disable = function disable()
  */
 App.TransactionScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
 {
-    this._interactiveButton = this._getButtonUnderPosition(this.stage.getTouchPosition().y);
+    this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchPosition());
     if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
-    this._closeButtons(false);
+    //this._closeButtons(false);
 };
 
 /**
@@ -105,32 +105,4 @@ App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate
         button = this._buttons[i++];
         if (button !== this._interactiveButton) button.close(immediate);
     }
-};
-
-/**
- * Find button under point passed in
- * @param {Point} position
- * @private
- */
-App.TransactionScreen.prototype._getButtonUnderPosition = function _getButtonUnderPosition(position)
-{
-    var i = 0,
-        l = this._buttons.length,
-        height = 0,
-        buttonY = 0,
-        containerY = this.y + this._buttonList.y,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._buttons[i++];
-        buttonY = button.y + containerY;
-        height = button.boundingBox.height;
-        if (buttonY <= position && buttonY + height >= position)
-        {
-            return button;
-        }
-    }
-
-    return null;
 };

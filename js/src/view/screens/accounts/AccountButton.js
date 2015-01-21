@@ -61,9 +61,9 @@ App.AccountButton.prototype._render = function _render()
         GraphicUtils = App.GraphicUtils,
         padding = Math.round(10 * this._layout.pixelRatio);
 
-    GraphicUtils.drawRects(this,ColorTheme.BACKGROUND,1,[0,0,this.boundingBox.width,this.boundingBox.height],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.LIGHT_SHADE,1,[padding,0,this.boundingBox.width-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.DARK_SHADE,1,[padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,this.boundingBox.width,this.boundingBox.height],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,this.boundingBox.width-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1],false,true);
 };
 
 /**

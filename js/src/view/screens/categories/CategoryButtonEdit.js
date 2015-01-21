@@ -41,7 +41,7 @@ App.CategoryButtonEdit.prototype._render = function _render()
 
     this._swipeSurface.render(w,h,pixelRatio);
 
-    App.GraphicUtils.drawRect(this._background,App.ColorTheme.SWIPE_BACKGROUND,1,0,0,w,h);
+    App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
 
     this._editLabel.x = Math.round(w - 50 * pixelRatio);
     this._editLabel.y = Math.round(18 * pixelRatio);

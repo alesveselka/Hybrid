@@ -60,6 +60,6 @@ App.FontStyle = {
     BLUE_LIGHT:"#50597B",
     BLUE_DARK:"#252B44",
     SHADE_DARK:"#cccccc",
-    RED_DARK:"#900000",
+    RED_DARK:"#990000",
     SHADE:"#efefef"
 };

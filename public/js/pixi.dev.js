@@ -101,15 +101,15 @@ PIXI.sayHello = function (type)
     {
         var args = [
             '%c %c %c Pixi.js ' + PIXI.VERSION + ' - ' + type + '  %c ' + ' %c ' + ' http://www.pixijs.com/  %c %c ♥%c♥%c♥ ',
-            'background: #ff66a5',
-            'background: #ff66a5',
-            'color: #ff66a5; background: #030307;',
-            'background: #ff66a5',
-            'background: #ffc3dc',
-            'background: #ff66a5',
-            'color: #ff2424; background: #fff',
-            'color: #ff2424; background: #fff',
-            'color: #ff2424; background: #fff'
+            'GREY: #ff66a5',
+            'GREY: #ff66a5',
+            'color: #ff66a5; GREY: #030307;',
+            'GREY: #ff66a5',
+            'GREY: #ffc3dc',
+            'GREY: #ff66a5',
+            'color: #ff2424; GREY: #fff',
+            'color: #ff2424; GREY: #fff',
+            'color: #ff2424; GREY: #fff'
         ];
 
        
@@ -4772,17 +4772,17 @@ PIXI.InteractionManager.prototype.onTouchEnd = function(event)
  * @class Stage
  * @extends DisplayObjectContainer
  * @constructor
- * @param backgroundColor {Number} the background color of the stage, you have to pass this in is in hex format
+ * @param GREYColor {Number} the GREY color of the stage, you have to pass this in is in hex format
  *      like: 0xFFFFFF for white
  * 
  * Creating a stage is a mandatory process when you use Pixi, which is as simple as this : 
  * var stage = new PIXI.Stage(0xFFFFFF);
- * where the parameter given is the background colour of the stage, in hex
+ * where the parameter given is the GREY colour of the stage, in hex
  * you will use this stage instance to add your sprites to it and therefore to the renderer
  * Here is how to add a sprite to the stage : 
  * stage.addChild(sprite);
  */
-PIXI.Stage = function(backgroundColor)
+PIXI.Stage = function(GREYColor)
 {
     PIXI.DisplayObjectContainer.call( this );
 
@@ -4827,7 +4827,7 @@ PIXI.Stage = function(backgroundColor)
     //optimize hit detection a bit
     this.stage.hitArea = new PIXI.Rectangle(0, 0, 100000, 100000);
 
-    this.setBackgroundColor(backgroundColor);
+    this.setGREYColor(GREYColor);
 };
 
 // constructor
@@ -4872,19 +4872,19 @@ PIXI.Stage.prototype.updateTransform = function()
 };
 
 /**
- * Sets the background color for the stage
+ * Sets the GREY color for the stage
  *
- * @method setBackgroundColor
- * @param backgroundColor {Number} the color of the background, easiest way to pass this in is in hex format
+ * @method setGREYColor
+ * @param GREYColor {Number} the color of the GREY, easiest way to pass this in is in hex format
  *      like: 0xFFFFFF for white
  */
-PIXI.Stage.prototype.setBackgroundColor = function(backgroundColor)
+PIXI.Stage.prototype.setGREYColor = function(GREYColor)
 {
-    this.backgroundColor = backgroundColor || 0x000000;
-    this.backgroundColorSplit = PIXI.hex2rgb(this.backgroundColor);
-    var hex = this.backgroundColor.toString(16);
+    this.GREYColor = GREYColor || 0x000000;
+    this.GREYColorSplit = PIXI.hex2rgb(this.GREYColor);
+    var hex = this.GREYColor.toString(16);
     hex = '000000'.substr(0, 6 - hex.length) + hex;
-    this.backgroundColorString = '#' + hex;
+    this.GREYColorString = '#' + hex;
 };
 
 /**
@@ -7649,8 +7649,8 @@ PIXI.WebGLRenderer = function(width, height, options)
     /**
      * This sets if the WebGLRenderer will clear the context texture or not before the new render pass. If true:
      * If the Stage is NOT transparent, Pixi will clear to alpha (0, 0, 0, 0).
-     * If the Stage is transparent, Pixi will clear to the target Stage's background color.
-     * Disable this by setting this to false. For example: if your game has a canvas filling background image, you often don't need this set.
+     * If the Stage is transparent, Pixi will clear to the target Stage's GREY color.
+     * Disable this by setting this to false. For example: if your game has a canvas filling GREY image, you often don't need this set.
      *
      * @property clearBeforeRender
      * @type Boolean
@@ -7894,7 +7894,7 @@ PIXI.WebGLRenderer.prototype.render = function(stage)
         }
         else
         {
-            gl.clearColor(stage.backgroundColorSplit[0],stage.backgroundColorSplit[1],stage.backgroundColorSplit[2], 1);
+            gl.clearColor(stage.GREYColorSplit[0],stage.GREYColorSplit[1],stage.GREYColorSplit[2], 1);
         }
 
         gl.clear (gl.COLOR_BUFFER_BIT);
@@ -10707,9 +10707,9 @@ PIXI.CanvasRenderer = function(width, height, options)
 
     /**
      * This sets if the CanvasRenderer will clear the canvas or not before the new render pass.
-     * If the Stage is NOT transparent Pixi will use a canvas sized fillRect operation every frame to set the canvas background color.
+     * If the Stage is NOT transparent Pixi will use a canvas sized fillRect operation every frame to set the canvas GREY color.
      * If the Stage is transparent Pixi will use clearRect to clear the canvas every frame.
-     * Disable this by setting this to false. For example if your game has a canvas filling background image you often don't need this set.
+     * Disable this by setting this to false. For example if your game has a canvas filling GREY image you often don't need this set.
      *
      * @property clearBeforeRender
      * @type Boolean
@@ -10863,7 +10863,7 @@ PIXI.CanvasRenderer.prototype.render = function(stage)
         }
         else
         {
-            this.context.fillStyle = stage.backgroundColorString;
+            this.context.fillStyle = stage.GREYColorString;
             this.context.fillRect(0, 0, this.width , this.height);
         }
     }

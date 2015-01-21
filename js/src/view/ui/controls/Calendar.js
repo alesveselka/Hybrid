@@ -79,9 +79,9 @@ App.Calendar.prototype._render = function _render()
         i = 0;
 
     //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
-    GraphicUtils.drawRects(this,ColorTheme.BACKGROUND,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.DARK_SHADE,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.LIGHT_SHADE,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
 
     this._monthField.y = Math.round((dayLabelOffset - this._monthField.height) / 2);
 
@@ -110,7 +110,7 @@ App.Calendar.prototype._render = function _render()
     l = this._weekRows.length;
 
     this._separatorContainer.clear();
-    this._separatorContainer.beginFill(ColorTheme.BACKGROUND,1.0);
+    this._separatorContainer.beginFill(ColorTheme.GREY,1.0);
 
     for (;i<l;i++)
     {

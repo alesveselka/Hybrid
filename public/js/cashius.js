@@ -1151,15 +1151,18 @@ App.ViewLocator = {
 /**
  * ColorTheme
  * @enum {number}
- * @type {{BLUE: number,DARK_BLUE:number, BACKGROUND: number, DARK_SHADE: number, LIGHT_SHADE: number,SWIPE_BACKGROUND:number,INPUT_HIGHLIGHT:number}}
+ * @type {{BLUE: number,BLUE_DARK:number, GREY: number, GREY_DARK: number, GREY_LIGHT: number,RED:number,RED_DARK:number,RED_LIGHT:number,GREEN:number,INPUT_HIGHLIGHT:number}}
  */
 App.ColorTheme = {
     BLUE:0x394264,
-    DARK_BLUE:0x252B44,
-    BACKGROUND:0xefefef,
-    DARK_SHADE:0xcccccc,
-    LIGHT_SHADE:0xffffff,
-    SWIPE_BACKGROUND:0xE53013,
+    BLUE_DARK:0x252B44,
+    GREY:0xefefef,
+    GREY_DARK:0xcccccc,
+    GREY_LIGHT:0xffffff,
+    RED:0xE53013,
+    RED_DARK:0x990000,
+    RED_LIGHT:0xFF3300,
+    GREEN:0x33CC33,
     INPUT_HIGHLIGHT:0x0099ff
 };
 
@@ -1194,7 +1197,7 @@ App.FontStyle = {
         var i = 0,
             l = this._styles.length,
             style = null;
-        console.log(l);
+
         for (;i<l;)
         {
             style = this._styles[i++];
@@ -1225,7 +1228,7 @@ App.FontStyle = {
     BLUE_LIGHT:"#50597B",
     BLUE_DARK:"#252B44",
     SHADE_DARK:"#cccccc",
-    RED_DARK:"#900000",
+    RED_DARK:"#990000",
     SHADE:"#efefef"
 };
 
@@ -1532,7 +1535,7 @@ App.Input.prototype._renderBackground = function _renderBackground(highlight,r)
     var ColorTheme = App.ColorTheme;
 
     this.clear();
-    this.beginFill(highlight ? ColorTheme.INPUT_HIGHLIGHT : ColorTheme.DARK_SHADE);
+    this.beginFill(highlight ? ColorTheme.INPUT_HIGHLIGHT : ColorTheme.GREY_DARK);
     this.drawRoundedRect(0,0,this._width,this._height,Math.round(5 * r));
     this.beginFill(0xffffff);
     this.drawRoundedRect(Math.round(r),Math.round(r),this._width-Math.round(2 * r),this._height-Math.round(2 * r),Math.round(4 * r));
@@ -1951,9 +1954,9 @@ App.CalendarWeekRow.prototype._render = function _render()
         i = 0;
 
     this.clear();
-    this.beginFill(ColorTheme.LIGHT_SHADE);
+    this.beginFill(ColorTheme.GREY_LIGHT);
     this.drawRect(0,0,this._width,cellHeight);
-    this.beginFill(ColorTheme.BACKGROUND);
+    this.beginFill(ColorTheme.GREY);
 
     for (;i<daysInWeek;i++,index+=2)
     {
@@ -2183,9 +2186,9 @@ App.Calendar.prototype._render = function _render()
         i = 0;
 
     //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
-    GraphicUtils.drawRects(this,ColorTheme.BACKGROUND,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.DARK_SHADE,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.LIGHT_SHADE,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
 
     this._monthField.y = Math.round((dayLabelOffset - this._monthField.height) / 2);
 
@@ -2214,7 +2217,7 @@ App.Calendar.prototype._render = function _render()
     l = this._weekRows.length;
 
     this._separatorContainer.clear();
-    this._separatorContainer.beginFill(ColorTheme.BACKGROUND,1.0);
+    this._separatorContainer.beginFill(ColorTheme.GREY,1.0);
 
     for (;i<l;i++)
     {
@@ -2999,7 +3002,7 @@ App.Pane.prototype.destroy = function destroy()
 /**
  * @class InfiniteList
  * @extends DisplayObjectContainer
- * @param {Array.<number>} model
+ * @param {Array} model
  * @param {Function} itemClass
  * @param {string} direction
  * @param {number} width
@@ -3011,9 +3014,7 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
 {
     PIXI.DisplayObjectContainer.call(this);
 
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        Direction = App.Direction,
+    var Direction = App.Direction,
         item = new itemClass(0,model[0],pixelRatio),
         itemSize = direction === Direction.X ? item.boundingBox.width : item.boundingBox.height,
         itemCount = direction === Direction.X ? Math.ceil(width / itemSize) + 1 : Math.ceil(height / itemSize) + 1,
@@ -3024,7 +3025,7 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
     this.boundingBox = new PIXI.Rectangle(0,0,width,height);
     this.hitArea = this.boundingBox;
 
-    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
     this._model = model;
     this._itemClass = itemClass;//TODO use pool instead of classes?
     this._direction = direction;
@@ -3271,7 +3272,7 @@ App.InfiniteList.prototype._updateX = function _updateX(position)
         width = this._width,
         positionDifference = position - this._virtualPosition,
         itemScreenIndex = 0,
-        virtualIndex = 0,
+        virtualIndex = Math.floor(position / itemSize),
         xIndex = 0,
         modelIndex = 0,
         modelLength = this._model.length,
@@ -3289,8 +3290,6 @@ App.InfiniteList.prototype._updateX = function _updateX(position)
         {
             itemScreenIndex = -Math.floor(x / width);
             x += itemScreenIndex * l * itemSize;
-
-            virtualIndex = Math.floor(this._virtualPosition / itemSize);
             xIndex = Math.floor(x / itemSize);
 
             if (virtualIndex >= 0) modelIndex = (xIndex - (virtualIndex % modelLength)) % modelLength;
@@ -3320,7 +3319,7 @@ App.InfiniteList.prototype._updateY = function _updateY(position)
         height = this._height,
         positionDifference = position - this._virtualPosition,
         itemScreenIndex = 0,
-        virtualIndex = 0,
+        virtualIndex = Math.floor(position / itemSize),
         yIndex = 0,
         modelIndex = 0,
         modelLength = this._model.length,
@@ -3338,8 +3337,6 @@ App.InfiniteList.prototype._updateY = function _updateY(position)
         {
             itemScreenIndex = -Math.floor(y / height);
             y += itemScreenIndex * l * itemSize;
-
-            virtualIndex = Math.floor(this._virtualPosition / itemSize);
             yIndex = Math.floor(y / itemSize);
 
             if (virtualIndex >= 0) modelIndex = (yIndex - (virtualIndex % modelLength)) % modelLength;
@@ -3390,6 +3387,286 @@ App.InfiniteList.prototype._updateLayout = function _updateLayout(updatePosition
         if (updatePosition) this._updateY(this.y);
     }
 };
+
+/**
+ * Difference between VirtualList and InfiniteList is, that VirtualList doesn't repeat its items infinitely; it just scroll from first model to last.
+ * Also, if there are less models than items items would fill, then VirtualList will not fill whole size and will not scroll
+ *
+ * @class VirtualList
+ * @extends DisplayObjectContainer
+ * @param {Array} model
+ * @param {Function} itemClass
+ * @param {Object} itemOptions
+ * @param {string} direction
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.VirtualList = function VirtualList(model,itemClass,itemOptions,direction,width,height,pixelRatio)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    var Direction = App.Direction,
+        itemSize = direction === Direction.X ? itemOptions.width : itemOptions.height,
+        itemCount = Math.ceil(width / itemSize) + 1,
+        listSize = model.length * itemSize,
+        modelLength = model.length - 1,
+        item = null,
+        index = 0,
+        i = 0;
+
+    this.boundingBox = new PIXI.Rectangle(0,0,listSize,height);
+
+    if (direction === Direction.Y)
+    {
+        itemCount = Math.ceil(height / itemSize) + 1;
+        this.boundingBox.width = width;
+        this.boundingBox.height = listSize;
+    }
+
+    this._model = model;
+    this._itemClass = itemClass;
+    this._direction = direction;
+    this._width = width;
+    this._height = height;
+    this._pixelRatio = pixelRatio;
+    this._items = new Array(itemCount);
+    this._itemSize = itemSize;
+    this._virtualX = 0;
+    this._virtualY = 0;
+
+    for (;i<itemCount;i++,index++)
+    {
+        if(index > modelLength) index = 0;
+        item = new itemClass(index,model[index],itemOptions);
+
+        this._items[i] = item;
+        this.addChild(item);
+    }
+
+    this._updateLayout(false);
+};
+
+App.VirtualList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.VirtualList.prototype.constructor = App.VirtualList;
+
+/**
+ * Find and select item under point passed in
+ * @param {Point} point
+ */
+App.VirtualList.prototype.getItemUnderPoint = function getItemUnderPoint(point)
+{
+    var Direction = App.Direction,
+        i = 0,
+        l = this._items.length,
+        position = point.x,
+        itemSize = this._itemSize,
+        item = null,
+        itemPosition = 0;
+
+    if (this._direction === Direction.X)
+    {
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            itemPosition = item.x;
+
+            if (itemPosition <= position && itemPosition + itemSize > position) return item;
+        }
+    }
+    else if (this._direction === Direction.Y)
+    {
+        position = point.y;
+
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            itemPosition = item.y;
+
+            if (itemPosition <= position && itemPosition + itemSize > position) return item;
+        }
+    }
+
+    return null;
+};
+
+/**
+ * Update X position
+ * @param {number} position
+ * @private
+ */
+App.VirtualList.prototype.updateX = function updateX(position)
+{
+    position = Math.round(position);
+
+    var i = 0,
+        l = this._items.length,
+        positionDifference = position - this._virtualX,
+        virtualIndex = Math.floor(position / this._itemSize),
+        itemScreenIndex = 0,
+        xIndex = 0,
+        modelIndex = 0,
+        modelLength = this._model.length,
+        maxEnd = l - 2,
+        maxBeginning = modelLength - l,
+        moveToEnd = false,
+        moveToBeginning = false,
+        x = 0,
+        item = null;
+
+    this._virtualX = position;
+
+    for (;i<l;)
+    {
+        item = this._items[i++];
+        x = item.x + positionDifference;
+        moveToBeginning = x > this._height;
+        moveToEnd = x + this._itemSize < 0;
+
+        if (moveToBeginning || moveToEnd)
+        {
+            itemScreenIndex = -Math.floor(x / this._height);
+            x += itemScreenIndex * l * this._itemSize;
+            xIndex = Math.floor(x / this._itemSize);
+
+            if (virtualIndex >= 0) modelIndex = (xIndex - (virtualIndex % modelLength)) % modelLength;
+            else modelIndex = (xIndex - virtualIndex) % modelLength;
+            if (modelIndex < 0) modelIndex = modelLength + modelIndex;
+            else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
+
+            if ((moveToEnd && modelIndex > maxEnd) || (moveToBeginning && modelIndex < maxBeginning))
+            {
+                item.setModel(modelIndex,this._model[modelIndex]);
+            }
+            else
+            {
+                x = item.x + positionDifference;
+            }
+        }
+
+        item.x = x;
+    }
+};
+
+/**
+ * Update Y position
+ * @param {number} position
+ * @private
+ */
+App.VirtualList.prototype.updateY = function updateY(position)
+{
+    position = Math.round(position);
+
+    var i = 0,
+        l = this._items.length,
+        positionDifference = position - this._virtualY,
+        virtualIndex = Math.floor(position / this._itemSize),
+        itemScreenIndex = 0,
+        yIndex = 0,
+        modelIndex = 0,
+        modelLength = this._model.length,
+        maxEnd = l - 2,
+        maxBeginning = modelLength - l,
+        moveToEnd = false,
+        moveToBeginning = false,
+        y = 0,
+        item = null;
+
+    this._virtualY = position;
+
+    for (;i<l;)
+    {
+        item = this._items[i++];
+        y = item.y + positionDifference;
+        moveToBeginning = y > this._height;
+        moveToEnd = y + this._itemSize < 0;
+
+        if (moveToBeginning || moveToEnd)
+        {
+            itemScreenIndex = -Math.floor(y / this._height);
+            y += itemScreenIndex * l * this._itemSize;
+            yIndex = Math.floor(y / this._itemSize);
+
+            if (virtualIndex >= 0) modelIndex = (yIndex - (virtualIndex % modelLength)) % modelLength;
+            else modelIndex = (yIndex - virtualIndex) % modelLength;
+            if (modelIndex < 0) modelIndex = modelLength + modelIndex;
+            else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
+
+            if ((moveToEnd && modelIndex > maxEnd) || (moveToBeginning && modelIndex < maxBeginning))
+            {
+                item.setModel(modelIndex,this._model[modelIndex]);
+            }
+            else
+            {
+                y = item.y + positionDifference;
+            }
+        }
+
+        item.y = y;
+    }
+};
+
+/**
+ * Update layout
+ * @param {boolean} [updatePosition=false]
+ * @private
+ */
+App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
+{
+    var i = 0,
+        l = this._items.length,
+        item = null,
+        position = 0,
+        Direction = App.Direction;
+
+    if (this._direction === Direction.X)
+    {
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            item.x = position;
+            position = Math.round(position + this._itemSize);
+        }
+
+        if (updatePosition) this._updateX(this.x);
+    }
+    else if (this._direction === Direction.Y)
+    {
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            item.y = position;
+            position = Math.round(position + this._itemSize);
+        }
+
+        if (updatePosition) this._updateY(this.y);
+    }
+};
+
+/**
+ * Return virtual property instead of real one
+ *
+ * @property x
+ * @type Number
+ */
+Object.defineProperty(App.VirtualList.prototype,'x',{
+    get: function() {
+        return  this._virtualX;
+    }
+});
+
+/**
+ * Return virtual property instead of real one
+ *
+ * @property y
+ * @type Number
+ */
+Object.defineProperty(App.VirtualList.prototype,'y',{
+    get: function() {
+        return  this._virtualY;
+    }
+});
 
 /**
  * @class TileList
@@ -4181,7 +4458,7 @@ App.ListHeader.prototype._render = function _render()
         h = Math.round(30 * this._pixelRatio);
 
     GraphicUtils.drawRects(this,ColorTheme.BLUE,1,[0,0,this._width,h],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.DARK_BLUE,1,[0,h-1,this._width,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.BLUE_DARK,1,[0,h-1,this._width,1],false,true);
 
     this._textField.x = Math.round((this._width - this._textField.width) / 2);
     this._textField.y = Math.round((h - this._textField.height) / 2);
@@ -4221,7 +4498,7 @@ App.AddNewButton.prototype._render = function _render()
         padding = Math.round(10 * this._pixelRatio),
         x = 0;
 
-    App.GraphicUtils.drawRect(this,ColorTheme.LIGHT_SHADE,1,padding,0,this.boundingBox.width-padding*2,1);
+    App.GraphicUtils.drawRect(this,ColorTheme.GREY_LIGHT,1,padding,0,this.boundingBox.width-padding*2,1);
 
     this._icon.scale.x = this._iconResizeRatio;
     this._icon.scale.y = this._iconResizeRatio;
@@ -4231,7 +4508,7 @@ App.AddNewButton.prototype._render = function _render()
 
     this._icon.x = x;
     this._icon.y = Math.round((height - this._icon.height) / 2);
-    this._icon.tint = ColorTheme.DARK_SHADE;
+    this._icon.tint = ColorTheme.GREY_DARK;
 
     this._labelField.x = x + this._icon.width + gap;
     this._labelField.y = Math.round((height - this._labelField.height) / 2);
@@ -4483,8 +4760,8 @@ App.SelectTimeScreen.prototype._render = function _render()
         inputBgHeight = Math.round(60 * r),
         w = this._layout.width;
 
-    GraphicUtils.drawRects(this._inputBackground,ColorTheme.BACKGROUND,1,[0,0,w,inputBgHeight],true,false);
-    GraphicUtils.drawRects(this._inputBackground,ColorTheme.DARK_SHADE,1,[0,inputBgHeight-1,w,1],false,true);
+    GraphicUtils.drawRects(this._inputBackground,ColorTheme.GREY,1,[0,0,w,inputBgHeight],true,false);
+    GraphicUtils.drawRects(this._inputBackground,ColorTheme.GREY_DARK,1,[0,inputBgHeight-1,w,1],false,true);
 
     this._input.x = Math.round(10 * r);
     this._input.y = Math.round((inputBgHeight - this._input.height) / 2);
@@ -4640,9 +4917,9 @@ App.AccountButton.prototype._render = function _render()
         GraphicUtils = App.GraphicUtils,
         padding = Math.round(10 * this._layout.pixelRatio);
 
-    GraphicUtils.drawRects(this,ColorTheme.BACKGROUND,1,[0,0,this.boundingBox.width,this.boundingBox.height],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.LIGHT_SHADE,1,[padding,0,this.boundingBox.width-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.DARK_SHADE,1,[padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,this.boundingBox.width,this.boundingBox.height],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,this.boundingBox.width-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1],false,true);
 };
 
 /**
@@ -4792,14 +5069,14 @@ App.SubCategoryButton.prototype._render = function _render()
         h = this.boundingBox.height,
         padding = Math.round(10 * r);
 
-    GraphicUtils.drawRect(this._background,ColorTheme.SWIPE_BACKGROUND,1,0,0,w,h);
+    GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
 
     this._deleteLabel.x = Math.round(w - 50 * r);
     this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
 
-    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.BACKGROUND,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.LIGHT_SHADE,1,[padding,0,w-padding*2,1],false,false);
-    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.DARK_SHADE,1,[padding,h-1,w-padding*2,1],false,true);
+    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
 
     this._labelField.x = Math.round(20 * r);
     this._labelField.y = Math.round((h - this._labelField.height) / 2);
@@ -4989,9 +5266,9 @@ App.CategoryButtonSurface.prototype.render = function render(width,height,pixelR
         ColorTheme = App.ColorTheme,
         padding = Math.round(10 * pixelRatio);
 
-    GraphicUtils.drawRects(this,ColorTheme.BACKGROUND,1,[0,0,width,height],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.LIGHT_SHADE,1,[padding,0,width-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.DARK_SHADE,1,[padding,height-1,width-padding*2,1],false,true);
+    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,width,height],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,width-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,height-1,width-padding*2,1],false,true);
 
     GraphicUtils.drawRect(this._colorStripe,0xffcc00,1,0,0,Math.round(4 * pixelRatio),height);
 
@@ -5048,7 +5325,7 @@ App.CategoryButtonEdit.prototype._render = function _render()
 
     this._swipeSurface.render(w,h,pixelRatio);
 
-    App.GraphicUtils.drawRect(this._background,App.ColorTheme.SWIPE_BACKGROUND,1,0,0,w,h);
+    App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
 
     this._editLabel.x = Math.round(w - 50 * pixelRatio);
     this._editLabel.y = Math.round(18 * pixelRatio);
@@ -5125,7 +5402,7 @@ App.CategoryButtonExpand.prototype._render = function _render()
 
     this._surface.render(w,this.boundingBox.height,this._layout.pixelRatio);
 
-    App.GraphicUtils.drawRect(this._subCategoryList,App.ColorTheme.LIGHT_SHADE,1,0,0,w,this._subCategoryListHeight);
+    App.GraphicUtils.drawRect(this._subCategoryList,App.ColorTheme.GREY_LIGHT,1,0,0,w,this._subCategoryListHeight);
     this._subCategoryList.y = this._buttonHeight;
 };
 
@@ -5722,7 +5999,7 @@ App.IconSample.prototype._render = function _render()
     this._icon.scale.y = this._iconResizeRatio;
     this._icon.x = Math.round((size - this._icon.width) / 2);
     this._icon.y = Math.round((size - this._icon.height) / 2);
-    this._icon.tint = this._selected ? ColorTheme.BLUE : ColorTheme.DARK_SHADE;
+    this._icon.tint = this._selected ? ColorTheme.BLUE : ColorTheme.GREY_DARK;
 };
 
 /**
@@ -5861,8 +6138,8 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
     this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
 
-    GraphicUtils.drawRects(this._separators,ColorTheme.DARK_SHADE,1,[0,0,separatorWidth,1,0,colorListHeight,separatorWidth,1],true,false);
-    GraphicUtils.drawRects(this._separators,ColorTheme.LIGHT_SHADE,1,[0,1,separatorWidth,1,0,colorListHeight+1,separatorWidth,1],false,true);
+    GraphicUtils.drawRects(this._separators,ColorTheme.GREY_DARK,1,[0,0,separatorWidth,1,0,colorListHeight,separatorWidth,1],true,false);
+    GraphicUtils.drawRects(this._separators,ColorTheme.GREY_LIGHT,1,[0,1,separatorWidth,1,0,colorListHeight+1,separatorWidth,1],false,true);
     this._separators.x = padding;
     this._separators.y = inputFragmentHeight - 1;
 
@@ -5871,7 +6148,7 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._budget.x = padding;
     this._budget.y = this._budgetHeader.y + this._budgetHeader.height + Math.round(10 * r);
 
-    GraphicUtils.drawRect(this._background,ColorTheme.BACKGROUND,1,0,0,w,this._budget.y+this._budget.boundingBox.height+padding);
+    GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w,this._budget.y+this._budget.boundingBox.height+padding);
 };
 
 /**
@@ -6108,49 +6385,42 @@ App.EditCategoryScreen.prototype._getColorSamples = function _getColorSamples()
 /**
  * @class TransactionButton
  * @extends SwipeButton
- * @param {Category} model
- * @param {Object} layout
- * @param {Object} labelStyles
+ * @param {number} modelIndex
+ * @param {Object} model
+ * @param {{width:number,height:number,pixelRatio:number:labelStyles:Object}} options
  * @constructor
  */
-App.TransactionButton = function TransactionButton(model,layout,labelStyles)
+App.TransactionButton = function TransactionButton(modelIndex,model,options)
 {
-    App.SwipeButton.call(this,layout.width,Math.round(120*layout.pixelRatio));
+    App.SwipeButton.call(this,options.width,Math.round(120*options.pixelRatio));
 
     var Text = PIXI.Text,
-        Graphics = PIXI.Graphics;
+        Graphics = PIXI.Graphics,
+        editStyle = options.labelStyles.edit,
+        placeholder = "";
 
-    this.boundingBox = new App.Rectangle(0,0,layout.width,Math.round(70*layout.pixelRatio));
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
     this._model = model;
-    this._layout = layout;
-    this._isPending = model === 3;
+    this._modelIndex = modelIndex;
+    this._pixelRatio = options.pixelRatio;
+    this._labelStyles = options.labelStyles;
+    this._isPending = void 0;
 
     this._background = new Graphics();
-    this._copyLabel = new Text("Copy",labelStyles.edit);
-    this._editLabel = new Text("Edit",labelStyles.edit);
+    this._copyLabel = new Text("Copy",editStyle);
+    this._editLabel = new Text("Edit",editStyle);
     this._swipeSurface = new Graphics();
-    this._icon = PIXI.Sprite.fromFrame("transactions");
-
-    if (this._isPending)
-    {
-        this._accountField = new Text("Personal",labelStyles.accountPending);
-        this._categoryField = new Text("Cinema / Entertainment",labelStyles.accountPending);
-        this._amountField = new Text("100.00",labelStyles.amountPending);
-        this._dateField = new Text("Due by\n10/21/2014",labelStyles.datePending);
-    }
-    else
-    {
-        this._accountField = new Text("Personal",labelStyles.account);
-        this._categoryField = new Text("Cinema / Entertainment",labelStyles.account);
-        this._amountField = new Text("100.00",labelStyles.amount);
-        this._dateField = new Text("10/21/2014",labelStyles.date);
-    }
-
+    this._icon = PIXI.Sprite.fromFrame(model.iconName);
+    this._iconResizeRatio = Math.round(32 * this._pixelRatio) / this._icon.height;
+    this._accountField = new Text(placeholder,editStyle);
+    this._categoryField = new Text(placeholder,editStyle);
+    this._amountField = new Text(placeholder,editStyle);
+    this._dateField = new Text(placeholder,editStyle);
     this._pendingFlag = new Graphics();
-    this._pendingLabel = new Text("PENDING",labelStyles.pending);
+    this._pendingLabel = new Text("PENDING",this._labelStyles.pending);
 
-    this._render();
+    this._update(true);
 
     this._swipeSurface.addChild(this._icon);
     this._swipeSurface.addChild(this._accountField);
@@ -6158,7 +6428,6 @@ App.TransactionButton = function TransactionButton(model,layout,labelStyles)
     this._swipeSurface.addChild(this._amountField);
     this._swipeSurface.addChild(this._dateField);
     this._pendingFlag.addChild(this._pendingLabel);
-    if (this._isPending) this._swipeSurface.addChild(this._pendingFlag);
     this.addChild(this._background);
     this.addChild(this._copyLabel);
     this.addChild(this._editLabel);
@@ -6169,65 +6438,149 @@ App.TransactionButton.prototype = Object.create(App.SwipeButton.prototype);
 App.TransactionButton.prototype.constructor = App.TransactionButton;
 
 /**
- * Render
+ * Update
+ * @param {boolean} [updateAll=false]
  * @private
  */
-App.TransactionButton.prototype._render = function _render()
+App.TransactionButton.prototype._update = function _update(updateAll)
+{
+    var pending = this._model.pending;
+
+    this._accountField.setText(this._model.account);
+    this._amountField.setText(this._model.amount);
+    this._categoryField.setText(this._model.category);
+    this._dateField.setText(pending ? "Due by\n"+this._model.date : this._model.date);
+    this._icon.setTexture(PIXI.TextureCache[this._model.iconName]);
+
+    if (pending !== this._isPending)
+    {
+        if (pending)
+        {
+            this._accountField.setStyle(this._labelStyles.accountPending);
+            this._amountField.setStyle(this._labelStyles.amountPending);
+            this._categoryField.setStyle(this._labelStyles.accountPending);
+            this._dateField.setStyle(this._labelStyles.datePending);
+        }
+        else
+        {
+            this._accountField.setStyle(this._labelStyles.account);
+            this._amountField.setStyle(this._labelStyles.amount);
+            this._categoryField.setStyle(this._labelStyles.account);
+            this._dateField.setStyle(this._labelStyles.date);
+        }
+
+        this._render(updateAll,pending);
+        this._updateLayout(updateAll,pending);
+    }
+
+    this._isPending = pending;
+};
+
+/**
+ * Render
+ * @param {boolean} [renderAll=false]
+ * @param {boolean} pending
+ * @private
+ */
+App.TransactionButton.prototype._render = function _render(renderAll,pending)
 {
     var GraphicUtils = App.GraphicUtils,
         ColorTheme = App.ColorTheme,
-        r = this._layout.pixelRatio,
+        r = this._pixelRatio,
         w = this.boundingBox.width,
         h = this.boundingBox.height,
         swipeOptionWidth = Math.round(60 * r),
         colorStripeWidth = Math.round(4 * r),
         padding = Math.round(10 * r),
-        iconResizeRatio = Math.round(32 * r) / this._icon.height;
+        bgColor = ColorTheme.GREY,
+        lightColor = ColorTheme.GREY_LIGHT,
+        darkColor = ColorTheme.GREY_DARK;
 
-    GraphicUtils.drawRects(this._background,0x33CC33,1,[0,0,w-swipeOptionWidth,h],true,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.SWIPE_BACKGROUND,1,[w-swipeOptionWidth,0,swipeOptionWidth,h],false,true);
-
-    this._copyLabel.x = w - swipeOptionWidth * 2 + Math.round((swipeOptionWidth - this._copyLabel.width) / 2);
-    this._copyLabel.y = Math.round((h - this._copyLabel.height) / 2);
-    this._editLabel.x = w - swipeOptionWidth + Math.round((swipeOptionWidth - this._editLabel.width) / 2);
-    this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
-
-    if (this._isPending)
+    if (renderAll)
     {
-        GraphicUtils.drawRects(this._swipeSurface,0xff3366,1,[0,0,colorStripeWidth,h],true,false);
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.SWIPE_BACKGROUND,1,[colorStripeWidth,0,w-colorStripeWidth,h],false,false);
-        GraphicUtils.drawRects(this._swipeSurface,0xFF3300,1,[padding,0,w-padding*2,1],false,false);
-        GraphicUtils.drawRects(this._swipeSurface,0x990000,1,[padding,h-1,w-padding*2,1],false,true);
+        GraphicUtils.drawRects(this._background,ColorTheme.GREEN,1,[0,0,w-swipeOptionWidth,h],true,false);
+        GraphicUtils.drawRects(this._background,ColorTheme.RED,1,[w-swipeOptionWidth,0,swipeOptionWidth,h],false,true);
+
+        GraphicUtils.drawRect(this._pendingFlag,0x000000,1,0,0,Math.round(this._pendingLabel.width+10*r),Math.round(this._pendingLabel.height+6*r));
+    }
+
+    if (pending)
+    {
+        bgColor = ColorTheme.RED;
+        lightColor = ColorTheme.RED_LIGHT;
+        darkColor = ColorTheme.RED_DARK;
+
+        this._icon.tint = ColorTheme.RED_DARK;
+
+        if (!this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.addChild(this._pendingFlag);
     }
     else
     {
-        GraphicUtils.drawRects(this._swipeSurface,0xff3366,1,[0,0,colorStripeWidth,h],true,false);
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.BACKGROUND,1,[colorStripeWidth,0,w-colorStripeWidth,h],false,false);
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.LIGHT_SHADE,1,[padding,0,w-padding*2,1],false,false);
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.DARK_SHADE,1,[padding,h-1,w-padding*2,1],false,true);
+        this._icon.tint = ColorTheme.BLUE;
+
+        if (this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.removeChild(this._pendingFlag);
     }
 
-    this._icon.scale.x = iconResizeRatio;
-    this._icon.scale.y = iconResizeRatio;
-    this._icon.x = Math.round(20 * r);
-    this._icon.y = Math.round((h - this._icon.height) / 2);
-    this._icon.tint = this._isPending ? 0x990000 : ColorTheme.BLUE;
+    GraphicUtils.drawRects(this._swipeSurface,0xff3366,1,[0,0,colorStripeWidth,h],true,false);
+    GraphicUtils.drawRects(this._swipeSurface,bgColor,1,[colorStripeWidth,0,w-colorStripeWidth,h],false,false);
+    GraphicUtils.drawRects(this._swipeSurface,lightColor,1,[padding,0,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this._swipeSurface,darkColor,1,[padding,h-1,w-padding*2,1],false,true);
+};
 
-    this._accountField.x = Math.round(70 * r);
-    this._accountField.y = Math.round(7 * r);
-    this._amountField.x = Math.round(70 * r);
-    this._amountField.y = Math.round(26 * r);
-    this._categoryField.x = Math.round(70 * r);
-    this._categoryField.y = Math.round(52 * r);
+/**
+ * Update layout
+ * @param {boolean} [updateAll=false]
+ * @param {boolean} pending
+ * @private
+ */
+App.TransactionButton.prototype._updateLayout = function _updateLayout(updateAll,pending)
+{
+    var r = this._pixelRatio,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height,
+        swipeOptionWidth = Math.round(60 * r),
+        padding = Math.round(10 * r);
+
+    if (updateAll)
+    {
+        this._copyLabel.x = w - swipeOptionWidth * 2 + Math.round((swipeOptionWidth - this._copyLabel.width) / 2);
+        this._copyLabel.y = Math.round((h - this._copyLabel.height) / 2);
+        this._editLabel.x = w - swipeOptionWidth + Math.round((swipeOptionWidth - this._editLabel.width) / 2);
+        this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
+
+        this._icon.scale.x = this._iconResizeRatio;
+        this._icon.scale.y = this._iconResizeRatio;
+        this._icon.x = Math.round(20 * r);
+        this._icon.y = Math.round((h - this._icon.height) / 2);
+
+        this._accountField.x = Math.round(70 * r);
+        this._accountField.y = Math.round(7 * r);
+        this._amountField.x = Math.round(70 * r);
+        this._amountField.y = Math.round(26 * r);
+        this._categoryField.x = Math.round(70 * r);
+        this._categoryField.y = Math.round(52 * r);
+
+        this._pendingLabel.x = Math.round(5 * r);
+        this._pendingLabel.y = Math.round(4 * r);
+        this._pendingFlag.x = Math.round(w - padding - this._pendingFlag.width);
+        this._pendingFlag.y = Math.round(7 * r);
+    }
 
     this._dateField.x = Math.round(w - padding - this._dateField.width);
-    this._dateField.y = this._isPending ? Math.round(38 * r) : Math.round(52 * r);
+    this._dateField.y = pending ? Math.round(38 * r) : Math.round(52 * r);
+};
 
-    GraphicUtils.drawRect(this._pendingFlag,0x000000,1,0,0,Math.round(this._pendingLabel.width+10*r),Math.round(this._pendingLabel.height+6*r));
-    this._pendingLabel.x = Math.round(5 * r);
-    this._pendingLabel.y = Math.round(4 * r);
-    this._pendingFlag.x = Math.round(w - padding - this._pendingFlag.width);
-    this._pendingFlag.y = Math.round(7 * r);
+/**
+ * Set model
+ * @param {number} modelIndex
+ * @param {Object} model
+ */
+App.TransactionButton.prototype.setModel = function setModel(modelIndex,model)
+{
+    this._modelIndex = modelIndex;
+    this._model = model;
+
+    this._update(false);
 };
 
 /**
@@ -6253,36 +6606,36 @@ App.TransactionScreen = function TransactionScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
-    var TransactionButton = App.TransactionButton,
+    var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
-        labelStyles = {
-            edit:FontStyle.get(18,FontStyle.WHITE),
-            account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
-            amount:FontStyle.get(26,FontStyle.BLUE_DARK),
-            date:FontStyle.get(14,FontStyle.SHADE_DARK),
-            pending:FontStyle.get(12,FontStyle.WHITE),
-            accountPending:FontStyle.get(14,FontStyle.RED_DARK),
-            amountPending:FontStyle.get(26,FontStyle.WHITE),
-            datePending:FontStyle.get(14,FontStyle.WHITE,"right")
+        r = layout.pixelRatio,
+        w = layout.width,
+        h = layout.height,
+        buttonOptions = {
+            labelStyles:{
+                edit:FontStyle.get(18,FontStyle.WHITE),
+                account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
+                amount:FontStyle.get(26,FontStyle.BLUE_DARK),
+                date:FontStyle.get(14,FontStyle.SHADE_DARK),
+                pending:FontStyle.get(12,FontStyle.WHITE),
+                accountPending:FontStyle.get(14,FontStyle.RED_DARK),
+                amountPending:FontStyle.get(26,FontStyle.WHITE),
+                datePending:FontStyle.get(14,FontStyle.WHITE,"right")
+            },
+            width:w,
+            height:Math.round(70*r),
+            pixelRatio:r
         },
         i = 0,
-        l = 200,
-        button = null;
+        l = 50,//TODO don't fill whole screen if there too few items
+        transactions = new Array(l);
 
     this._interactiveButton = null;
-    this._buttons = new Array(l);
-    this._buttonList = new App.TileList(App.Direction.Y,layout.height);
-    //TODO create just screen*2 buttons and postpone creating the rest for later
-    //TODO ... or implement combination of TileList and InfiniteList?
-    for (;i<l;i++)
-    {
-        button = new TransactionButton(i,layout,labelStyles);
-        this._buttons[i] = button;
-        this._buttonList.add(button);
-    }
-    this._buttonList.updateLayout();
 
-    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
+    for (;i<l;i++) transactions[i] = {amount:100+i,account:"Personal",category:"Cinema / Entertainment",date:"10/21/2013",iconName:"transactions",pending:(i % 23) === 0};
+
+    this._buttonList = new App.VirtualList(transactions,App.TransactionButton,buttonOptions,App.Direction.Y,w,h,r);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
@@ -6322,10 +6675,10 @@ App.TransactionScreen.prototype.disable = function disable()
  */
 App.TransactionScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
 {
-    this._interactiveButton = this._getButtonUnderPosition(this.stage.getTouchPosition().y);
+    this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchPosition());
     if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
-    this._closeButtons(false);
+    //this._closeButtons(false);
 };
 
 /**
@@ -6356,34 +6709,6 @@ App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate
         button = this._buttons[i++];
         if (button !== this._interactiveButton) button.close(immediate);
     }
-};
-
-/**
- * Find button under point passed in
- * @param {Point} position
- * @private
- */
-App.TransactionScreen.prototype._getButtonUnderPosition = function _getButtonUnderPosition(position)
-{
-    var i = 0,
-        l = this._buttons.length,
-        height = 0,
-        buttonY = 0,
-        containerY = this.y + this._buttonList.y,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._buttons[i++];
-        buttonY = button.y + containerY;
-        height = button.boundingBox.height;
-        if (buttonY <= position && buttonY + height >= position)
-        {
-            return button;
-        }
-    }
-
-    return null;
 };
 
 /**
