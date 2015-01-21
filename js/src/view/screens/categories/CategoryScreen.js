@@ -11,9 +11,9 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 
     var CategoryButton = App.CategoryButtonExpand,
         ScrollPolicy = App.ScrollPolicy,
-        font = Math.round(18 * layout.pixelRatio)+"px HelveticaNeueCond",
-        nameLabelStyle = {font:font,fill:App.ColorTheme.sBLUE},
-        editLabelStyle = {font:font,fill:"#ffffff"},
+        FontStyle = App.FontStyle,
+        nameLabelStyle = FontStyle.get(18,FontStyle.BLUE),
+        editLabelStyle = FontStyle.get(18,FontStyle.WHITE),
         i = 0,
         l = this._model.length(),
         button = null;

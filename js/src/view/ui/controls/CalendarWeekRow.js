@@ -11,7 +11,7 @@ App.CalendarWeekRow = function CalendarWeekRow(week,currentDay,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
-    var fontStyle = Math.round(14 * pixelRatio)+"px HelveticaNeueCond",
+    var FontStyle = App.FontStyle,
         daysInWeek = week.length / 2,
         Text = PIXI.Text,
         index = 0,
@@ -23,8 +23,8 @@ App.CalendarWeekRow = function CalendarWeekRow(week,currentDay,width,pixelRatio)
     this._width = width;
     this._pixelRatio = pixelRatio;
 
-    this._textStyle = {font:fontStyle,fill:"#cccccc"};
-    this._selectedStyle = {font:fontStyle,fill:"#ffffff"};
+    this._textStyle = FontStyle.get(14,FontStyle.SHADE_DARK);
+    this._selectedStyle = FontStyle.get(14,FontStyle.WHITE);
     this._dateFields = new Array(7);
     this._selectedDayIndex = -1;
     this._highlightBackground = new PIXI.Graphics();

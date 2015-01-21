@@ -15,7 +15,7 @@ App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
     this._modelIndex = modelIndex;
     this._pixelRatio = pixelRatio;
     this._color = color;
-    this._label = new PIXI.Text(modelIndex,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#000000"});
+    this._label = new PIXI.Text(modelIndex,App.FontStyle.get(18,"#000000"));
     this._selected = false;
 
     this._render();

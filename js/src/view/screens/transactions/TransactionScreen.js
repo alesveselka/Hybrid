@@ -5,14 +5,14 @@ App.TransactionScreen = function TransactionScreen(model,layout)
     var TransactionButton = App.TransactionButton,
         FontStyle = App.FontStyle,
         labelStyles = {
-            edit:FontStyle.get(18,"#ffffff"),
-            account:FontStyle.get(14,"#50597B"),
-            amount:FontStyle.get(26,"#252B44"),
-            date:FontStyle.get(14,"#cccccc"),
-            pending:FontStyle.get(12,"#ffffff"),
-            accountPending:FontStyle.get(14,"#900000"),
-            amountPending:FontStyle.get(26,"#ffffff"),
-            datePending:FontStyle.get(14,"#ffffff","right")
+            edit:FontStyle.get(18,FontStyle.WHITE),
+            account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
+            amount:FontStyle.get(26,FontStyle.BLUE_DARK),
+            date:FontStyle.get(14,FontStyle.SHADE_DARK),
+            pending:FontStyle.get(12,FontStyle.WHITE),
+            accountPending:FontStyle.get(14,FontStyle.RED_DARK),
+            amountPending:FontStyle.get(26,FontStyle.WHITE),
+            datePending:FontStyle.get(14,FontStyle.WHITE,"right")
         },
         i = 0,
         l = 200,
@@ -22,6 +22,7 @@ App.TransactionScreen = function TransactionScreen(model,layout)
     this._buttons = new Array(l);
     this._buttonList = new App.TileList(App.Direction.Y,layout.height);
     //TODO create just screen*2 buttons and postpone creating the rest for later
+    //TODO ... or implement combination of TileList and InfiniteList?
     for (;i<l;i++)
     {
         button = new TransactionButton(i,layout,labelStyles);

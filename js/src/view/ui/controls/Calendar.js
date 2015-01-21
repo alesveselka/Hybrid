@@ -14,6 +14,7 @@ App.Calendar = function Calendar(date,width,pixelRatio)
         CalendarWeekRow = App.CalendarWeekRow,
         Text = PIXI.Text,
         DateUtils = App.DateUtils,
+        FontStyle = App.FontStyle,
         startOfWeek = App.Settings.getStartOfWeek(),
         month = DateUtils.getMonth(date,startOfWeek),
         dayLabels = DateUtils.getDayLabels(startOfWeek),
@@ -29,7 +30,7 @@ App.Calendar = function Calendar(date,width,pixelRatio)
     this._pixelRatio = pixelRatio;
     this._weekRowPosition = Math.round(81 * pixelRatio);
 
-    this._monthField = new PIXI.Text("",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:App.ColorTheme.sBLUE});
+    this._monthField = new PIXI.Text("",FontStyle.get(18,FontStyle.BLUE));
     this._prevButton = PIXI.Sprite.fromFrame("arrow-app");
     this._nextButton = PIXI.Sprite.fromFrame("arrow-app");
     this._dayLabelFields = new Array(daysInWeek);

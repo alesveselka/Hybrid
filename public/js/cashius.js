@@ -986,21 +986,6 @@ App.Collection.prototype.length = function length()
 };
 
 /**
- * ColorTheme
- * @type {{sBLUE:string,BLUE: number,DARK_BLUE:number, BACKGROUND: number, DARK_SHADE: number, LIGHT_SHADE: number,SWIPE_BACKGROUND:number,INPUT_HIGHLIGHT:number}}
- */
-App.ColorTheme = {
-    sBLUE:"#394264",//TODO move this to 'font object' pool directly?
-    BLUE:0x394264,
-    DARK_BLUE:0x252B44,
-    BACKGROUND:0xefefef,
-    DARK_SHADE:0xcccccc,
-    LIGHT_SHADE:0xffffff,
-    SWIPE_BACKGROUND:0xE53013,
-    INPUT_HIGHLIGHT:0x0099ff
-};
-
-/**
  * @class Settings
  * @type {{_startOfWeek: number, setStartOfWeek: Function,getStartOfWeek:Function}}
  */
@@ -1164,6 +1149,21 @@ App.ViewLocator = {
 };
 
 /**
+ * ColorTheme
+ * @enum {number}
+ * @type {{BLUE: number,DARK_BLUE:number, BACKGROUND: number, DARK_SHADE: number, LIGHT_SHADE: number,SWIPE_BACKGROUND:number,INPUT_HIGHLIGHT:number}}
+ */
+App.ColorTheme = {
+    BLUE:0x394264,
+    DARK_BLUE:0x252B44,
+    BACKGROUND:0xefefef,
+    DARK_SHADE:0xcccccc,
+    LIGHT_SHADE:0xffffff,
+    SWIPE_BACKGROUND:0xE53013,
+    INPUT_HIGHLIGHT:0x0099ff
+};
+
+/**
  * FontStyle
  * @type {{init: Function, get: Function}}
  */
@@ -1172,6 +1172,7 @@ App.FontStyle = {
      * @private
      */
     _pixelRatio:1,
+    _styles:[],
     /**
      * Init
      * @param {number} pixelRatio
@@ -1190,8 +1191,42 @@ App.FontStyle = {
      */
     get:function get(fontSize,color,align)
     {
-        return {font:Math.round(fontSize * this._pixelRatio)+"px HelveticaNeueCond",fill:color,align:align ? align : "left"};
-    }
+        var i = 0,
+            l = this._styles.length,
+            style = null;
+        console.log(l);
+        for (;i<l;)
+        {
+            style = this._styles[i++];
+            if (style.fontSize === fontSize && style.fill === color)
+            {
+                if (align)
+                {
+                    if (style.align === align)
+                    {
+                        return style;
+                    }
+                }
+                else
+                {
+                    return style;
+                }
+            }
+        }
+
+        style = {fontSize:fontSize,font:Math.round(fontSize * this._pixelRatio)+"px HelveticaNeueCond",fill:color,align:align ? align : "left"};
+        this._styles.push(style);
+
+        return style;
+    },
+
+    WHITE:"#ffffff",
+    BLUE:"#394264",
+    BLUE_LIGHT:"#50597B",
+    BLUE_DARK:"#252B44",
+    SHADE_DARK:"#cccccc",
+    RED_DARK:"#900000",
+    SHADE:"#efefef"
 };
 
 /**
@@ -1425,7 +1460,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
 {
     PIXI.Graphics.call(this);
 
-    var fontStyle = Math.round(fontSize * pixelRatio)+"px HelveticaNeueCond";
+    var FontStyle = App.FontStyle;
 
     this.boundingBox = new App.Rectangle(0,0,width,height);
 
@@ -1438,9 +1473,9 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
 
     this._eventDispatcher = new App.EventDispatcher(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._placeholder = placeholder;
-    this._placeholderStyle = {font:fontStyle,fill:"#efefef"};
+    this._placeholderStyle = FontStyle.get(fontSize,FontStyle.SHADE);
     this._currentStyle = this._placeholderStyle;
-    this._textStyle = {font:fontStyle,fill:App.ColorTheme.sBLUE};
+    this._textStyle = FontStyle.get(fontSize,FontStyle.BLUE);
     this._restrictPattern = null;
 
     this._text = "";
@@ -1867,7 +1902,7 @@ App.CalendarWeekRow = function CalendarWeekRow(week,currentDay,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
-    var fontStyle = Math.round(14 * pixelRatio)+"px HelveticaNeueCond",
+    var FontStyle = App.FontStyle,
         daysInWeek = week.length / 2,
         Text = PIXI.Text,
         index = 0,
@@ -1879,8 +1914,8 @@ App.CalendarWeekRow = function CalendarWeekRow(week,currentDay,width,pixelRatio)
     this._width = width;
     this._pixelRatio = pixelRatio;
 
-    this._textStyle = {font:fontStyle,fill:"#cccccc"};
-    this._selectedStyle = {font:fontStyle,fill:"#ffffff"};
+    this._textStyle = FontStyle.get(14,FontStyle.SHADE_DARK);
+    this._selectedStyle = FontStyle.get(14,FontStyle.WHITE);
     this._dateFields = new Array(7);
     this._selectedDayIndex = -1;
     this._highlightBackground = new PIXI.Graphics();
@@ -2083,6 +2118,7 @@ App.Calendar = function Calendar(date,width,pixelRatio)
         CalendarWeekRow = App.CalendarWeekRow,
         Text = PIXI.Text,
         DateUtils = App.DateUtils,
+        FontStyle = App.FontStyle,
         startOfWeek = App.Settings.getStartOfWeek(),
         month = DateUtils.getMonth(date,startOfWeek),
         dayLabels = DateUtils.getDayLabels(startOfWeek),
@@ -2098,7 +2134,7 @@ App.Calendar = function Calendar(date,width,pixelRatio)
     this._pixelRatio = pixelRatio;
     this._weekRowPosition = Math.round(81 * pixelRatio);
 
-    this._monthField = new PIXI.Text("",{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:App.ColorTheme.sBLUE});
+    this._monthField = new PIXI.Text("",FontStyle.get(18,FontStyle.BLUE));
     this._prevButton = PIXI.Sprite.fromFrame("arrow-app");
     this._nextButton = PIXI.Sprite.fromFrame("arrow-app");
     this._dayLabelFields = new Array(daysInWeek);
@@ -4123,7 +4159,7 @@ App.ListHeader = function ListHeader(label,width,pixelRatio)
 
     this._width = width;
     this._pixelRatio = pixelRatio;
-    this._textField = new PIXI.Text(label,{font:Math.round(12 * pixelRatio)+"px HelveticaNeueCond",fill:"#ffffff"});
+    this._textField = new PIXI.Text(label,App.FontStyle.get(12,App.FontStyle.WHITE));
 
     this._render();
 
@@ -4555,13 +4591,14 @@ App.AccountButton = function AccountButton(model,layout,index)
     this._model = model;
     this._layout = layout;
 
-    var pixelRatio = this._layout.pixelRatio,
+    var FontStyle = App.FontStyle,
+        pixelRatio = this._layout.pixelRatio,
         height = Math.round(70 * pixelRatio);
 
     this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
 
     //TODO move texts and their settings objects into pools?
-    this._nameLabel = new PIXI.Text(this._model.name+" "+index,{font:Math.round(24 * pixelRatio)+"px HelveticaNeueCond",fill:App.ColorTheme.sBLUE});
+    this._nameLabel = new PIXI.Text(this._model.name+" "+index,FontStyle.get(24,FontStyle.BLUE));
     this._nameLabel.x = Math.round(15 * pixelRatio);
     this._nameLabel.y = Math.round(15 * pixelRatio);
 
@@ -4720,16 +4757,16 @@ App.SubCategoryButton = function SubCategoryButton(label,width,pixelRatio)
 {
     App.SwipeButton.call(this,width,Math.round(80*pixelRatio));
 
-    var font = Math.round(14 * pixelRatio)+"px HelveticaNeueCond";
+    var FontStyle = App.FontStyle;
 
     this.boundingBox = new App.Rectangle(0,0,width,Math.round(40*pixelRatio));
 
     this._label = label;
     this._pixelRatio = pixelRatio;
     this._swipeSurface = new PIXI.Graphics();
-    this._labelField = new PIXI.Text(label,{font:font,fill:App.ColorTheme.sBLUE});
+    this._labelField = new PIXI.Text(label,FontStyle.get(14,FontStyle.BLUE));
     this._background = new PIXI.Graphics();
-    this._deleteLabel = new PIXI.Text("Delete",{font:font,fill:"#ffffff"});
+    this._deleteLabel = new PIXI.Text("Delete",FontStyle.get(14,FontStyle.WHITE));
 
     this._render();
 
@@ -4813,7 +4850,7 @@ App.SubCategoryList = function SubCategoryList(category,width,pixelRatio)
     this._subButtons = new Array(l);
     this._addNewButton = new App.AddNewButton(
         "ADD SUB-CATEGORY",
-        {font:Math.round(14 * pixelRatio)+"px HelveticaNeueCond",fill:"#cccccc"},
+        App.FontStyle.get(14,App.FontStyle.SHADE_DARK),
         width,
         Math.round(40 * pixelRatio),
         pixelRatio
@@ -5280,9 +5317,9 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 
     var CategoryButton = App.CategoryButtonExpand,
         ScrollPolicy = App.ScrollPolicy,
-        font = Math.round(18 * layout.pixelRatio)+"px HelveticaNeueCond",
-        nameLabelStyle = {font:font,fill:App.ColorTheme.sBLUE},
-        editLabelStyle = {font:font,fill:"#ffffff"},
+        FontStyle = App.FontStyle,
+        nameLabelStyle = FontStyle.get(18,FontStyle.BLUE),
+        editLabelStyle = FontStyle.get(18,FontStyle.WHITE),
         i = 0,
         l = this._model.length(),
         button = null;
@@ -5569,7 +5606,7 @@ App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
     this._modelIndex = modelIndex;
     this._pixelRatio = pixelRatio;
     this._color = color;
-    this._label = new PIXI.Text(modelIndex,{font:Math.round(18 * pixelRatio)+"px HelveticaNeueCond",fill:"#000000"});
+    this._label = new PIXI.Text(modelIndex,App.FontStyle.get(18,"#000000"));
     this._selected = false;
 
     this._render();
@@ -6219,14 +6256,14 @@ App.TransactionScreen = function TransactionScreen(model,layout)
     var TransactionButton = App.TransactionButton,
         FontStyle = App.FontStyle,
         labelStyles = {
-            edit:FontStyle.get(18,"#ffffff"),
-            account:FontStyle.get(14,"#50597B"),
-            amount:FontStyle.get(26,"#252B44"),
-            date:FontStyle.get(14,"#cccccc"),
-            pending:FontStyle.get(12,"#ffffff"),
-            accountPending:FontStyle.get(14,"#900000"),
-            amountPending:FontStyle.get(26,"#ffffff"),
-            datePending:FontStyle.get(14,"#ffffff","right")
+            edit:FontStyle.get(18,FontStyle.WHITE),
+            account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
+            amount:FontStyle.get(26,FontStyle.BLUE_DARK),
+            date:FontStyle.get(14,FontStyle.SHADE_DARK),
+            pending:FontStyle.get(12,FontStyle.WHITE),
+            accountPending:FontStyle.get(14,FontStyle.RED_DARK),
+            amountPending:FontStyle.get(26,FontStyle.WHITE),
+            datePending:FontStyle.get(14,FontStyle.WHITE,"right")
         },
         i = 0,
         l = 200,
@@ -6236,6 +6273,7 @@ App.TransactionScreen = function TransactionScreen(model,layout)
     this._buttons = new Array(l);
     this._buttonList = new App.TileList(App.Direction.Y,layout.height);
     //TODO create just screen*2 buttons and postpone creating the rest for later
+    //TODO ... or implement combination of TileList and InfiniteList?
     for (;i<l;i++)
     {
         button = new TransactionButton(i,layout,labelStyles);

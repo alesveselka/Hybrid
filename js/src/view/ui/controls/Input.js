@@ -13,7 +13,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
 {
     PIXI.Graphics.call(this);
 
-    var fontStyle = Math.round(fontSize * pixelRatio)+"px HelveticaNeueCond";
+    var FontStyle = App.FontStyle;
 
     this.boundingBox = new App.Rectangle(0,0,width,height);
 
@@ -26,9 +26,9 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
 
     this._eventDispatcher = new App.EventDispatcher(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._placeholder = placeholder;
-    this._placeholderStyle = {font:fontStyle,fill:"#efefef"};
+    this._placeholderStyle = FontStyle.get(fontSize,FontStyle.SHADE);
     this._currentStyle = this._placeholderStyle;
-    this._textStyle = {font:fontStyle,fill:App.ColorTheme.sBLUE};
+    this._textStyle = FontStyle.get(fontSize,FontStyle.BLUE);
     this._restrictPattern = null;
 
     this._text = "";

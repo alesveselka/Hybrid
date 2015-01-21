@@ -12,13 +12,14 @@ App.AccountButton = function AccountButton(model,layout,index)
     this._model = model;
     this._layout = layout;
 
-    var pixelRatio = this._layout.pixelRatio,
+    var FontStyle = App.FontStyle,
+        pixelRatio = this._layout.pixelRatio,
         height = Math.round(70 * pixelRatio);
 
     this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
 
     //TODO move texts and their settings objects into pools?
-    this._nameLabel = new PIXI.Text(this._model.name+" "+index,{font:Math.round(24 * pixelRatio)+"px HelveticaNeueCond",fill:App.ColorTheme.sBLUE});
+    this._nameLabel = new PIXI.Text(this._model.name+" "+index,FontStyle.get(24,FontStyle.BLUE));
     this._nameLabel.x = Math.round(15 * pixelRatio);
     this._nameLabel.y = Math.round(15 * pixelRatio);
 

@@ -11,7 +11,7 @@ App.ListHeader = function ListHeader(label,width,pixelRatio)
 
     this._width = width;
     this._pixelRatio = pixelRatio;
-    this._textField = new PIXI.Text(label,{font:Math.round(12 * pixelRatio)+"px HelveticaNeueCond",fill:"#ffffff"});
+    this._textField = new PIXI.Text(label,App.FontStyle.get(12,App.FontStyle.WHITE));
 
     this._render();
 

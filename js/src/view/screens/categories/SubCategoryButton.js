@@ -9,16 +9,16 @@ App.SubCategoryButton = function SubCategoryButton(label,width,pixelRatio)
 {
     App.SwipeButton.call(this,width,Math.round(80*pixelRatio));
 
-    var font = Math.round(14 * pixelRatio)+"px HelveticaNeueCond";
+    var FontStyle = App.FontStyle;
 
     this.boundingBox = new App.Rectangle(0,0,width,Math.round(40*pixelRatio));
 
     this._label = label;
     this._pixelRatio = pixelRatio;
     this._swipeSurface = new PIXI.Graphics();
-    this._labelField = new PIXI.Text(label,{font:font,fill:App.ColorTheme.sBLUE});
+    this._labelField = new PIXI.Text(label,FontStyle.get(14,FontStyle.BLUE));
     this._background = new PIXI.Graphics();
-    this._deleteLabel = new PIXI.Text("Delete",{font:font,fill:"#ffffff"});
+    this._deleteLabel = new PIXI.Text("Delete",FontStyle.get(14,FontStyle.WHITE));
 
     this._render();
 

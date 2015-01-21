@@ -24,7 +24,7 @@ App.SubCategoryList = function SubCategoryList(category,width,pixelRatio)
     this._subButtons = new Array(l);
     this._addNewButton = new App.AddNewButton(
         "ADD SUB-CATEGORY",
-        {font:Math.round(14 * pixelRatio)+"px HelveticaNeueCond",fill:"#cccccc"},
+        App.FontStyle.get(14,App.FontStyle.SHADE_DARK),
         width,
         Math.round(40 * pixelRatio),
         pixelRatio
