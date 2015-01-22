@@ -10,13 +10,13 @@ App.ReportAccountButton = function ReportAccountButton(model,width,height,pixelR
     this._height = height;
     this._pixelRatio = pixelRatio;
     this._background = new PIXI.Graphics();
-    this._nameField = new PIXI.Text(model,FontStyle.get(24,FontStyle.WHITE));
+    this._nameField = new PIXI.Text(model,FontStyle.get(22,FontStyle.WHITE));
     this._amountField = new PIXI.Text("1,560.00",FontStyle.get(16,FontStyle.WHITE));
     this._categoryList = new App.List(App.Direction.Y);
-    this._categoryList.add(new ReportCategoryButton("Entertainment",width,Math.round(30 * pixelRatio),pixelRatio),false);
-    this._categoryList.add(new ReportCategoryButton("Food",width,Math.round(30 * pixelRatio),pixelRatio),false);
-    this._categoryList.add(new ReportCategoryButton("Household",width,Math.round(30 * pixelRatio),pixelRatio),false);
-    this._categoryList.add(new ReportCategoryButton("Shopping",width,Math.round(30 * pixelRatio),pixelRatio),true);
+    this._categoryList.add(new ReportCategoryButton("Entertainment",width,Math.round(40 * pixelRatio),pixelRatio),false);
+    this._categoryList.add(new ReportCategoryButton("Food",width,Math.round(40 * pixelRatio),pixelRatio),false);
+    this._categoryList.add(new ReportCategoryButton("Household",width,Math.round(40 * pixelRatio),pixelRatio),false);
+    this._categoryList.add(new ReportCategoryButton("Shopping",width,Math.round(40 * pixelRatio),pixelRatio),true);
 
     this._render();
 

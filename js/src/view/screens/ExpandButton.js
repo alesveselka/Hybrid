@@ -22,7 +22,7 @@ App.ExpandButton = function ExpandButton(width,height)
 
     this._eventsRegistered = false;
     this._transitionState = App.TransitionState.CLOSED;
-    this._expandTween = new App.TweenProxy(0.4,App.Easing.outExpo,0,eventListenerPool);
+    this._expandTween = new App.TweenProxy(0.3,App.Easing.outExpo,0,eventListenerPool);
     this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
 

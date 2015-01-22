@@ -44,7 +44,7 @@ App.ReportCategoryButton.prototype._render = function _render()
     GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);
     GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,h-1,w,1],false,true);
 
-    this._nameField.x = padding;
+    this._nameField.x = Math.round(15 * this._pixelRatio);
     this._nameField.y = Math.round((h - this._nameField.height) / 2);
     this._percentField.x = Math.round(this._width * 0.7 - this._percentField.width);
     this._percentField.y = Math.round((h - this._percentField.height) / 2);

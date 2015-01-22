@@ -94,10 +94,7 @@ App.Pane.prototype.resize = function resize(width,height)
         this._contentHeight = Math.round(this._content.height);
         this._contentWidth = Math.round(this._content.width);
 
-        if (this._content.x > 0) this._updateX(0);
-        else if (this._content.y > 0) this._updateY(0);
-        else if (this._contentWidth > this._width && this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
-        else if (this._contentHeight > this._height && this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
+        this._checkPosition();
 
         this._updateScrollers();
     }
@@ -148,11 +145,7 @@ App.Pane.prototype.disable = function disable()
 
     this.cancelScroll();
 
-    // If content is pulled, make sure that the position is reset
-    if (this._content.x > 0) this._updateX(0);
-    else if (this._content.y > 0) this._updateY(0);
-    else if (this._contentWidth > this._width && this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
-    else if (this._contentHeight > this._height && this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
+    this._checkPosition();
 
     this.interactive = false;
 
@@ -556,10 +549,19 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
  */
 App.Pane.prototype._isContentPulled = function _isContentPulled()
 {
-    return this._content.x > 0 ||
-        this._content.y > 0 ||
-        this._content.y + this._contentHeight < this._height ||
-        this._content.x + this._contentWidth < this._width;
+    if (this._contentHeight > this._height)
+    {
+        if (this._content.y > 0) return true;
+        else if (this._content.y + this._contentHeight < this._height) return true;
+    }
+
+    if (this._contentWidth > this._width)
+    {
+        if (this._content.x > 0) return true;
+        else if (this._content.x + this._contentWidth < this._width) return true;
+    }
+
+    return false;
 };
 
 /**
@@ -609,6 +611,34 @@ App.Pane.prototype._updateScrollers = function _updateScrollers()
     }
 
     if (this._xScrollPolicy === ScrollPolicy.OFF && this._yScrollPolicy === ScrollPolicy.OFF) this._unRegisterEventListeners();
+    else this._registerEventListeners();
+};
+
+/**
+ * Check position
+ * @private
+ */
+App.Pane.prototype._checkPosition = function _checkPosition()
+{
+    if (this._contentHeight > this._height)
+    {
+        if (this._content.y > 0) this._updateY(0);
+        else if (this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
+    }
+    else if (this._contentHeight <= this._height)
+    {
+        if (this._content.y !== 0) this._updateY(0);
+    }
+
+    if (this._contentWidth > this._width)
+    {
+        if (this._content.x > 0) this._updateX(0);
+        else if (this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
+    }
+    else if (this._contentWidth <= this._width)
+    {
+        if (this._content.x !== 0) this._updateX(0);
+    }
 };
 
 /**

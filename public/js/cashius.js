@@ -2505,10 +2505,7 @@ App.Pane.prototype.resize = function resize(width,height)
         this._contentHeight = Math.round(this._content.height);
         this._contentWidth = Math.round(this._content.width);
 
-        if (this._content.x > 0) this._updateX(0);
-        else if (this._content.y > 0) this._updateY(0);
-        else if (this._contentWidth > this._width && this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
-        else if (this._contentHeight > this._height && this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
+        this._checkPosition();
 
         this._updateScrollers();
     }
@@ -2559,11 +2556,7 @@ App.Pane.prototype.disable = function disable()
 
     this.cancelScroll();
 
-    // If content is pulled, make sure that the position is reset
-    if (this._content.x > 0) this._updateX(0);
-    else if (this._content.y > 0) this._updateY(0);
-    else if (this._contentWidth > this._width && this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
-    else if (this._contentHeight > this._height && this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
+    this._checkPosition();
 
     this.interactive = false;
 
@@ -2967,10 +2960,19 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
  */
 App.Pane.prototype._isContentPulled = function _isContentPulled()
 {
-    return this._content.x > 0 ||
-        this._content.y > 0 ||
-        this._content.y + this._contentHeight < this._height ||
-        this._content.x + this._contentWidth < this._width;
+    if (this._contentHeight > this._height)
+    {
+        if (this._content.y > 0) return true;
+        else if (this._content.y + this._contentHeight < this._height) return true;
+    }
+
+    if (this._contentWidth > this._width)
+    {
+        if (this._content.x > 0) return true;
+        else if (this._content.x + this._contentWidth < this._width) return true;
+    }
+
+    return false;
 };
 
 /**
@@ -3020,6 +3022,34 @@ App.Pane.prototype._updateScrollers = function _updateScrollers()
     }
 
     if (this._xScrollPolicy === ScrollPolicy.OFF && this._yScrollPolicy === ScrollPolicy.OFF) this._unRegisterEventListeners();
+    else this._registerEventListeners();
+};
+
+/**
+ * Check position
+ * @private
+ */
+App.Pane.prototype._checkPosition = function _checkPosition()
+{
+    if (this._contentHeight > this._height)
+    {
+        if (this._content.y > 0) this._updateY(0);
+        else if (this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
+    }
+    else if (this._contentHeight <= this._height)
+    {
+        if (this._content.y !== 0) this._updateY(0);
+    }
+
+    if (this._contentWidth > this._width)
+    {
+        if (this._content.x > 0) this._updateX(0);
+        else if (this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
+    }
+    else if (this._contentWidth <= this._width)
+    {
+        if (this._content.x !== 0) this._updateX(0);
+    }
 };
 
 /**
@@ -3913,10 +3943,7 @@ App.TilePane.prototype.resize = function resize(width,height)
         this._contentHeight = Math.round(this._content.boundingBox.height);
         this._contentWidth = Math.round(this._content.boundingBox.width);
 
-        if (this._content.x > 0) this._updateX(0);
-        else if (this._content.y > 0) this._updateY(0);
-        else if (this._contentWidth > this._width && this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
-        else if (this._contentHeight > this._height && this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
+        this._checkPosition();
 
         this._updateScrollers();
     }
@@ -4795,7 +4822,7 @@ App.ExpandButton = function ExpandButton(width,height)
 
     this._eventsRegistered = false;
     this._transitionState = App.TransitionState.CLOSED;
-    this._expandTween = new App.TweenProxy(0.4,App.Easing.outExpo,0,eventListenerPool);
+    this._expandTween = new App.TweenProxy(0.3,App.Easing.outExpo,0,eventListenerPool);
     this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
 
@@ -6955,7 +6982,7 @@ App.ReportCategoryButton.prototype._render = function _render()
     GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);
     GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,h-1,w,1],false,true);
 
-    this._nameField.x = padding;
+    this._nameField.x = Math.round(15 * this._pixelRatio);
     this._nameField.y = Math.round((h - this._nameField.height) / 2);
     this._percentField.x = Math.round(this._width * 0.7 - this._percentField.width);
     this._percentField.y = Math.round((h - this._percentField.height) / 2);
@@ -6975,13 +7002,13 @@ App.ReportAccountButton = function ReportAccountButton(model,width,height,pixelR
     this._height = height;
     this._pixelRatio = pixelRatio;
     this._background = new PIXI.Graphics();
-    this._nameField = new PIXI.Text(model,FontStyle.get(24,FontStyle.WHITE));
+    this._nameField = new PIXI.Text(model,FontStyle.get(22,FontStyle.WHITE));
     this._amountField = new PIXI.Text("1,560.00",FontStyle.get(16,FontStyle.WHITE));
     this._categoryList = new App.List(App.Direction.Y);
-    this._categoryList.add(new ReportCategoryButton("Entertainment",width,Math.round(30 * pixelRatio),pixelRatio),false);
-    this._categoryList.add(new ReportCategoryButton("Food",width,Math.round(30 * pixelRatio),pixelRatio),false);
-    this._categoryList.add(new ReportCategoryButton("Household",width,Math.round(30 * pixelRatio),pixelRatio),false);
-    this._categoryList.add(new ReportCategoryButton("Shopping",width,Math.round(30 * pixelRatio),pixelRatio),true);
+    this._categoryList.add(new ReportCategoryButton("Entertainment",width,Math.round(40 * pixelRatio),pixelRatio),false);
+    this._categoryList.add(new ReportCategoryButton("Food",width,Math.round(40 * pixelRatio),pixelRatio),false);
+    this._categoryList.add(new ReportCategoryButton("Household",width,Math.round(40 * pixelRatio),pixelRatio),false);
+    this._categoryList.add(new ReportCategoryButton("Shopping",width,Math.round(40 * pixelRatio),pixelRatio),true);
 
     this._render();
 
