@@ -1,3 +1,10 @@
+/**
+ * @class TransactionScreen
+ * @extends Screen
+ * @param {Collection} model
+ * @param {Object} layout
+ * @constructor
+ */
 App.TransactionScreen = function TransactionScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
@@ -23,7 +30,7 @@ App.TransactionScreen = function TransactionScreen(model,layout)
             pixelRatio:r
         },
         i = 0,
-        l = 50,//TODO don't fill whole screen if there too few items
+        l = 50,
         transactions = new Array(l);
 
     this._interactiveButton = null;
@@ -74,7 +81,7 @@ App.TransactionScreen.prototype._swipeStart = function _swipeStart(preferScroll,
     this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchPosition());
     if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
-    //this._closeButtons(false);
+    this._closeButtons(false);
 };
 
 /**
@@ -97,12 +104,12 @@ App.TransactionScreen.prototype._swipeEnd = function _swipeEnd()
 App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate)
 {
     var i = 0,
-        l = this._buttons.length,
+        l = this._buttonList.children.length,
         button = null;
 
     for (;i<l;)
     {
-        button = this._buttons[i++];
+        button = this._buttonList.getChildAt(i++);
         if (button !== this._interactiveButton) button.close(immediate);
     }
 };

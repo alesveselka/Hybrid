@@ -3425,6 +3425,8 @@ App.VirtualList = function VirtualList(model,itemClass,itemOptions,direction,wid
         this.boundingBox.height = listSize;
     }
 
+    if (itemCount > model.length) itemCount = model.length;
+
     this._model = model;
     this._itemClass = itemClass;
     this._direction = direction;
@@ -3457,35 +3459,20 @@ App.VirtualList.prototype.constructor = App.VirtualList;
  */
 App.VirtualList.prototype.getItemUnderPoint = function getItemUnderPoint(point)
 {
-    var Direction = App.Direction,
-        i = 0,
+    var i = 0,
         l = this._items.length,
-        position = point.x,
+        property = this._direction === App.Direction.X ? "x" : "y",
+        position = point[property],
         itemSize = this._itemSize,
         item = null,
         itemPosition = 0;
 
-    if (this._direction === Direction.X)
+    for (;i<l;)
     {
-        for (;i<l;)
-        {
-            item = this._items[i++];
-            itemPosition = item.x;
+        item = this._items[i++];
+        itemPosition = item[property];
 
-            if (itemPosition <= position && itemPosition + itemSize > position) return item;
-        }
-    }
-    else if (this._direction === Direction.Y)
-    {
-        position = point.y;
-
-        for (;i<l;)
-        {
-            item = this._items[i++];
-            itemPosition = item.y;
-
-            if (itemPosition <= position && itemPosition + itemSize > position) return item;
-        }
+        if (itemPosition <= position && itemPosition + itemSize > position) return item;
     }
 
     return null;
@@ -3587,7 +3574,7 @@ App.VirtualList.prototype.updateY = function updateY(position)
             itemScreenIndex = -Math.floor(y / this._height);
             y += itemScreenIndex * l * this._itemSize;
             yIndex = Math.floor(y / this._itemSize);
-
+            //TODO optimize - maybe it doesn't have to be so complex if it doesn't repeat
             if (virtualIndex >= 0) modelIndex = (yIndex - (virtualIndex % modelLength)) % modelLength;
             else modelIndex = (yIndex - virtualIndex) % modelLength;
             if (modelIndex < 0) modelIndex = modelLength + modelIndex;
@@ -6602,6 +6589,13 @@ App.TransactionButton.prototype._getSwipePosition = function _getSwipePosition()
     return this._swipeSurface.x;
 };
 
+/**
+ * @class TransactionScreen
+ * @extends Screen
+ * @param {Collection} model
+ * @param {Object} layout
+ * @constructor
+ */
 App.TransactionScreen = function TransactionScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
@@ -6627,7 +6621,7 @@ App.TransactionScreen = function TransactionScreen(model,layout)
             pixelRatio:r
         },
         i = 0,
-        l = 50,//TODO don't fill whole screen if there too few items
+        l = 50,
         transactions = new Array(l);
 
     this._interactiveButton = null;
@@ -6678,7 +6672,7 @@ App.TransactionScreen.prototype._swipeStart = function _swipeStart(preferScroll,
     this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchPosition());
     if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
-    //this._closeButtons(false);
+    this._closeButtons(false);
 };
 
 /**
@@ -6701,12 +6695,12 @@ App.TransactionScreen.prototype._swipeEnd = function _swipeEnd()
 App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate)
 {
     var i = 0,
-        l = this._buttons.length,
+        l = this._buttonList.children.length,
         button = null;
 
     for (;i<l;)
     {
-        button = this._buttons[i++];
+        button = this._buttonList.getChildAt(i++);
         if (button !== this._interactiveButton) button.close(immediate);
     }
 };
