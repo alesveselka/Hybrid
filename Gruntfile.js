@@ -46,6 +46,7 @@ module.exports = function(grunt)
         "js/src/view/ui/containers/Pane.js",
         "js/src/view/ui/containers/InfiniteList.js",
         "js/src/view/ui/containers/VirtualList.js",
+        "js/src/view/ui/containers/List.js",
         "js/src/view/ui/containers/TileList.js",
         "js/src/view/ui/containers/TilePane.js",
         "js/src/view/ui/containers/ViewStack.js",
@@ -53,6 +54,7 @@ module.exports = function(grunt)
         "js/src/view/screens/ListHeader.js",
         "js/src/view/screens/AddNewButton.js",
         "js/src/view/screens/SwipeButton.js",
+        "js/src/view/screens/ExpandButton.js",
         "js/src/view/screens/time/SelectTimeScreen.js",
         "js/src/view/screens/accounts/AccountButton.js",
         "js/src/view/screens/accounts/AccountScreen.js",
@@ -67,6 +69,10 @@ module.exports = function(grunt)
         "js/src/view/screens/categories/EditCategoryScreen.js",
         "js/src/view/screens/transactions/TransactionButton.js",
         "js/src/view/screens/transactions/TransactionScreen.js",
+        "js/src/view/screens/report/SubCategoryReportList.js",
+        "js/src/view/screens/report/ReportCategoryButton.js",
+        "js/src/view/screens/report/ReportAccountButton.js",
+        "js/src/view/screens/report/ReportScreen.js",
         "js/src/view/ApplicationView.js",
         "js/src/tween/Easing.js",
         "js/src/tween/TweenProxy.js",
@@ -90,8 +96,8 @@ module.exports = function(grunt)
         },
         uglify:{
             options:{
-                banner:getBanner(),
-                mangle:true
+                banner:getBanner()/*,
+                mangle:{toplevel:true}*/
             },
             dist:{
                 files:{

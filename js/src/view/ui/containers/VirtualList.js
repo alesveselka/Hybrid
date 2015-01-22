@@ -118,12 +118,12 @@ App.VirtualList.prototype.updateX = function updateX(position)
     {
         item = this._items[i++];
         x = item.x + positionDifference;
-        moveToBeginning = x > this._height;
+        moveToBeginning = x > this._width;
         moveToEnd = x + this._itemSize < 0;
 
         if (moveToBeginning || moveToEnd)
         {
-            itemScreenIndex = -Math.floor(x / this._height);
+            itemScreenIndex = -Math.floor(x / this._width);
             x += itemScreenIndex * l * this._itemSize;
             xIndex = Math.floor(x / this._itemSize);
 
@@ -184,7 +184,7 @@ App.VirtualList.prototype.updateY = function updateY(position)
             itemScreenIndex = -Math.floor(y / this._height);
             y += itemScreenIndex * l * this._itemSize;
             yIndex = Math.floor(y / this._itemSize);
-            //TODO optimize - maybe it doesn't have to be so complex if it doesn't repeat
+
             if (virtualIndex >= 0) modelIndex = (yIndex - (virtualIndex % modelLength)) % modelLength;
             else modelIndex = (yIndex - virtualIndex) % modelLength;
             if (modelIndex < 0) modelIndex = modelLength + modelIndex;

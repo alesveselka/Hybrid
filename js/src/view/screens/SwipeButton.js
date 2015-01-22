@@ -15,7 +15,7 @@ App.SwipeButton = function SwipeButton(width,openOffset)
     this._dragFriction = 0.5;
     this._snapForce = 0.5;
     this._openOffset = openOffset;
-    this._open = false;
+    this._isOpen = false;
     this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
 };
 
@@ -75,12 +75,12 @@ App.SwipeButton.prototype.swipeStart = function swipeStart(direction)
 
     if (!this._interactiveState)
     {
-        if (!this._open && direction === Direction.LEFT)
+        if (!this._isOpen && direction === Direction.LEFT)
         {
             this._interactiveState = InteractiveState.SWIPING;
             this._enableInteraction();
         }
-        else if (this._open && direction === Direction.RIGHT)
+        else if (this._isOpen && direction === Direction.RIGHT)
         {
             this._interactiveState = InteractiveState.SNAPPING;
             this._enableInteraction();
@@ -102,7 +102,7 @@ App.SwipeButton.prototype.swipeEnd = function swipeEnd()
  */
 App.SwipeButton.prototype._swipe = function _swipe()
 {
-    if (this.stage && !this._open)
+    if (this.stage && !this._isOpen)
     {
         var x = this.stage.getTouchPosition().x;
 
@@ -126,7 +126,7 @@ App.SwipeButton.prototype._snap = function _snap()
     {
         if (result >= -this._openOffset)
         {
-            this._open = true;
+            this._isOpen = true;
             this._disableInteraction();
 
             this._updateSwipePosition(-this._openOffset);
@@ -141,7 +141,7 @@ App.SwipeButton.prototype._snap = function _snap()
     {
         if (result >= -1)
         {
-            this._open = false;
+            this._isOpen = false;
             this._disableInteraction();
 
             this._updateSwipePosition(0);
@@ -159,12 +159,12 @@ App.SwipeButton.prototype._snap = function _snap()
  */
 App.SwipeButton.prototype.close = function close(immediate)
 {
-    if (this._open)
+    if (this._isOpen)
     {
         if (immediate)
         {
             this._updateSwipePosition(0);
-            this._open = false;
+            this._isOpen = false;
         }
         else
         {

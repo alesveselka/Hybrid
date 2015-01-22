@@ -187,7 +187,7 @@ App.CategoryScreen.prototype._onButtonLayoutUpdate = function _onButtonLayoutUpd
 
 /**
  * On button transition complete
- * @param {CategoryButtonExpand} button
+ * @param {App.ExpandButton} button
  * @private
  */
 App.CategoryScreen.prototype._onButtonTransitionComplete = function _onButtonTransitionComplete(button)

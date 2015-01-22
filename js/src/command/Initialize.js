@@ -146,6 +146,7 @@ App.Initialize.prototype._initView = function _initView()
     PIXI.CanvasTinter.tintMethod = PIXI.CanvasTinter.tintWithOverlay;
 
     //context.webkitImageSmoothingEnabled = context.mozImageSmoothingEnabled = true;
+    context.lineCap = "square";
 
     App.FontStyle.init(pixelRatio);
 

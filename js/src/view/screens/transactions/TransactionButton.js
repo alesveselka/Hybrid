@@ -89,6 +89,8 @@ App.TransactionButton.prototype._update = function _update(updateAll)
         this._updateLayout(updateAll,pending);
     }
 
+    this.close(true);
+
     this._isPending = pending;
 };
 

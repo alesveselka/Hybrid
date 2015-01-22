@@ -266,6 +266,60 @@ App.GraphicUtils = {
         for (;i<l;) graphics.drawRect(data[i++],data[i++],data[i++],data[i++]);
 
         if (end) graphics.endFill();
+    },
+    /**
+     * Draw arc
+     * @param {PIXI.Graphics} graphics
+     * @param {PIXI.Point} center
+     * @param {number} width
+     * @param {number} height
+     * @param {number} thickness
+     * @param {number} startAngle
+     * @param {number} endAngle
+     * @param {number} smoothSteps
+     * @param {number} lineColor
+     * @param {number} lineAlpha
+     * @param {number} lineThickness
+     * @param {number} fillColor
+     * @param {number} fillAlpha
+     */
+    drawArc:function drawArc(graphics,center,width,height,thickness,startAngle,endAngle,smoothSteps,lineColor,lineAlpha,lineThickness,fillColor,fillAlpha)
+    {
+        startAngle -= 90;
+        endAngle -= 90;
+
+        var angle = startAngle,
+            degToRad = Math.PI / 180,
+            radians = angle * degToRad,
+            radiusX = width / 2,
+            radiusY = height / 2,
+            centerX = center.x,
+            centerY = center.y,
+            i = 0;
+
+        graphics.clear();
+        graphics.lineStyle(lineThickness,lineColor,lineAlpha);
+        graphics.beginFill(fillColor,fillAlpha);
+        graphics.moveTo(centerX+Math.cos(radians)*radiusX,centerY+Math.sin(radians)*radiusY);
+
+        for (;i<smoothSteps;)
+        {
+            angle = startAngle + ((endAngle - startAngle) / smoothSteps) * i++;
+            radians = angle * degToRad;
+            graphics.lineTo(centerX+Math.cos(radians)*radiusX,centerY+Math.sin(radians)*radiusY);
+        }
+
+        radians = endAngle * degToRad;
+        graphics.lineTo(centerX+Math.cos(radians)*radiusX,centerY+Math.sin(radians)*radiusY);
+
+        for (i=smoothSteps;i>=0;)
+        {
+            angle = startAngle + ((endAngle - startAngle) / smoothSteps) * i--;
+            radians = angle * degToRad;
+            graphics.lineTo(centerX+Math.cos(radians)*(radiusX-thickness),centerY+Math.sin(radians)*(radiusY-thickness));
+        }
+
+        graphics.endFill();
     }
 };
 
@@ -463,14 +517,15 @@ App.Direction = {
 /**
  * Screen Name
  * @enum {number}
- * @return {{ACCOUNT:number,CATEGORY:number,SELECT_TIME:number,EDIT_CATEGORY:number,TRANSACTIONS:number}}
+ * @return {{ACCOUNT:number,CATEGORY:number,SELECT_TIME:number,EDIT_CATEGORY:number,TRANSACTIONS:number,REPORT:number}}
  */
 App.ScreenName = {
     ACCOUNT:0,
     CATEGORY:1,
     SELECT_TIME:2,
     EDIT_CATEGORY:3,
-    TRANSACTIONS:4
+    TRANSACTIONS:4,
+    REPORT:5
 };
 
 /**
@@ -3508,12 +3563,12 @@ App.VirtualList.prototype.updateX = function updateX(position)
     {
         item = this._items[i++];
         x = item.x + positionDifference;
-        moveToBeginning = x > this._height;
+        moveToBeginning = x > this._width;
         moveToEnd = x + this._itemSize < 0;
 
         if (moveToBeginning || moveToEnd)
         {
-            itemScreenIndex = -Math.floor(x / this._height);
+            itemScreenIndex = -Math.floor(x / this._width);
             x += itemScreenIndex * l * this._itemSize;
             xIndex = Math.floor(x / this._itemSize);
 
@@ -3574,7 +3629,7 @@ App.VirtualList.prototype.updateY = function updateY(position)
             itemScreenIndex = -Math.floor(y / this._height);
             y += itemScreenIndex * l * this._itemSize;
             yIndex = Math.floor(y / this._itemSize);
-            //TODO optimize - maybe it doesn't have to be so complex if it doesn't repeat
+
             if (virtualIndex >= 0) modelIndex = (yIndex - (virtualIndex % modelLength)) % modelLength;
             else modelIndex = (yIndex - virtualIndex) % modelLength;
             if (modelIndex < 0) modelIndex = modelLength + modelIndex;
@@ -3656,32 +3711,30 @@ Object.defineProperty(App.VirtualList.prototype,'y',{
 });
 
 /**
- * @class TileList
+ * @class List
  * @extends DisplayObjectContainer
  * @param {string} direction
- * @param {number} windowSize
  * @constructor
  */
-App.TileList = function TileList(direction,windowSize)
+App.List = function List(direction)
 {
     PIXI.DisplayObjectContainer.call(this);
 
-    this._direction = direction;
-    this._windowSize = windowSize;
-    this._items = [];
-
     this.boundingBox = new App.Rectangle();
+
+    this._direction = direction;
+    this._items = [];
 };
 
-App.TileList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.TileList.prototype.constructor = App.TileList;
+App.List.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.List.prototype.constructor = App.List;
 
 /**
  * Add item
  * @param {DisplayObject} item
  * @param {boolean} [updateLayout=false]
  */
-App.TileList.prototype.add = function add(item,updateLayout)
+App.List.prototype.add = function add(item,updateLayout)
 {
     this._items[this._items.length] = item;
 
@@ -3689,6 +3742,60 @@ App.TileList.prototype.add = function add(item,updateLayout)
 
     if (updateLayout) this.updateLayout();
 };
+
+/**
+ * Update layout
+ */
+App.List.prototype.updateLayout = function updateLayout()
+{
+    var i = 0,
+        l = this._items.length,
+        item = null,
+        position = 0,
+        Direction = App.Direction;
+
+    if (this._direction === Direction.X)
+    {
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            item.x = position;
+            position = Math.round(position + item.boundingBox.width);
+        }
+
+        this.boundingBox.width = position;
+        this.boundingBox.height = item.boundingBox.height;
+    }
+    else if (this._direction === Direction.Y)
+    {
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            item.y = position;
+            position = Math.round(position + item.boundingBox.height);
+        }
+
+        this.boundingBox.height = position;
+        this.boundingBox.width = item.boundingBox.width;
+    }
+};
+
+/**
+ * @class TileList
+ * @extends List
+ * @param {string} direction
+ * @param {number} windowSize
+ * @constructor
+ */
+App.TileList = function TileList(direction,windowSize)
+{
+    App.List.call(this,direction);
+
+    this._windowSize = windowSize;
+};
+
+App.TileList.prototype = Object.create(App.List.prototype);
+App.TileList.prototype.constructor = App.TileList;
 
 /**
  * Update X position
@@ -3744,45 +3851,13 @@ App.TileList.prototype.updateY = function updateY(position)
  */
 App.TileList.prototype.updateLayout = function updateLayout(updatePosition)
 {
-    var i = 0,
-        l = this._items.length,
-        child = null,
-        position = 0,
-        Direction = App.Direction;
+    App.List.prototype.updateLayout.call(this);
 
-    if (this._direction === Direction.X)
+    if (updatePosition)
     {
-        for (;i<l;)
-        {
-            child = this._items[i++];
-            child.x = position;
-            position = Math.round(position + child.boundingBox.width);
-        }
-
-        this.boundingBox.width = position;
-        this.boundingBox.height = child.boundingBox.height;
-
-        if (updatePosition) this.updateY(this.x);
+        if (this._direction === App.Direction.X) this.updateX(this.x);
+        else if (this._direction === App.Direction.Y) this.updateY(this.y);
     }
-    else if (this._direction === Direction.Y)
-    {
-        for (;i<l;)
-        {
-            child = this._items[i++];
-            child.y = position;
-            position = Math.round(position + child.boundingBox.height);
-        }
-
-        this.boundingBox.height = position;
-        this.boundingBox.width = child.boundingBox.width;
-
-        if (updatePosition) this.updateY(this.y);
-    }
-};
-
-App.TileList.prototype.destroy = function destroy()
-{
-    //TODO implement
 };
 
 /**
@@ -4518,7 +4593,7 @@ App.SwipeButton = function SwipeButton(width,openOffset)
     this._dragFriction = 0.5;
     this._snapForce = 0.5;
     this._openOffset = openOffset;
-    this._open = false;
+    this._isOpen = false;
     this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
 };
 
@@ -4578,12 +4653,12 @@ App.SwipeButton.prototype.swipeStart = function swipeStart(direction)
 
     if (!this._interactiveState)
     {
-        if (!this._open && direction === Direction.LEFT)
+        if (!this._isOpen && direction === Direction.LEFT)
         {
             this._interactiveState = InteractiveState.SWIPING;
             this._enableInteraction();
         }
-        else if (this._open && direction === Direction.RIGHT)
+        else if (this._isOpen && direction === Direction.RIGHT)
         {
             this._interactiveState = InteractiveState.SNAPPING;
             this._enableInteraction();
@@ -4605,7 +4680,7 @@ App.SwipeButton.prototype.swipeEnd = function swipeEnd()
  */
 App.SwipeButton.prototype._swipe = function _swipe()
 {
-    if (this.stage && !this._open)
+    if (this.stage && !this._isOpen)
     {
         var x = this.stage.getTouchPosition().x;
 
@@ -4629,7 +4704,7 @@ App.SwipeButton.prototype._snap = function _snap()
     {
         if (result >= -this._openOffset)
         {
-            this._open = true;
+            this._isOpen = true;
             this._disableInteraction();
 
             this._updateSwipePosition(-this._openOffset);
@@ -4644,7 +4719,7 @@ App.SwipeButton.prototype._snap = function _snap()
     {
         if (result >= -1)
         {
-            this._open = false;
+            this._isOpen = false;
             this._disableInteraction();
 
             this._updateSwipePosition(0);
@@ -4662,12 +4737,12 @@ App.SwipeButton.prototype._snap = function _snap()
  */
 App.SwipeButton.prototype.close = function close(immediate)
 {
-    if (this._open)
+    if (this._isOpen)
     {
         if (immediate)
         {
             this._updateSwipePosition(0);
-            this._open = false;
+            this._isOpen = false;
         }
         else
         {
@@ -4694,6 +4769,243 @@ App.SwipeButton.prototype._updateSwipePosition = function _updateSwipePosition(p
 App.SwipeButton.prototype._getSwipePosition = function _getSwipePosition()
 {
     // Abstract
+};
+
+/**
+ * @class ExpandButton
+ * @extends DisplayObjectContainer
+ * @param {number} width
+ * @param {number} height
+ * @constructor
+ */
+App.ExpandButton = function ExpandButton(width,height)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        eventListenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
+
+    this.boundingBox = new App.Rectangle(0,0,width,height);
+
+    this._content = null;
+    this._contentHeight = height;
+    this._buttonHeight = height;
+    this._mask = new PIXI.Graphics();
+
+    this._eventsRegistered = false;
+    this._transitionState = App.TransitionState.CLOSED;
+    this._expandTween = new App.TweenProxy(0.4,App.Easing.outExpo,0,eventListenerPool);
+    this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+
+    App.GraphicUtils.drawRect(this._mask,0xff0000,1,0,0,width,height);
+
+    this.mask = this._mask;
+    this.addChild(this._mask);
+};
+
+App.ExpandButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.ExpandButton.prototype.constructor = App.ExpandButton;
+
+/**
+ * Set content
+ * @param {Object} content
+ */
+App.ExpandButton.prototype._setContent = function _setContent(content)
+{
+    this._content = content;
+    //this._contentHeight = this._content.boundingBox.height;
+    this._contentHeight = this._content.height;
+
+    this._content.visible = false;
+    this._content.y = this._buttonHeight;
+};
+
+/**
+ * Enable interaction
+ * @private
+ */
+App.ExpandButton.prototype._registerEventListeners = function _registerEventListeners()
+{
+    if (!this._eventsRegistered)
+    {
+        this._eventsRegistered = true;
+
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._expandTween.addEventListener(App.EventType.COMPLETE,this,this._onTransitionComplete);
+    }
+};
+
+/**
+ * Disable interaction
+ * @private
+ */
+App.ExpandButton.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    this._expandTween.removeEventListener(App.EventType.COMPLETE,this,this._onTransitionComplete);
+
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._eventsRegistered = false;
+};
+
+/**
+ * Tick handler
+ * @private
+ */
+App.ExpandButton.prototype._onTick = function _onTick()
+{
+    if (this._expandTween.isRunning()) this._updateTransition();
+};
+
+/**
+ * Update transition
+ * @private
+ */
+App.ExpandButton.prototype._updateTransition = function _updateTransition()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.OPENING)
+    {
+        this.boundingBox.height = Math.round(this._buttonHeight + this._contentHeight * this._expandTween.progress);
+    }
+    else if (this._transitionState === TransitionState.CLOSING)
+    {
+        this.boundingBox.height = Math.round(this._buttonHeight + this._contentHeight * (1 - this._expandTween.progress));
+    }
+
+    this._updateMask();
+    this._eventDispatcher.dispatchEvent(App.EventType.LAYOUT_UPDATE);
+};
+
+/**
+ * On transition complete
+ * @private
+ */
+App.ExpandButton.prototype._onTransitionComplete = function _onTransitionComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.OPENING)
+    {
+        this._transitionState = TransitionState.OPEN;
+
+        this.boundingBox.height = this._buttonHeight + this._contentHeight;
+    }
+    else if (this._transitionState === TransitionState.CLOSING)
+    {
+        this._transitionState = TransitionState.CLOSED;
+
+        this.boundingBox.height = this._buttonHeight;
+
+        this._content.visible = false;
+    }
+
+    this._unRegisterEventListeners();
+
+    this._updateMask();
+    this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
+};
+
+/**
+ * Re-draw mask
+ * @private
+ */
+App.ExpandButton.prototype._updateMask = function _updateMask()
+{
+    App.GraphicUtils.drawRect(this._mask,0xff0000,1,0,0,this.boundingBox.width,this.boundingBox.height);
+};
+
+/**
+ * Click handler
+ * @param {Point} position
+ */
+App.ExpandButton.prototype.onClick = function onClick(position)
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING) this.open();
+    else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING) this.close();
+
+    //TODO pass in click point and determine action accordingly, dispatch 'COMPLETE' if there is no action
+};
+
+/**
+ * Check if its open
+ * @returns {boolean}
+ */
+App.ExpandButton.prototype.isOpen = function isOpen()
+{
+    return this._transitionState !== App.TransitionState.CLOSED;
+};
+
+/**
+ * Open
+ */
+App.ExpandButton.prototype.open = function open()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
+    {
+        this._registerEventListeners();
+
+        this._content.visible = true;
+
+        this._transitionState = TransitionState.OPENING;
+
+        this._expandTween.restart();
+    }
+};
+
+/**
+ * Close
+ * @param {boolean} [immediate=false]
+ */
+App.ExpandButton.prototype.close = function close(immediate)
+{
+    //TODO implement 'immediate' close
+
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
+    {
+        this._registerEventListeners();
+
+        this._transitionState = TransitionState.CLOSING;
+
+        this._expandTween.start(true);
+    }
+    else
+    {
+        // Already closed - but dispatch event so parent can cancel its processes
+        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
+    }
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.ExpandButton.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.ExpandButton.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };
 
 /**
@@ -5339,7 +5651,7 @@ App.CategoryButtonEdit.prototype._getSwipePosition = function _getSwipePosition(
 
 /**
  * @class CategoryButtonExpand
- * @extends DisplayObjectContainer
+ * @extends ExpandButton
  * @param {Category} model
  * @param {Object} layout
  * @param {{font:string,fill:string}} nameLabelStyle
@@ -5347,36 +5659,21 @@ App.CategoryButtonEdit.prototype._getSwipePosition = function _getSwipePosition(
  */
 App.CategoryButtonExpand = function CategoryButtonExpand(model,layout,nameLabelStyle)
 {
-    PIXI.DisplayObjectContainer.call(this);
-
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        eventListenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
-
-    this.boundingBox = new App.Rectangle(0,0,layout.width,Math.round(50*layout.pixelRatio));
+    App.ExpandButton.call(this,layout.width,Math.round(50 * layout.pixelRatio));
 
     this._model = model;
     this._layout = layout;
-    this._eventsRegistered = false;
-    this._transitionState = App.TransitionState.CLOSED;
-    this._buttonHeight = this.boundingBox.height;
-    this._subCategoryListHeight = Math.round(150 * layout.pixelRatio);//TODO temporary
-
-    this._openCloseTween = new App.TweenProxy(0.4,App.Easing.outExpo,0,eventListenerPool);
-    this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
-    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-
     this._surface = new App.CategoryButtonSurface(model.icon,model.name,nameLabelStyle);
     this._subCategoryList = new PIXI.Graphics();
-    this._subCategoryList.visible = false;
 
     this._render();
 
+    this._setContent(this._subCategoryList);
     this.addChild(this._subCategoryList);
     this.addChild(this._surface);
 };
 
-App.CategoryButtonExpand.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.CategoryButtonExpand.prototype = Object.create(App.ExpandButton.prototype);
 App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
 
 /**
@@ -5389,183 +5686,7 @@ App.CategoryButtonExpand.prototype._render = function _render()
 
     this._surface.render(w,this.boundingBox.height,this._layout.pixelRatio);
 
-    App.GraphicUtils.drawRect(this._subCategoryList,App.ColorTheme.GREY_LIGHT,1,0,0,w,this._subCategoryListHeight);
-    this._subCategoryList.y = this._buttonHeight;
-};
-
-/**
- * Enable interaction
- * @private
- */
-App.CategoryButtonExpand.prototype._registerEventListeners = function _registerEventListeners()
-{
-    if (!this._eventsRegistered)
-    {
-        this._eventsRegistered = true;
-
-        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-
-        this._openCloseTween.addEventListener(App.EventType.COMPLETE,this,this._onTransitionComplete);
-    }
-};
-
-/**
- * Disable interaction
- * @private
- */
-App.CategoryButtonExpand.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
-{
-    this._openCloseTween.removeEventListener(App.EventType.COMPLETE,this,this._onTransitionComplete);
-
-    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._eventsRegistered = false;
-};
-
-/**
- * Tick handler
- * @private
- */
-App.CategoryButtonExpand.prototype._onTick = function _onTick()
-{
-    if (this._openCloseTween.isRunning()) this._updateTransition();
-};
-
-/**
- * Update transition
- * @private
- */
-App.CategoryButtonExpand.prototype._updateTransition = function _updateTransition()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.OPENING)
-    {
-        this.boundingBox.height = Math.round(this._buttonHeight + this._subCategoryListHeight * this._openCloseTween.progress);
-    }
-    else if (this._transitionState === TransitionState.CLOSING)
-    {
-        this.boundingBox.height = Math.round(this._buttonHeight + this._subCategoryListHeight * (1 - this._openCloseTween.progress));
-    }
-
-    this._eventDispatcher.dispatchEvent(App.EventType.LAYOUT_UPDATE);
-};
-
-/**
- * On transition complete
- * @private
- */
-App.CategoryButtonExpand.prototype._onTransitionComplete = function _onTransitionComplete()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.OPENING)
-    {
-        this._transitionState = TransitionState.OPEN;
-
-        this.boundingBox.height = this._buttonHeight + this._subCategoryListHeight;
-    }
-    else if (this._transitionState === TransitionState.CLOSING)
-    {
-        this._transitionState = TransitionState.CLOSED;
-
-        this.boundingBox.height = this._buttonHeight;
-
-        this._subCategoryList.visible = false;
-    }
-
-    this._unRegisterEventListeners();
-
-    this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
-};
-
-/**
- * Click handler
- * @param {Point} position
- */
-App.CategoryButtonExpand.prototype.onClick = function onClick(position)
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING) this.open();
-    else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING) this.close();
-
-    //TODO pass in click point and determine action accordingly, dispatch 'COMPLETE' if there is no action
-};
-
-/**
- * Check if its open
- * @returns {boolean}
- */
-App.CategoryButtonExpand.prototype.isOpen = function isOpen()
-{
-    return this._transitionState !== App.TransitionState.CLOSED;
-};
-
-/**
- * Open
- */
-App.CategoryButtonExpand.prototype.open = function open()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
-    {
-        this._registerEventListeners();
-
-        this._subCategoryList.visible = true;
-
-        this._transitionState = TransitionState.OPENING;
-
-        this._openCloseTween.restart();
-    }
-};
-
-/**
- * Close
- * @param {boolean} [immediate=false]
- */
-App.CategoryButtonExpand.prototype.close = function close(immediate)
-{
-    //TODO implement 'immediate' close
-
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
-    {
-        this._registerEventListeners();
-
-        this._transitionState = TransitionState.CLOSING;
-
-        this._openCloseTween.start(true);
-    }
-    else
-    {
-        // Already closed - but dispatch event so parent can cancel its processes
-        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
-    }
-};
-
-/**
- * Add event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.CategoryButtonExpand.prototype.addEventListener = function addEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.addEventListener(eventType,scope,listener);
-};
-
-/**
- * Remove event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.CategoryButtonExpand.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.removeEventListener(eventType,scope,listener);
+    App.GraphicUtils.drawRect(this._subCategoryList,App.ColorTheme.GREY_LIGHT,1,0,0,w,300);
 };
 
 /**
@@ -5757,7 +5878,7 @@ App.CategoryScreen.prototype._onButtonLayoutUpdate = function _onButtonLayoutUpd
 
 /**
  * On button transition complete
- * @param {CategoryButtonExpand} button
+ * @param {App.ExpandButton} button
  * @private
  */
 App.CategoryScreen.prototype._onButtonTransitionComplete = function _onButtonTransitionComplete(button)
@@ -6460,6 +6581,8 @@ App.TransactionButton.prototype._update = function _update(updateAll)
         this._updateLayout(updateAll,pending);
     }
 
+    this.close(true);
+
     this._isPending = pending;
 };
 
@@ -6633,8 +6756,6 @@ App.TransactionScreen = function TransactionScreen(model,layout)
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
-
-    this._swipeEnabled = true;
 };
 
 App.TransactionScreen.prototype = Object.create(App.Screen.prototype);
@@ -6649,6 +6770,8 @@ App.TransactionScreen.prototype.enable = function enable()
 
     this._pane.resetScroll();
     this._pane.enable();
+
+    this._swipeEnabled = true;
 };
 
 /**
@@ -6659,6 +6782,8 @@ App.TransactionScreen.prototype.disable = function disable()
     App.Screen.prototype.disable.call(this);
 
     this._pane.disable();
+
+    this._swipeEnabled = false;
 };
 
 /**
@@ -6705,6 +6830,391 @@ App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate
     }
 };
 
+App.SubCategoryReportList = function SubCategoryReportList(model,width,pixelRatio)
+{
+    PIXI.Graphics.call(this);
+
+    var FontStyle = App.FontStyle,
+        Text = PIXI.Text,
+        i = 0,
+        l = 3,//Number of sub-categories
+        item = null,
+        textField = null;
+
+    this._model = [{name:"Cinema",percent:"24",price:"50.00"},{name:"Theatre",percent:"71",price:"176.50"},{name:"Gallery",percent:"5",price:"87.00"}];
+    this._width = width;
+    this._itemHeight = Math.round(30 * pixelRatio);
+    this._pixelRatio = pixelRatio;
+    this._nameFields = new Array(l);
+    this._percentFields = new Array(l);
+    this._priceFields = new Array(l);
+
+    for (;i<l;i++)
+    {
+        item = this._model[i];
+        textField = new Text(item.name,FontStyle.get(14,FontStyle.BLUE));
+        this._nameFields[i] = textField;
+        this.addChild(textField);
+        textField = new Text(item.percent,FontStyle.get(14,FontStyle.GREY_DARK));
+        this._percentFields[i] = textField;
+        this.addChild(textField);
+        textField = new Text(item.price+" %",FontStyle.get(14,FontStyle.BLUE));
+        this._priceFields[i] = textField;
+        this.addChild(textField);
+    }
+
+    this.boundingBox = new App.Rectangle(0,0,this._width,this._itemHeight*l);
+
+    this._render();
+};
+
+App.SubCategoryReportList.prototype = Object.create(PIXI.Graphics.prototype);
+App.SubCategoryReportList.prototype.constructor = App.SubCategoryReportList;
+
+/**
+ * Render
+ * @private
+ */
+App.SubCategoryReportList.prototype._render = function _render()
+{
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        padding = Math.round(10 * this._pixelRatio),
+        w = this._width - padding * 2,
+        h = this.boundingBox.height,
+        percentOffset = Math.round(this._width * 0.7),
+        i = 0,
+        l = 3,
+        y = 0,
+        textField = null;
+
+    GraphicUtils.drawRects(this,0xffffff,1,[0,0,this._width,h],true,false);
+
+    for (;i<l;i++)
+    {
+        textField = this._nameFields[i];
+        y = Math.round(this._itemHeight * i + (this._itemHeight - textField.height) / 2);
+        textField.x = padding;
+        textField.y = y;
+        textField = this._percentFields[i];
+        textField.x = Math.round(percentOffset - textField.width);
+        textField.y = y;
+        textField = this._priceFields[i];
+        textField.x = Math.round(this._width - padding - textField.width);
+        textField.y = y;
+
+        if (i > 0) GraphicUtils.drawRects(this,ColorTheme.RED,1,[0,this._itemHeight*i,w,1],false,false);
+    }
+
+    GraphicUtils.drawRects(this,0xff3366,1,[0,0,Math.round(2 * this._pixelRatio),h],false,true);
+};
+
+App.ReportCategoryButton = function ReportCategoryButton(model,width,height,pixelRatio)
+{
+    App.ExpandButton.call(this,width,height);
+
+    var FontStyle = App.FontStyle;
+
+    this._model = model;
+    this._width = width;
+    this._height = height;
+    this._pixelRatio = pixelRatio;
+    this._background = new PIXI.Graphics();
+    this._nameField = new PIXI.Text(model,FontStyle.get(18,FontStyle.BLUE));
+    this._priceField = new PIXI.Text("1,560.00",FontStyle.get(14,FontStyle.BLUE));
+    this._percentField = new PIXI.Text("24 %",FontStyle.get(16,FontStyle.SHADE_DARK));
+    this._subList = new App.SubCategoryReportList(null,width,pixelRatio);
+
+    this._render();
+
+    this._setContent(this._subList);
+    this.addChild(this._subList);
+    this.addChild(this._background);
+    this.addChild(this._nameField);
+    this.addChild(this._priceField);
+    this.addChild(this._percentField);
+};
+
+App.ReportCategoryButton.prototype = Object.create(App.ExpandButton.prototype);
+App.ReportCategoryButton.prototype.constructor = App.ReportCategoryButton;
+
+/**
+ * Render
+ * @private
+ */
+App.ReportCategoryButton.prototype._render = function _render()
+{
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        padding = Math.round(10 * this._pixelRatio),
+        w = this._width - padding * 2,
+        h = this.boundingBox.height;
+
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,this._width,h],true,false);
+    GraphicUtils.drawRects(this._background,0xff3300,1,[0,0,Math.round(4 * this._pixelRatio),h],false,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,h-1,w,1],false,true);
+
+    this._nameField.x = padding;
+    this._nameField.y = Math.round((h - this._nameField.height) / 2);
+    this._percentField.x = Math.round(this._width * 0.7 - this._percentField.width);
+    this._percentField.y = Math.round((h - this._percentField.height) / 2);
+    this._priceField.x = Math.round(this._width - padding - this._priceField.width);
+    this._priceField.y = Math.round((h - this._priceField.height) / 2);
+};
+
+App.ReportAccountButton = function ReportAccountButton(model,width,height,pixelRatio)
+{
+    App.ExpandButton.call(this,width,height);
+
+    var FontStyle = App.FontStyle,
+        ReportCategoryButton = App.ReportCategoryButton;
+
+    this._model = model;
+    this._width = width;
+    this._height = height;
+    this._pixelRatio = pixelRatio;
+    this._background = new PIXI.Graphics();
+    this._nameField = new PIXI.Text(model,FontStyle.get(24,FontStyle.WHITE));
+    this._amountField = new PIXI.Text("1,560.00",FontStyle.get(16,FontStyle.WHITE));
+    this._categoryList = new App.List(App.Direction.Y);
+    this._categoryList.add(new ReportCategoryButton("Entertainment",width,Math.round(30 * pixelRatio),pixelRatio),false);
+    this._categoryList.add(new ReportCategoryButton("Food",width,Math.round(30 * pixelRatio),pixelRatio),false);
+    this._categoryList.add(new ReportCategoryButton("Household",width,Math.round(30 * pixelRatio),pixelRatio),false);
+    this._categoryList.add(new ReportCategoryButton("Shopping",width,Math.round(30 * pixelRatio),pixelRatio),true);
+
+    this._render();
+
+    this._setContent(this._categoryList);
+    this.addChild(this._categoryList);
+    this.addChild(this._background);
+    this.addChild(this._nameField);
+    this.addChild(this._amountField);
+};
+
+App.ReportAccountButton.prototype = Object.create(App.ExpandButton.prototype);
+App.ReportAccountButton.prototype.constructor = App.ReportAccountButton;
+
+/**
+ * Render
+ * @private
+ */
+App.ReportAccountButton.prototype._render = function _render()
+{
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme;
+
+    GraphicUtils.drawRects(this._background,ColorTheme.BLUE,1,[0,0,this._width,this._height],true,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.BLUE_DARK,1,[0,this._height-1,this._width,1],false,true);
+
+    this._nameField.x = Math.round(10 * this._pixelRatio);
+    this._nameField.y = Math.round((this._height - this._nameField.height) / 2);
+
+    this._amountField.x = Math.round(this._width - this._amountField.width - 10 * this._pixelRatio);
+    this._amountField.y = Math.round((this._height - this._amountField.height) / 2);
+};
+
+/**
+ * @class ReportScreen
+ * @extends Screen
+ * @param {Collection} model
+ * @param {Object} layout
+ * @constructor
+ */
+App.ReportScreen = function ReportScreen(model,layout)
+{
+    App.Screen.call(this,model,layout,0.4);
+
+    var ReportAccountButton = App.ReportAccountButton,
+        ScrollPolicy = App.ScrollPolicy;
+
+    this._chart = new PIXI.Graphics();
+    App.GraphicUtils.drawArc(this._chart,new PIXI.Point(150,150),200,200,34,0,3.6*66,40,0x000000,.5,10,0xff0000,1);
+
+    this._buttonList = new App.TileList(App.Direction.Y,layout.height);
+    this._buttonList.add(new ReportAccountButton("Private",layout.width,Math.round(40*layout.pixelRatio),layout.pixelRatio),false);
+    this._buttonList.add(new ReportAccountButton("Travel",layout.width,Math.round(40*layout.pixelRatio),layout.pixelRatio),false);
+    this._buttonList.add(new ReportAccountButton("Business",layout.width,Math.round(40*layout.pixelRatio),layout.pixelRatio),true);
+
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
+    this._pane.setContent(this._buttonList);
+
+    this._buttonsInTransition = [];
+    this._layoutDirty = false;
+
+    //this.addChild(this._chart);
+    this.addChild(this._pane);
+};
+
+App.ReportScreen.prototype = Object.create(App.Screen.prototype);
+App.ReportScreen.prototype.constructor = App.ReportScreen;
+
+/**
+ * Enable
+ */
+App.ReportScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._pane.resetScroll();
+    this._pane.enable();
+};
+
+/**
+ * Disable
+ */
+App.ReportScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._pane.disable();
+};
+
+/**
+ * On tick
+ * @private
+ */
+App.ReportScreen.prototype._onTick = function _onTick()
+{
+    App.Screen.prototype._onTick.call(this);
+
+    if (this._layoutDirty) this._updateLayout();
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.ReportScreen.prototype._closeButtons = function _closeButtons(immediate)
+{
+    var i = 0,
+        l = this._buttonList.children.length,
+        button = null,
+        EventType = App.EventType;
+
+    for (;i<l;)
+    {
+        button = this._buttonList.getChildAt(i++);
+        if (button !== this._interactiveButton && button.isOpen())
+        {
+            if (this._buttonsInTransition.indexOf(button) === -1)
+            {
+                this._buttonsInTransition.push(button);
+
+                button.addEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
+                button.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+            }
+
+            button.close(immediate);
+        }
+    }
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.ReportScreen.prototype._onClick = function _onClick()
+{
+    var position = this.stage.getTouchData().getLocalPosition(this),
+        EventType = App.EventType;
+
+    this._interactiveButton = this._getButtonUnderPoint(position);
+
+    if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
+    {
+        this._buttonsInTransition.push(this._interactiveButton);
+
+        this._interactiveButton.addEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
+        this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+    }
+
+    this._interactiveButton.onClick(position);
+    this._pane.cancelScroll();
+
+    //this._closeButtons();
+};
+
+/**
+ * On button layout update
+ * @private
+ */
+App.ReportScreen.prototype._onButtonLayoutUpdate = function _onButtonLayoutUpdate()
+{
+    this._layoutDirty = true;
+};
+
+/**
+ * On button transition complete
+ * @param {App.ExpandButton} button
+ * @private
+ */
+App.ReportScreen.prototype._onButtonTransitionComplete = function _onButtonTransitionComplete(button)
+{
+    var i = 0,
+        l = this._buttonsInTransition.length,
+        EventType = App.EventType;
+
+    button.removeEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
+    button.removeEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+
+    for (;i<l;i++)
+    {
+        if (button === this._buttonsInTransition[i])
+        {
+            this._buttonsInTransition.splice(i,1);
+            break;
+        }
+    }
+
+    if (this._buttonsInTransition.length === 0)
+    {
+        this._interactiveButton = null;
+
+        this._layoutDirty = false;
+        this._updateLayout();
+    }
+};
+
+/**
+ * Update layout
+ * @private
+ */
+App.ReportScreen.prototype._updateLayout = function _updateLayout()
+{
+    this._buttonList.updateLayout(true);
+    this._pane.resize();
+};
+
+/**
+ * Find button under point passed in
+ * @param {Point} point
+ * @private
+ */
+App.ReportScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoint(point)
+{
+    var i = 0,
+        l = this._buttonList.children.length,
+        y = point.y,
+        height = 0,
+        buttonY = 0,
+        containerY = this.y + this._buttonList.y,
+        button = null;
+
+    for (;i<l;)
+    {
+        button = this._buttonList.getChildAt(i++);
+        buttonY = button.y + containerY;
+        height = button.boundingBox.height;
+        if (buttonY <= y && buttonY + height >= y)
+        {
+            return button;
+        }
+    }
+
+    return null;
+};
+
 /**
  * @class ApplicationView
  * @extends DisplayObjectContainer
@@ -6745,9 +7255,10 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.CategoryScreen(categories,this._layout),
         new App.SelectTimeScreen(null,this._layout),
         new App.EditCategoryScreen(null,this._layout),
-        new App.TransactionScreen(null,this._layout)
+        new App.TransactionScreen(null,this._layout),
+        new App.ReportScreen(null,this._layout)
     ]);
-    this._screenStack.selectChildByIndex(App.ScreenName.TRANSACTIONS);//TODO move this into separate command?
+    this._screenStack.selectChildByIndex(App.ScreenName.REPORT);//TODO move this into separate command?
     this._screenStack.show();
 
     this.addChild(this._background);
@@ -7573,6 +8084,7 @@ App.Initialize.prototype._initView = function _initView()
     PIXI.CanvasTinter.tintMethod = PIXI.CanvasTinter.tintWithOverlay;
 
     //context.webkitImageSmoothingEnabled = context.mozImageSmoothingEnabled = true;
+    context.lineCap = "square";
 
     App.FontStyle.init(pixelRatio);
 

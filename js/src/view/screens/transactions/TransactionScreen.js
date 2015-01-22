@@ -42,8 +42,6 @@ App.TransactionScreen = function TransactionScreen(model,layout)
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
-
-    this._swipeEnabled = true;
 };
 
 App.TransactionScreen.prototype = Object.create(App.Screen.prototype);
@@ -58,6 +56,8 @@ App.TransactionScreen.prototype.enable = function enable()
 
     this._pane.resetScroll();
     this._pane.enable();
+
+    this._swipeEnabled = true;
 };
 
 /**
@@ -68,6 +68,8 @@ App.TransactionScreen.prototype.disable = function disable()
     App.Screen.prototype.disable.call(this);
 
     this._pane.disable();
+
+    this._swipeEnabled = false;
 };
 
 /**
