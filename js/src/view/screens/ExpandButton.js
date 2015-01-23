@@ -22,7 +22,7 @@ App.ExpandButton = function ExpandButton(width,height)
 
     this._eventsRegistered = false;
     this._transitionState = App.TransitionState.CLOSED;
-    this._expandTween = new App.TweenProxy(0.3,App.Easing.outExpo,0,eventListenerPool);
+    this._expandTween = new App.TweenProxy(0.4,App.Easing.outExpo,0,eventListenerPool);
     this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
 
@@ -42,8 +42,7 @@ App.ExpandButton.prototype.constructor = App.ExpandButton;
 App.ExpandButton.prototype._setContent = function _setContent(content)
 {
     this._content = content;
-    //this._contentHeight = this._content.boundingBox.height;
-    this._contentHeight = this._content.height;
+    this._contentHeight = this._content.boundingBox ? this._content.boundingBox.height : this._content.height;
 
     this._content.visible = false;
     this._content.y = this._buttonHeight;
@@ -93,18 +92,9 @@ App.ExpandButton.prototype._onTick = function _onTick()
  */
 App.ExpandButton.prototype._updateTransition = function _updateTransition()
 {
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.OPENING)
-    {
-        this.boundingBox.height = Math.round(this._buttonHeight + this._contentHeight * this._expandTween.progress);
-    }
-    else if (this._transitionState === TransitionState.CLOSING)
-    {
-        this.boundingBox.height = Math.round(this._buttonHeight + this._contentHeight * (1 - this._expandTween.progress));
-    }
-
+    this._updateBounds(false);
     this._updateMask();
+
     this._eventDispatcher.dispatchEvent(App.EventType.LAYOUT_UPDATE);
 };
 
@@ -119,22 +109,52 @@ App.ExpandButton.prototype._onTransitionComplete = function _onTransitionComplet
     if (this._transitionState === TransitionState.OPENING)
     {
         this._transitionState = TransitionState.OPEN;
-
-        this.boundingBox.height = this._buttonHeight + this._contentHeight;
     }
     else if (this._transitionState === TransitionState.CLOSING)
     {
         this._transitionState = TransitionState.CLOSED;
-
-        this.boundingBox.height = this._buttonHeight;
 
         this._content.visible = false;
     }
 
     this._unRegisterEventListeners();
 
+    this._updateBounds(false);
     this._updateMask();
-    this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
+
+    if (!this.isInTransition()) this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
+};
+
+/**
+ * Update bounds
+ * @param {boolean} [updateContent=false]
+ * @private
+ */
+App.ExpandButton.prototype._updateBounds = function _updateBounds(updateContent)
+{
+    var TransitionState = App.TransitionState;
+
+    if (updateContent)
+    {
+        this._contentHeight = this._content.boundingBox ? this._content.boundingBox.height : this._content.height;
+    }
+
+    if (this._transitionState === TransitionState.OPENING)
+    {
+        this.boundingBox.height = Math.round(this._buttonHeight + this._contentHeight * this._expandTween.progress);
+    }
+    else if (this._transitionState === TransitionState.OPEN)
+    {
+        this.boundingBox.height = this._buttonHeight + this._contentHeight;
+    }
+    else if (this._transitionState === TransitionState.CLOSING)
+    {
+        this.boundingBox.height = Math.round(this._buttonHeight + this._contentHeight * (1 - this._expandTween.progress));
+    }
+    else if (this._transitionState === TransitionState.CLOSED)
+    {
+        this.boundingBox.height = this._buttonHeight;
+    }
 };
 
 /**
@@ -156,8 +176,6 @@ App.ExpandButton.prototype.onClick = function onClick(position)
 
     if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING) this.open();
     else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING) this.close();
-
-    //TODO pass in click point and determine action accordingly, dispatch 'COMPLETE' if there is no action
 };
 
 /**
@@ -167,6 +185,15 @@ App.ExpandButton.prototype.onClick = function onClick(position)
 App.ExpandButton.prototype.isOpen = function isOpen()
 {
     return this._transitionState !== App.TransitionState.CLOSED;
+};
+
+/**
+ * Check if button is in transition
+ * @returns {boolean}
+ */
+App.ExpandButton.prototype.isInTransition = function isInTransition()
+{
+    return this._transitionState === App.TransitionState.OPENING || this._transitionState === App.TransitionState.CLOSING;
 };
 
 /**
@@ -185,6 +212,8 @@ App.ExpandButton.prototype.open = function open()
         this._transitionState = TransitionState.OPENING;
 
         this._expandTween.restart();
+
+        this._eventDispatcher.dispatchEvent(App.EventType.START,this);
     }
 };
 
@@ -205,6 +234,8 @@ App.ExpandButton.prototype.close = function close(immediate)
         this._transitionState = TransitionState.CLOSING;
 
         this._expandTween.start(true);
+
+        this._eventDispatcher.dispatchEvent(App.EventType.START,this);
     }
     else
     {

@@ -23,10 +23,10 @@ App.SubCategoryReportList = function SubCategoryReportList(model,width,pixelRati
         textField = new Text(item.name,FontStyle.get(14,FontStyle.BLUE));
         this._nameFields[i] = textField;
         this.addChild(textField);
-        textField = new Text(item.percent,FontStyle.get(14,FontStyle.GREY_DARK));
+        textField = new Text(item.percent+" %",FontStyle.get(14,FontStyle.SHADE_DARK));
         this._percentFields[i] = textField;
         this.addChild(textField);
-        textField = new Text(item.price+" %",FontStyle.get(14,FontStyle.BLUE));
+        textField = new Text(item.price,FontStyle.get(14,FontStyle.BLUE));
         this._priceFields[i] = textField;
         this.addChild(textField);
     }
@@ -71,7 +71,7 @@ App.SubCategoryReportList.prototype._render = function _render()
         textField.x = Math.round(this._width - padding - textField.width);
         textField.y = y;
 
-        if (i > 0) GraphicUtils.drawRects(this,ColorTheme.RED,1,[0,this._itemHeight*i,w,1],false,false);
+        if (i > 0) GraphicUtils.drawRects(this,ColorTheme.GREY,1,[padding,this._itemHeight*i,w,1],false,false);
     }
 
     GraphicUtils.drawRects(this,0xff3366,1,[0,0,Math.round(2 * this._pixelRatio),h],false,true);

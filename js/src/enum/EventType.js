@@ -3,6 +3,7 @@
  * @enum {string}
  * @return {{
  *      CHANGE_SCREEN:string,
+ *      START:string,
  *      COMPLETE:string,
  *      UPDATE:string,
  *      PROGRESS:string,
@@ -31,6 +32,7 @@ App.EventType = {
     CHANGE_SCREEN:"CHANGE_SCREEN",
 
     // App
+    START:"START",
     COMPLETE:"COMPLETE",
     UPDATE:"UPDATE",
     PROGRESS:"PROGRESS",
