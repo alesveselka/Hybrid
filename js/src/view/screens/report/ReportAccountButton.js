@@ -9,8 +9,6 @@ App.ReportAccountButton = function ReportAccountButton(model,width,height,pixelR
     this._width = width;
     this._height = height;
     this._pixelRatio = pixelRatio;
-    this._buttonsInTransition = [];
-    this._interactiveButton = null;
 
     this._background = new PIXI.Graphics();
     this._nameField = new PIXI.Text(model,FontStyle.get(22,FontStyle.WHITE));
@@ -53,36 +51,14 @@ App.ReportAccountButton.prototype._render = function _render()
 };
 
 /**
- * Disable interaction
- * @private
- */
-App.ReportAccountButton.prototype.disable = function disable()
-{
-    App.ExpandButton.prototype._unRegisterEventListeners.call(this);
-
-    var i = 0,
-        l = this._categoryList.children.length,
-        EventType = App.EventType,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._categoryList.getChildAt(i++);
-        button.removeEventListener(EventType.START,this,this._onButtonTransitionStart);
-        button.removeEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
-    }
-};
-
-/**
  * Click handler
  * @param {PIXI.InteractionData} pointerData
  */
 App.ReportAccountButton.prototype.onClick = function onClick(pointerData)
 {
-    var position = pointerData.getLocalPosition(this).y;
-
-    var TransitionState = App.TransitionState,
-        EventType = App.EventType;
+    var position = pointerData.getLocalPosition(this).y,
+        TransitionState = App.TransitionState,
+        interactiveButton = null;
 
     // Click on button itself
     if (position <= this._height)
@@ -93,66 +69,16 @@ App.ReportAccountButton.prototype.onClick = function onClick(pointerData)
     // Click on category sub-list
     else if (position > this._height)
     {
-        this._interactiveButton = this._getButtonUnderPosition(position);
-
-        if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
-        {
-            this._buttonsInTransition.push(this._interactiveButton);
-
-            this._interactiveButton.addEventListener(EventType.START,this,this._onButtonTransitionStart);
-            this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
-        }
-
-        this._interactiveButton.onClick(position);
-    }
-};
-
-/**
- * On button layout update
- * @private
- */
-App.ReportAccountButton.prototype._onButtonTransitionStart = function _onButtonTransitionStart()
-{
-    this._eventDispatcher.dispatchEvent(App.EventType.START);
-};
-
-/**
- * On button transition complete
- * @param {App.ExpandButton} button
- * @private
- */
-App.ReportAccountButton.prototype._onButtonTransitionComplete = function _onButtonTransitionComplete(button)
-{
-    var i = 0,
-        l = this._buttonsInTransition.length,
-        EventType = App.EventType;
-
-    button.removeEventListener(EventType.START,this,this._onButtonTransitionStart);
-    button.removeEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
-
-    for (;i<l;i++)
-    {
-        if (button === this._buttonsInTransition[i])
-        {
-            this._buttonsInTransition.splice(i,1);
-            break;
-        }
-    }
-
-    if (this._buttonsInTransition.length === 0)
-    {
-        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
-
-        this._interactiveButton = null;
+        interactiveButton = this._getButtonUnderPosition(position);
+        if (interactiveButton) interactiveButton.onClick(position);
     }
 };
 
 /**
  * Update layout
- * @param {boolean} [complete=false]
  * @private
  */
-App.ReportAccountButton.prototype.updateLayout = function updateLayout(complete)
+App.ReportAccountButton.prototype.updateLayout = function updateLayout()
 {
     this._categoryList.updateLayout();
     this._updateBounds(true);
@@ -169,12 +95,15 @@ App.ReportAccountButton.prototype.isInTransition = function isInTransition()
         i = 0,
         l = this._categoryList.children.length;
 
-    for (;i<l;)
+    if (this.isOpen())
     {
-        if (this._categoryList.getChildAt(i++).isInTransition())
+        for (;i<l;)
         {
-            inTransition = true;
-            break;
+            if (this._categoryList.getChildAt(i++).isInTransition())
+            {
+                inTransition = true;
+                break;
+            }
         }
     }
 
@@ -200,7 +129,7 @@ App.ReportAccountButton.prototype._getButtonUnderPosition = function _getButtonU
         button = this._categoryList.getChildAt(i++);
         buttonY = button.y + containerY;
         height = button.boundingBox.height;
-        if (buttonY <= position && buttonY + height >= position)
+        if (buttonY <= position && buttonY + height > position)
         {
             return button;
         }

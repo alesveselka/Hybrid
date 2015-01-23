@@ -24,7 +24,6 @@ App.ReportScreen = function ReportScreen(model,layout)
     this._pane.setContent(this._buttonList);
 
     this._interactiveButton = null;
-    this._buttonsInTransition = [];
     this._layoutDirty = false;
 
     //this.addChild(this._chart);
@@ -53,28 +52,6 @@ App.ReportScreen.prototype.disable = function disable()
     App.Screen.prototype.disable.call(this);
 
     this._pane.disable();
-
-    this._unRegisterButtonEventListeners();
-};
-
-/**
- * UnRegister button event listeners
- * @private
- */
-App.ReportScreen.prototype._unRegisterButtonEventListeners = function _unRegisterButtonEventListeners()
-{
-    var i = 0,
-        l = this._buttonList.children.length,
-        button = null,
-        EventType = App.EventType;
-
-    for (;i<l;)
-    {
-        button = this._buttonList.getChildAt(i++);
-        button.removeEventListener(EventType.START,this,this._onButtonTransitionStart);
-        button.removeEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
-        button.disable();
-    }
 };
 
 /**
@@ -85,7 +62,12 @@ App.ReportScreen.prototype._onTick = function _onTick()
 {
     App.Screen.prototype._onTick.call(this);
 
-    if (this._layoutDirty) this._updateLayout(false);
+    if (this._layoutDirty)
+    {
+        this._layoutDirty = this._buttonsInTransition();
+
+        this._updateLayout(false);
+    }
 };
 
 /**
@@ -96,24 +78,12 @@ App.ReportScreen.prototype._closeButtons = function _closeButtons(immediate)
 {
     var i = 0,
         l = this._buttonList.children.length,
-        button = null,
-        EventType = App.EventType;
+        button = null;
 
     for (;i<l;)
     {
         button = this._buttonList.getChildAt(i++);
-        if (button !== this._interactiveButton && button.isOpen())
-        {
-            if (this._buttonsInTransition.indexOf(button) === -1)
-            {
-                this._buttonsInTransition.push(button);
-
-                button.addEventListener(EventType.START,this,this._onButtonTransitionStart);
-                button.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
-            }
-
-            button.close(immediate);
-        }
+        if (button !== this._interactiveButton && button.isOpen()) button.close(immediate);
     }
 };
 
@@ -123,76 +93,53 @@ App.ReportScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.ReportScreen.prototype._onClick = function _onClick()
 {
-    var pointerData = this.stage.getTouchData(),
-        EventType = App.EventType;
+    var pointerData = this.stage.getTouchData();
 
     this._interactiveButton = this._getButtonUnderPosition(pointerData.getLocalPosition(this).y);
 
-    if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
+    if (this._interactiveButton)
     {
-        this._buttonsInTransition.push(this._interactiveButton);
+        this._interactiveButton.onClick(pointerData);
+        this._pane.cancelScroll();
 
-        this._interactiveButton.addEventListener(EventType.START,this,this._onButtonTransitionStart);
-        this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
-    }
+        this._closeButtons();
 
-    this._interactiveButton.onClick(pointerData);
-    this._pane.cancelScroll();
-
-    this._closeButtons();
-};
-
-/**
- * On button transition start
- * @private
- */
-App.ReportScreen.prototype._onButtonTransitionStart = function _onButtonTransitionStart()
-{
-    this._layoutDirty = true;
-};
-
-/**
- * On button transition complete
- * @param {App.ExpandButton} button
- * @private
- */
-App.ReportScreen.prototype._onButtonTransitionComplete = function _onButtonTransitionComplete(button)
-{
-    var i = 0,
-        l = this._buttonsInTransition.length,
-        EventType = App.EventType;
-
-    button.removeEventListener(EventType.START,this,this._onButtonTransitionStart);
-    button.removeEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
-
-    for (;i<l;i++)
-    {
-        if (button === this._buttonsInTransition[i])
-        {
-            this._buttonsInTransition.splice(i,1);
-            break;
-        }
-    }
-
-    if (this._buttonsInTransition.length === 0)
-    {
-        this._layoutDirty = false;
-        this._updateLayout(true);
-
-        this._interactiveButton = null;
+        this._layoutDirty = true;
     }
 };
 
 /**
  * Update layout
- * @param {boolean} [complete=false]
  * @private
  */
-App.ReportScreen.prototype._updateLayout = function _updateLayout(complete)
+App.ReportScreen.prototype._updateLayout = function _updateLayout()
 {
-    if (this._interactiveButton) this._interactiveButton.updateLayout(complete);
+    if (this._interactiveButton) this._interactiveButton.updateLayout();
     this._buttonList.updateLayout(true);
     this._pane.resize();
+};
+
+/**
+ * Check if buttons are in transition
+ * @returns {boolean}
+ * @private
+ */
+App.ReportScreen.prototype._buttonsInTransition = function _buttonsInTransition()
+{
+    var i = 0,
+        l = this._buttonList.children.length,
+        inTransition = false;
+
+    for (;i<l;)
+    {
+        if (this._buttonList.getChildAt(i++).isInTransition())
+        {
+            inTransition = true;
+            break;
+        }
+    }
+
+    return inTransition;
 };
 
 /**
@@ -214,7 +161,7 @@ App.ReportScreen.prototype._getButtonUnderPosition = function _getButtonUnderPos
         button = this._buttonList.getChildAt(i++);
         buttonY = button.y + containerY;
         height = button.boundingBox.height;
-        if (buttonY <= position && buttonY + height >= position)
+        if (buttonY <= position && buttonY + height > position)
         {
             return button;
         }

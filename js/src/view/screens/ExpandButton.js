@@ -38,6 +38,7 @@ App.ExpandButton.prototype.constructor = App.ExpandButton;
 /**
  * Set content
  * @param {Object} content
+ * @private
  */
 App.ExpandButton.prototype._setContent = function _setContent(content)
 {
@@ -223,24 +224,34 @@ App.ExpandButton.prototype.open = function open()
  */
 App.ExpandButton.prototype.close = function close(immediate)
 {
-    //TODO implement 'immediate' close
+    var TransitionState = App.TransitionState,
+        EventType = App.EventType;
 
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
+    if (immediate)
     {
-        this._registerEventListeners();
+        this._transitionState = TransitionState.CLOSED;
 
-        this._transitionState = TransitionState.CLOSING;
+        this._expandTween.stop();
 
-        this._expandTween.start(true);
-
-        this._eventDispatcher.dispatchEvent(App.EventType.START,this);
+        this._eventDispatcher.dispatchEvent(EventType.COMPLETE,this);
     }
     else
     {
-        // Already closed - but dispatch event so parent can cancel its processes
-        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
+        if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
+        {
+            this._registerEventListeners();
+
+            this._transitionState = TransitionState.CLOSING;
+
+            this._expandTween.start(true);
+
+            this._eventDispatcher.dispatchEvent(EventType.START,this);
+        }
+        else
+        {
+            // Already closed - but dispatch event so parent can cancel its processes
+            this._eventDispatcher.dispatchEvent(EventType.COMPLETE,this);
+        }
     }
 };
 
