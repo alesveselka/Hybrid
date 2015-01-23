@@ -1,18 +1,26 @@
-App.ReportCategoryButton = function ReportCategoryButton(model,width,height,pixelRatio)
+/**
+ * @class ReportCategoryButton
+ * @extends ExpandButton
+ * @param {Category} model
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @param {Object} labelStyles
+ * @constructor
+ */
+App.ReportCategoryButton = function ReportCategoryButton(model,width,height,pixelRatio,labelStyles)
 {
     App.ExpandButton.call(this,width,height);
-
-    var FontStyle = App.FontStyle;
 
     this._model = model;
     this._width = width;
     this._height = height;
     this._pixelRatio = pixelRatio;
     this._background = new PIXI.Graphics();
-    this._nameField = new PIXI.Text(model,FontStyle.get(18,FontStyle.BLUE));
-    this._priceField = new PIXI.Text("1,560.00",FontStyle.get(14,FontStyle.BLUE));
-    this._percentField = new PIXI.Text("24 %",FontStyle.get(16,FontStyle.SHADE_DARK));
-    this._subList = new App.SubCategoryReportList(null,width,pixelRatio);
+    this._nameField = new PIXI.Text(model,labelStyles.categoryName);
+    this._percentField = new PIXI.Text("24 %",labelStyles.categoryPercent);
+    this._priceField = new PIXI.Text("1,560.00",labelStyles.categoryPrice);
+    this._subList = new App.SubCategoryReportList(null,width,pixelRatio,labelStyles);
 
     this._render();
 

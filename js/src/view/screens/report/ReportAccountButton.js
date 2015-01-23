@@ -1,9 +1,19 @@
-App.ReportAccountButton = function ReportAccountButton(model,width,height,pixelRatio)
+/**
+ * @class ReportAccountButton
+ * @extends ExpandButton
+ * @param {Account} model
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @param {Object} labelStyles
+ * @constructor
+ */
+App.ReportAccountButton = function ReportAccountButton(model,width,height,pixelRatio,labelStyles)
 {
     App.ExpandButton.call(this,width,height);
 
-    var FontStyle = App.FontStyle,
-        ReportCategoryButton = App.ReportCategoryButton;
+    var ReportCategoryButton = App.ReportCategoryButton,
+        itemHeight = Math.round(40 * pixelRatio);
 
     this._model = model;
     this._width = width;
@@ -11,13 +21,13 @@ App.ReportAccountButton = function ReportAccountButton(model,width,height,pixelR
     this._pixelRatio = pixelRatio;
 
     this._background = new PIXI.Graphics();
-    this._nameField = new PIXI.Text(model,FontStyle.get(22,FontStyle.WHITE));
-    this._amountField = new PIXI.Text("1,560.00",FontStyle.get(16,FontStyle.WHITE));
+    this._nameField = new PIXI.Text(model,labelStyles.accountName);
+    this._amountField = new PIXI.Text("1,560.00",labelStyles.accountAmount);
     this._categoryList = new App.List(App.Direction.Y);
-    this._categoryList.add(new ReportCategoryButton("Entertainment",width,Math.round(40 * pixelRatio),pixelRatio),false);
-    this._categoryList.add(new ReportCategoryButton("Food",width,Math.round(40 * pixelRatio),pixelRatio),false);
-    this._categoryList.add(new ReportCategoryButton("Household",width,Math.round(40 * pixelRatio),pixelRatio),false);
-    this._categoryList.add(new ReportCategoryButton("Shopping",width,Math.round(40 * pixelRatio),pixelRatio),true);
+    this._categoryList.add(new ReportCategoryButton("Entertainment",width,itemHeight,pixelRatio,labelStyles),false);
+    this._categoryList.add(new ReportCategoryButton("Food",width,itemHeight,pixelRatio,labelStyles),false);
+    this._categoryList.add(new ReportCategoryButton("Household",width,itemHeight,pixelRatio,labelStyles),false);
+    this._categoryList.add(new ReportCategoryButton("Shopping",width,itemHeight,pixelRatio,labelStyles),true);
 
     this._render();
 

@@ -6901,12 +6901,20 @@ App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate
     }
 };
 
-App.SubCategoryReportList = function SubCategoryReportList(model,width,pixelRatio)
+/**
+ * @class SubCategoryReportList
+ * @extends Graphics
+ * @param {Category} model
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @param {Object} labelStyles
+ * @constructor
+ */
+App.SubCategoryReportList = function SubCategoryReportList(model,width,pixelRatio,labelStyles)
 {
     PIXI.Graphics.call(this);
 
-    var FontStyle = App.FontStyle,
-        Text = PIXI.Text,
+    var Text = PIXI.Text,
         i = 0,
         l = 3,//Number of sub-categories
         item = null,
@@ -6923,13 +6931,13 @@ App.SubCategoryReportList = function SubCategoryReportList(model,width,pixelRati
     for (;i<l;i++)
     {
         item = this._model[i];
-        textField = new Text(item.name,FontStyle.get(14,FontStyle.BLUE));
+        textField = new Text(item.name,labelStyles.subName);
         this._nameFields[i] = textField;
         this.addChild(textField);
-        textField = new Text(item.percent+" %",FontStyle.get(14,FontStyle.SHADE_DARK));
+        textField = new Text(item.percent+" %",labelStyles.subPercent);
         this._percentFields[i] = textField;
         this.addChild(textField);
-        textField = new Text(item.price,FontStyle.get(14,FontStyle.BLUE));
+        textField = new Text(item.price,labelStyles.subPrice);
         this._priceFields[i] = textField;
         this.addChild(textField);
     }
@@ -6980,21 +6988,29 @@ App.SubCategoryReportList.prototype._render = function _render()
     GraphicUtils.drawRects(this,0xff3366,1,[0,0,Math.round(2 * this._pixelRatio),h],false,true);
 };
 
-App.ReportCategoryButton = function ReportCategoryButton(model,width,height,pixelRatio)
+/**
+ * @class ReportCategoryButton
+ * @extends ExpandButton
+ * @param {Category} model
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @param {Object} labelStyles
+ * @constructor
+ */
+App.ReportCategoryButton = function ReportCategoryButton(model,width,height,pixelRatio,labelStyles)
 {
     App.ExpandButton.call(this,width,height);
-
-    var FontStyle = App.FontStyle;
 
     this._model = model;
     this._width = width;
     this._height = height;
     this._pixelRatio = pixelRatio;
     this._background = new PIXI.Graphics();
-    this._nameField = new PIXI.Text(model,FontStyle.get(18,FontStyle.BLUE));
-    this._priceField = new PIXI.Text("1,560.00",FontStyle.get(14,FontStyle.BLUE));
-    this._percentField = new PIXI.Text("24 %",FontStyle.get(16,FontStyle.SHADE_DARK));
-    this._subList = new App.SubCategoryReportList(null,width,pixelRatio);
+    this._nameField = new PIXI.Text(model,labelStyles.categoryName);
+    this._percentField = new PIXI.Text("24 %",labelStyles.categoryPercent);
+    this._priceField = new PIXI.Text("1,560.00",labelStyles.categoryPrice);
+    this._subList = new App.SubCategoryReportList(null,width,pixelRatio,labelStyles);
 
     this._render();
 
@@ -7034,12 +7050,22 @@ App.ReportCategoryButton.prototype._render = function _render()
     this._priceField.y = Math.round((h - this._priceField.height) / 2);
 };
 
-App.ReportAccountButton = function ReportAccountButton(model,width,height,pixelRatio)
+/**
+ * @class ReportAccountButton
+ * @extends ExpandButton
+ * @param {Account} model
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @param {Object} labelStyles
+ * @constructor
+ */
+App.ReportAccountButton = function ReportAccountButton(model,width,height,pixelRatio,labelStyles)
 {
     App.ExpandButton.call(this,width,height);
 
-    var FontStyle = App.FontStyle,
-        ReportCategoryButton = App.ReportCategoryButton;
+    var ReportCategoryButton = App.ReportCategoryButton,
+        itemHeight = Math.round(40 * pixelRatio);
 
     this._model = model;
     this._width = width;
@@ -7047,13 +7073,13 @@ App.ReportAccountButton = function ReportAccountButton(model,width,height,pixelR
     this._pixelRatio = pixelRatio;
 
     this._background = new PIXI.Graphics();
-    this._nameField = new PIXI.Text(model,FontStyle.get(22,FontStyle.WHITE));
-    this._amountField = new PIXI.Text("1,560.00",FontStyle.get(16,FontStyle.WHITE));
+    this._nameField = new PIXI.Text(model,labelStyles.accountName);
+    this._amountField = new PIXI.Text("1,560.00",labelStyles.accountAmount);
     this._categoryList = new App.List(App.Direction.Y);
-    this._categoryList.add(new ReportCategoryButton("Entertainment",width,Math.round(40 * pixelRatio),pixelRatio),false);
-    this._categoryList.add(new ReportCategoryButton("Food",width,Math.round(40 * pixelRatio),pixelRatio),false);
-    this._categoryList.add(new ReportCategoryButton("Household",width,Math.round(40 * pixelRatio),pixelRatio),false);
-    this._categoryList.add(new ReportCategoryButton("Shopping",width,Math.round(40 * pixelRatio),pixelRatio),true);
+    this._categoryList.add(new ReportCategoryButton("Entertainment",width,itemHeight,pixelRatio,labelStyles),false);
+    this._categoryList.add(new ReportCategoryButton("Food",width,itemHeight,pixelRatio,labelStyles),false);
+    this._categoryList.add(new ReportCategoryButton("Household",width,itemHeight,pixelRatio,labelStyles),false);
+    this._categoryList.add(new ReportCategoryButton("Shopping",width,itemHeight,pixelRatio,labelStyles),true);
 
     this._render();
 
@@ -7186,17 +7212,32 @@ App.ReportScreen = function ReportScreen(model,layout)
     App.Screen.call(this,model,layout,0.4);
 
     var ReportAccountButton = App.ReportAccountButton,
-        ScrollPolicy = App.ScrollPolicy;
+        ScrollPolicy = App.ScrollPolicy,
+        FontStyle = App.FontStyle,
+        w = layout.width,
+        h = layout.height,
+        r = layout.pixelRatio,
+        itemHeight = Math.round(40 * r),
+        labelStyles = {
+            accountName:FontStyle.get(22,FontStyle.WHITE),
+            accountAmount:FontStyle.get(16,FontStyle.WHITE),
+            categoryName:FontStyle.get(18,FontStyle.BLUE),
+            categoryPercent:FontStyle.get(16,FontStyle.SHADE_DARK),
+            categoryPrice:FontStyle.get(16,FontStyle.BLUE),
+            subName:FontStyle.get(14,FontStyle.BLUE),
+            subPercent:FontStyle.get(14,FontStyle.SHADE_DARK),
+            subPrice:FontStyle.get(14,FontStyle.BLUE)
+        };
 
     this._chart = new PIXI.Graphics();
     App.GraphicUtils.drawArc(this._chart,new PIXI.Point(150,150),200,200,34,0,3.6*66,40,0x000000,.5,10,0xff0000,1);
 
     this._buttonList = new App.TileList(App.Direction.Y,layout.height);
-    this._buttonList.add(new ReportAccountButton("Private",layout.width,Math.round(40*layout.pixelRatio),layout.pixelRatio),false);
-    this._buttonList.add(new ReportAccountButton("Travel",layout.width,Math.round(40*layout.pixelRatio),layout.pixelRatio),false);
-    this._buttonList.add(new ReportAccountButton("Business",layout.width,Math.round(40*layout.pixelRatio),layout.pixelRatio),true);
+    this._buttonList.add(new ReportAccountButton("Private",w,itemHeight,r,labelStyles),false);
+    this._buttonList.add(new ReportAccountButton("Travel",w,itemHeight,r,labelStyles),false);
+    this._buttonList.add(new ReportAccountButton("Business",w,itemHeight,r,labelStyles),true);
 
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r);
     this._pane.setContent(this._buttonList);
 
     this._interactiveButton = null;

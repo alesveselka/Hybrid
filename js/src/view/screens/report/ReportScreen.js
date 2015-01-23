@@ -10,17 +10,32 @@ App.ReportScreen = function ReportScreen(model,layout)
     App.Screen.call(this,model,layout,0.4);
 
     var ReportAccountButton = App.ReportAccountButton,
-        ScrollPolicy = App.ScrollPolicy;
+        ScrollPolicy = App.ScrollPolicy,
+        FontStyle = App.FontStyle,
+        w = layout.width,
+        h = layout.height,
+        r = layout.pixelRatio,
+        itemHeight = Math.round(40 * r),
+        labelStyles = {
+            accountName:FontStyle.get(22,FontStyle.WHITE),
+            accountAmount:FontStyle.get(16,FontStyle.WHITE),
+            categoryName:FontStyle.get(18,FontStyle.BLUE),
+            categoryPercent:FontStyle.get(16,FontStyle.SHADE_DARK),
+            categoryPrice:FontStyle.get(16,FontStyle.BLUE),
+            subName:FontStyle.get(14,FontStyle.BLUE),
+            subPercent:FontStyle.get(14,FontStyle.SHADE_DARK),
+            subPrice:FontStyle.get(14,FontStyle.BLUE)
+        };
 
     this._chart = new PIXI.Graphics();
     App.GraphicUtils.drawArc(this._chart,new PIXI.Point(150,150),200,200,34,0,3.6*66,40,0x000000,.5,10,0xff0000,1);
 
     this._buttonList = new App.TileList(App.Direction.Y,layout.height);
-    this._buttonList.add(new ReportAccountButton("Private",layout.width,Math.round(40*layout.pixelRatio),layout.pixelRatio),false);
-    this._buttonList.add(new ReportAccountButton("Travel",layout.width,Math.round(40*layout.pixelRatio),layout.pixelRatio),false);
-    this._buttonList.add(new ReportAccountButton("Business",layout.width,Math.round(40*layout.pixelRatio),layout.pixelRatio),true);
+    this._buttonList.add(new ReportAccountButton("Private",w,itemHeight,r,labelStyles),false);
+    this._buttonList.add(new ReportAccountButton("Travel",w,itemHeight,r,labelStyles),false);
+    this._buttonList.add(new ReportAccountButton("Business",w,itemHeight,r,labelStyles),true);
 
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r);
     this._pane.setContent(this._buttonList);
 
     this._interactiveButton = null;

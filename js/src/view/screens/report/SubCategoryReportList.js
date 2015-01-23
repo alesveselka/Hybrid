@@ -1,9 +1,17 @@
-App.SubCategoryReportList = function SubCategoryReportList(model,width,pixelRatio)
+/**
+ * @class SubCategoryReportList
+ * @extends Graphics
+ * @param {Category} model
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @param {Object} labelStyles
+ * @constructor
+ */
+App.SubCategoryReportList = function SubCategoryReportList(model,width,pixelRatio,labelStyles)
 {
     PIXI.Graphics.call(this);
 
-    var FontStyle = App.FontStyle,
-        Text = PIXI.Text,
+    var Text = PIXI.Text,
         i = 0,
         l = 3,//Number of sub-categories
         item = null,
@@ -20,13 +28,13 @@ App.SubCategoryReportList = function SubCategoryReportList(model,width,pixelRati
     for (;i<l;i++)
     {
         item = this._model[i];
-        textField = new Text(item.name,FontStyle.get(14,FontStyle.BLUE));
+        textField = new Text(item.name,labelStyles.subName);
         this._nameFields[i] = textField;
         this.addChild(textField);
-        textField = new Text(item.percent+" %",FontStyle.get(14,FontStyle.SHADE_DARK));
+        textField = new Text(item.percent+" %",labelStyles.subPercent);
         this._percentFields[i] = textField;
         this.addChild(textField);
-        textField = new Text(item.price,FontStyle.get(14,FontStyle.BLUE));
+        textField = new Text(item.price,labelStyles.subPrice);
         this._priceFields[i] = textField;
         this.addChild(textField);
     }
