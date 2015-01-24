@@ -26,7 +26,7 @@ App.ExpandButton = function ExpandButton(width,height)
     this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
 
-    App.GraphicUtils.drawRect(this._mask,0xff0000,1,0,0,width,height);
+    this._updateMask();
 
     this.mask = this._mask;
     this.addChild(this._mask);

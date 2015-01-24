@@ -33,6 +33,7 @@ App.TilePane.prototype.setContent = function setContent(content)
     this.addChildAt(this._content,0);
 
     this._updateScrollers();
+    this._updateMask();
 };
 
 /**
@@ -54,6 +55,7 @@ App.TilePane.prototype.resize = function resize(width,height)
         this._checkPosition();
 
         this._updateScrollers();
+        this._updateMask();
     }
 };
 

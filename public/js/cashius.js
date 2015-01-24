@@ -2431,6 +2431,7 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
     this._height = height;
     this._contentHeight = 0;
     this._contentWidth = 0;
+    this._mask = new PIXI.Graphics();
 
     this._enabled = false;
     this._eventsRegistered = false;
@@ -2452,6 +2453,9 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
     this._friction = 0.9;
     this._dumpForce = 0.5;
     this._snapForce = 0.2;//TODO allow to disable snapping?
+
+    this.mask = this._mask;
+    this.addChild(this._mask);
 };
 
 App.Pane.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -2474,6 +2478,7 @@ App.Pane.prototype.setContent = function setContent(content)
     this.addChildAt(this._content,0);
 
     this._updateScrollers();
+    this._updateMask();
 };
 
 /**
@@ -2510,7 +2515,17 @@ App.Pane.prototype.resize = function resize(width,height)
         this._checkPosition();
 
         this._updateScrollers();
+        this._updateMask();
     }
+};
+
+/**
+ * Re-draw mask
+ * @private
+ */
+App.Pane.prototype._updateMask = function _updateMask()
+{
+    App.GraphicUtils.drawRect(this._mask,0xff0000,1,0,0,this._width,this._height);
 };
 
 /**
@@ -3927,6 +3942,7 @@ App.TilePane.prototype.setContent = function setContent(content)
     this.addChildAt(this._content,0);
 
     this._updateScrollers();
+    this._updateMask();
 };
 
 /**
@@ -3948,6 +3964,7 @@ App.TilePane.prototype.resize = function resize(width,height)
         this._checkPosition();
 
         this._updateScrollers();
+        this._updateMask();
     }
 };
 
@@ -4828,7 +4845,7 @@ App.ExpandButton = function ExpandButton(width,height)
     this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
 
-    App.GraphicUtils.drawRect(this._mask,0xff0000,1,0,0,width,height);
+    this._updateMask();
 
     this.mask = this._mask;
     this.addChild(this._mask);
@@ -7217,6 +7234,8 @@ App.ReportScreen = function ReportScreen(model,layout)
         w = layout.width,
         h = layout.height,
         r = layout.pixelRatio,
+        listWidth = Math.round(w - 20 * r),// 10pts padding on both sides
+        listHeight = Math.round(h * 0.7),
         itemHeight = Math.round(40 * r),
         labelStyles = {
             accountName:FontStyle.get(22,FontStyle.WHITE),
@@ -7232,16 +7251,18 @@ App.ReportScreen = function ReportScreen(model,layout)
     this._chart = new PIXI.Graphics();
     App.GraphicUtils.drawArc(this._chart,new PIXI.Point(150,150),200,200,34,0,3.6*66,40,0x000000,.5,10,0xff0000,1);
 
-    this._buttonList = new App.TileList(App.Direction.Y,layout.height);
-    this._buttonList.add(new ReportAccountButton("Private",w,itemHeight,r,labelStyles),false);
-    this._buttonList.add(new ReportAccountButton("Travel",w,itemHeight,r,labelStyles),false);
-    this._buttonList.add(new ReportAccountButton("Business",w,itemHeight,r,labelStyles),true);
+    this._buttonList = new App.TileList(App.Direction.Y,listHeight);
+    this._buttonList.add(new ReportAccountButton("Private",listWidth,itemHeight,r,labelStyles),false);
+    this._buttonList.add(new ReportAccountButton("Travel",listWidth,itemHeight,r,labelStyles),false);
+    this._buttonList.add(new ReportAccountButton("Business",listWidth,itemHeight,r,labelStyles),true);
 
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,listWidth,listHeight,r);
     this._pane.setContent(this._buttonList);
 
     this._interactiveButton = null;
     this._layoutDirty = false;
+
+    this._updateLayout();
 
     //this.addChild(this._chart);
     this.addChild(this._pane);
@@ -7272,6 +7293,16 @@ App.ReportScreen.prototype.disable = function disable()
 };
 
 /**
+ * Update layout
+ * @private
+ */
+App.ReportScreen.prototype._updateLayout = function _updateLayout()
+{
+    this._pane.x = Math.round(10 * this._layout.pixelRatio);
+    this._pane.y = Math.round(this._layout.height * 0.3);
+};
+
+/**
  * On tick
  * @private
  */
@@ -7283,7 +7314,7 @@ App.ReportScreen.prototype._onTick = function _onTick()
     {
         this._layoutDirty = this._buttonsInTransition();
 
-        this._updateLayout(false);
+        this._updateListLayout(false);
     }
 };
 
@@ -7312,7 +7343,7 @@ App.ReportScreen.prototype._onClick = function _onClick()
 {
     var pointerData = this.stage.getTouchData();
 
-    this._interactiveButton = this._getButtonUnderPosition(pointerData.getLocalPosition(this).y);
+    this._interactiveButton = this._getButtonUnderPosition(pointerData.getLocalPosition(this._pane).y);
 
     if (this._interactiveButton)
     {
@@ -7326,10 +7357,10 @@ App.ReportScreen.prototype._onClick = function _onClick()
 };
 
 /**
- * Update layout
+ * Update list layout
  * @private
  */
-App.ReportScreen.prototype._updateLayout = function _updateLayout()
+App.ReportScreen.prototype._updateListLayout = function _updateListLayout()
 {
     if (this._interactiveButton) this._interactiveButton.updateLayout();
     this._buttonList.updateLayout(true);

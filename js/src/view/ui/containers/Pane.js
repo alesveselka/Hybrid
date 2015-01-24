@@ -18,6 +18,7 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
     this._height = height;
     this._contentHeight = 0;
     this._contentWidth = 0;
+    this._mask = new PIXI.Graphics();
 
     this._enabled = false;
     this._eventsRegistered = false;
@@ -39,6 +40,9 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
     this._friction = 0.9;
     this._dumpForce = 0.5;
     this._snapForce = 0.2;//TODO allow to disable snapping?
+
+    this.mask = this._mask;
+    this.addChild(this._mask);
 };
 
 App.Pane.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -61,6 +65,7 @@ App.Pane.prototype.setContent = function setContent(content)
     this.addChildAt(this._content,0);
 
     this._updateScrollers();
+    this._updateMask();
 };
 
 /**
@@ -97,7 +102,17 @@ App.Pane.prototype.resize = function resize(width,height)
         this._checkPosition();
 
         this._updateScrollers();
+        this._updateMask();
     }
+};
+
+/**
+ * Re-draw mask
+ * @private
+ */
+App.Pane.prototype._updateMask = function _updateMask()
+{
+    App.GraphicUtils.drawRect(this._mask,0xff0000,1,0,0,this._width,this._height);
 };
 
 /**
