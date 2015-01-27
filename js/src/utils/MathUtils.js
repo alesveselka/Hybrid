@@ -1,4 +1,11 @@
-/** @type {{rgbToHex:Function,hexToRgb:Function}} */
+/** @type {{
+*   rgbToHex:Function,
+*   hexToRgb:Function,
+*   rgbToHsl:Function,
+*   hslToRgb:Function,
+*   rgbToHsv:Function,
+*   hsvToRgb:Function
+*   }} */
 App.MathUtils = {
     /**
      * Convert RGB values to HEX value
