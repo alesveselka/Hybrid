@@ -29,6 +29,8 @@ App.TilePane.prototype.setContent = function setContent(content)
     this._content = content;
     this._contentHeight = Math.round(this._content.boundingBox.height);
     this._contentWidth = Math.round(this._content.boundingBox.width);
+    this._contentBoundingBox.width = this._contentWidth;
+    this._contentBoundingBox.height = this._contentHeight;
 
     this.addChildAt(this._content,0);
 
@@ -44,13 +46,15 @@ App.TilePane.prototype.setContent = function setContent(content)
  */
 App.TilePane.prototype.resize = function resize(width,height)
 {
-    this._width = width || this._width;
-    this._height = height || this._height;
+    this.boundingBox.width = width || this.boundingBox.width;
+    this.boundingBox.height = height || this.boundingBox.height;
 
     if (this._content)
     {
         this._contentHeight = Math.round(this._content.boundingBox.height);
         this._contentWidth = Math.round(this._content.boundingBox.width);
+        this._contentBoundingBox.width = this._contentWidth;
+        this._contentBoundingBox.height = this._contentHeight;
 
         this._checkPosition();
 

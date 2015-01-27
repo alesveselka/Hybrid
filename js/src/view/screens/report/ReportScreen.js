@@ -15,6 +15,7 @@ App.ReportScreen = function ReportScreen(model,layout)
         w = layout.width,
         h = layout.height,
         r = layout.pixelRatio,
+        chartSize = Math.round(h * 0.3 - 20 * r),
         listWidth = Math.round(w - 20 * r),// 10pts padding on both sides
         listHeight = Math.round(h * 0.7),
         itemHeight = Math.round(40 * r),
@@ -29,8 +30,7 @@ App.ReportScreen = function ReportScreen(model,layout)
             subPrice:FontStyle.get(14,FontStyle.BLUE)
         };
 
-    this._chart = new PIXI.Graphics();
-    App.GraphicUtils.drawArc(this._chart,new PIXI.Point(150,150),200,200,34,0,3.6*66,40,0x000000,.5,10,0xff0000,1);
+    this._chart = new App.ReportChart(null,chartSize,chartSize,r);
 
     this._buttonList = new App.TileList(App.Direction.Y,listHeight);
     this._buttonList.add(new ReportAccountButton("Private",listWidth,itemHeight,r,labelStyles),false);
@@ -45,7 +45,7 @@ App.ReportScreen = function ReportScreen(model,layout)
 
     this._updateLayout();
 
-    //this.addChild(this._chart);
+    this.addChild(this._chart);
     this.addChild(this._pane);
 };
 
@@ -74,12 +74,28 @@ App.ReportScreen.prototype.disable = function disable()
 };
 
 /**
+ * On screen show/hide tween complete
+ * @private
+ */
+App.ReportScreen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    App.Screen.prototype._onTweenComplete.call(this);
+
+    this._chart.show();
+};
+
+/**
  * Update layout
  * @private
  */
 App.ReportScreen.prototype._updateLayout = function _updateLayout()
 {
-    this._pane.x = Math.round(10 * this._layout.pixelRatio);
+    var padding = Math.round(10 * this._layout.pixelRatio);
+
+    this._chart.x = Math.round((this._layout.width - this._chart.boundingBox.width) / 2);
+    this._chart.y = padding;
+
+    this._pane.x = padding;
     this._pane.y = Math.round(this._layout.height * 0.3);
 };
 
@@ -130,8 +146,9 @@ App.ReportScreen.prototype._onClick = function _onClick()
     {
         this._interactiveButton.onClick(pointerData);
         this._pane.cancelScroll();
-
         this._closeButtons();
+
+        this._chart.highlightSegment(this._buttonList.getChildIndex(this._interactiveButton));
 
         this._layoutDirty = true;
     }

@@ -6,7 +6,6 @@
 App.Initialize = function Initialize()
 {
     this._eventListenerPool = new App.ObjectPool(App.EventListener,10);
-    //TODO also create TextOption pool for all text elements! ...
 
     App.Command.call(this,false,this._eventListenerPool);
 
@@ -83,8 +82,6 @@ App.Initialize.prototype._initModel = function _initModel(data)
     ));*/
 
     App.Settings.setStartOfWeek(1);
-
-    //TODO TextField object pool?
 };
 
 /**

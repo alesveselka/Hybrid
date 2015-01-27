@@ -64,6 +64,7 @@ App.GraphicUtils = {
         endAngle -= 90;
 
         var angle = startAngle,
+            angleStep = (endAngle - startAngle) / smoothSteps,
             degToRad = Math.PI / 180,
             radians = angle * degToRad,
             radiusX = width / 2,
@@ -79,7 +80,7 @@ App.GraphicUtils = {
 
         for (;i<smoothSteps;)
         {
-            angle = startAngle + ((endAngle - startAngle) / smoothSteps) * i++;
+            angle = startAngle + angleStep * i++;
             radians = angle * degToRad;
             graphics.lineTo(centerX+Math.cos(radians)*radiusX,centerY+Math.sin(radians)*radiusY);
         }
@@ -89,7 +90,7 @@ App.GraphicUtils = {
 
         for (i=smoothSteps;i>=0;)
         {
-            angle = startAngle + ((endAngle - startAngle) / smoothSteps) * i--;
+            angle = startAngle + angleStep * i--;
             radians = angle * degToRad;
             graphics.lineTo(centerX+Math.cos(radians)*(radiusX-thickness),centerY+Math.sin(radians)*(radiusY-thickness));
         }

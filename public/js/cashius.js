@@ -69,7 +69,14 @@ window.requestAnimationFrame || (window.requestAnimationFrame =
  */
 var App = App || {};
 
-/** @type {{rgbToHex:Function,hexToRgb:Function}} */
+/** @type {{
+*   rgbToHex:Function,
+*   hexToRgb:Function,
+*   rgbToHsl:Function,
+*   hslToRgb:Function,
+*   rgbToHsv:Function,
+*   hsvToRgb:Function
+*   }} */
 App.MathUtils = {
     /**
      * Convert RGB values to HEX value
@@ -78,7 +85,7 @@ App.MathUtils = {
      * @param {number} blue
      * @returns {string}
      */
-    rgbToHex:function(red,green,blue)
+    rgbToHex:function rgbToHex(red,green,blue)
     {
         return ((1 << 24) + (red << 16) + (green << 8) + blue).toString(16).slice(1);
     },
@@ -86,9 +93,10 @@ App.MathUtils = {
     /**
      * Convert HEX value to r, g, and b color component values
      * @param {string} hex
-     * @returns {{r:Number,g:Number,b:Number}|null}
+     * @param {Object|null} container
+     * @returns {{r:number,g:number,b:number}|null}
      */
-    hexToRgb:function(hex)
+    hexToRgb:function hexToRgb(hex,container)
     {
         // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
         var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
@@ -97,7 +105,250 @@ App.MathUtils = {
         });
 
         var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? {r:parseInt(result[1],16),g:parseInt(result[2],16),b:parseInt(result[3],16)} : null;
+
+        if (result)
+        {
+            if (container)
+            {
+                container.r = parseInt(result[1],16);
+                container.g = parseInt(result[2],16);
+                container.b = parseInt(result[3],16);
+                return container;
+            }
+            else
+            {
+                return {r:parseInt(result[1],16),g:parseInt(result[2],16),b:parseInt(result[3],16)};
+            }
+        }
+
+        return null;
+    },
+    /**
+     * Converts an RGB color value to HSL. Conversion formula
+     * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+     * Assumes r, g, and b are contained in the set [0, 255] and
+     * returns h, s, and l in the set [0, 1].
+     *
+     * @param {number} r The red color value
+     * @param {number} g The green color value
+     * @param {number} b The blue color value
+     * @param {Object|null} container
+     * @return  {{h:number,s:number,l:number}} The HSL representation
+     */
+    rgbToHsl:function rgbToHsl(r,g,b,container)
+    {
+        r /= 255;
+        g /= 255;
+        b /= 255;
+
+        var max = Math.max(r,g,b),
+            min = Math.min(r,g,b),
+            h,
+            s,
+            l = (max + min) / 2;
+
+        if(max == min)
+        {
+            h = s = 0; // achromatic
+        }
+        else
+        {
+            var d = max - min;
+
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+            switch(max)
+            {
+                case r:
+                    h = (g - b) / d + (g < b ? 6 : 0);
+                    break;
+                case g:
+                    h = (b - r) / d + 2;
+                    break;
+                case b:
+                    h = (r - g) / d + 4;
+                    break;
+            }
+            h /= 6;
+        }
+
+        if (container)
+        {
+            container.h = h;
+            container.s = s;
+            container.l = l;
+
+            return container;
+        }
+
+        return {h:h,s:s,l:l};
+    },
+
+    /**
+     * Converts an HSL color value to RGB. Conversion formula
+     * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+     * Assumes h, s, and l are contained in the set [0, 1] and
+     * returns r, g, and b in the set [0, 255].
+     *
+     * @param {number} h The hue
+     * @param {number} s The saturation
+     * @param {number} l The lightness
+     * @param {Object|null} container
+     * @return  {{r:number,g:number,b:number}} The RGB representation
+     */
+    hslToRgb:function hslToRgb(h,s,l,container)
+    {
+        var r = l,
+            g = l,
+            b = l;
+
+        if (s !== 0)
+        {
+            var q = l < 0.5 ? l * (1 + s) : l + s - l * s,
+                p = 2 * l - q;
+
+            r = this._hueToRgb(p,q,h+1/3);
+            g = this._hueToRgb(p,q,h);
+            b = this._hueToRgb(p,q,h-1/3);
+        }
+
+        if (container)
+        {
+            container.r = r * 255;
+            container.g = g * 255;
+            container.b = b * 255;
+
+            return container;
+        }
+
+        return {r:r*255,g:g*255,b:b*255};
+    },
+
+    /**
+     * Converts an RGB color value to HSV. Conversion formula
+     * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
+     * Assumes r, g, and b are contained in the set [0, 255] and
+     * returns h, s, and v in the set [0, 1].
+     *
+     * @param {number} r The red color value
+     * @param {number} g The green color value
+     * @param {number} b The blue color value
+     * @param {Object|null} container
+     * @return  {{h:number,s:number,v:number}} The HSV representation
+     */
+    rgbToHsv:function rgbToHsv(r,g,b,container)
+    {
+        r = r / 255;
+        g = g / 255;
+        b = b / 255;
+
+        var max = Math.max(r,g,b),
+            min = Math.min(r,g,b),
+            d = max - min,
+            s = max === 0 ? 0 : d / max,
+            h = 0;
+
+        if(max !== min)
+        {
+            switch(max)
+            {
+                case r:
+                    h = (g - b) / d + (g < b ? 6 : 0);
+                    break;
+                case g:
+                    h = (b - r) / d + 2;
+                    break;
+                case b:
+                    h = (r - g) / d + 4;
+                    break;
+            }
+            h /= 6;
+        }
+
+        if (container)
+        {
+            container.h = h;
+            container.s = s;
+            container.v = max;
+
+            return container;
+        }
+
+        return {h:h,s:s,v:max};
+    },
+
+    /**
+     * Converts an HSV color value to RGB. Conversion formula
+     * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
+     * Assumes h, s, and v are contained in the set [0, 1] and
+     * returns r, g, and b in the set [0, 255].
+     *
+     * @param {number} h The hue
+     * @param {number} s The saturation
+     * @param {number} v The value
+     * @param {Object|null} container
+     * @return {{r:number,g:number,b:number}} The RGB representation
+     */
+    hsvToRgb:function hsvToRgb(h,s,v,container)
+    {
+        var i = Math.floor(h * 6),
+            f = h * 6 - i,
+            p = v * (1 - s),
+            q = v * (1 - f * s),
+            t = v * (1 - (1 - f) * s),
+            r = 0,
+            g = 0,
+            b = 0;
+
+        switch(i % 6)
+        {
+            case 0:
+                r = v, g = t, b = p;
+                break;
+            case 1:
+                r = q, g = v, b = p;
+                break;
+            case 2:
+                r = p, g = v, b = t;
+                break;
+            case 3:
+                r = p, g = q, b = v;
+                break;
+            case 4:
+                r = t, g = p, b = v;
+                break;
+            case 5:
+                r = v, g = p, b = q;
+                break;
+        }
+
+        if (container)
+        {
+            container.r = r * 255;
+            container.g = g * 255;
+            container.b = b * 255;
+
+            return container;
+        }
+
+        return {r:r*255,g:g*255,b:b*255};
+    },
+
+    /**
+     * Converts Hue to RGB
+     * @param {number} p
+     * @param {number} q
+     * @param {number} t
+     * @return {number}
+     */
+    _hueToRgb:function _hueToRgb(p,q,t)
+    {
+        if(t < 0) t += 1;
+        if(t > 1) t -= 1;
+        if(t < 1/6) return p + (q - p) * 6 * t;
+        if(t < 1/2) return q;
+        if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
     }
 };
 
@@ -289,6 +540,7 @@ App.GraphicUtils = {
         endAngle -= 90;
 
         var angle = startAngle,
+            angleStep = (endAngle - startAngle) / smoothSteps,
             degToRad = Math.PI / 180,
             radians = angle * degToRad,
             radiusX = width / 2,
@@ -304,7 +556,7 @@ App.GraphicUtils = {
 
         for (;i<smoothSteps;)
         {
-            angle = startAngle + ((endAngle - startAngle) / smoothSteps) * i++;
+            angle = startAngle + angleStep * i++;
             radians = angle * degToRad;
             graphics.lineTo(centerX+Math.cos(radians)*radiusX,centerY+Math.sin(radians)*radiusY);
         }
@@ -314,7 +566,7 @@ App.GraphicUtils = {
 
         for (i=smoothSteps;i>=0;)
         {
-            angle = startAngle + ((endAngle - startAngle) / smoothSteps) * i--;
+            angle = startAngle + angleStep * i--;
             radians = angle * degToRad;
             graphics.lineTo(centerX+Math.cos(radians)*(radiusX-thickness),centerY+Math.sin(radians)*(radiusY-thickness));
         }
@@ -2425,12 +2677,13 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
 {
     PIXI.DisplayObjectContainer.call(this);
 
+    this.boundingBox = new App.Rectangle(0,0,width,height);
+
     this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
     this._content = null;
-    this._width = width;
-    this._height = height;
     this._contentHeight = 0;
     this._contentWidth = 0;
+    this._contentBoundingBox = new App.Rectangle();
     this._mask = new PIXI.Graphics();
 
     this._enabled = false;
@@ -2474,6 +2727,8 @@ App.Pane.prototype.setContent = function setContent(content)
     this._content = content;
     this._contentHeight = Math.round(this._content.height);
     this._contentWidth = Math.round(this._content.width);
+    this._contentBoundingBox.width = this._contentWidth;
+    this._contentBoundingBox.height = this._contentHeight;
 
     this.addChildAt(this._content,0);
 
@@ -2504,13 +2759,15 @@ App.Pane.prototype.removeContent = function removeContent()
  */
 App.Pane.prototype.resize = function resize(width,height)
 {
-    this._width = width || this._width;
-    this._height = height || this._height;
+    this.boundingBox.width = width || this.boundingBox.width;
+    this.boundingBox.height = height || this.boundingBox.height;
 
     if (this._content)
     {
         this._contentHeight = Math.round(this._content.height);
         this._contentWidth = Math.round(this._content.width);
+        this._contentBoundingBox.width = this._contentWidth;
+        this._contentBoundingBox.height = this._contentHeight;
 
         this._checkPosition();
 
@@ -2520,12 +2777,21 @@ App.Pane.prototype.resize = function resize(width,height)
 };
 
 /**
+ * Return content bounding box
+ * @returns {Rectangle|*}
+ */
+App.Pane.prototype.getContentBounds = function getContentBounds()
+{
+    return this._contentBoundingBox;
+};
+
+/**
  * Re-draw mask
  * @private
  */
 App.Pane.prototype._updateMask = function _updateMask()
 {
-    App.GraphicUtils.drawRect(this._mask,0xff0000,1,0,0,this._width,this._height);
+    App.GraphicUtils.drawRect(this._mask,0xff0000,1,0,0,this.boundingBox.width,this.boundingBox.height);
 };
 
 /**
@@ -2755,7 +3021,8 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
     {
         if (this._xScrollPolicy === ScrollPolicy.ON)
         {
-            var mouseX = this._mouseData.getLocalPosition(this.stage).x,
+            var w = this.boundingBox.width,
+                mouseX = this._mouseData.getLocalPosition(this.stage).x,
                 contentX = this._content.x,
                 contentRight = contentX + this._contentWidth,
                 contentLeft = contentX - this._contentWidth;
@@ -2765,13 +3032,13 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
             // If content is pulled from beyond screen edges, dump the drag effect
             if (contentX > 0)
             {
-                pullDistance = (1 - contentX / this._width) * this._dumpForce;
+                pullDistance = (1 - contentX / w) * this._dumpForce;
                 this._updateX(mouseX * pullDistance - this._xOffset * pullDistance);
             }
-            else if (contentRight < this._width)
+            else if (contentRight < w)
             {
-                pullDistance = (contentRight / this._width) * this._dumpForce;
-                this._updateX(contentLeft - (this._width - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
+                pullDistance = (contentRight / w) * this._dumpForce;
+                this._updateX(contentLeft - (w - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
             }
             else
             {
@@ -2784,23 +3051,24 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
 
         if (this._yScrollPolicy === ScrollPolicy.ON)
         {
-            var mouseY = this._mouseData.getLocalPosition(this.stage).y,
+            var h = this.boundingBox.height,
+                mouseY = this._mouseData.getLocalPosition(this.stage).y,
                 contentY = this._content.y,
                 contentBottom = contentY + this._contentHeight,
-                contentTop = this._height - this._contentHeight;
+                contentTop = h - this._contentHeight;
 
             if (mouseY <= -10000) return;
 
             // If content is pulled from beyond screen edges, dump the drag effect
             if (contentY > 0)
             {
-                pullDistance = (1 - contentY / this._height) * this._dumpForce;
+                pullDistance = (1 - contentY / h) * this._dumpForce;
                 this._updateY(mouseY * pullDistance - this._yOffset * pullDistance);
             }
-            else if (contentBottom < this._height)
+            else if (contentBottom < h)
             {
-                pullDistance = (contentBottom / this._height) * this._dumpForce;
-                this._updateY(contentTop - (this._height - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
+                pullDistance = (contentBottom / h) * this._dumpForce;
+                this._updateY(contentTop - (h - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
             }
             else
             {
@@ -2826,17 +3094,18 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
     {
         this._updateX(this._content.x + this._xSpeed);
 
-        var contentX = this._content.x,
+        var w = this.boundingBox.width,
+            contentX = this._content.x,
             contentRight = contentX + this._contentWidth;
 
         // If content is scrolled from beyond screen edges, dump the speed
         if (contentX > 0)
         {
-            this._xSpeed *= (1 - contentX / this._width) * this._dumpForce;
+            this._xSpeed *= (1 - contentX / w) * this._dumpForce;
         }
-        else if (contentRight < this._width)
+        else if (contentRight < w)
         {
-            this._xSpeed *= (contentRight / this._width) * this._dumpForce;
+            this._xSpeed *= (contentRight / w) * this._dumpForce;
         }
 
         // If the speed is very low, stop it.
@@ -2847,7 +3116,7 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
             this._state = null;
             this._xScrollIndicator.hide();
 
-            if (contentX > 0 || contentRight < this._width) this._state = InteractiveState.SNAPPING;
+            if (contentX > 0 || contentRight < w) this._state = InteractiveState.SNAPPING;
         }
         else
         {
@@ -2859,17 +3128,18 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
     {
         this._updateY(this._content.y + this._ySpeed);
 
-        var contentY = this._content.y,
+        var h = this.boundingBox.height,
+            contentY = this._content.y,
             contentBottom = contentY + this._contentHeight;
 
         // If content is scrolled from beyond screen edges, dump the speed
         if (contentY > 0)
         {
-            this._ySpeed *= (1 - contentY / this._height) * this._dumpForce;
+            this._ySpeed *= (1 - contentY / h) * this._dumpForce;
         }
-        else if (contentBottom < this._height)
+        else if (contentBottom < h)
         {
-            this._ySpeed *= (contentBottom / this._height) * this._dumpForce;
+            this._ySpeed *= (contentBottom / h) * this._dumpForce;
         }
 
         // If the speed is very low, stop it.
@@ -2880,7 +3150,7 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
             this._state = null;
             this._yScrollIndicator.hide();
 
-            if (contentY > 0 || contentBottom < this._height) this._state = InteractiveState.SNAPPING;
+            if (contentY > 0 || contentBottom < h) this._state = InteractiveState.SNAPPING;
         }
         else
         {
@@ -2899,7 +3169,8 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
 {
     if (this._xScrollPolicy === ScrollPolicy.ON)
     {
-        var contentX = this._content.x,
+        var w = this.boundingBox.width,
+            contentX = this._content.x,
             contentRight = contentX + this._contentWidth,
             contentLeft = contentX - this._contentWidth,
             result = contentX * this._snapForce;
@@ -2917,10 +3188,10 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
                 this._updateX(result);
             }
         }
-        else if (contentRight < this._width)
+        else if (contentRight < w)
         {
             result = contentLeft + (contentX - contentLeft) * this._snapForce;
-            if (result >= this._width - 5)
+            if (result >= w - 5)
             {
                 this._state = null;
                 this._updateX(contentLeft);
@@ -2935,9 +3206,10 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
 
     if (this._yScrollPolicy === ScrollPolicy.ON)
     {
-        var contentY = this._content.y,
+        var h = this.boundingBox.height,
+            contentY = this._content.y,
             contentBottom = contentY + this._contentHeight,
-            contentTop = this._height - this._contentHeight;
+            contentTop = h - this._contentHeight;
 
         if (contentY > 0)
         {
@@ -2953,7 +3225,7 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
                 this._updateY(result);
             }
         }
-        else if (contentBottom < this._height)
+        else if (contentBottom < h)
         {
             result = contentTop + (contentY - contentTop) * this._snapForce;
             if (result >= contentTop - 5)
@@ -2977,16 +3249,16 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
  */
 App.Pane.prototype._isContentPulled = function _isContentPulled()
 {
-    if (this._contentHeight > this._height)
+    if (this._contentHeight > this.boundingBox.height)
     {
         if (this._content.y > 0) return true;
-        else if (this._content.y + this._contentHeight < this._height) return true;
+        else if (this._content.y + this._contentHeight < this.boundingBox.height) return true;
     }
 
-    if (this._contentWidth > this._width)
+    if (this._contentWidth > this.boundingBox.width)
     {
         if (this._content.x > 0) return true;
-        else if (this._content.x + this._contentWidth < this._width) return true;
+        else if (this._content.x + this._contentWidth < this.boundingBox.width) return true;
     }
 
     return false;
@@ -2998,16 +3270,18 @@ App.Pane.prototype._isContentPulled = function _isContentPulled()
  */
 App.Pane.prototype._updateScrollers = function _updateScrollers()
 {
-    var ScrollPolicy = App.ScrollPolicy;
+    var ScrollPolicy = App.ScrollPolicy,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height;
 
     if (this._xOriginalScrollPolicy === ScrollPolicy.AUTO)
     {
-        if (this._contentWidth >= this._width)
+        if (this._contentWidth >= w)
         {
             this._xScrollPolicy = ScrollPolicy.ON;
 
-            this._xScrollIndicator.resize(this._width,this._contentWidth);
-            this._xScrollIndicator.x = this._height - this._xScrollIndicator.boundingBox.height;
+            this._xScrollIndicator.resize(w,this._contentWidth);
+            this._xScrollIndicator.x = h - this._xScrollIndicator.boundingBox.height;
             if (!this.contains(this._xScrollIndicator)) this.addChild(this._xScrollIndicator);
         }
         else
@@ -3021,12 +3295,12 @@ App.Pane.prototype._updateScrollers = function _updateScrollers()
 
     if (this._yOriginalScrollPolicy === ScrollPolicy.AUTO)
     {
-        if (this._contentHeight >= this._height)
+        if (this._contentHeight >= h)
         {
             this._yScrollPolicy = ScrollPolicy.ON;
 
-            this._yScrollIndicator.resize(this._height,this._contentHeight);
-            this._yScrollIndicator.x = this._width - this._yScrollIndicator.boundingBox.width;
+            this._yScrollIndicator.resize(h,this._contentHeight);
+            this._yScrollIndicator.x = w - this._yScrollIndicator.boundingBox.width;
             if (!this.contains(this._yScrollIndicator)) this.addChild(this._yScrollIndicator);
         }
         else
@@ -3048,24 +3322,27 @@ App.Pane.prototype._updateScrollers = function _updateScrollers()
  */
 App.Pane.prototype._checkPosition = function _checkPosition()
 {
-    if (this._contentHeight > this._height)
-    {
-        if (this._content.y > 0) this._updateY(0);
-        else if (this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
-    }
-    else if (this._contentHeight <= this._height)
-    {
-        if (this._content.y !== 0) this._updateY(0);
-    }
+    var w = this.boundingBox.width,
+        h = this.boundingBox.height;
 
-    if (this._contentWidth > this._width)
+    if (this._contentWidth > w)
     {
         if (this._content.x > 0) this._updateX(0);
-        else if (this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
+        else if (this._content.x + this._contentWidth < w) this._updateX(w - this._contentWidth);
     }
-    else if (this._contentWidth <= this._width)
+    else if (this._contentWidth <= w)
     {
         if (this._content.x !== 0) this._updateX(0);
+    }
+
+    if (this._contentHeight > h)
+    {
+        if (this._content.y > 0) this._updateY(0);
+        else if (this._content.y + this._contentHeight < h) this._updateY(h - this._contentHeight);
+    }
+    else if (this._contentHeight <= h)
+    {
+        if (this._content.y !== 0) this._updateY(0);
     }
 };
 
@@ -3938,6 +4215,8 @@ App.TilePane.prototype.setContent = function setContent(content)
     this._content = content;
     this._contentHeight = Math.round(this._content.boundingBox.height);
     this._contentWidth = Math.round(this._content.boundingBox.width);
+    this._contentBoundingBox.width = this._contentWidth;
+    this._contentBoundingBox.height = this._contentHeight;
 
     this.addChildAt(this._content,0);
 
@@ -3953,13 +4232,15 @@ App.TilePane.prototype.setContent = function setContent(content)
  */
 App.TilePane.prototype.resize = function resize(width,height)
 {
-    this._width = width || this._width;
-    this._height = height || this._height;
+    this.boundingBox.width = width || this.boundingBox.width;
+    this.boundingBox.height = height || this.boundingBox.height;
 
     if (this._content)
     {
         this._contentHeight = Math.round(this._content.boundingBox.height);
         this._contentWidth = Math.round(this._content.boundingBox.width);
+        this._contentBoundingBox.width = this._contentWidth;
+        this._contentBoundingBox.height = this._contentHeight;
 
         this._checkPosition();
 
@@ -7218,6 +7499,273 @@ App.ReportAccountButton.prototype._getButtonUnderPosition = function _getButtonU
 };
 
 /**
+ * @class ReportChartHighlight
+ * @extends Graphics
+ * @param {Point} center
+ * @param {number} width
+ * @param {number} height
+ * @param {number} thickness
+ * @constructor
+ */
+App.ReportChartHighlight = function ReportChartHighlight(center,width,height,thickness)
+{
+    PIXI.Graphics.call(this);
+
+    this._width = width;
+    this._height = height;
+    this._center = center;
+    this._thickness = thickness;
+    this._oldStart = 0;
+    this._oldEnd = 0;
+    this._start = 0;
+    this._end = 0;
+    this._color = 0x000000;
+};
+
+App.ReportChartHighlight.prototype = Object.create(PIXI.Graphics.prototype);
+App.ReportChartHighlight.prototype.constructor = App.ReportChartHighlight;
+
+/**
+ * Change
+ * @param {number} start
+ * @param {number} end
+ * @param {number} color
+ */
+App.ReportChartHighlight.prototype.change = function change(start,end,color)
+{
+    this._oldStart = this._start;
+    this._oldEnd = this._end;
+
+    this._start = start;
+    this._end = end;
+    this._color = color;
+};
+
+/**
+ * Update change by progress passed in
+ * @param {number} progress
+ */
+App.ReportChartHighlight.prototype.update = function update(progress)
+{
+    var start = this._oldStart + (this._start - this._oldStart) * progress,
+        end = this._oldEnd + (this._end - this._oldEnd) * progress;
+
+    App.GraphicUtils.drawArc(this,this._center,this._width,this._height,this._thickness,start,end,20,0,0,0,this._color,1);
+};
+
+App.ReportChart = function ReportChart(model,width,height,pixelRatio)
+{
+    //TODO if there is just 1 account segments should represent categories of that account; otherwise segment will represent accounts
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        Graphics = PIXI.Graphics,
+        colors = [0xff0000,0xc0ffee,0x0000ff],
+        i = 0,
+        l = 3,//TODO number of segments calculated from accounts
+        segment = null;
+
+    Graphics.call(this);
+
+    this.boundingBox = new App.Rectangle(0,0,width,height);
+
+    this._center = new PIXI.Point(Math.round(width/2),Math.round(height/2));
+    this._thickness = Math.round(15 * pixelRatio);
+    this._chartSize = width - Math.round(5 * pixelRatio * 2);// 5px margin on sides for highlight line
+    this._segments = new Array(l);
+    this._highlight = new App.ReportChartHighlight(this._center,width,height,Math.round(3 * pixelRatio));
+    this._updateHighlight = false;
+    this._highlightSegment = void 0;
+
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._tween = new App.TweenProxy(1,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._transitionState = App.TransitionState.HIDDEN;
+    this._eventsRegistered = false;
+
+    for (;i<l;i++)
+    {
+        segment = new Graphics();
+        this._segments[i] = {graphics:segment,progress:0,color:colors[i]};
+        this.addChild(segment);
+    }
+
+    this.addChild(this._highlight);
+};
+
+App.ReportChart.prototype = Object.create(PIXI.Graphics.prototype);
+App.ReportChart.prototype.constructor = App.ReportChart;
+
+/**
+ * Show
+ */
+App.ReportChart.prototype.show = function show()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.HIDDEN)
+    {
+        this._registerEventListeners();
+
+        this._transitionState = TransitionState.SHOWING;
+
+        this._tween.start();
+    }
+    else if (this._transitionState === TransitionState.HIDING)
+    {
+        this._transitionState = TransitionState.SHOWING;
+
+        this._tween.restart();
+    }
+};
+
+/**
+ * Hide
+ */
+App.ReportChart.prototype.hide = function hide()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.SHOWN)
+    {
+        this._registerEventListeners();
+
+        this._transitionState = TransitionState.HIDING;
+
+        this._tween.start();
+    }
+    else if (this._transitionState === TransitionState.SHOWING)
+    {
+        this._transitionState = TransitionState.HIDING;
+
+        this._tween.restart();
+    }
+};
+
+/**
+ * Highlight segment
+ * @param {number} segment Segment of the chart to highlight
+ */
+App.ReportChart.prototype.highlightSegment = function highlightSegment(segment)
+{
+    //TODO maybe pass in category instead of segment number?
+
+    if (segment === this._highlightSegment) return;
+
+    if (this._transitionState === App.TransitionState.SHOWN)
+    {
+        this._registerEventListeners();
+
+        this._highlight.change(
+            segment === 0 ? 0 : this._segments[segment-1].progress,
+            this._segments[segment].progress,
+            this._segments[segment].color
+        );
+
+        this._highlightSegment = segment;
+
+        this._updateHighlight = true;
+
+        this._tween.restart();
+    }
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.ReportChart.prototype._registerEventListeners = function _registerEventListeners()
+{
+    if (!this._eventsRegistered)
+    {
+        this._eventsRegistered = true;
+
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._tween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+    }
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.ReportChart.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._tween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+
+    this._eventsRegistered = false;
+};
+
+/**
+ * RAF tick handler
+ * @private
+ */
+App.ReportChart.prototype._onTick = function _onTick()
+{
+    if (this._tween.isRunning())
+    {
+        if (this._updateHighlight) this._highlight.update(this._tween.progress);
+        else this._updateTween(false);
+    }
+};
+
+/**
+ * Update show hide tween
+ * @param {boolean} hiRes Indicate render chart in high-resolution
+ * @private
+ */
+App.ReportChart.prototype._updateTween = function _updateTween(hiRes)
+{
+    var GraphicUtils = App.GraphicUtils,
+        TransitionState = App.TransitionState,
+        progress = this._tween.progress,
+        i = 0,
+        l = this._segments.length,
+        steps = hiRes ? 20 : 10,
+        start = 0,
+        fraction = 0,
+        segment = null;
+
+    if (this._transitionState === TransitionState.HIDING || this._transitionState === TransitionState.HIDDEN)
+    {
+        progress = 1 - progress;
+    }
+
+    for (;i<l;i++)
+    {
+        segment = this._segments[i];
+        fraction = (i + 1) * (1 / l);
+        segment.progress = 360 * (progress < fraction ? progress : fraction);
+        start = i === 0 ? 0 : this._segments[i-1].progress;
+        GraphicUtils.drawArc(segment.graphics,this._center,this._chartSize,this._chartSize,this._thickness,start,segment.progress,steps,0,0,0,segment.color,1);
+    }
+};
+
+/**
+ * On Show Hide tween complete
+ * @private
+ */
+App.ReportChart.prototype._onTweenComplete = function _onTweenComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.SHOWING) this._transitionState = TransitionState.SHOWN;
+    else if (this._transitionState === TransitionState.HIDING) this._transitionState = TransitionState.HIDDEN;
+
+    this._updateTween(true);
+
+    this._unRegisterEventListeners();
+
+    if (this._updateHighlight)
+    {
+        this._updateHighlight = false;
+
+        this._highlight.update(1);
+    }
+};
+
+/**
  * @class ReportScreen
  * @extends Screen
  * @param {Collection} model
@@ -7234,6 +7782,7 @@ App.ReportScreen = function ReportScreen(model,layout)
         w = layout.width,
         h = layout.height,
         r = layout.pixelRatio,
+        chartSize = Math.round(h * 0.3 - 20 * r),
         listWidth = Math.round(w - 20 * r),// 10pts padding on both sides
         listHeight = Math.round(h * 0.7),
         itemHeight = Math.round(40 * r),
@@ -7248,8 +7797,7 @@ App.ReportScreen = function ReportScreen(model,layout)
             subPrice:FontStyle.get(14,FontStyle.BLUE)
         };
 
-    this._chart = new PIXI.Graphics();
-    App.GraphicUtils.drawArc(this._chart,new PIXI.Point(150,150),200,200,34,0,3.6*66,40,0x000000,.5,10,0xff0000,1);
+    this._chart = new App.ReportChart(null,chartSize,chartSize,r);
 
     this._buttonList = new App.TileList(App.Direction.Y,listHeight);
     this._buttonList.add(new ReportAccountButton("Private",listWidth,itemHeight,r,labelStyles),false);
@@ -7264,7 +7812,7 @@ App.ReportScreen = function ReportScreen(model,layout)
 
     this._updateLayout();
 
-    //this.addChild(this._chart);
+    this.addChild(this._chart);
     this.addChild(this._pane);
 };
 
@@ -7293,12 +7841,28 @@ App.ReportScreen.prototype.disable = function disable()
 };
 
 /**
+ * On screen show/hide tween complete
+ * @private
+ */
+App.ReportScreen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    App.Screen.prototype._onTweenComplete.call(this);
+
+    this._chart.show();
+};
+
+/**
  * Update layout
  * @private
  */
 App.ReportScreen.prototype._updateLayout = function _updateLayout()
 {
-    this._pane.x = Math.round(10 * this._layout.pixelRatio);
+    var padding = Math.round(10 * this._layout.pixelRatio);
+
+    this._chart.x = Math.round((this._layout.width - this._chart.boundingBox.width) / 2);
+    this._chart.y = padding;
+
+    this._pane.x = padding;
     this._pane.y = Math.round(this._layout.height * 0.3);
 };
 
@@ -7349,8 +7913,9 @@ App.ReportScreen.prototype._onClick = function _onClick()
     {
         this._interactiveButton.onClick(pointerData);
         this._pane.cancelScroll();
-
         this._closeButtons();
+
+        this._chart.highlightSegment(this._buttonList.getChildIndex(this._interactiveButton));
 
         this._layoutDirty = true;
     }
@@ -8147,7 +8712,6 @@ App.LoadData.prototype.destroy = function destroy()
 App.Initialize = function Initialize()
 {
     this._eventListenerPool = new App.ObjectPool(App.EventListener,10);
-    //TODO also create TextOption pool for all text elements! ...
 
     App.Command.call(this,false,this._eventListenerPool);
 
@@ -8224,8 +8788,6 @@ App.Initialize.prototype._initModel = function _initModel(data)
     ));*/
 
     App.Settings.setStartOfWeek(1);
-
-    //TODO TextField object pool?
 };
 
 /**

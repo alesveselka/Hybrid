@@ -12,12 +12,13 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
 {
     PIXI.DisplayObjectContainer.call(this);
 
+    this.boundingBox = new App.Rectangle(0,0,width,height);
+
     this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
     this._content = null;
-    this._width = width;
-    this._height = height;
     this._contentHeight = 0;
     this._contentWidth = 0;
+    this._contentBoundingBox = new App.Rectangle();
     this._mask = new PIXI.Graphics();
 
     this._enabled = false;
@@ -61,6 +62,8 @@ App.Pane.prototype.setContent = function setContent(content)
     this._content = content;
     this._contentHeight = Math.round(this._content.height);
     this._contentWidth = Math.round(this._content.width);
+    this._contentBoundingBox.width = this._contentWidth;
+    this._contentBoundingBox.height = this._contentHeight;
 
     this.addChildAt(this._content,0);
 
@@ -91,13 +94,15 @@ App.Pane.prototype.removeContent = function removeContent()
  */
 App.Pane.prototype.resize = function resize(width,height)
 {
-    this._width = width || this._width;
-    this._height = height || this._height;
+    this.boundingBox.width = width || this.boundingBox.width;
+    this.boundingBox.height = height || this.boundingBox.height;
 
     if (this._content)
     {
         this._contentHeight = Math.round(this._content.height);
         this._contentWidth = Math.round(this._content.width);
+        this._contentBoundingBox.width = this._contentWidth;
+        this._contentBoundingBox.height = this._contentHeight;
 
         this._checkPosition();
 
@@ -107,12 +112,21 @@ App.Pane.prototype.resize = function resize(width,height)
 };
 
 /**
+ * Return content bounding box
+ * @returns {Rectangle|*}
+ */
+App.Pane.prototype.getContentBounds = function getContentBounds()
+{
+    return this._contentBoundingBox;
+};
+
+/**
  * Re-draw mask
  * @private
  */
 App.Pane.prototype._updateMask = function _updateMask()
 {
-    App.GraphicUtils.drawRect(this._mask,0xff0000,1,0,0,this._width,this._height);
+    App.GraphicUtils.drawRect(this._mask,0xff0000,1,0,0,this.boundingBox.width,this.boundingBox.height);
 };
 
 /**
@@ -342,7 +356,8 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
     {
         if (this._xScrollPolicy === ScrollPolicy.ON)
         {
-            var mouseX = this._mouseData.getLocalPosition(this.stage).x,
+            var w = this.boundingBox.width,
+                mouseX = this._mouseData.getLocalPosition(this.stage).x,
                 contentX = this._content.x,
                 contentRight = contentX + this._contentWidth,
                 contentLeft = contentX - this._contentWidth;
@@ -352,13 +367,13 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
             // If content is pulled from beyond screen edges, dump the drag effect
             if (contentX > 0)
             {
-                pullDistance = (1 - contentX / this._width) * this._dumpForce;
+                pullDistance = (1 - contentX / w) * this._dumpForce;
                 this._updateX(mouseX * pullDistance - this._xOffset * pullDistance);
             }
-            else if (contentRight < this._width)
+            else if (contentRight < w)
             {
-                pullDistance = (contentRight / this._width) * this._dumpForce;
-                this._updateX(contentLeft - (this._width - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
+                pullDistance = (contentRight / w) * this._dumpForce;
+                this._updateX(contentLeft - (w - mouseX) * pullDistance + (this._contentWidth - this._xOffset) * pullDistance);
             }
             else
             {
@@ -371,23 +386,24 @@ App.Pane.prototype._drag = function _drag(ScrollPolicy)
 
         if (this._yScrollPolicy === ScrollPolicy.ON)
         {
-            var mouseY = this._mouseData.getLocalPosition(this.stage).y,
+            var h = this.boundingBox.height,
+                mouseY = this._mouseData.getLocalPosition(this.stage).y,
                 contentY = this._content.y,
                 contentBottom = contentY + this._contentHeight,
-                contentTop = this._height - this._contentHeight;
+                contentTop = h - this._contentHeight;
 
             if (mouseY <= -10000) return;
 
             // If content is pulled from beyond screen edges, dump the drag effect
             if (contentY > 0)
             {
-                pullDistance = (1 - contentY / this._height) * this._dumpForce;
+                pullDistance = (1 - contentY / h) * this._dumpForce;
                 this._updateY(mouseY * pullDistance - this._yOffset * pullDistance);
             }
-            else if (contentBottom < this._height)
+            else if (contentBottom < h)
             {
-                pullDistance = (contentBottom / this._height) * this._dumpForce;
-                this._updateY(contentTop - (this._height - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
+                pullDistance = (contentBottom / h) * this._dumpForce;
+                this._updateY(contentTop - (h - mouseY) * pullDistance + (this._contentHeight - this._yOffset) * pullDistance);
             }
             else
             {
@@ -413,17 +429,18 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
     {
         this._updateX(this._content.x + this._xSpeed);
 
-        var contentX = this._content.x,
+        var w = this.boundingBox.width,
+            contentX = this._content.x,
             contentRight = contentX + this._contentWidth;
 
         // If content is scrolled from beyond screen edges, dump the speed
         if (contentX > 0)
         {
-            this._xSpeed *= (1 - contentX / this._width) * this._dumpForce;
+            this._xSpeed *= (1 - contentX / w) * this._dumpForce;
         }
-        else if (contentRight < this._width)
+        else if (contentRight < w)
         {
-            this._xSpeed *= (contentRight / this._width) * this._dumpForce;
+            this._xSpeed *= (contentRight / w) * this._dumpForce;
         }
 
         // If the speed is very low, stop it.
@@ -434,7 +451,7 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
             this._state = null;
             this._xScrollIndicator.hide();
 
-            if (contentX > 0 || contentRight < this._width) this._state = InteractiveState.SNAPPING;
+            if (contentX > 0 || contentRight < w) this._state = InteractiveState.SNAPPING;
         }
         else
         {
@@ -446,17 +463,18 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
     {
         this._updateY(this._content.y + this._ySpeed);
 
-        var contentY = this._content.y,
+        var h = this.boundingBox.height,
+            contentY = this._content.y,
             contentBottom = contentY + this._contentHeight;
 
         // If content is scrolled from beyond screen edges, dump the speed
         if (contentY > 0)
         {
-            this._ySpeed *= (1 - contentY / this._height) * this._dumpForce;
+            this._ySpeed *= (1 - contentY / h) * this._dumpForce;
         }
-        else if (contentBottom < this._height)
+        else if (contentBottom < h)
         {
-            this._ySpeed *= (contentBottom / this._height) * this._dumpForce;
+            this._ySpeed *= (contentBottom / h) * this._dumpForce;
         }
 
         // If the speed is very low, stop it.
@@ -467,7 +485,7 @@ App.Pane.prototype._scroll = function _scroll(ScrollPolicy,InteractiveState)
             this._state = null;
             this._yScrollIndicator.hide();
 
-            if (contentY > 0 || contentBottom < this._height) this._state = InteractiveState.SNAPPING;
+            if (contentY > 0 || contentBottom < h) this._state = InteractiveState.SNAPPING;
         }
         else
         {
@@ -486,7 +504,8 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
 {
     if (this._xScrollPolicy === ScrollPolicy.ON)
     {
-        var contentX = this._content.x,
+        var w = this.boundingBox.width,
+            contentX = this._content.x,
             contentRight = contentX + this._contentWidth,
             contentLeft = contentX - this._contentWidth,
             result = contentX * this._snapForce;
@@ -504,10 +523,10 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
                 this._updateX(result);
             }
         }
-        else if (contentRight < this._width)
+        else if (contentRight < w)
         {
             result = contentLeft + (contentX - contentLeft) * this._snapForce;
-            if (result >= this._width - 5)
+            if (result >= w - 5)
             {
                 this._state = null;
                 this._updateX(contentLeft);
@@ -522,9 +541,10 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
 
     if (this._yScrollPolicy === ScrollPolicy.ON)
     {
-        var contentY = this._content.y,
+        var h = this.boundingBox.height,
+            contentY = this._content.y,
             contentBottom = contentY + this._contentHeight,
-            contentTop = this._height - this._contentHeight;
+            contentTop = h - this._contentHeight;
 
         if (contentY > 0)
         {
@@ -540,7 +560,7 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
                 this._updateY(result);
             }
         }
-        else if (contentBottom < this._height)
+        else if (contentBottom < h)
         {
             result = contentTop + (contentY - contentTop) * this._snapForce;
             if (result >= contentTop - 5)
@@ -564,16 +584,16 @@ App.Pane.prototype._snap = function _snap(ScrollPolicy)
  */
 App.Pane.prototype._isContentPulled = function _isContentPulled()
 {
-    if (this._contentHeight > this._height)
+    if (this._contentHeight > this.boundingBox.height)
     {
         if (this._content.y > 0) return true;
-        else if (this._content.y + this._contentHeight < this._height) return true;
+        else if (this._content.y + this._contentHeight < this.boundingBox.height) return true;
     }
 
-    if (this._contentWidth > this._width)
+    if (this._contentWidth > this.boundingBox.width)
     {
         if (this._content.x > 0) return true;
-        else if (this._content.x + this._contentWidth < this._width) return true;
+        else if (this._content.x + this._contentWidth < this.boundingBox.width) return true;
     }
 
     return false;
@@ -585,16 +605,18 @@ App.Pane.prototype._isContentPulled = function _isContentPulled()
  */
 App.Pane.prototype._updateScrollers = function _updateScrollers()
 {
-    var ScrollPolicy = App.ScrollPolicy;
+    var ScrollPolicy = App.ScrollPolicy,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height;
 
     if (this._xOriginalScrollPolicy === ScrollPolicy.AUTO)
     {
-        if (this._contentWidth >= this._width)
+        if (this._contentWidth >= w)
         {
             this._xScrollPolicy = ScrollPolicy.ON;
 
-            this._xScrollIndicator.resize(this._width,this._contentWidth);
-            this._xScrollIndicator.x = this._height - this._xScrollIndicator.boundingBox.height;
+            this._xScrollIndicator.resize(w,this._contentWidth);
+            this._xScrollIndicator.x = h - this._xScrollIndicator.boundingBox.height;
             if (!this.contains(this._xScrollIndicator)) this.addChild(this._xScrollIndicator);
         }
         else
@@ -608,12 +630,12 @@ App.Pane.prototype._updateScrollers = function _updateScrollers()
 
     if (this._yOriginalScrollPolicy === ScrollPolicy.AUTO)
     {
-        if (this._contentHeight >= this._height)
+        if (this._contentHeight >= h)
         {
             this._yScrollPolicy = ScrollPolicy.ON;
 
-            this._yScrollIndicator.resize(this._height,this._contentHeight);
-            this._yScrollIndicator.x = this._width - this._yScrollIndicator.boundingBox.width;
+            this._yScrollIndicator.resize(h,this._contentHeight);
+            this._yScrollIndicator.x = w - this._yScrollIndicator.boundingBox.width;
             if (!this.contains(this._yScrollIndicator)) this.addChild(this._yScrollIndicator);
         }
         else
@@ -635,24 +657,27 @@ App.Pane.prototype._updateScrollers = function _updateScrollers()
  */
 App.Pane.prototype._checkPosition = function _checkPosition()
 {
-    if (this._contentHeight > this._height)
-    {
-        if (this._content.y > 0) this._updateY(0);
-        else if (this._content.y + this._contentHeight < this._height) this._updateY(this._height - this._contentHeight);
-    }
-    else if (this._contentHeight <= this._height)
-    {
-        if (this._content.y !== 0) this._updateY(0);
-    }
+    var w = this.boundingBox.width,
+        h = this.boundingBox.height;
 
-    if (this._contentWidth > this._width)
+    if (this._contentWidth > w)
     {
         if (this._content.x > 0) this._updateX(0);
-        else if (this._content.x + this._contentWidth < this._width) this._updateX(this._width - this._contentWidth);
+        else if (this._content.x + this._contentWidth < w) this._updateX(w - this._contentWidth);
     }
-    else if (this._contentWidth <= this._width)
+    else if (this._contentWidth <= w)
     {
         if (this._content.x !== 0) this._updateX(0);
+    }
+
+    if (this._contentHeight > h)
+    {
+        if (this._content.y > 0) this._updateY(0);
+        else if (this._content.y + this._contentHeight < h) this._updateY(h - this._contentHeight);
+    }
+    else if (this._contentHeight <= h)
+    {
+        if (this._content.y !== 0) this._updateY(0);
     }
 };
 

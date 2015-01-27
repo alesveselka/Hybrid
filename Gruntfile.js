@@ -72,6 +72,8 @@ module.exports = function(grunt)
         "js/src/view/screens/report/SubCategoryReportList.js",
         "js/src/view/screens/report/ReportCategoryButton.js",
         "js/src/view/screens/report/ReportAccountButton.js",
+        "js/src/view/screens/report/ReportChartHighlight.js",
+        "js/src/view/screens/report/ReportChart.js",
         "js/src/view/screens/report/ReportScreen.js",
         "js/src/view/ApplicationView.js",
         "js/src/tween/Easing.js",
