@@ -100,7 +100,7 @@ App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,dir
 {
     if (!preferScroll) this._pane.cancelScroll();
 
-    this._interactiveButton = this._getButtonUnderPoint(this.stage.getTouchPosition());
+    this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
     if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
     this._closeButtons(false);
@@ -155,10 +155,10 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    var position = this.stage.getTouchData().getLocalPosition(this),
+    var data = this.stage.getTouchData(),
         EventType = App.EventType;
 
-    this._interactiveButton = this._getButtonUnderPoint(position);
+    this._interactiveButton = this._buttonList.getItemUnderPoint(data);
 
     if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
     {
@@ -168,7 +168,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
         this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
     }
 
-    this._interactiveButton.onClick(position);
+    this._interactiveButton.onClick(data.getLocalPosition(this));
     this._pane.cancelScroll();
 
     //this._closeButtons();
@@ -225,60 +225,4 @@ App.CategoryScreen.prototype._updateLayout = function _updateLayout()
 {
     this._buttonList.updateLayout(true);
     this._pane.resize();
-};
-
-/**
- * Find button under point passed in
- * @param {Point} point
- * @private
- */
-App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoint(point)
-{
-    var i = 0,
-        l = this._buttons.length,
-        y = point.y,
-        height = 0,
-        buttonY = 0,
-        containerY = this.y + this._buttonList.y,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._buttons[i++];
-        buttonY = button.y + containerY;
-        height = button.boundingBox.height;
-        if (buttonY <= y && buttonY + height >= y)
-        {
-            return button;
-        }
-    }
-
-    return null;
-};
-
-/**
- * Destroy
- */
-App.CategoryScreen.prototype.destroy = function destroy()
-{
-    App.Screen.prototype.destroy.call(this);
-
-    this.disable();
-
-    this.removeChild(this._pane);
-    this._pane.destroy();
-    this._pane = null;
-
-    /*var i = 0, l = this._buttons.length, button = null;
-    for (;i<l;)
-    {
-        button = this._buttons[i++];
-        if (this._buttonList.contains(button)) this._buttonList.removeChild(button);
-        button.destroy();
-    }
-    this._buttonList.destroy();
-    this._buttonList = null;*/
-
-    this._buttons.length = 0;
-    this._buttons = null;
 };

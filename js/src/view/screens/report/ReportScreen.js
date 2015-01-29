@@ -145,7 +145,7 @@ App.ReportScreen.prototype._onClick = function _onClick()
 {
     var pointerData = this.stage.getTouchData();
 
-    this._interactiveButton = this._getButtonUnderPosition(pointerData.getLocalPosition(this._pane).y);
+    this._interactiveButton = this._buttonList.getItemUnderPoint(pointerData);
 
     if (this._interactiveButton)
     {
@@ -191,32 +191,4 @@ App.ReportScreen.prototype._buttonsInTransition = function _buttonsInTransition(
     }
 
     return inTransition;
-};
-
-/**
- * Find button under point passed in
- * @param {number} position
- * @private
- */
-App.ReportScreen.prototype._getButtonUnderPosition = function _getButtonUnderPosition(position)
-{
-    var i = 0,
-        l = this._buttonList.children.length,
-        height = 0,
-        buttonY = 0,
-        containerY = this.y + this._buttonList.y,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._buttonList.getChildAt(i++);
-        buttonY = button.y + containerY;
-        height = button.boundingBox.height;
-        if (buttonY <= position && buttonY + height > position)
-        {
-            return button;
-        }
-    }
-
-    return null;
 };

@@ -54,6 +54,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",options),true);
 
     //TODO add overlay for bluring inputs?
+    //TODO autmatically focus input when this screen is shown?
 
     this._transactionInpup.restrict(/\D/);
     this._render();

@@ -79,7 +79,7 @@ App.ReportAccountButton.prototype.onClick = function onClick(pointerData)
     // Click on category sub-list
     else if (position > this._height)
     {
-        interactiveButton = this._getButtonUnderPosition(position);
+        interactiveButton = this._categoryList.getItemUnderPoint(pointerData);
         if (interactiveButton) interactiveButton.onClick(position);
     }
 };
@@ -118,32 +118,4 @@ App.ReportAccountButton.prototype.isInTransition = function isInTransition()
     }
 
     return inTransition;
-};
-
-/**
- * Find button under point passed in
- * @param {number} position
- * @private
- */
-App.ReportAccountButton.prototype._getButtonUnderPosition = function _getButtonUnderPosition(position)
-{
-    var i = 0,
-        l = this._categoryList.children.length,
-        height = 0,
-        buttonY = 0,
-        containerY = this._categoryList.y,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._categoryList.getChildAt(i++);
-        buttonY = button.y + containerY;
-        height = button.boundingBox.height;
-        if (buttonY <= position && buttonY + height > position)
-        {
-            return button;
-        }
-    }
-
-    return null;
 };

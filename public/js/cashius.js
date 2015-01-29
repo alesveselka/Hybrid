@@ -4108,6 +4108,52 @@ App.List.prototype.updateLayout = function updateLayout()
 };
 
 /**
+ * Find and return item under point passed in
+ * @param {InteractionData} data PointerData to get the position from
+ */
+App.List.prototype.getItemUnderPoint = function getItemUnderPoint(data)
+{
+    var position = data.getLocalPosition(this).x,
+        Direction = App.Direction,
+        i = 0,
+        l = this._items.length,
+        size = 0,
+        itemPosition = 0,
+        item = null;
+
+    if (this._direction === Direction.X)
+    {
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            itemPosition = item.x;
+            size = item.boundingBox.width;
+            if (itemPosition <= position && itemPosition + size >= position)
+            {
+                return item;
+            }
+        }
+    }
+    else if (this._direction === Direction.Y)
+    {
+        position = data.getLocalPosition(this).y;
+
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            itemPosition = item.y;
+            size = item.boundingBox.height;
+            if (itemPosition <= position && itemPosition + size >= position)
+            {
+                return item;
+            }
+        }
+    }
+
+    return null;
+};
+
+/**
  * @class TileList
  * @extends List
  * @param {string} direction
@@ -5586,6 +5632,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",options),true);
 
     //TODO add overlay for bluring inputs?
+    //TODO autmatically focus input when this screen is shown?
 
     this._transactionInpup.restrict(/\D/);
     this._render();
@@ -6586,7 +6633,7 @@ App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,dir
 {
     if (!preferScroll) this._pane.cancelScroll();
 
-    this._interactiveButton = this._getButtonUnderPoint(this.stage.getTouchPosition());
+    this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
     if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
     this._closeButtons(false);
@@ -6641,10 +6688,10 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    var position = this.stage.getTouchData().getLocalPosition(this),
+    var data = this.stage.getTouchData(),
         EventType = App.EventType;
 
-    this._interactiveButton = this._getButtonUnderPoint(position);
+    this._interactiveButton = this._buttonList.getItemUnderPoint(data);
 
     if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
     {
@@ -6654,7 +6701,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
         this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
     }
 
-    this._interactiveButton.onClick(position);
+    this._interactiveButton.onClick(data.getLocalPosition(this));
     this._pane.cancelScroll();
 
     //this._closeButtons();
@@ -6711,62 +6758,6 @@ App.CategoryScreen.prototype._updateLayout = function _updateLayout()
 {
     this._buttonList.updateLayout(true);
     this._pane.resize();
-};
-
-/**
- * Find button under point passed in
- * @param {Point} point
- * @private
- */
-App.CategoryScreen.prototype._getButtonUnderPoint = function _getButtonUnderPoint(point)
-{
-    var i = 0,
-        l = this._buttons.length,
-        y = point.y,
-        height = 0,
-        buttonY = 0,
-        containerY = this.y + this._buttonList.y,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._buttons[i++];
-        buttonY = button.y + containerY;
-        height = button.boundingBox.height;
-        if (buttonY <= y && buttonY + height >= y)
-        {
-            return button;
-        }
-    }
-
-    return null;
-};
-
-/**
- * Destroy
- */
-App.CategoryScreen.prototype.destroy = function destroy()
-{
-    App.Screen.prototype.destroy.call(this);
-
-    this.disable();
-
-    this.removeChild(this._pane);
-    this._pane.destroy();
-    this._pane = null;
-
-    /*var i = 0, l = this._buttons.length, button = null;
-    for (;i<l;)
-    {
-        button = this._buttons[i++];
-        if (this._buttonList.contains(button)) this._buttonList.removeChild(button);
-        button.destroy();
-    }
-    this._buttonList.destroy();
-    this._buttonList = null;*/
-
-    this._buttons.length = 0;
-    this._buttons = null;
 };
 
 /**
@@ -7855,7 +7846,7 @@ App.ReportAccountButton.prototype.onClick = function onClick(pointerData)
     // Click on category sub-list
     else if (position > this._height)
     {
-        interactiveButton = this._getButtonUnderPosition(position);
+        interactiveButton = this._categoryList.getItemUnderPoint(pointerData);
         if (interactiveButton) interactiveButton.onClick(position);
     }
 };
@@ -7894,34 +7885,6 @@ App.ReportAccountButton.prototype.isInTransition = function isInTransition()
     }
 
     return inTransition;
-};
-
-/**
- * Find button under point passed in
- * @param {number} position
- * @private
- */
-App.ReportAccountButton.prototype._getButtonUnderPosition = function _getButtonUnderPosition(position)
-{
-    var i = 0,
-        l = this._categoryList.children.length,
-        height = 0,
-        buttonY = 0,
-        containerY = this._categoryList.y,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._categoryList.getChildAt(i++);
-        buttonY = button.y + containerY;
-        height = button.boundingBox.height;
-        if (buttonY <= position && buttonY + height > position)
-        {
-            return button;
-        }
-    }
-
-    return null;
 };
 
 /**
@@ -8344,7 +8307,7 @@ App.ReportScreen.prototype._onClick = function _onClick()
 {
     var pointerData = this.stage.getTouchData();
 
-    this._interactiveButton = this._getButtonUnderPosition(pointerData.getLocalPosition(this._pane).y);
+    this._interactiveButton = this._buttonList.getItemUnderPoint(pointerData);
 
     if (this._interactiveButton)
     {
@@ -8390,34 +8353,6 @@ App.ReportScreen.prototype._buttonsInTransition = function _buttonsInTransition(
     }
 
     return inTransition;
-};
-
-/**
- * Find button under point passed in
- * @param {number} position
- * @private
- */
-App.ReportScreen.prototype._getButtonUnderPosition = function _getButtonUnderPosition(position)
-{
-    var i = 0,
-        l = this._buttonList.children.length,
-        height = 0,
-        buttonY = 0,
-        containerY = this.y + this._buttonList.y,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._buttonList.getChildAt(i++);
-        buttonY = button.y + containerY;
-        height = button.boundingBox.height;
-        if (buttonY <= position && buttonY + height > position)
-        {
-            return button;
-        }
-    }
-
-    return null;
 };
 
 /**

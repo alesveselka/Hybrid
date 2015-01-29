@@ -67,3 +67,49 @@ App.List.prototype.updateLayout = function updateLayout()
         this.boundingBox.width = item.boundingBox.width;
     }
 };
+
+/**
+ * Find and return item under point passed in
+ * @param {InteractionData} data PointerData to get the position from
+ */
+App.List.prototype.getItemUnderPoint = function getItemUnderPoint(data)
+{
+    var position = data.getLocalPosition(this).x,
+        Direction = App.Direction,
+        i = 0,
+        l = this._items.length,
+        size = 0,
+        itemPosition = 0,
+        item = null;
+
+    if (this._direction === Direction.X)
+    {
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            itemPosition = item.x;
+            size = item.boundingBox.width;
+            if (itemPosition <= position && itemPosition + size >= position)
+            {
+                return item;
+            }
+        }
+    }
+    else if (this._direction === Direction.Y)
+    {
+        position = data.getLocalPosition(this).y;
+
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            itemPosition = item.y;
+            size = item.boundingBox.height;
+            if (itemPosition <= position && itemPosition + size >= position)
+            {
+                return item;
+            }
+        }
+    }
+
+    return null;
+};
