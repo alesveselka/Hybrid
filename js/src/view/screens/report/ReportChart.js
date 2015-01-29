@@ -1,3 +1,12 @@
+/**
+ * @class ReportChart
+ * @extends Graphics
+ * @param {Collection} model
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @constructor
+ */
 App.ReportChart = function ReportChart(model,width,height,pixelRatio)
 {
     //TODO if there is just 1 account segments should represent categories of that account; otherwise segment will represent accounts
@@ -13,6 +22,10 @@ App.ReportChart = function ReportChart(model,width,height,pixelRatio)
 
     this.boundingBox = new App.Rectangle(0,0,width,height);
 
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._tween = new App.TweenProxy(1,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._transitionState = App.TransitionState.HIDDEN;
+    this._eventsRegistered = false;
     this._center = new PIXI.Point(Math.round(width/2),Math.round(height/2));
     this._thickness = Math.round(15 * pixelRatio);
     this._chartSize = width - Math.round(5 * pixelRatio * 2);// 5px margin on sides for highlight line
@@ -20,11 +33,6 @@ App.ReportChart = function ReportChart(model,width,height,pixelRatio)
     this._highlight = new App.ReportChartHighlight(this._center,width,height,Math.round(3 * pixelRatio));
     this._updateHighlight = false;
     this._highlightSegment = void 0;
-
-    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-    this._tween = new App.TweenProxy(1,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
-    this._transitionState = App.TransitionState.HIDDEN;
-    this._eventsRegistered = false;
 
     for (;i<l;i++)
     {

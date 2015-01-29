@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * Function prototype bind polyfill
  * ! @source http://code.famo.us/lib/functionPrototypeBind.js
@@ -771,7 +773,7 @@ App.Direction = {
 /**
  * Screen Name
  * @enum {number}
- * @return {{ACCOUNT:number,CATEGORY:number,SELECT_TIME:number,EDIT_CATEGORY:number,TRANSACTIONS:number,REPORT:number}}
+ * @return {{ACCOUNT:number,CATEGORY:number,SELECT_TIME:number,EDIT_CATEGORY:number,TRANSACTIONS:number,REPORT:number,ADD_TRANSACTION:number}}
  */
 App.ScreenName = {
     ACCOUNT:0,
@@ -779,7 +781,8 @@ App.ScreenName = {
     SELECT_TIME:2,
     EDIT_CATEGORY:3,
     TRANSACTIONS:4,
-    REPORT:5
+    REPORT:5,
+    ADD_TRANSACTION:6
 };
 
 /**
@@ -1536,9 +1539,9 @@ App.FontStyle = {
     BLUE:"#394264",
     BLUE_LIGHT:"#50597B",
     BLUE_DARK:"#252B44",
+    SHADE:"#efefef",
     SHADE_DARK:"#cccccc",
-    RED_DARK:"#990000",
-    SHADE:"#efefef"
+    RED_DARK:"#990000"
 };
 
 /**
@@ -5377,6 +5380,429 @@ App.ExpandButton.prototype.removeEventListener = function removeEventListener(ev
     this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };
 
+App.TransactionToggleButton = function TransactionToggleButton(iconName,label,options,toggleStyle)
+{
+    PIXI.Graphics.call(this);
+
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
+
+    this._pixelRatio = options.pixelRatio;
+    this._icon = PIXI.Sprite.fromFrame(iconName);
+    this._label = new PIXI.Text(label,options.style);
+    this._toggleStyle = toggleStyle;
+    this._toggle = false;
+    this._iconResizeRatio = Math.round(20 * this._pixelRatio) / this._icon.height;
+
+    this._render();
+
+    this.addChild(this._icon);
+    this.addChild(this._label);
+};
+
+App.TransactionToggleButton.prototype = Object.create(PIXI.Graphics.prototype);
+App.TransactionToggleButton.prototype.constructor = App.TransactionToggleButton;
+
+/**
+ * Render
+ * @private
+ */
+App.TransactionToggleButton.prototype._render = function _render()
+{
+    var r = this._pixelRatio,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height,
+        gap = Math.round(10 * r);
+
+    if (this._toggle)
+    {
+
+    }
+    else
+    {
+        this._icon.scale.x = this._iconResizeRatio;
+        this._icon.scale.y = this._iconResizeRatio;
+        this._icon.x = Math.round((w - this._icon.width - gap - this._label.width) / 2);
+        this._icon.y = Math.round((h - this._icon.height) / 2);
+        this._icon.tint = App.ColorTheme.BLUE;
+
+        this._label.x = Math.round(this._icon.x + this._icon.width + gap);
+        this._label.y = Math.round((h - this._label.height) / 2);
+    }
+};
+
+/**
+ * Toggle
+ */
+App.TransactionToggleButton.prototype.toggle = function toggle()
+{
+    this._toggle = !this._toggle;
+
+    this._render();
+};
+
+/**
+ * @class TransactionOptionButton
+ * @extends Graphics
+ * @param {string} iconName
+ * @param {string} name
+ * @param {string} value
+ * @param {{width:number,height:number,pixelRatio:number,nameStyle:Object,valueStyle:Object,valueDetailStyle:Object}} options
+ * @constructor
+ */
+App.TransactionOptionButton = function TransactionOptionButton(iconName,name,value,options)
+{
+    PIXI.Graphics.call(this);
+
+    var Text = PIXI.Text,
+        Sprite = PIXI.Sprite;
+
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
+
+    this._pixelRatio = options.pixelRatio;
+    this._icon = new Sprite.fromFrame(iconName);
+    this._nameField = new Text(name,options.nameStyle);
+    this._valueField = new Text(value,options.valueStyle);
+    this._valueDetailField = null;
+    this._arrow = new Sprite.fromFrame("arrow-app");
+    this._iconResizeRatio = Math.round(20 * this._pixelRatio) / this._icon.height;
+    this._arrowResizeRatio = Math.round(12 * this._pixelRatio) / this._arrow.height;
+
+    if (value.indexOf("\n") > -1)
+    {
+        this._valueField.setText(value.substring(0,value.indexOf("\n")));
+        this._valueDetailField = new Text(value.substring(value.indexOf("\n"),value.length),options.valueDetailStyle);
+    }
+
+    this._render();
+
+    this.addChild(this._icon);
+    this.addChild(this._nameField);
+    this.addChild(this._valueField);
+    if (this._valueDetailField) this.addChild(this._valueDetailField);
+    this.addChild(this._arrow);
+};
+
+App.TransactionOptionButton.prototype = Object.create(PIXI.Graphics.prototype);
+App.TransactionOptionButton.prototype.constructor = App.TransactionOptionButton;
+
+/**
+ * Render
+ * @private
+ */
+App.TransactionOptionButton.prototype._render = function _render()
+{
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        r = this._pixelRatio,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height,
+        padding = Math.round(10 * r);
+
+    this._icon.scale.x = this._iconResizeRatio;
+    this._icon.scale.y = this._iconResizeRatio;
+    this._icon.x = Math.round(15 * r);
+    this._icon.y = Math.round((h - this._icon.height) / 2);
+    this._icon.tint = ColorTheme.GREY_DARK;
+
+    this._nameField.x = Math.round(50 * r);
+    this._nameField.y = Math.round((h - this._nameField.height) / 2);
+
+    this._valueField.x = Math.round(w - 35 * r - this._valueField.width);
+    if (this._valueDetailField)
+    {
+        this._valueField.y = Math.round(9 * r);
+        this._valueDetailField.y = Math.round(17 * r);
+        this._valueDetailField.x = Math.round(w - 35 * r - this._valueDetailField.width);
+    }
+    else
+    {
+        this._valueField.y = Math.round((h - this._valueField.height) / 2);
+    }
+
+    this._arrow.scale.x = this._arrowResizeRatio;
+    this._arrow.scale.y = this._arrowResizeRatio;
+    this._arrow.x = Math.round(w - 15 * r - this._arrow.width);
+    this._arrow.y = Math.round((h - this._arrow.height) / 2);
+    this._arrow.tint = ColorTheme.GREY_DARK;
+
+    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
+};
+
+/**
+ * @class AddTransactionScreen
+ * @extends Screen
+ * @param {Transaction} model
+ * @param {Object} layout
+ * @constructor
+ */
+App.AddTransactionScreen = function AddTransactionScreen(model,layout)
+{
+    App.Screen.call(this,model,layout,0.4);
+
+    var TransactionOptionButton = App.TransactionOptionButton,
+        TransactionToggleButton = App.TransactionToggleButton,
+        r = layout.pixelRatio,
+        w = layout.width,
+        inputWidth = w - Math.round(10 * r) * 2,
+        inputHeight = Math.round(40 * r),
+        FontStyle = App.FontStyle,
+        ColorTheme = App.ColorTheme,
+        toggleOptions = {
+            width:Math.round(w / 3),
+            height:Math.round(40 * r),
+            pixelRatio:r,
+            style:FontStyle.get(14,FontStyle.BLUE)
+        },
+        options = {
+            pixelRatio:r,
+            width:w,
+            height:Math.round(50*r),
+            nameStyle:FontStyle.get(18,"#999999"),
+            valueStyle:FontStyle.get(18,FontStyle.BLUE,"right"),
+            valueDetailStyle:FontStyle.get(14,FontStyle.BLUE)
+        };
+
+    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.height,r);
+    this._container = new PIXI.DisplayObjectContainer();
+    this._background = new PIXI.Graphics();
+    this._transactionInpup = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
+    this._noteInput = new App.Input("Add Note",20,inputWidth,inputHeight,r,true);
+    this._notePosition = 0;
+    this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
+    this._scrollState = App.TransitionState.HIDDEN;
+
+    this._toggleButtonList = new App.List(App.Direction.X);
+    this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income"}),false);
+    this._toggleButtonList.add(new TransactionToggleButton("pending-app","Pending",toggleOptions,{color:0xffffff,background:ColorTheme.BLUE}),false);
+    this._toggleButtonList.add(new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{color:0xffffff,background:ColorTheme.BLUE}),true);
+
+    this._optionList = new App.List(App.Direction.Y);
+    this._optionList.add(new TransactionOptionButton("account","Account","Personal",options),false);
+    this._optionList.add(new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",options),false);
+    this._optionList.add(new TransactionOptionButton("credit-card","Mode","Cash",options),false);
+    this._optionList.add(new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",options),false);
+    this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",options),true);
+
+    //TODO add overlay for bluring inputs?
+
+    this._transactionInpup.restrict(/\D/);
+    this._render();
+
+    this._container.addChild(this._background);
+    this._container.addChild(this._transactionInpup);
+    this._container.addChild(this._toggleButtonList);
+    this._container.addChild(this._optionList);
+    this._container.addChild(this._noteInput);
+    this._pane.setContent(this._container);
+    this.addChild(this._pane);
+};
+
+App.AddTransactionScreen.prototype = Object.create(App.Screen.prototype);
+App.AddTransactionScreen.prototype.constructor = App.AddTransactionScreen;
+
+/**
+ * Render
+ * @private
+ */
+App.AddTransactionScreen.prototype._render = function _render()
+{
+    var ColorTheme = App.ColorTheme,
+        GraphicUtils = App.GraphicUtils,
+        w = this._layout.width,
+        r = this._layout.pixelRatio,
+        padding = Math.round(10 * r),
+        inputHeight = Math.round(60 * r),
+        toggleHeight = this._toggleButtonList.boundingBox.height,
+        toggleWidth = Math.round(w / 3),
+        separatorWidth = w - padding * 2;
+
+    this._transactionInpup.x = padding;
+    this._transactionInpup.y = padding;
+
+    this._toggleButtonList.y = inputHeight;
+
+    this._optionList.y = this._toggleButtonList.y + toggleHeight;
+
+    this._notePosition = this._optionList.y + this._optionList.boundingBox.height;
+
+    this._noteInput.x = padding;
+    this._noteInput.y = this._notePosition + padding;
+
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w,this._notePosition+inputHeight],true,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[
+        padding,inputHeight-1,separatorWidth,1,
+        toggleWidth-1,inputHeight+padding,1,toggleHeight-padding*2,
+        toggleWidth*2-1,inputHeight+padding,1,toggleHeight-padding*2,
+        padding,inputHeight+toggleHeight-1,separatorWidth,1
+    ],false,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[
+        padding,inputHeight,separatorWidth,1,
+        toggleWidth,inputHeight+padding,1,toggleHeight-padding*2,
+        toggleWidth*2,inputHeight+padding,1,toggleHeight-padding*2,
+        padding,this._notePosition,separatorWidth,1
+    ],false,true);
+};
+
+/**
+ * Enable
+ */
+App.AddTransactionScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._transactionInpup.enable();
+    this._pane.enable();
+};
+
+/**
+ * Disable
+ */
+App.AddTransactionScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._transactionInpup.disable();
+    this._noteInput.disable();
+    this._pane.disable();
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.AddTransactionScreen.prototype._registerEventListeners = function _registerEventListeners()
+{
+    App.Screen.prototype._registerEventListeners.call(this);
+
+    var EventType = App.EventType;
+
+    this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
+
+    this._noteInput.addEventListener(EventType.BLUR,this,this._onNoteBlur);
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.AddTransactionScreen.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    App.Screen.prototype._unRegisterEventListeners.call(this);
+
+    var EventType = App.EventType;
+
+    this._scrollTween.removeEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
+
+    this._budget.removeEventListener(EventType.BLUR,this,this._onNoteBlur);
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.AddTransactionScreen.prototype._onClick = function _onClick()
+{
+    this._pane.cancelScroll();
+
+    var position = this.stage.getTouchData().getLocalPosition(this._container),
+        y = position.y,
+        list = null;
+
+    if (y >= this._noteInput.y && y < this._noteInput.y + this._noteInput.boundingBox.height)
+    {
+        this._focusNote();
+    }
+};
+
+/**
+ * On tick
+ * @private
+ */
+App.AddTransactionScreen.prototype._onTick = function _onTick()
+{
+    App.Screen.prototype._onTick.call(this);
+
+    if (this._scrollTween.isRunning()) this._onScrollTweenUpdate();
+};
+
+/**
+ * On scroll tween update
+ * @private
+ */
+App.AddTransactionScreen.prototype._onScrollTweenUpdate = function _onScrollTweenUpdate()
+{
+    var TransitionState = App.TransitionState;
+    if (this._scrollState === TransitionState.SHOWING)
+    {
+        this._pane.y = -Math.round((this._notePosition + this._container.y) * this._scrollTween.progress);
+    }
+    else if (this._scrollState === TransitionState.HIDING)
+    {
+        this._pane.y = -Math.round((this._notePosition + this._container.y) * (1 - this._scrollTween.progress));
+    }
+};
+
+/**
+ * On scroll tween complete
+ * @private
+ */
+App.AddTransactionScreen.prototype._onScrollTweenComplete = function _onScrollTweenComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    this._onScrollTweenUpdate();
+
+    if (this._scrollState === TransitionState.SHOWING)
+    {
+        this._scrollState = TransitionState.SHOWN;
+
+        this._noteInput.enable();
+        this._noteInput.focus();
+    }
+    else if (this._scrollState === TransitionState.HIDING)
+    {
+        this._scrollState = TransitionState.HIDDEN;
+
+        this._pane.enable();
+    }
+};
+
+/**
+ * Focus budget
+ * @private
+ */
+App.AddTransactionScreen.prototype._focusNote = function _focusNote()
+{
+    var TransitionState = App.TransitionState;
+    if (this._scrollState === TransitionState.HIDDEN || this._scrollState === TransitionState.HIDING)
+    {
+        this._scrollState = TransitionState.SHOWING;
+
+        this._pane.disable();
+
+        this._scrollTween.start();
+    }
+};
+
+/**
+ * On budget field blur
+ * @private
+ */
+App.AddTransactionScreen.prototype._onNoteBlur = function _onNoteBlur()
+{
+    var TransitionState = App.TransitionState;
+    if (this._scrollState === TransitionState.SHOWN || this._scrollState === TransitionState.SHOWING)
+    {
+        this._scrollState = TransitionState.HIDING;
+
+        this._noteInput.disable();
+
+        this._scrollTween.restart();
+    }
+};
+
 /**
  * @class SelectTimeScreen
  * @extends Screen
@@ -7553,6 +7979,15 @@ App.ReportChartHighlight.prototype.update = function update(progress)
     App.GraphicUtils.drawArc(this,this._center,this._width,this._height,this._thickness,start,end,20,0,0,0,this._color,1);
 };
 
+/**
+ * @class ReportChart
+ * @extends Graphics
+ * @param {Collection} model
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @constructor
+ */
 App.ReportChart = function ReportChart(model,width,height,pixelRatio)
 {
     //TODO if there is just 1 account segments should represent categories of that account; otherwise segment will represent accounts
@@ -7568,6 +8003,10 @@ App.ReportChart = function ReportChart(model,width,height,pixelRatio)
 
     this.boundingBox = new App.Rectangle(0,0,width,height);
 
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._tween = new App.TweenProxy(1,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._transitionState = App.TransitionState.HIDDEN;
+    this._eventsRegistered = false;
     this._center = new PIXI.Point(Math.round(width/2),Math.round(height/2));
     this._thickness = Math.round(15 * pixelRatio);
     this._chartSize = width - Math.round(5 * pixelRatio * 2);// 5px margin on sides for highlight line
@@ -7575,11 +8014,6 @@ App.ReportChart = function ReportChart(model,width,height,pixelRatio)
     this._highlight = new App.ReportChartHighlight(this._center,width,height,Math.round(3 * pixelRatio));
     this._updateHighlight = false;
     this._highlightSegment = void 0;
-
-    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-    this._tween = new App.TweenProxy(1,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
-    this._transitionState = App.TransitionState.HIDDEN;
-    this._eventsRegistered = false;
 
     for (;i<l;i++)
     {
@@ -7646,8 +8080,6 @@ App.ReportChart.prototype.hide = function hide()
  */
 App.ReportChart.prototype.highlightSegment = function highlightSegment(segment)
 {
-    //TODO maybe pass in category instead of segment number?
-
     if (segment === this._highlightSegment) return;
 
     if (this._transitionState === App.TransitionState.SHOWN)
@@ -7779,11 +8211,10 @@ App.ReportScreen = function ReportScreen(model,layout)
     var ReportAccountButton = App.ReportAccountButton,
         ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
-        w = layout.width,
         h = layout.height,
         r = layout.pixelRatio,
         chartSize = Math.round(h * 0.3 - 20 * r),
-        listWidth = Math.round(w - 20 * r),// 10pts padding on both sides
+        listWidth = Math.round(layout.width - 20 * r),// 10pts padding on both sides
         listHeight = Math.round(h * 0.7),
         itemHeight = Math.round(40 * r),
         labelStyles = {
@@ -7797,8 +8228,8 @@ App.ReportScreen = function ReportScreen(model,layout)
             subPrice:FontStyle.get(14,FontStyle.BLUE)
         };
 
+    this._percentField = new PIXI.Text("15 %",FontStyle.get(20,FontStyle.BLUE));//TODO set font size proportionally to chart size
     this._chart = new App.ReportChart(null,chartSize,chartSize,r);
-
     this._buttonList = new App.TileList(App.Direction.Y,listHeight);
     this._buttonList.add(new ReportAccountButton("Private",listWidth,itemHeight,r,labelStyles),false);
     this._buttonList.add(new ReportAccountButton("Travel",listWidth,itemHeight,r,labelStyles),false);
@@ -7812,6 +8243,7 @@ App.ReportScreen = function ReportScreen(model,layout)
 
     this._updateLayout();
 
+    this.addChild(this._percentField);
     this.addChild(this._chart);
     this.addChild(this._pane);
 };
@@ -7857,9 +8289,14 @@ App.ReportScreen.prototype._onTweenComplete = function _onTweenComplete()
  */
 App.ReportScreen.prototype._updateLayout = function _updateLayout()
 {
-    var padding = Math.round(10 * this._layout.pixelRatio);
+    var w = this._layout.width,
+        padding = Math.round(10 * this._layout.pixelRatio),
+        chartBounds = this._chart.boundingBox;
 
-    this._chart.x = Math.round((this._layout.width - this._chart.boundingBox.width) / 2);
+    this._percentField.x = Math.round((w - this._percentField.width) / 2);
+    this._percentField.y = Math.round(padding + (chartBounds.height - this._percentField.height) / 2);
+
+    this._chart.x = Math.round((w - chartBounds.width) / 2);
     this._chart.y = padding;
 
     this._pane.x = padding;
@@ -8018,15 +8455,17 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     App.GraphicUtils.drawRect(this._background,0xbada55,1,0,0,this._layout.width,this._layout.height);
 
     //TODO use ScreenFactory for the screens?
+    //TODO deffer initiation and/or rendering of most of the screens?
     this._screenStack = new App.ViewStack([
         new App.AccountScreen(categories,this._layout),
         new App.CategoryScreen(categories,this._layout),
         new App.SelectTimeScreen(null,this._layout),
         new App.EditCategoryScreen(null,this._layout),
         new App.TransactionScreen(null,this._layout),
-        new App.ReportScreen(null,this._layout)
+        new App.ReportScreen(null,this._layout),
+        new App.AddTransactionScreen(null,this._layout)
     ]);
-    this._screenStack.selectChildByIndex(App.ScreenName.REPORT);//TODO move this into separate command?
+    this._screenStack.selectChildByIndex(App.ScreenName.ADD_TRANSACTION);//TODO move this into separate command?
     this._screenStack.show();
 
     this.addChild(this._background);

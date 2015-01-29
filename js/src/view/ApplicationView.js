@@ -33,15 +33,17 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     App.GraphicUtils.drawRect(this._background,0xbada55,1,0,0,this._layout.width,this._layout.height);
 
     //TODO use ScreenFactory for the screens?
+    //TODO deffer initiation and/or rendering of most of the screens?
     this._screenStack = new App.ViewStack([
         new App.AccountScreen(categories,this._layout),
         new App.CategoryScreen(categories,this._layout),
         new App.SelectTimeScreen(null,this._layout),
         new App.EditCategoryScreen(null,this._layout),
         new App.TransactionScreen(null,this._layout),
-        new App.ReportScreen(null,this._layout)
+        new App.ReportScreen(null,this._layout),
+        new App.AddTransactionScreen(null,this._layout)
     ]);
-    this._screenStack.selectChildByIndex(App.ScreenName.REPORT);//TODO move this into separate command?
+    this._screenStack.selectChildByIndex(App.ScreenName.ADD_TRANSACTION);//TODO move this into separate command?
     this._screenStack.show();
 
     this.addChild(this._background);

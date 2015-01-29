@@ -12,11 +12,10 @@ App.ReportScreen = function ReportScreen(model,layout)
     var ReportAccountButton = App.ReportAccountButton,
         ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
-        w = layout.width,
         h = layout.height,
         r = layout.pixelRatio,
         chartSize = Math.round(h * 0.3 - 20 * r),
-        listWidth = Math.round(w - 20 * r),// 10pts padding on both sides
+        listWidth = Math.round(layout.width - 20 * r),// 10pts padding on both sides
         listHeight = Math.round(h * 0.7),
         itemHeight = Math.round(40 * r),
         labelStyles = {
@@ -30,8 +29,8 @@ App.ReportScreen = function ReportScreen(model,layout)
             subPrice:FontStyle.get(14,FontStyle.BLUE)
         };
 
+    this._percentField = new PIXI.Text("15 %",FontStyle.get(20,FontStyle.BLUE));//TODO set font size proportionally to chart size
     this._chart = new App.ReportChart(null,chartSize,chartSize,r);
-
     this._buttonList = new App.TileList(App.Direction.Y,listHeight);
     this._buttonList.add(new ReportAccountButton("Private",listWidth,itemHeight,r,labelStyles),false);
     this._buttonList.add(new ReportAccountButton("Travel",listWidth,itemHeight,r,labelStyles),false);
@@ -45,6 +44,7 @@ App.ReportScreen = function ReportScreen(model,layout)
 
     this._updateLayout();
 
+    this.addChild(this._percentField);
     this.addChild(this._chart);
     this.addChild(this._pane);
 };
@@ -90,9 +90,14 @@ App.ReportScreen.prototype._onTweenComplete = function _onTweenComplete()
  */
 App.ReportScreen.prototype._updateLayout = function _updateLayout()
 {
-    var padding = Math.round(10 * this._layout.pixelRatio);
+    var w = this._layout.width,
+        padding = Math.round(10 * this._layout.pixelRatio),
+        chartBounds = this._chart.boundingBox;
 
-    this._chart.x = Math.round((this._layout.width - this._chart.boundingBox.width) / 2);
+    this._percentField.x = Math.round((w - this._percentField.width) / 2);
+    this._percentField.y = Math.round(padding + (chartBounds.height - this._percentField.height) / 2);
+
+    this._chart.x = Math.round((w - chartBounds.width) / 2);
     this._chart.y = padding;
 
     this._pane.x = padding;

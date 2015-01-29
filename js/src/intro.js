@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * Function prototype bind polyfill
  * ! @source http://code.famo.us/lib/functionPrototypeBind.js
