@@ -6,9 +6,10 @@
  * @param {number} width
  * @param {number} height
  * @param {number} pixelRatio
+ * @param {boolean} useMask
  * @constructor
  */
-App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
+App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio,useMask)
 {
     PIXI.DisplayObjectContainer.call(this);
 
@@ -19,7 +20,7 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
     this._contentHeight = 0;
     this._contentWidth = 0;
     this._contentBoundingBox = new App.Rectangle();
-    this._mask = new PIXI.Graphics();
+    this._useMask = useMask;
 
     this._enabled = false;
     this._eventsRegistered = false;
@@ -42,8 +43,12 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
     this._dumpForce = 0.5;
     this._snapForce = 0.2;//TODO allow to disable snapping?
 
-    this.mask = this._mask;
-    this.addChild(this._mask);
+    if (this._useMask)
+    {
+        this._mask = new PIXI.Graphics();
+        this.mask = this._mask;
+        this.addChild(this._mask);
+    }
 };
 
 App.Pane.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -68,7 +73,7 @@ App.Pane.prototype.setContent = function setContent(content)
     this.addChildAt(this._content,0);
 
     this._updateScrollers();
-    this._updateMask();
+    if (this._useMask) this._updateMask();
 };
 
 /**
@@ -107,7 +112,7 @@ App.Pane.prototype.resize = function resize(width,height)
         this._checkPosition();
 
         this._updateScrollers();
-        this._updateMask();
+        if (this._useMask) this._updateMask();
     }
 };
 

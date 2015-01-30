@@ -16,12 +16,12 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
         inputWidth = w - Math.round(10 * r) * 2,
         inputHeight = Math.round(40 * r),
         FontStyle = App.FontStyle,
-        ColorTheme = App.ColorTheme,
         toggleOptions = {
             width:Math.round(w / 3),
             height:Math.round(40 * r),
             pixelRatio:r,
-            style:FontStyle.get(14,FontStyle.BLUE)
+            style:FontStyle.get(14,FontStyle.BLUE),
+            toggleStyle:FontStyle.get(14,FontStyle.WHITE)
         },
         options = {
             pixelRatio:r,
@@ -32,7 +32,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
             valueDetailStyle:FontStyle.get(14,FontStyle.BLUE)
         };
 
-    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.height,r);
+    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.height,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._background = new PIXI.Graphics();
     this._transactionInpup = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
@@ -42,9 +42,9 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._scrollState = App.TransitionState.HIDDEN;
 
     this._toggleButtonList = new App.List(App.Direction.X);
-    this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income"}),false);
-    this._toggleButtonList.add(new TransactionToggleButton("pending-app","Pending",toggleOptions,{color:0xffffff,background:ColorTheme.BLUE}),false);
-    this._toggleButtonList.add(new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{color:0xffffff,background:ColorTheme.BLUE}),true);
+    this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false}),false);
+    this._toggleButtonList.add(new TransactionToggleButton("pending-app","Pending",toggleOptions,{toggleColor:true}),false);
+    this._toggleButtonList.add(new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true}),true);
 
     this._optionList = new App.List(App.Direction.Y);
     this._optionList.add(new TransactionOptionButton("account","Account","Personal",options),false);
@@ -66,6 +66,8 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._container.addChild(this._noteInput);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
+
+    this._clickThreshold = 10 * r;
 };
 
 App.AddTransactionScreen.prototype = Object.create(App.Screen.prototype);
@@ -175,11 +177,18 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
 {
     this._pane.cancelScroll();
 
-    var position = this.stage.getTouchData().getLocalPosition(this._container),
-        y = position.y,
-        list = null;
+    var pointerData = this.stage.getTouchData(),
+        y = pointerData.getLocalPosition(this._container).y;
 
-    if (y >= this._noteInput.y && y < this._noteInput.y + this._noteInput.boundingBox.height)
+    if (y >= this._toggleButtonList.y && y < this._toggleButtonList.y + this._toggleButtonList.boundingBox.height)
+    {
+        this._toggleButtonList.getItemUnderPoint(pointerData).toggle();
+    }
+    else if (y >= this._optionList.y && y < this._optionList.y + this._optionList.boundingBox.height)
+    {
+        //console.log(this._optionList.getItemUnderPoint(pointerData));
+    }
+    else if (y >= this._noteInput.y && y < this._noteInput.y + this._noteInput.boundingBox.height)
     {
         this._focusNote();
     }
@@ -202,6 +211,7 @@ App.AddTransactionScreen.prototype._onTick = function _onTick()
  */
 App.AddTransactionScreen.prototype._onScrollTweenUpdate = function _onScrollTweenUpdate()
 {
+    //TODO the scroll position can be wrong if the container si scrolled ...
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.SHOWING)
     {

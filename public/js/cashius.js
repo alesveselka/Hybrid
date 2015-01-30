@@ -2674,9 +2674,10 @@ App.Calendar.prototype._changeDate = function _changeDate(direction,selectDate)
  * @param {number} width
  * @param {number} height
  * @param {number} pixelRatio
+ * @param {boolean} useMask
  * @constructor
  */
-App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
+App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio,useMask)
 {
     PIXI.DisplayObjectContainer.call(this);
 
@@ -2687,7 +2688,7 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
     this._contentHeight = 0;
     this._contentWidth = 0;
     this._contentBoundingBox = new App.Rectangle();
-    this._mask = new PIXI.Graphics();
+    this._useMask = useMask;
 
     this._enabled = false;
     this._eventsRegistered = false;
@@ -2710,8 +2711,12 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
     this._dumpForce = 0.5;
     this._snapForce = 0.2;//TODO allow to disable snapping?
 
-    this.mask = this._mask;
-    this.addChild(this._mask);
+    if (this._useMask)
+    {
+        this._mask = new PIXI.Graphics();
+        this.mask = this._mask;
+        this.addChild(this._mask);
+    }
 };
 
 App.Pane.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -2736,7 +2741,7 @@ App.Pane.prototype.setContent = function setContent(content)
     this.addChildAt(this._content,0);
 
     this._updateScrollers();
-    this._updateMask();
+    if (this._useMask) this._updateMask();
 };
 
 /**
@@ -2775,7 +2780,7 @@ App.Pane.prototype.resize = function resize(width,height)
         this._checkPosition();
 
         this._updateScrollers();
-        this._updateMask();
+        if (this._useMask) this._updateMask();
     }
 };
 
@@ -4241,11 +4246,12 @@ App.TileList.prototype.updateLayout = function updateLayout(updatePosition)
  * @param {number} width
  * @param {number} height
  * @param {number} pixelRatio
+ * @param {boolean} useMask
  * @constructor
  */
-App.TilePane = function TilePane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
+App.TilePane = function TilePane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio,useMask)
 {
-    App.Pane.call(this,xScrollPolicy,yScrollPolicy,width,height,pixelRatio);
+    App.Pane.call(this,xScrollPolicy,yScrollPolicy,width,height,pixelRatio,useMask);
 };
 
 App.TilePane.prototype = Object.create(App.Pane.prototype);
@@ -4270,7 +4276,7 @@ App.TilePane.prototype.setContent = function setContent(content)
     this.addChildAt(this._content,0);
 
     this._updateScrollers();
-    this._updateMask();
+    if (this._useMask) this._updateMask();
 };
 
 /**
@@ -4294,7 +4300,7 @@ App.TilePane.prototype.resize = function resize(width,height)
         this._checkPosition();
 
         this._updateScrollers();
-        this._updateMask();
+        if (this._useMask) this._updateMask();
     }
 };
 
@@ -4528,8 +4534,9 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._mouseDownPosition = null;
     this._mouseX = 0.0;
     this._mouseY = 0.0;
-    this._leftSwipeThreshold = Math.round(15 * pixelRatio);
-    this._rightSwipeThreshold = Math.round(5 * pixelRatio);
+    this._leftSwipeThreshold = 15 * pixelRatio;
+    this._rightSwipeThreshold = 5 * pixelRatio;
+    this._clickThreshold = 5 * pixelRatio;
     this._swipeEnabled = false;
     this._preferScroll = true;
 
@@ -4771,7 +4778,7 @@ App.Screen.prototype._onPointerUp = function _onPointerUp(data)
             dist = dx * dx - dy * dy,
             TransitionState = App.TransitionState;
 
-        if (Math.abs(dist) < 5 && (this._transitionState === TransitionState.SHOWING || this._transitionState === TransitionState.SHOWN)) this._onClick();
+        if (Math.abs(dist) < this._clickThreshold && (this._transitionState === TransitionState.SHOWING || this._transitionState === TransitionState.SHOWN)) this._onClick();
 
         this._mouseDownPosition = null;
     }
@@ -5426,23 +5433,36 @@ App.ExpandButton.prototype.removeEventListener = function removeEventListener(ev
     this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };
 
-App.TransactionToggleButton = function TransactionToggleButton(iconName,label,options,toggleStyle)
+/**
+ * @class TransactionToggleButton
+ * @extends Graphics
+ * @param {string} iconName
+ * @param {string} label
+ * @param {{width:number,height:number,pixelRatio:number,style:Object,toggleStyle:Object}} options
+ * @param {{icon:string,label:string,toggleColor:boolean}} toggleOptions
+ * @constructor
+ */
+App.TransactionToggleButton = function TransactionToggleButton(iconName,label,options,toggleOptions)
 {
     PIXI.Graphics.call(this);
 
     this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
     this._pixelRatio = options.pixelRatio;
+    this._iconName = iconName;
+    this._label = label;
+    this._style = options.style;
+    this._toggleStyle = options.toggleStyle;
+    this._toggleOptions = toggleOptions;
     this._icon = PIXI.Sprite.fromFrame(iconName);
-    this._label = new PIXI.Text(label,options.style);
-    this._toggleStyle = toggleStyle;
+    this._labelField = new PIXI.Text(label,this._style);
     this._toggle = false;
     this._iconResizeRatio = Math.round(20 * this._pixelRatio) / this._icon.height;
 
-    this._render();
+    this._render(true);
 
     this.addChild(this._icon);
-    this.addChild(this._label);
+    this.addChild(this._labelField);
 };
 
 App.TransactionToggleButton.prototype = Object.create(PIXI.Graphics.prototype);
@@ -5450,30 +5470,57 @@ App.TransactionToggleButton.prototype.constructor = App.TransactionToggleButton;
 
 /**
  * Render
+ * @param {boolean} [updateAll=false]
  * @private
  */
-App.TransactionToggleButton.prototype._render = function _render()
+App.TransactionToggleButton.prototype._render = function _render(updateAll)
 {
     var r = this._pixelRatio,
         w = this.boundingBox.width,
         h = this.boundingBox.height,
-        gap = Math.round(10 * r);
+        gap = Math.round(10 * r),
+        padding = Math.round(5 * r);
 
     if (this._toggle)
     {
+        if (this._toggleOptions.icon) this._icon.setTexture(PIXI.TextureCache[this._toggleOptions.icon]);
+        if (this._toggleOptions.label) this._labelField.setText(this._toggleOptions.label);
+        if (this._toggleOptions.toggleColor)
+        {
+            this._icon.tint = 0xFFFFFE;
+            this._labelField.setStyle(this._toggleStyle);
 
+            this.clear();
+            this.beginFill(App.ColorTheme.BLUE);
+            this.drawRoundedRect(padding,padding,w-padding*2,h-padding*2,padding);
+            this.endFill();
+        }
     }
     else
     {
+        if (this._toggleOptions.icon) this._icon.setTexture(PIXI.TextureCache[this._iconName]);
+        if (this._toggleOptions.label) this._labelField.setText(this._label);
+        if (this._toggleOptions.toggleColor)
+        {
+            this._icon.tint = App.ColorTheme.BLUE;
+            this._labelField.setStyle(this._style);
+
+            this.clear();
+        }
+    }
+
+    if (updateAll)
+    {
         this._icon.scale.x = this._iconResizeRatio;
         this._icon.scale.y = this._iconResizeRatio;
-        this._icon.x = Math.round((w - this._icon.width - gap - this._label.width) / 2);
         this._icon.y = Math.round((h - this._icon.height) / 2);
         this._icon.tint = App.ColorTheme.BLUE;
 
-        this._label.x = Math.round(this._icon.x + this._icon.width + gap);
-        this._label.y = Math.round((h - this._label.height) / 2);
+        this._labelField.y = Math.round((h - this._labelField.height) / 2);
     }
+
+    this._icon.x = Math.round((w - this._icon.width - gap - this._labelField.width) / 2);
+    this._labelField.x = Math.round(this._icon.x + this._icon.width + gap);
 };
 
 /**
@@ -5483,7 +5530,16 @@ App.TransactionToggleButton.prototype.toggle = function toggle()
 {
     this._toggle = !this._toggle;
 
-    this._render();
+    this._render(false);
+};
+
+/**
+ * Is button toggled?
+ * @returns {boolean}
+ */
+App.TransactionToggleButton.prototype.isToggled = function isToggled()
+{
+    return this._toggle;
 };
 
 /**
@@ -5594,12 +5650,12 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
         inputWidth = w - Math.round(10 * r) * 2,
         inputHeight = Math.round(40 * r),
         FontStyle = App.FontStyle,
-        ColorTheme = App.ColorTheme,
         toggleOptions = {
             width:Math.round(w / 3),
             height:Math.round(40 * r),
             pixelRatio:r,
-            style:FontStyle.get(14,FontStyle.BLUE)
+            style:FontStyle.get(14,FontStyle.BLUE),
+            toggleStyle:FontStyle.get(14,FontStyle.WHITE)
         },
         options = {
             pixelRatio:r,
@@ -5610,7 +5666,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
             valueDetailStyle:FontStyle.get(14,FontStyle.BLUE)
         };
 
-    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.height,r);
+    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.height,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._background = new PIXI.Graphics();
     this._transactionInpup = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
@@ -5620,9 +5676,9 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._scrollState = App.TransitionState.HIDDEN;
 
     this._toggleButtonList = new App.List(App.Direction.X);
-    this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income"}),false);
-    this._toggleButtonList.add(new TransactionToggleButton("pending-app","Pending",toggleOptions,{color:0xffffff,background:ColorTheme.BLUE}),false);
-    this._toggleButtonList.add(new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{color:0xffffff,background:ColorTheme.BLUE}),true);
+    this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false}),false);
+    this._toggleButtonList.add(new TransactionToggleButton("pending-app","Pending",toggleOptions,{toggleColor:true}),false);
+    this._toggleButtonList.add(new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true}),true);
 
     this._optionList = new App.List(App.Direction.Y);
     this._optionList.add(new TransactionOptionButton("account","Account","Personal",options),false);
@@ -5644,6 +5700,8 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._container.addChild(this._noteInput);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
+
+    this._clickThreshold = 10 * r;
 };
 
 App.AddTransactionScreen.prototype = Object.create(App.Screen.prototype);
@@ -5753,11 +5811,18 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
 {
     this._pane.cancelScroll();
 
-    var position = this.stage.getTouchData().getLocalPosition(this._container),
-        y = position.y,
-        list = null;
+    var pointerData = this.stage.getTouchData(),
+        y = pointerData.getLocalPosition(this._container).y;
 
-    if (y >= this._noteInput.y && y < this._noteInput.y + this._noteInput.boundingBox.height)
+    if (y >= this._toggleButtonList.y && y < this._toggleButtonList.y + this._toggleButtonList.boundingBox.height)
+    {
+        this._toggleButtonList.getItemUnderPoint(pointerData).toggle();
+    }
+    else if (y >= this._optionList.y && y < this._optionList.y + this._optionList.boundingBox.height)
+    {
+        //console.log(this._optionList.getItemUnderPoint(pointerData));
+    }
+    else if (y >= this._noteInput.y && y < this._noteInput.y + this._noteInput.boundingBox.height)
     {
         this._focusNote();
     }
@@ -5780,6 +5845,7 @@ App.AddTransactionScreen.prototype._onTick = function _onTick()
  */
 App.AddTransactionScreen.prototype._onScrollTweenUpdate = function _onScrollTweenUpdate()
 {
+    //TODO the scroll position can be wrong if the container si scrolled ...
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.SHOWING)
     {
@@ -5865,7 +5931,7 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
         w = layout.width,
         ScrollPolicy = App.ScrollPolicy;
 
-    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r);
+    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._inputBackground = new PIXI.Graphics();//TODO do I need BG? I can use BG below whole screen ...
     this._inputOverlay = new PIXI.Graphics();
@@ -6108,7 +6174,7 @@ App.AccountScreen = function AccountScreen(model,layout)
     }
     this._buttonList.updateLayout();
 
-    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio);
+    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio,false);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
@@ -6567,7 +6633,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     this._buttonsInTransition = [];
     this._layoutDirty = false;
 
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio,false);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
@@ -6959,7 +7025,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
         icons = App.ModelLocator.getProxy(App.ModelName.ICONS),
         iconsHeight = Math.round(64 * r);
 
-    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r);
+    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._background = new PIXI.Graphics();
     this._colorStripe = new PIXI.Graphics();
@@ -7538,7 +7604,7 @@ App.TransactionScreen = function TransactionScreen(model,layout)
     for (;i<l;i++) transactions[i] = {amount:100+i,account:"Personal",category:"Cinema / Entertainment",date:"10/21/2013",iconName:"transactions",pending:(i % 23) === 0};
 
     this._buttonList = new App.VirtualList(transactions,App.TransactionButton,buttonOptions,App.Direction.Y,w,h,r);
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,false);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
@@ -8198,7 +8264,7 @@ App.ReportScreen = function ReportScreen(model,layout)
     this._buttonList.add(new ReportAccountButton("Travel",listWidth,itemHeight,r,labelStyles),false);
     this._buttonList.add(new ReportAccountButton("Business",listWidth,itemHeight,r,labelStyles),true);
 
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,listWidth,listHeight,r);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,listWidth,listHeight,r,true);
     this._pane.setContent(this._buttonList);
 
     this._interactiveButton = null;

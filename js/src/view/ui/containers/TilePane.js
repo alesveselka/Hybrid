@@ -6,11 +6,12 @@
  * @param {number} width
  * @param {number} height
  * @param {number} pixelRatio
+ * @param {boolean} useMask
  * @constructor
  */
-App.TilePane = function TilePane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio)
+App.TilePane = function TilePane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio,useMask)
 {
-    App.Pane.call(this,xScrollPolicy,yScrollPolicy,width,height,pixelRatio);
+    App.Pane.call(this,xScrollPolicy,yScrollPolicy,width,height,pixelRatio,useMask);
 };
 
 App.TilePane.prototype = Object.create(App.Pane.prototype);
@@ -35,7 +36,7 @@ App.TilePane.prototype.setContent = function setContent(content)
     this.addChildAt(this._content,0);
 
     this._updateScrollers();
-    this._updateMask();
+    if (this._useMask) this._updateMask();
 };
 
 /**
@@ -59,7 +60,7 @@ App.TilePane.prototype.resize = function resize(width,height)
         this._checkPosition();
 
         this._updateScrollers();
-        this._updateMask();
+        if (this._useMask) this._updateMask();
     }
 };
 

@@ -36,7 +36,7 @@ App.ReportScreen = function ReportScreen(model,layout)
     this._buttonList.add(new ReportAccountButton("Travel",listWidth,itemHeight,r,labelStyles),false);
     this._buttonList.add(new ReportAccountButton("Business",listWidth,itemHeight,r,labelStyles),true);
 
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,listWidth,listHeight,r);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,listWidth,listHeight,r,true);
     this._pane.setContent(this._buttonList);
 
     this._interactiveButton = null;

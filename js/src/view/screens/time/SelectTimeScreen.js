@@ -13,7 +13,7 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
         w = layout.width,
         ScrollPolicy = App.ScrollPolicy;
 
-    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r);
+    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._inputBackground = new PIXI.Graphics();//TODO do I need BG? I can use BG below whole screen ...
     this._inputOverlay = new PIXI.Graphics();

@@ -26,8 +26,9 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._mouseDownPosition = null;
     this._mouseX = 0.0;
     this._mouseY = 0.0;
-    this._leftSwipeThreshold = Math.round(15 * pixelRatio);
-    this._rightSwipeThreshold = Math.round(5 * pixelRatio);
+    this._leftSwipeThreshold = 15 * pixelRatio;
+    this._rightSwipeThreshold = 5 * pixelRatio;
+    this._clickThreshold = 5 * pixelRatio;
     this._swipeEnabled = false;
     this._preferScroll = true;
 
@@ -269,7 +270,7 @@ App.Screen.prototype._onPointerUp = function _onPointerUp(data)
             dist = dx * dx - dy * dy,
             TransitionState = App.TransitionState;
 
-        if (Math.abs(dist) < 5 && (this._transitionState === TransitionState.SHOWING || this._transitionState === TransitionState.SHOWN)) this._onClick();
+        if (Math.abs(dist) < this._clickThreshold && (this._transitionState === TransitionState.SHOWING || this._transitionState === TransitionState.SHOWN)) this._onClick();
 
         this._mouseDownPosition = null;
     }
