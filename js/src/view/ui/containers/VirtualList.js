@@ -65,24 +65,45 @@ App.VirtualList.prototype.constructor = App.VirtualList;
 
 /**
  * Find and select item under point passed in
- * @param {Point} point
+ * @param {InteractionData} pointerData
  */
-App.VirtualList.prototype.getItemUnderPoint = function getItemUnderPoint(point)
+App.VirtualList.prototype.getItemUnderPoint = function getItemUnderPoint(pointerData)
 {
-    var i = 0,
+    var position = pointerData.getLocalPosition(this).x,
+        Direction = App.Direction,
+        i = 0,
         l = this._items.length,
-        property = this._direction === App.Direction.X ? "x" : "y",
-        position = point[property],
-        itemSize = this._itemSize,
-        item = null,
-        itemPosition = 0;
+        size = 0,
+        itemPosition = 0,
+        item = null;
 
-    for (;i<l;)
+    if (this._direction === Direction.X)
     {
-        item = this._items[i++];
-        itemPosition = item[property];
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            itemPosition = item.x;
+            size = item.boundingBox.width;
+            if (itemPosition <= position && itemPosition + size >= position)
+            {
+                return item;
+            }
+        }
+    }
+    else if (this._direction === Direction.Y)
+    {
+        position = pointerData.getLocalPosition(this).y;
 
-        if (itemPosition <= position && itemPosition + itemSize > position) return item;
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            itemPosition = item.y;
+            size = item.boundingBox.height;
+            if (itemPosition <= position && itemPosition + size >= position)
+            {
+                return item;
+            }
+        }
     }
 
     return null;

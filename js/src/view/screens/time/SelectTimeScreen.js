@@ -13,7 +13,7 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
         w = layout.width,
         ScrollPolicy = App.ScrollPolicy;
 
-    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r,false);
+    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._inputBackground = new PIXI.Graphics();//TODO do I need BG? I can use BG below whole screen ...
     this._inputOverlay = new PIXI.Graphics();
@@ -117,7 +117,7 @@ App.SelectTimeScreen.prototype._unRegisterEventListeners = function _unRegisterE
 App.SelectTimeScreen.prototype._onInputFocus = function _onInputFocus()
 {
     this._inputFocused = true;
-
+    //TODO sometimes when input focuses, content scrolls inside Pane as SW keyboard shows!!! - it may be that I swipe and scroll, and after keyboard is shown, the scroll resumes ...
     if (!this._container.contains(this._inputOverlay)) this._container.addChildAt(this._inputOverlay,this._container.getChildIndex(this._input));
 };
 

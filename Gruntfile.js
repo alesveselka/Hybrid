@@ -38,6 +38,7 @@ module.exports = function(grunt)
         "js/src/view/ViewLocator.js",
         "js/src/view/ColorTheme.js",
         "js/src/view/FontStyle.js",
+        "js/src/view/Header.js",
         "js/src/view/ui/controls/ScrollIndicator.js",
         "js/src/view/ui/controls/Input.js",
         "js/src/view/ui/controls/TimeInput.js",

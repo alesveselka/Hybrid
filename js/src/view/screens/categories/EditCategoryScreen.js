@@ -19,7 +19,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
         icons = App.ModelLocator.getProxy(App.ModelName.ICONS),
         iconsHeight = Math.round(64 * r);
 
-    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r,false);
+    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._background = new PIXI.Graphics();
     this._colorStripe = new PIXI.Graphics();
@@ -32,6 +32,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._subCategoryList = new App.SubCategoryList(null,w,r);
     this._budgetHeader = new App.ListHeader("Budget",w,r);
     this._budget = new Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);
+    this._budgetPosition = 0;
     this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._scrollState = App.TransitionState.HIDDEN;
 
@@ -99,8 +100,11 @@ App.EditCategoryScreen.prototype._render = function _render()
 
     this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
     this._budgetHeader.y = this._subCategoryList.y + this._subCategoryList.boundingBox.height;
+
+    this._budgetPosition = this._budgetHeader.y + this._budgetHeader.height;
+
     this._budget.x = padding;
-    this._budget.y = this._budgetHeader.y + this._budgetHeader.height + Math.round(10 * r);
+    this._budget.y = this._budgetPosition + padding;
 
     GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w,this._budget.y+this._budget.boundingBox.height+padding);
 };
@@ -219,11 +223,11 @@ App.EditCategoryScreen.prototype._onScrollTweenUpdate = function _onScrollTweenU
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.SHOWING)
     {
-        this._pane.y = -Math.round((this._budgetHeader.y + this._container.y) * this._scrollTween.progress);
+        this._pane.y = -Math.round((this._budgetPosition + this._container.y) * this._scrollTween.progress);
     }
     else if (this._scrollState === TransitionState.HIDING)
     {
-        this._pane.y = -Math.round((this._budgetHeader.y + this._container.y) * (1 - this._scrollTween.progress));
+        this._pane.y = -Math.round((this._budgetPosition + this._container.y) * (1 - this._scrollTween.progress));
     }
 };
 
@@ -251,6 +255,8 @@ App.EditCategoryScreen.prototype._onScrollTweenComplete = function _onScrollTwee
         this._scrollState = TransitionState.HIDDEN;
 
         this._pane.enable();
+
+        App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
     }
 };
 

@@ -12,7 +12,7 @@ App.AccountScreen = function AccountScreen(model,layout)
     var i = 0, l = this._model.length(), AccountButton = App.AccountButton, button = null;
 
     this._buttons = new Array(l);
-    this._buttonList = new App.TileList(App.Direction.Y,layout.height);
+    this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
 
     for (;i<30;i++)
     {
@@ -22,7 +22,7 @@ App.AccountScreen = function AccountScreen(model,layout)
     }
     this._buttonList.updateLayout();
 
-    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio,false);
+    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.contentHeight,layout.pixelRatio,false);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);

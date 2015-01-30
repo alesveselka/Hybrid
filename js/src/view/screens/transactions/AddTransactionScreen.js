@@ -32,7 +32,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
             valueDetailStyle:FontStyle.get(14,FontStyle.BLUE)
         };
 
-    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.height,r,false);
+    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._background = new PIXI.Graphics();
     this._transactionInpup = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
@@ -211,7 +211,6 @@ App.AddTransactionScreen.prototype._onTick = function _onTick()
  */
 App.AddTransactionScreen.prototype._onScrollTweenUpdate = function _onScrollTweenUpdate()
 {
-    //TODO the scroll position can be wrong if the container si scrolled ...
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.SHOWING)
     {
@@ -245,6 +244,8 @@ App.AddTransactionScreen.prototype._onScrollTweenComplete = function _onScrollTw
         this._scrollState = TransitionState.HIDDEN;
 
         this._pane.enable();
+
+        App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
     }
 };
 

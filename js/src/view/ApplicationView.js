@@ -25,7 +25,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         width:Math.round(width * pixelRatio),
         height:Math.round(height * pixelRatio),
         headerHeight:Math.round(50 * pixelRatio),
-        bodyHeight:Math.round((height - 50) - pixelRatio),
+        contentHeight:Math.round((height - 50) * pixelRatio),
         pixelRatio:pixelRatio
     };
 
@@ -43,11 +43,18 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.ReportScreen(null,this._layout),
         new App.AddTransactionScreen(null,this._layout)
     ]);
-    this._screenStack.selectChildByIndex(App.ScreenName.ADD_TRANSACTION);//TODO move this into separate command?
+    this._screenStack.y = this._layout.headerHeight;
+
+    this._header = new App.Header(this._layout);
+
+    this._screenStack.selectChildByIndex(App.ScreenName.SELECT_TIME);//TODO move this into separate command?
     this._screenStack.show();
+
+    this.scrollTo(0);
 
     this.addChild(this._background);
     this.addChild(this._screenStack);
+    this.addChild(this._header);
 
     this._registerEventListeners();
 };
@@ -78,6 +85,16 @@ App.ApplicationView.prototype.changeScreen = function changeScreen(screenName)
 };
 
 /**
+ * Scroll to value passed in
+ * @param {number} value
+ */
+App.ApplicationView.prototype.scrollTo = function scrollTo(value)
+{
+    if (document.documentElement && document.documentElement.scrollTop) document.documentElement.scrollTop = value;
+    else document.body.scrollTop = value;
+};
+
+/**
  * On Ticker's  Tick event
  *
  * @method _onTick
@@ -87,9 +104,4 @@ App.ApplicationView.prototype._onTick = function _onTick()
 {
     //TODO do not render if nothing happens (prop 'dirty'?)
     this._renderer.render(this._stage);
-};
-
-App.ApplicationView.prototype._onResize = function _onResize()
-{
-
 };

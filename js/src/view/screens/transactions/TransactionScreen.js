@@ -13,7 +13,7 @@ App.TransactionScreen = function TransactionScreen(model,layout)
         FontStyle = App.FontStyle,
         r = layout.pixelRatio,
         w = layout.width,
-        h = layout.height,
+        h = layout.contentHeight,
         buttonOptions = {
             labelStyles:{
                 edit:FontStyle.get(18,FontStyle.WHITE),
@@ -80,7 +80,7 @@ App.TransactionScreen.prototype.disable = function disable()
  */
 App.TransactionScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
 {
-    this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchPosition());
+    this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
     if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
     this._closeButtons(false);

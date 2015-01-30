@@ -1544,6 +1544,33 @@ App.FontStyle = {
     RED_DARK:"#990000"
 };
 
+App.Header = function Header(layout)
+{
+    PIXI.Graphics.call(this);
+
+    this._layout = layout;
+
+    this._render();
+};
+
+App.Header.prototype = Object.create(PIXI.Graphics.prototype);
+App.Header.prototype.constructor = App.Header;
+
+/**
+ * Render
+ * @private
+ */
+App.Header.prototype._render = function _render()
+{
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        w = this._layout.width,
+        h = this._layout.headerHeight;
+
+    GraphicUtils.drawRects(this,ColorTheme.BLUE,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.BLUE_DARK,1,[0,h-1,w,1],false,true);
+};
+
 /**
  * @class ScrollIndicator
  * @extends Graphics
@@ -3842,24 +3869,45 @@ App.VirtualList.prototype.constructor = App.VirtualList;
 
 /**
  * Find and select item under point passed in
- * @param {Point} point
+ * @param {InteractionData} pointerData
  */
-App.VirtualList.prototype.getItemUnderPoint = function getItemUnderPoint(point)
+App.VirtualList.prototype.getItemUnderPoint = function getItemUnderPoint(pointerData)
 {
-    var i = 0,
+    var position = pointerData.getLocalPosition(this).x,
+        Direction = App.Direction,
+        i = 0,
         l = this._items.length,
-        property = this._direction === App.Direction.X ? "x" : "y",
-        position = point[property],
-        itemSize = this._itemSize,
-        item = null,
-        itemPosition = 0;
+        size = 0,
+        itemPosition = 0,
+        item = null;
 
-    for (;i<l;)
+    if (this._direction === Direction.X)
     {
-        item = this._items[i++];
-        itemPosition = item[property];
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            itemPosition = item.x;
+            size = item.boundingBox.width;
+            if (itemPosition <= position && itemPosition + size >= position)
+            {
+                return item;
+            }
+        }
+    }
+    else if (this._direction === Direction.Y)
+    {
+        position = pointerData.getLocalPosition(this).y;
 
-        if (itemPosition <= position && itemPosition + itemSize > position) return item;
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            itemPosition = item.y;
+            size = item.boundingBox.height;
+            if (itemPosition <= position && itemPosition + size >= position)
+            {
+                return item;
+            }
+        }
     }
 
     return null;
@@ -5666,7 +5714,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
             valueDetailStyle:FontStyle.get(14,FontStyle.BLUE)
         };
 
-    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.height,r,false);
+    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._background = new PIXI.Graphics();
     this._transactionInpup = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
@@ -5845,7 +5893,6 @@ App.AddTransactionScreen.prototype._onTick = function _onTick()
  */
 App.AddTransactionScreen.prototype._onScrollTweenUpdate = function _onScrollTweenUpdate()
 {
-    //TODO the scroll position can be wrong if the container si scrolled ...
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.SHOWING)
     {
@@ -5879,6 +5926,8 @@ App.AddTransactionScreen.prototype._onScrollTweenComplete = function _onScrollTw
         this._scrollState = TransitionState.HIDDEN;
 
         this._pane.enable();
+
+        App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
     }
 };
 
@@ -5931,7 +5980,7 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
         w = layout.width,
         ScrollPolicy = App.ScrollPolicy;
 
-    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r,false);
+    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._inputBackground = new PIXI.Graphics();//TODO do I need BG? I can use BG below whole screen ...
     this._inputOverlay = new PIXI.Graphics();
@@ -6035,7 +6084,7 @@ App.SelectTimeScreen.prototype._unRegisterEventListeners = function _unRegisterE
 App.SelectTimeScreen.prototype._onInputFocus = function _onInputFocus()
 {
     this._inputFocused = true;
-
+    //TODO sometimes when input focuses, content scrolls inside Pane as SW keyboard shows!!! - it may be that I swipe and scroll, and after keyboard is shown, the scroll resumes ...
     if (!this._container.contains(this._inputOverlay)) this._container.addChildAt(this._inputOverlay,this._container.getChildIndex(this._input));
 };
 
@@ -6164,7 +6213,7 @@ App.AccountScreen = function AccountScreen(model,layout)
     var i = 0, l = this._model.length(), AccountButton = App.AccountButton, button = null;
 
     this._buttons = new Array(l);
-    this._buttonList = new App.TileList(App.Direction.Y,layout.height);
+    this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
 
     for (;i<30;i++)
     {
@@ -6174,7 +6223,7 @@ App.AccountScreen = function AccountScreen(model,layout)
     }
     this._buttonList.updateLayout();
 
-    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,this._layout.width,this._layout.height,this._layout.pixelRatio,false);
+    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.contentHeight,layout.pixelRatio,false);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
@@ -6619,7 +6668,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 
     this._interactiveButton = null;
     this._buttons = new Array(l);
-    this._buttonList = new App.TileList(App.Direction.Y,layout.height);
+    this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
 
     for (;i<l;i++)
     {
@@ -6633,7 +6682,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     this._buttonsInTransition = [];
     this._layoutDirty = false;
 
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio,false);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.contentHeight,layout.pixelRatio,false);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
@@ -7025,7 +7074,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
         icons = App.ModelLocator.getProxy(App.ModelName.ICONS),
         iconsHeight = Math.round(64 * r);
 
-    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.height,r,false);
+    this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._background = new PIXI.Graphics();
     this._colorStripe = new PIXI.Graphics();
@@ -7038,6 +7087,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._subCategoryList = new App.SubCategoryList(null,w,r);
     this._budgetHeader = new App.ListHeader("Budget",w,r);
     this._budget = new Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);
+    this._budgetPosition = 0;
     this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._scrollState = App.TransitionState.HIDDEN;
 
@@ -7105,8 +7155,11 @@ App.EditCategoryScreen.prototype._render = function _render()
 
     this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
     this._budgetHeader.y = this._subCategoryList.y + this._subCategoryList.boundingBox.height;
+
+    this._budgetPosition = this._budgetHeader.y + this._budgetHeader.height;
+
     this._budget.x = padding;
-    this._budget.y = this._budgetHeader.y + this._budgetHeader.height + Math.round(10 * r);
+    this._budget.y = this._budgetPosition + padding;
 
     GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w,this._budget.y+this._budget.boundingBox.height+padding);
 };
@@ -7225,11 +7278,11 @@ App.EditCategoryScreen.prototype._onScrollTweenUpdate = function _onScrollTweenU
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.SHOWING)
     {
-        this._pane.y = -Math.round((this._budgetHeader.y + this._container.y) * this._scrollTween.progress);
+        this._pane.y = -Math.round((this._budgetPosition + this._container.y) * this._scrollTween.progress);
     }
     else if (this._scrollState === TransitionState.HIDING)
     {
-        this._pane.y = -Math.round((this._budgetHeader.y + this._container.y) * (1 - this._scrollTween.progress));
+        this._pane.y = -Math.round((this._budgetPosition + this._container.y) * (1 - this._scrollTween.progress));
     }
 };
 
@@ -7257,6 +7310,8 @@ App.EditCategoryScreen.prototype._onScrollTweenComplete = function _onScrollTwee
         this._scrollState = TransitionState.HIDDEN;
 
         this._pane.enable();
+
+        App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
     }
 };
 
@@ -7579,7 +7634,7 @@ App.TransactionScreen = function TransactionScreen(model,layout)
         FontStyle = App.FontStyle,
         r = layout.pixelRatio,
         w = layout.width,
-        h = layout.height,
+        h = layout.contentHeight,
         buttonOptions = {
             labelStyles:{
                 edit:FontStyle.get(18,FontStyle.WHITE),
@@ -7646,7 +7701,7 @@ App.TransactionScreen.prototype.disable = function disable()
  */
 App.TransactionScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
 {
-    this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchPosition());
+    this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
     if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
     this._closeButtons(false);
@@ -8240,7 +8295,7 @@ App.ReportScreen = function ReportScreen(model,layout)
     var ReportAccountButton = App.ReportAccountButton,
         ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
-        h = layout.height,
+        h = layout.contentHeight,
         r = layout.pixelRatio,
         chartSize = Math.round(h * 0.3 - 20 * r),
         listWidth = Math.round(layout.width - 20 * r),// 10pts padding on both sides
@@ -8329,7 +8384,7 @@ App.ReportScreen.prototype._updateLayout = function _updateLayout()
     this._chart.y = padding;
 
     this._pane.x = padding;
-    this._pane.y = Math.round(this._layout.height * 0.3);
+    this._pane.y = Math.round(this._layout.contentHeight * 0.3);
 };
 
 /**
@@ -8448,7 +8503,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         width:Math.round(width * pixelRatio),
         height:Math.round(height * pixelRatio),
         headerHeight:Math.round(50 * pixelRatio),
-        bodyHeight:Math.round((height - 50) - pixelRatio),
+        contentHeight:Math.round((height - 50) * pixelRatio),
         pixelRatio:pixelRatio
     };
 
@@ -8466,11 +8521,18 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.ReportScreen(null,this._layout),
         new App.AddTransactionScreen(null,this._layout)
     ]);
-    this._screenStack.selectChildByIndex(App.ScreenName.ADD_TRANSACTION);//TODO move this into separate command?
+    this._screenStack.y = this._layout.headerHeight;
+
+    this._header = new App.Header(this._layout);
+
+    this._screenStack.selectChildByIndex(App.ScreenName.SELECT_TIME);//TODO move this into separate command?
     this._screenStack.show();
+
+    this.scrollTo(0);
 
     this.addChild(this._background);
     this.addChild(this._screenStack);
+    this.addChild(this._header);
 
     this._registerEventListeners();
 };
@@ -8501,6 +8563,16 @@ App.ApplicationView.prototype.changeScreen = function changeScreen(screenName)
 };
 
 /**
+ * Scroll to value passed in
+ * @param {number} value
+ */
+App.ApplicationView.prototype.scrollTo = function scrollTo(value)
+{
+    if (document.documentElement && document.documentElement.scrollTop) document.documentElement.scrollTop = value;
+    else document.body.scrollTop = value;
+};
+
+/**
  * On Ticker's  Tick event
  *
  * @method _onTick
@@ -8510,11 +8582,6 @@ App.ApplicationView.prototype._onTick = function _onTick()
 {
     //TODO do not render if nothing happens (prop 'dirty'?)
     this._renderer.render(this._stage);
-};
-
-App.ApplicationView.prototype._onResize = function _onResize()
-{
-
 };
 
 /**

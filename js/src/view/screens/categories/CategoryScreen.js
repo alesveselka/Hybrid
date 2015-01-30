@@ -20,7 +20,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 
     this._interactiveButton = null;
     this._buttons = new Array(l);
-    this._buttonList = new App.TileList(App.Direction.Y,layout.height);
+    this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
 
     for (;i<l;i++)
     {
@@ -34,7 +34,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     this._buttonsInTransition = [];
     this._layoutDirty = false;
 
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.height,layout.pixelRatio,false);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.contentHeight,layout.pixelRatio,false);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);

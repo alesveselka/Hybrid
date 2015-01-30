@@ -12,7 +12,7 @@ App.ReportScreen = function ReportScreen(model,layout)
     var ReportAccountButton = App.ReportAccountButton,
         ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
-        h = layout.height,
+        h = layout.contentHeight,
         r = layout.pixelRatio,
         chartSize = Math.round(h * 0.3 - 20 * r),
         listWidth = Math.round(layout.width - 20 * r),// 10pts padding on both sides
@@ -101,7 +101,7 @@ App.ReportScreen.prototype._updateLayout = function _updateLayout()
     this._chart.y = padding;
 
     this._pane.x = padding;
-    this._pane.y = Math.round(this._layout.height * 0.3);
+    this._pane.y = Math.round(this._layout.contentHeight * 0.3);
 };
 
 /**
