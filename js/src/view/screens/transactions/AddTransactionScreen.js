@@ -35,11 +35,14 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._background = new PIXI.Graphics();
-    this._transactionInpup = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
+    this._transactionInput = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
     this._noteInput = new App.Input("Add Note",20,inputWidth,inputHeight,r,true);
-    this._notePosition = 0;
+    //TODO add other 'scroll-' properties into TweenProxy?
     this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._scrollState = App.TransitionState.HIDDEN;
+    this._scrollInput = null;
+    this._scrollPosition = 0;
+    this._inputPadding = Math.round(10 * r);
 
     this._toggleButtonList = new App.List(App.Direction.X);
     this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false}),false);
@@ -56,11 +59,11 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     //TODO add overlay for bluring inputs?
     //TODO autmatically focus input when this screen is shown?
 
-    this._transactionInpup.restrict(/\D/);
+    this._transactionInput.restrict(/\D/);
     this._render();
 
     this._container.addChild(this._background);
-    this._container.addChild(this._transactionInpup);
+    this._container.addChild(this._transactionInput);
     this._container.addChild(this._toggleButtonList);
     this._container.addChild(this._optionList);
     this._container.addChild(this._noteInput);
@@ -87,21 +90,22 @@ App.AddTransactionScreen.prototype._render = function _render()
         inputHeight = Math.round(60 * r),
         toggleHeight = this._toggleButtonList.boundingBox.height,
         toggleWidth = Math.round(w / 3),
-        separatorWidth = w - padding * 2;
+        separatorWidth = w - padding * 2,
+        bottom = 0;
 
-    this._transactionInpup.x = padding;
-    this._transactionInpup.y = padding;
+    this._transactionInput.x = padding;
+    this._transactionInput.y = padding;
 
     this._toggleButtonList.y = inputHeight;
 
     this._optionList.y = this._toggleButtonList.y + toggleHeight;
 
-    this._notePosition = this._optionList.y + this._optionList.boundingBox.height;
+    bottom = this._optionList.y + this._optionList.boundingBox.height;
 
     this._noteInput.x = padding;
-    this._noteInput.y = this._notePosition + padding;
+    this._noteInput.y = bottom + padding;
 
-    GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w,this._notePosition+inputHeight],true,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w,bottom+inputHeight],true,false);
     GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[
         padding,inputHeight-1,separatorWidth,1,
         toggleWidth-1,inputHeight+padding,1,toggleHeight-padding*2,
@@ -112,7 +116,7 @@ App.AddTransactionScreen.prototype._render = function _render()
         padding,inputHeight,separatorWidth,1,
         toggleWidth,inputHeight+padding,1,toggleHeight-padding*2,
         toggleWidth*2,inputHeight+padding,1,toggleHeight-padding*2,
-        padding,this._notePosition,separatorWidth,1
+        padding,bottom,separatorWidth,1
     ],false,true);
 };
 
@@ -123,7 +127,6 @@ App.AddTransactionScreen.prototype.enable = function enable()
 {
     App.Screen.prototype.enable.call(this);
 
-    this._transactionInpup.enable();
     this._pane.enable();
 };
 
@@ -134,7 +137,7 @@ App.AddTransactionScreen.prototype.disable = function disable()
 {
     App.Screen.prototype.disable.call(this);
 
-    this._transactionInpup.disable();
+    this._transactionInput.disable();
     this._noteInput.disable();
     this._pane.disable();
 };
@@ -151,7 +154,8 @@ App.AddTransactionScreen.prototype._registerEventListeners = function _registerE
 
     this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
 
-    this._noteInput.addEventListener(EventType.BLUR,this,this._onNoteBlur);
+    this._transactionInput.addEventListener(EventType.BLUR,this,this._onInputBlur);
+    this._noteInput.addEventListener(EventType.BLUR,this,this._onInputBlur);
 };
 
 /**
@@ -166,7 +170,8 @@ App.AddTransactionScreen.prototype._unRegisterEventListeners = function _unRegis
 
     this._scrollTween.removeEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
 
-    this._budget.removeEventListener(EventType.BLUR,this,this._onNoteBlur);
+    this._transactionInput.removeEventListener(EventType.BLUR,this,this._onInputBlur);
+    this._noteInput.removeEventListener(EventType.BLUR,this,this._onInputBlur);
 };
 
 /**
@@ -180,7 +185,13 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     var pointerData = this.stage.getTouchData(),
         y = pointerData.getLocalPosition(this._container).y;
 
-    if (y >= this._toggleButtonList.y && y < this._toggleButtonList.y + this._toggleButtonList.boundingBox.height)
+    if (y >= this._transactionInput.y && y < this._transactionInput.y + this._transactionInput.boundingBox.height)
+    {
+        //TODO first check if it needs to scroll in first place
+        this._scrollInput = this._transactionInput;
+        this._focusInput();
+    }
+    else if (y >= this._toggleButtonList.y && y < this._toggleButtonList.y + this._toggleButtonList.boundingBox.height)
     {
         this._toggleButtonList.getItemUnderPoint(pointerData).toggle();
     }
@@ -190,7 +201,8 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     }
     else if (y >= this._noteInput.y && y < this._noteInput.y + this._noteInput.boundingBox.height)
     {
-        this._focusNote();
+        this._scrollInput = this._noteInput;
+        this._focusInput();
     }
 };
 
@@ -214,11 +226,11 @@ App.AddTransactionScreen.prototype._onScrollTweenUpdate = function _onScrollTwee
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.SHOWING)
     {
-        this._pane.y = -Math.round((this._notePosition + this._container.y) * this._scrollTween.progress);
+        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * this._scrollTween.progress);
     }
     else if (this._scrollState === TransitionState.HIDING)
     {
-        this._pane.y = -Math.round((this._notePosition + this._container.y) * (1 - this._scrollTween.progress));
+        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * (1 - this._scrollTween.progress));
     }
 };
 
@@ -236,8 +248,8 @@ App.AddTransactionScreen.prototype._onScrollTweenComplete = function _onScrollTw
     {
         this._scrollState = TransitionState.SHOWN;
 
-        this._noteInput.enable();
-        this._noteInput.focus();
+        this._scrollInput.enable();
+        this._scrollInput.focus();
     }
     else if (this._scrollState === TransitionState.HIDING)
     {
@@ -253,7 +265,7 @@ App.AddTransactionScreen.prototype._onScrollTweenComplete = function _onScrollTw
  * Focus budget
  * @private
  */
-App.AddTransactionScreen.prototype._focusNote = function _focusNote()
+App.AddTransactionScreen.prototype._focusInput = function _focusInput()
 {
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.HIDDEN || this._scrollState === TransitionState.HIDING)
@@ -261,6 +273,8 @@ App.AddTransactionScreen.prototype._focusNote = function _focusNote()
         this._scrollState = TransitionState.SHOWING;
 
         this._pane.disable();
+
+        this._scrollPosition = this._scrollInput.y - this._inputPadding;
 
         this._scrollTween.start();
     }
@@ -270,15 +284,23 @@ App.AddTransactionScreen.prototype._focusNote = function _focusNote()
  * On budget field blur
  * @private
  */
-App.AddTransactionScreen.prototype._onNoteBlur = function _onNoteBlur()
+App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
 {
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.SHOWN || this._scrollState === TransitionState.SHOWING)
     {
         this._scrollState = TransitionState.HIDING;
 
-        this._noteInput.disable();
+        this._scrollInput.disable();
 
-        this._scrollTween.restart();
+        if (this._scrollInput === this._noteInput)
+        {
+            this._scrollTween.restart();
+        }
+        else
+        {
+            this._pane.resetScroll();
+            this._onScrollTweenComplete();
+        }
     }
 };

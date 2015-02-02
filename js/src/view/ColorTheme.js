@@ -1,11 +1,13 @@
 /**
  * ColorTheme
  * @enum {number}
- * @type {{BLUE: number,BLUE_DARK:number, GREY: number, GREY_DARK: number, GREY_LIGHT: number,RED:number,RED_DARK:number,RED_LIGHT:number,GREEN:number,INPUT_HIGHLIGHT:number}}
+ * @type {{WHITE:number,BLUE: number,BLUE_DARK:number,BLUE_LIGHT:number,GREY: number, GREY_DARK: number, GREY_LIGHT: number,RED:number,RED_DARK:number,RED_LIGHT:number,GREEN:number,INPUT_HIGHLIGHT:number}}
  */
 App.ColorTheme = {
+    WHITE:0xfffffe,
     BLUE:0x394264,
     BLUE_DARK:0x252B44,
+    BLUE_LIGHT:0x50597B,
     GREY:0xefefef,
     GREY_DARK:0xcccccc,
     GREY_LIGHT:0xffffff,

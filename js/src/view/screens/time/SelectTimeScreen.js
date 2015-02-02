@@ -117,7 +117,9 @@ App.SelectTimeScreen.prototype._unRegisterEventListeners = function _unRegisterE
 App.SelectTimeScreen.prototype._onInputFocus = function _onInputFocus()
 {
     this._inputFocused = true;
-    //TODO sometimes when input focuses, content scrolls inside Pane as SW keyboard shows!!! - it may be that I swipe and scroll, and after keyboard is shown, the scroll resumes ...
+
+    this._pane.cancelScroll();
+
     if (!this._container.contains(this._inputOverlay)) this._container.addChildAt(this._inputOverlay,this._container.getChildIndex(this._input));
 };
 
@@ -138,7 +140,12 @@ App.SelectTimeScreen.prototype._onInputBlur = function _onInputBlur()
  */
 App.SelectTimeScreen.prototype._onClick = function _onClick()
 {
-    if (this._inputFocused) this._input.blur();
+    if (this._inputFocused)
+    {
+        this._pane.cancelScroll();
+
+        this._input.blur();
+    }
 
     this._calendar.onClick();
 };

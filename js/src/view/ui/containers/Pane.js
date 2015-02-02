@@ -685,35 +685,3 @@ App.Pane.prototype._checkPosition = function _checkPosition()
         if (this._content.y !== 0) this._updateY(0);
     }
 };
-
-/**
- * Destroy
- */
-App.Pane.prototype.destroy = function destroy()
-{
-    //TODO also destroy PIXI's DisplayObjectContainer object!
-
-    this.disable();
-
-    this._ticker = null;
-
-    this._state = null;
-    this._xSpeed = 0.0;
-    this._ySpeed = 0.0;
-    this._mouseData = null;
-
-    this.removeContent();
-
-    if (this.contains(this._xScrollIndicator)) this.removeChild(this._xScrollIndicator);
-    this._xScrollIndicator.destroy();
-    this._xScrollIndicator = null;
-
-    if (this.contains(this._yScrollIndicator)) this.removeChild(this._yScrollIndicator);
-    this._yScrollIndicator.destroy();
-    this._yScrollIndicator = null;
-
-    this._xOriginalScrollPolicy = null;
-    this._yOriginalScrollPolicy = null;
-    this._xScrollPolicy = null;
-    this._yScrollPolicy = null;
-};

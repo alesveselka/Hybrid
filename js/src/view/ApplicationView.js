@@ -47,7 +47,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
 
     this._header = new App.Header(this._layout);
 
-    this._screenStack.selectChildByIndex(App.ScreenName.SELECT_TIME);//TODO move this into separate command?
+    this._screenStack.selectChildByIndex(App.ScreenName.EDIT_CATEGORY);//TODO move this into separate command?
     this._screenStack.show();
 
     this.scrollTo(0);
@@ -104,4 +104,13 @@ App.ApplicationView.prototype._onTick = function _onTick()
 {
     //TODO do not render if nothing happens (prop 'dirty'?)
     this._renderer.render(this._stage);
+};
+
+/**
+ * On resize
+ * @private
+ */
+App.ApplicationView.prototype._onResize = function _onResize()
+{
+    //this.scrollTo(0);
 };

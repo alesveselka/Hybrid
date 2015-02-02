@@ -32,11 +32,13 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._subCategoryList = new App.SubCategoryList(null,w,r);
     this._budgetHeader = new App.ListHeader("Budget",w,r);
     this._budget = new Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);
-    this._budgetPosition = 0;
     this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._scrollState = App.TransitionState.HIDDEN;
+    this._scrollInput = null;
+    this._scrollPosition = 0;
+    this._inputPadding = Math.round(10 * r);
 
-    //TODO add overlay for bluring inputs?
+    //TODO add overlay for blurring inputs?
     //TODO add modal window to confirm deleting sub-category
 
     this._budget.restrict(/\D/);
@@ -75,8 +77,7 @@ App.EditCategoryScreen.prototype._render = function _render()
         inputFragmentHeight = Math.round(60 * r),
         colorListHeight = this._colorList.boundingBox.height,
         iconResizeRatio = Math.round(32 * r) / this._icon.height,
-        padding = Math.round(10 * r),
-        separatorWidth = w - padding * 2;
+        separatorWidth = w - this._inputPadding * 2;
 
     GraphicUtils.drawRect(this._colorStripe,0xff6600,1,0,0,Math.round(4*r),Math.round(59 * r));
 
@@ -95,18 +96,18 @@ App.EditCategoryScreen.prototype._render = function _render()
 
     GraphicUtils.drawRects(this._separators,ColorTheme.GREY_DARK,1,[0,0,separatorWidth,1,0,colorListHeight,separatorWidth,1],true,false);
     GraphicUtils.drawRects(this._separators,ColorTheme.GREY_LIGHT,1,[0,1,separatorWidth,1,0,colorListHeight+1,separatorWidth,1],false,true);
-    this._separators.x = padding;
+    this._separators.x = this._inputPadding;
     this._separators.y = inputFragmentHeight - 1;
 
     this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
     this._budgetHeader.y = this._subCategoryList.y + this._subCategoryList.boundingBox.height;
 
-    this._budgetPosition = this._budgetHeader.y + this._budgetHeader.height;
+    this._scrollPosition = this._budgetHeader.y + this._budgetHeader.height;
 
-    this._budget.x = padding;
-    this._budget.y = this._budgetPosition + padding;
+    this._budget.x = this._inputPadding;
+    this._budget.y = this._scrollPosition + this._inputPadding;
 
-    GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w,this._budget.y+this._budget.boundingBox.height+padding);
+    GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w,this._budget.y+this._budget.boundingBox.height+this._inputPadding);
 };
 
 /**
@@ -116,7 +117,6 @@ App.EditCategoryScreen.prototype.enable = function enable()
 {
     App.Screen.prototype.enable.call(this);
 
-    this._input.enable();
     this._colorList.enable();
     this._topIconList.enable();
     this._bottomIconList.enable();
@@ -150,7 +150,8 @@ App.EditCategoryScreen.prototype._registerEventListeners = function _registerEve
 
     this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
 
-    this._budget.addEventListener(EventType.BLUR,this,this._onBudgetBlur);
+    this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
+    this._budget.addEventListener(EventType.BLUR,this,this._onInputBlur);
 };
 
 /**
@@ -165,7 +166,8 @@ App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegiste
 
     this._scrollTween.removeEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
 
-    this._budget.removeEventListener(EventType.BLUR,this,this._onBudgetBlur);
+    this._budget.removeEventListener(EventType.BLUR,this,this._onInputBlur);
+    this._input.removeEventListener(EventType.BLUR,this,this._onInputBlur);
 };
 
 /**
@@ -180,7 +182,13 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
         y = position.y,
         list = null;
 
-    if (y >= this._colorList.y && y < this._colorList.y + this._colorList.boundingBox.height)
+    if (y >= this._input.y && y < this._input.y + this._input.boundingBox.height)
+    {
+        //TODO first check if it needs to scroll in first place
+        this._scrollInput = this._input;
+        this._focusInput();
+    }
+    else if (y >= this._colorList.y && y < this._colorList.y + this._colorList.boundingBox.height)
     {
         list = this._colorList;
         list.selectItemByPosition(position.x);
@@ -199,7 +207,8 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
     }
     else if (y >= this._budget.y && y < this._budget.y + this._budget.boundingBox.height)
     {
-        this._focusBudget();
+        this._scrollInput = this._budget;
+        this._focusInput();
     }
 };
 
@@ -223,11 +232,11 @@ App.EditCategoryScreen.prototype._onScrollTweenUpdate = function _onScrollTweenU
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.SHOWING)
     {
-        this._pane.y = -Math.round((this._budgetPosition + this._container.y) * this._scrollTween.progress);
+        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * this._scrollTween.progress);
     }
     else if (this._scrollState === TransitionState.HIDING)
     {
-        this._pane.y = -Math.round((this._budgetPosition + this._container.y) * (1 - this._scrollTween.progress));
+        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * (1 - this._scrollTween.progress));
     }
 };
 
@@ -247,8 +256,8 @@ App.EditCategoryScreen.prototype._onScrollTweenComplete = function _onScrollTwee
 
         this._subCategoryList.closeButtons(true);
 
-        this._budget.enable();
-        this._budget.focus();
+        this._scrollInput.enable();
+        this._scrollInput.focus();
     }
     else if (this._scrollState === TransitionState.HIDING)
     {
@@ -264,7 +273,7 @@ App.EditCategoryScreen.prototype._onScrollTweenComplete = function _onScrollTwee
  * Focus budget
  * @private
  */
-App.EditCategoryScreen.prototype._focusBudget = function _focusBudget()
+App.EditCategoryScreen.prototype._focusInput = function _focusInput()
 {
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.HIDDEN || this._scrollState === TransitionState.HIDING)
@@ -272,6 +281,8 @@ App.EditCategoryScreen.prototype._focusBudget = function _focusBudget()
         this._scrollState = TransitionState.SHOWING;
 
         this._pane.disable();
+
+        this._scrollPosition = this._scrollInput.y - this._inputPadding;
 
         this._scrollTween.start();
     }
@@ -281,16 +292,24 @@ App.EditCategoryScreen.prototype._focusBudget = function _focusBudget()
  * On budget field blur
  * @private
  */
-App.EditCategoryScreen.prototype._onBudgetBlur = function _onBudgetBlur()
+App.EditCategoryScreen.prototype._onInputBlur = function _onInputBlur()
 {
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.SHOWN || this._scrollState === TransitionState.SHOWING)
     {
         this._scrollState = TransitionState.HIDING;
 
-        this._budget.disable();
+        this._scrollInput.disable();
 
-        this._scrollTween.restart();
+        if (this._scrollInput === this._budget)
+        {
+            this._scrollTween.restart();
+        }
+        else
+        {
+            this._pane.resetScroll();
+            this._onScrollTweenComplete();
+        }
     }
 };
 
