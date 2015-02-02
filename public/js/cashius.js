@@ -4562,368 +4562,6 @@ App.ViewStack.prototype._onHideComplete = function _onHideComplete(data)
 };
 
 /**
- * Abstract Screen
- *
- * @class Screen
- * @extends DisplayObjectContainer
- * @param {Collection} model
- * @param {Object} layout
- * @param {number} tweenDuration
- * @constructor
- */
-App.Screen = function Screen(model,layout,tweenDuration)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        pixelRatio = layout.pixelRatio;
-
-    this._model = model;
-    this._layout = layout;
-    this._enabled = false;
-    this._eventsRegistered = false;
-
-    this._transitionState = App.TransitionState.HIDDEN;
-    this._interactiveState = null;
-    this._mouseDownPosition = null;
-    this._mouseX = 0.0;
-    this._mouseY = 0.0;
-    this._leftSwipeThreshold = 15 * pixelRatio;
-    this._rightSwipeThreshold = 5 * pixelRatio;
-    this._clickThreshold = 5 * pixelRatio;
-    this._swipeEnabled = false;
-    this._preferScroll = true;
-
-    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
-    this._showHideTween = new App.TweenProxy(tweenDuration,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
-
-    this.alpha = 0.0;
-};
-
-App.Screen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.Screen.prototype.constructor = App.Screen;
-
-/**
- * Show
- */
-App.Screen.prototype.show = function show()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.HIDDEN || this._transitionState === TransitionState.HIDING)
-    {
-        this.enable();
-
-        this._transitionState = TransitionState.SHOWING;
-
-        this._showHideTween.restart();
-
-        this.visible = true;
-    }
-};
-
-/**
- * Hide
- */
-App.Screen.prototype.hide = function hide()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.SHOWN || this._transitionState === TransitionState.SHOWING)
-    {
-        this._transitionState = TransitionState.HIDING;
-
-        this._showHideTween.start(true);
-    }
-};
-
-/**
- * Enable
- */
-App.Screen.prototype.enable = function enable()
-{
-    if (!this._enabled)
-    {
-        this.interactive = true;
-
-        this._registerEventListeners();
-
-        this._enabled = true;
-    }
-};
-
-/**
- * Disable
- */
-App.Screen.prototype.disable = function disable()
-{
-    this.interactive = false;
-
-    this._unRegisterEventListeners();
-
-    this._enabled = false;
-
-    this._interactiveState = null;
-};
-
-/**
- * Add event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.Screen.prototype.addEventListener = function addEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.addEventListener(eventType,scope,listener);
-};
-
-/**
- * Remove event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.Screen.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.removeEventListener(eventType,scope,listener);
-};
-
-/**
- * Register event listeners
- * @private
- */
-App.Screen.prototype._registerEventListeners = function _registerEventListeners()
-{
-    if (!this._eventsRegistered)
-    {
-        this._eventsRegistered = true;
-
-        if (App.Device.TOUCH_SUPPORTED)
-        {
-            this.touchstart = this._onPointerDown;
-            this.touchend = this._onPointerUp;
-            this.touchendoutside = this._onPointerUp;
-        }
-        else
-        {
-            this.mousedown = this._onPointerDown;
-            this.mouseup = this._onPointerUp;
-            this.mouseupoutside = this._onPointerUp;
-        }
-
-        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-
-        this._showHideTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
-    }
-};
-
-/**
- * UnRegister event listeners
- * @private
- */
-App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
-{
-    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._showHideTween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
-
-    if (App.Device.TOUCH_SUPPORTED)
-    {
-        this.touchstart = null;
-        this.touchend = null;
-        this.touchendoutside = null;
-    }
-    else
-    {
-        this.mousedown = null;
-        this.mouseup = null;
-        this.mouseupoutside = null;
-    }
-
-    this._eventsRegistered = false;
-};
-
-/**
- * On tick
- * @private
- */
-App.Screen.prototype._onTick = function _onTick()
-{
-    if (this._showHideTween.isRunning())
-    {
-        var TransitionState = App.TransitionState;
-
-        if (this._transitionState === TransitionState.SHOWING) this.alpha = this._showHideTween.progress;
-        else if (this._transitionState === TransitionState.HIDING) this.alpha = 1.0 - this._showHideTween.progress;
-    }
-
-    if (this._swipeEnabled && this._interactiveState === App.InteractiveState.DRAGGING) this._drag();
-};
-
-/**
- * On tween complete
- * @private
- */
-App.Screen.prototype._onTweenComplete = function _onTweenComplete()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.SHOWING)
-    {
-        this._transitionState = TransitionState.SHOWN;
-
-        this.alpha = 1.0;
-    }
-    else if (this._transitionState === TransitionState.HIDING)
-    {
-        this._transitionState = TransitionState.HIDDEN;
-
-        this.disable();
-
-        this.alpha = 0.0;
-
-        this.visible = false;
-
-        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,{target:this,state:this._transitionState});
-    }
-};
-
-/**
- * On pointer down
- *
- * @param {Object} data
- * @private
- */
-App.Screen.prototype._onPointerDown = function _onPointerDown(data)
-{
-    if (this.stage)
-    {
-        this._mouseDownPosition = data.getLocalPosition(this.stage);
-        this._mouseX = this._mouseDownPosition.x;
-        this._mouseY = this._mouseDownPosition.y;
-    }
-
-    if (this._swipeEnabled) this._interactiveState = App.InteractiveState.DRAGGING;
-};
-
-/**
- * On pointer up
- * @param {Object} data
- * @private
- */
-App.Screen.prototype._onPointerUp = function _onPointerUp(data)
-{
-    if (this._swipeEnabled)
-    {
-        if (this._interactiveState === App.InteractiveState.SWIPING) this._swipeEnd();
-        this._interactiveState = null;
-    }
-
-    if (this.stage && this._mouseDownPosition && this._enabled)
-    {
-        var oldX = this._mouseDownPosition.x,
-            oldY = this._mouseDownPosition.y;
-
-        this._mouseDownPosition = data.getLocalPosition(this.stage,this._mouseDownPosition);
-
-        var dx = oldX - this._mouseDownPosition.x,
-            dy = oldY - this._mouseDownPosition.y,
-            dist = dx * dx - dy * dy,
-            TransitionState = App.TransitionState;
-
-        if (Math.abs(dist) < this._clickThreshold && (this._transitionState === TransitionState.SHOWING || this._transitionState === TransitionState.SHOWN)) this._onClick();
-
-        this._mouseDownPosition = null;
-    }
-};
-
-/**
- * Drag
- * @private
- */
-App.Screen.prototype._drag = function _drag()
-{
-    var InteractiveState = App.InteractiveState;
-
-    if (this._interactiveState === InteractiveState.DRAGGING)
-    {
-        if (this.stage && this._mouseX)
-        {
-            var position = this.stage.getTouchPosition(),
-                newX = position.x,
-                newY = position.y;
-
-            if (this._mouseX - newX > this._leftSwipeThreshold)
-            {
-                this._interactiveState = InteractiveState.SWIPING;
-                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll,App.Direction.LEFT);
-            }
-            else if (newX - this._mouseX > this._rightSwipeThreshold)
-            {
-                this._interactiveState = InteractiveState.SWIPING;
-                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll,App.Direction.RIGHT);
-            }
-
-            this._mouseX = newX;
-            this._mouseY = newY;
-        }
-    }
-};
-
-/**
- * Click handler
- * @private
- */
-App.Screen.prototype._onClick = function _onClick()
-{
-    this._eventDispatcher.dispatchEvent(App.EventType.CLICK);
-};
-
-/**
- * Called when swipe starts
- * @param {boolean} [preferScroll=false]
- * @private
- */
-App.Screen.prototype._swipeStart = function _swipeStart(preferScroll)
-{
-    // Abstract
-};
-
-/**
- * Called when swipe ends
- * @param {string} direction
- * @private
- */
-App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
-{
-    // Abstract
-};
-
-/**
- * Destroy
- */
-App.Screen.prototype.destroy = function destroy()
-{
-    this.disable();
-
-    this._eventDispatcher.destroy();
-    this._eventDispatcher = null;
-
-    this._showHideTween.destroy();
-    this._showHideTween = null;
-
-    this._ticker = null;
-    this._model = null;
-    this._layout = null;
-    this._transitionState = null;
-    this._mouseDownPosition = null;
-
-    //TODO make sure everything is destroyed
-};
-
-/**
  * @class ListHeader
  * @param {string} label
  * @param {number} width
@@ -5489,6 +5127,490 @@ App.ExpandButton.prototype.removeEventListener = function removeEventListener(ev
 };
 
 /**
+ * Abstract Screen
+ *
+ * @class Screen
+ * @extends DisplayObjectContainer
+ * @param {Collection} model
+ * @param {Object} layout
+ * @param {number} tweenDuration
+ * @constructor
+ */
+App.Screen = function Screen(model,layout,tweenDuration)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        pixelRatio = layout.pixelRatio;
+
+    this._model = model;
+    this._layout = layout;
+    this._enabled = false;
+    this._eventsRegistered = false;
+
+    this._transitionState = App.TransitionState.HIDDEN;
+    this._interactiveState = null;
+    this._mouseDownPosition = null;
+    this._mouseX = 0.0;
+    this._mouseY = 0.0;
+    this._leftSwipeThreshold = 15 * pixelRatio;
+    this._rightSwipeThreshold = 5 * pixelRatio;
+    this._clickThreshold = 5 * pixelRatio;
+    this._swipeEnabled = false;
+    this._preferScroll = true;
+
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._showHideTween = new App.TweenProxy(tweenDuration,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+
+    this.alpha = 0.0;
+};
+
+App.Screen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.Screen.prototype.constructor = App.Screen;
+
+/**
+ * Show
+ */
+App.Screen.prototype.show = function show()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.HIDDEN || this._transitionState === TransitionState.HIDING)
+    {
+        this.enable();
+
+        this._transitionState = TransitionState.SHOWING;
+
+        this._showHideTween.restart();
+
+        this.visible = true;
+    }
+};
+
+/**
+ * Hide
+ */
+App.Screen.prototype.hide = function hide()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.SHOWN || this._transitionState === TransitionState.SHOWING)
+    {
+        this._transitionState = TransitionState.HIDING;
+
+        this._showHideTween.start(true);
+    }
+};
+
+/**
+ * Enable
+ */
+App.Screen.prototype.enable = function enable()
+{
+    if (!this._enabled)
+    {
+        this.interactive = true;
+
+        this._registerEventListeners();
+
+        this._enabled = true;
+    }
+};
+
+/**
+ * Disable
+ */
+App.Screen.prototype.disable = function disable()
+{
+    this.interactive = false;
+
+    this._unRegisterEventListeners();
+
+    this._enabled = false;
+
+    this._interactiveState = null;
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Screen.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Screen.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.Screen.prototype._registerEventListeners = function _registerEventListeners()
+{
+    if (!this._eventsRegistered)
+    {
+        this._eventsRegistered = true;
+
+        if (App.Device.TOUCH_SUPPORTED)
+        {
+            this.touchstart = this._onPointerDown;
+            this.touchend = this._onPointerUp;
+            this.touchendoutside = this._onPointerUp;
+        }
+        else
+        {
+            this.mousedown = this._onPointerDown;
+            this.mouseup = this._onPointerUp;
+            this.mouseupoutside = this._onPointerUp;
+        }
+
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._showHideTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+    }
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._showHideTween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+
+    if (App.Device.TOUCH_SUPPORTED)
+    {
+        this.touchstart = null;
+        this.touchend = null;
+        this.touchendoutside = null;
+    }
+    else
+    {
+        this.mousedown = null;
+        this.mouseup = null;
+        this.mouseupoutside = null;
+    }
+
+    this._eventsRegistered = false;
+};
+
+/**
+ * On tick
+ * @private
+ */
+App.Screen.prototype._onTick = function _onTick()
+{
+    if (this._showHideTween.isRunning())
+    {
+        var TransitionState = App.TransitionState;
+
+        if (this._transitionState === TransitionState.SHOWING) this.alpha = this._showHideTween.progress;
+        else if (this._transitionState === TransitionState.HIDING) this.alpha = 1.0 - this._showHideTween.progress;
+    }
+
+    if (this._swipeEnabled && this._interactiveState === App.InteractiveState.DRAGGING) this._drag();
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.Screen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.SHOWING)
+    {
+        this._transitionState = TransitionState.SHOWN;
+
+        this.alpha = 1.0;
+    }
+    else if (this._transitionState === TransitionState.HIDING)
+    {
+        this._transitionState = TransitionState.HIDDEN;
+
+        this.disable();
+
+        this.alpha = 0.0;
+
+        this.visible = false;
+
+        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,{target:this,state:this._transitionState});
+    }
+};
+
+/**
+ * On pointer down
+ *
+ * @param {Object} data
+ * @private
+ */
+App.Screen.prototype._onPointerDown = function _onPointerDown(data)
+{
+    if (this.stage)
+    {
+        this._mouseDownPosition = data.getLocalPosition(this.stage);
+        this._mouseX = this._mouseDownPosition.x;
+        this._mouseY = this._mouseDownPosition.y;
+    }
+
+    if (this._swipeEnabled) this._interactiveState = App.InteractiveState.DRAGGING;
+};
+
+/**
+ * On pointer up
+ * @param {Object} data
+ * @private
+ */
+App.Screen.prototype._onPointerUp = function _onPointerUp(data)
+{
+    if (this._swipeEnabled)
+    {
+        if (this._interactiveState === App.InteractiveState.SWIPING) this._swipeEnd();
+        this._interactiveState = null;
+    }
+
+    if (this.stage && this._mouseDownPosition && this._enabled)
+    {
+        var oldX = this._mouseDownPosition.x,
+            oldY = this._mouseDownPosition.y;
+
+        this._mouseDownPosition = data.getLocalPosition(this.stage,this._mouseDownPosition);
+
+        var dx = oldX - this._mouseDownPosition.x,
+            dy = oldY - this._mouseDownPosition.y,
+            dist = dx * dx - dy * dy,
+            TransitionState = App.TransitionState;
+
+        if (Math.abs(dist) < this._clickThreshold && (this._transitionState === TransitionState.SHOWING || this._transitionState === TransitionState.SHOWN)) this._onClick();
+
+        this._mouseDownPosition = null;
+    }
+};
+
+/**
+ * Drag
+ * @private
+ */
+App.Screen.prototype._drag = function _drag()
+{
+    var InteractiveState = App.InteractiveState;
+
+    if (this._interactiveState === InteractiveState.DRAGGING)
+    {
+        if (this.stage && this._mouseX)
+        {
+            var position = this.stage.getTouchPosition(),
+                newX = position.x,
+                newY = position.y;
+
+            if (this._mouseX - newX > this._leftSwipeThreshold)
+            {
+                this._interactiveState = InteractiveState.SWIPING;
+                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll,App.Direction.LEFT);
+            }
+            else if (newX - this._mouseX > this._rightSwipeThreshold)
+            {
+                this._interactiveState = InteractiveState.SWIPING;
+                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll,App.Direction.RIGHT);
+            }
+
+            this._mouseX = newX;
+            this._mouseY = newY;
+        }
+    }
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.Screen.prototype._onClick = function _onClick()
+{
+    this._eventDispatcher.dispatchEvent(App.EventType.CLICK);
+};
+
+/**
+ * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
+ * @private
+ */
+App.Screen.prototype._swipeStart = function _swipeStart(preferScroll)
+{
+    // Abstract
+};
+
+/**
+ * Called when swipe ends
+ * @param {string} direction
+ * @private
+ */
+App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
+{
+    // Abstract
+};
+
+/**
+ * Destroy
+ */
+App.Screen.prototype.destroy = function destroy()
+{
+    this.disable();
+
+    this._eventDispatcher.destroy();
+    this._eventDispatcher = null;
+
+    this._showHideTween.destroy();
+    this._showHideTween = null;
+
+    this._ticker = null;
+    this._model = null;
+    this._layout = null;
+    this._transitionState = null;
+    this._mouseDownPosition = null;
+
+    //TODO make sure everything is destroyed
+};
+
+/**
+ * @class InputScrollScreen
+ * @extends Screen
+ * @param {Transaction} model
+ * @param {Object} layout
+ * @constructor
+ */
+App.InputScrollScreen = function InputScrollScreen(model,layout)
+{
+    App.Screen.call(this,model,layout,0.4);
+
+    //TODO add other 'scroll-' properties into TweenProxy?
+    this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
+    this._scrollState = App.TransitionState.HIDDEN;
+    this._scrollInput = null;
+    this._scrollPosition = 0;
+    this._inputPadding = Math.round(10 * layout.pixelRatio);
+};
+
+App.InputScrollScreen.prototype = Object.create(App.Screen.prototype);
+App.InputScrollScreen.prototype.constructor = App.InputScrollScreen;
+
+/**
+ * On tick
+ * @private
+ */
+App.InputScrollScreen.prototype._onTick = function _onTick()
+{
+    App.Screen.prototype._onTick.call(this);
+
+    if (this._scrollTween.isRunning()) this._onScrollTweenUpdate();
+};
+
+/**
+ * On scroll tween update
+ * @private
+ */
+App.InputScrollScreen.prototype._onScrollTweenUpdate = function _onScrollTweenUpdate()
+{
+    var TransitionState = App.TransitionState;
+    if (this._scrollState === TransitionState.SHOWING)
+    {
+        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * this._scrollTween.progress);
+    }
+    else if (this._scrollState === TransitionState.HIDING)
+    {
+        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * (1 - this._scrollTween.progress));
+    }
+};
+
+/**
+ * On scroll tween complete
+ * @private
+ */
+App.InputScrollScreen.prototype._onScrollTweenComplete = function _onScrollTweenComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    this._onScrollTweenUpdate();
+
+    if (this._scrollState === TransitionState.SHOWING)
+    {
+        this._scrollState = TransitionState.SHOWN;
+
+        this._scrollInput.enable();
+        this._scrollInput.focus();
+    }
+    else if (this._scrollState === TransitionState.HIDING)
+    {
+        this._scrollState = TransitionState.HIDDEN;
+
+        this._pane.enable();
+
+        App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
+    }
+};
+
+/**
+ * Focus budget
+ * @private
+ */
+App.InputScrollScreen.prototype._focusInput = function _focusInput()
+{
+    var TransitionState = App.TransitionState;
+    if (this._scrollState === TransitionState.HIDDEN || this._scrollState === TransitionState.HIDING)
+    {
+        this._scrollState = TransitionState.SHOWING;
+
+        this._pane.disable();
+
+        this._scrollPosition = this._scrollInput.y - this._inputPadding;
+
+        this._scrollTween.start();
+    }
+};
+
+/**
+ * On budget field blur
+ * @private
+ */
+App.InputScrollScreen.prototype._onInputBlur = function _onInputBlur()
+{
+    var TransitionState = App.TransitionState;
+    if (this._scrollState === TransitionState.SHOWN || this._scrollState === TransitionState.SHOWING)
+    {
+        this._scrollState = TransitionState.HIDING;
+
+        this._scrollInput.disable();
+        this._scrollTween.restart();
+
+        if (this._scrollPosition  > 0)
+        {
+            this._scrollTween.restart();
+        }
+        else
+        {
+            this._pane.resetScroll();
+            this._onScrollTweenComplete();
+        }
+    }
+};
+
+/**
  * @class TransactionToggleButton
  * @extends Graphics
  * @param {string} iconName
@@ -5689,14 +5811,14 @@ App.TransactionOptionButton.prototype._render = function _render()
 
 /**
  * @class AddTransactionScreen
- * @extends Screen
+ * @extends InputScrollScreen
  * @param {Transaction} model
  * @param {Object} layout
  * @constructor
  */
 App.AddTransactionScreen = function AddTransactionScreen(model,layout)
 {
-    App.Screen.call(this,model,layout,0.4);
+    App.InputScrollScreen.call(this,model,layout);
 
     var TransactionOptionButton = App.TransactionOptionButton,
         TransactionToggleButton = App.TransactionToggleButton,
@@ -5726,12 +5848,6 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._background = new PIXI.Graphics();
     this._transactionInput = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
     this._noteInput = new App.Input("Add Note",20,inputWidth,inputHeight,r,true);
-    //TODO add other 'scroll-' properties into TweenProxy?
-    this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
-    this._scrollState = App.TransitionState.HIDDEN;
-    this._scrollInput = null;
-    this._scrollPosition = 0;
-    this._inputPadding = Math.round(10 * r);
 
     this._toggleButtonList = new App.List(App.Direction.X);
     this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false}),false);
@@ -5762,7 +5878,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._clickThreshold = 10 * r;
 };
 
-App.AddTransactionScreen.prototype = Object.create(App.Screen.prototype);
+App.AddTransactionScreen.prototype = Object.create(App.InputScrollScreen.prototype);
 App.AddTransactionScreen.prototype.constructor = App.AddTransactionScreen;
 
 /**
@@ -5814,7 +5930,7 @@ App.AddTransactionScreen.prototype._render = function _render()
  */
 App.AddTransactionScreen.prototype.enable = function enable()
 {
-    App.Screen.prototype.enable.call(this);
+    App.InputScrollScreen.prototype.enable.call(this);
 
     this._pane.enable();
 };
@@ -5824,7 +5940,7 @@ App.AddTransactionScreen.prototype.enable = function enable()
  */
 App.AddTransactionScreen.prototype.disable = function disable()
 {
-    App.Screen.prototype.disable.call(this);
+    App.InputScrollScreen.prototype.disable.call(this);
 
     this._transactionInput.disable();
     this._noteInput.disable();
@@ -5837,7 +5953,7 @@ App.AddTransactionScreen.prototype.disable = function disable()
  */
 App.AddTransactionScreen.prototype._registerEventListeners = function _registerEventListeners()
 {
-    App.Screen.prototype._registerEventListeners.call(this);
+    App.InputScrollScreen.prototype._registerEventListeners.call(this);
 
     var EventType = App.EventType;
 
@@ -5853,7 +5969,7 @@ App.AddTransactionScreen.prototype._registerEventListeners = function _registerE
  */
 App.AddTransactionScreen.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
 {
-    App.Screen.prototype._unRegisterEventListeners.call(this);
+    App.InputScrollScreen.prototype._unRegisterEventListeners.call(this);
 
     var EventType = App.EventType;
 
@@ -5892,105 +6008,6 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     {
         this._scrollInput = this._noteInput;
         this._focusInput();
-    }
-};
-
-/**
- * On tick
- * @private
- */
-App.AddTransactionScreen.prototype._onTick = function _onTick()
-{
-    App.Screen.prototype._onTick.call(this);
-
-    if (this._scrollTween.isRunning()) this._onScrollTweenUpdate();
-};
-
-/**
- * On scroll tween update
- * @private
- */
-App.AddTransactionScreen.prototype._onScrollTweenUpdate = function _onScrollTweenUpdate()
-{
-    var TransitionState = App.TransitionState;
-    if (this._scrollState === TransitionState.SHOWING)
-    {
-        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * this._scrollTween.progress);
-    }
-    else if (this._scrollState === TransitionState.HIDING)
-    {
-        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * (1 - this._scrollTween.progress));
-    }
-};
-
-/**
- * On scroll tween complete
- * @private
- */
-App.AddTransactionScreen.prototype._onScrollTweenComplete = function _onScrollTweenComplete()
-{
-    var TransitionState = App.TransitionState;
-
-    this._onScrollTweenUpdate();
-
-    if (this._scrollState === TransitionState.SHOWING)
-    {
-        this._scrollState = TransitionState.SHOWN;
-
-        this._scrollInput.enable();
-        this._scrollInput.focus();
-    }
-    else if (this._scrollState === TransitionState.HIDING)
-    {
-        this._scrollState = TransitionState.HIDDEN;
-
-        this._pane.enable();
-
-        App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
-    }
-};
-
-/**
- * Focus budget
- * @private
- */
-App.AddTransactionScreen.prototype._focusInput = function _focusInput()
-{
-    var TransitionState = App.TransitionState;
-    if (this._scrollState === TransitionState.HIDDEN || this._scrollState === TransitionState.HIDING)
-    {
-        this._scrollState = TransitionState.SHOWING;
-
-        this._pane.disable();
-
-        this._scrollPosition = this._scrollInput.y - this._inputPadding;
-
-        this._scrollTween.start();
-    }
-};
-
-/**
- * On budget field blur
- * @private
- */
-App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
-{
-    var TransitionState = App.TransitionState;
-    if (this._scrollState === TransitionState.SHOWN || this._scrollState === TransitionState.SHOWING)
-    {
-        this._scrollState = TransitionState.HIDING;
-
-        this._scrollInput.disable();
-
-        if (this._scrollInput === this._noteInput)
-        {
-            this._scrollTween.restart();
-        }
-        else
-        {
-            this._pane.resetScroll();
-            this._onScrollTweenComplete();
-        }
     }
 };
 
@@ -7091,14 +7108,14 @@ App.IconSample.prototype.select = function select(selectedIndex)
 
 /**
  * @class EditCategoryScreen
- * @extends Screen
+ * @extends InputScrollScreen
  * @param {Category} model
  * @param {Object} layout
  * @constructor
  */
 App.EditCategoryScreen = function EditCategoryScreen(model,layout)
 {
-    App.Screen.call(this,model,layout,0.4);
+    App.InputScrollScreen.call(this,model,layout);
 
     var ScrollPolicy = App.ScrollPolicy,
         InfiniteList = App.InfiniteList,
@@ -7123,11 +7140,6 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._subCategoryList = new App.SubCategoryList(null,w,r);
     this._budgetHeader = new App.ListHeader("Budget",w,r);
     this._budget = new Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);
-    this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
-    this._scrollState = App.TransitionState.HIDDEN;
-    this._scrollInput = null;
-    this._scrollPosition = 0;
-    this._inputPadding = Math.round(10 * r);
 
     //TODO add overlay for blurring inputs?
     //TODO add modal window to confirm deleting sub-category
@@ -7152,7 +7164,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._swipeEnabled = true;
 };
 
-App.EditCategoryScreen.prototype = Object.create(App.Screen.prototype);
+App.EditCategoryScreen.prototype = Object.create(App.InputScrollScreen.prototype);
 App.EditCategoryScreen.prototype.constructor = App.EditCategoryScreen;
 
 /**
@@ -7193,10 +7205,8 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
     this._budgetHeader.y = this._subCategoryList.y + this._subCategoryList.boundingBox.height;
 
-    this._scrollPosition = this._budgetHeader.y + this._budgetHeader.height;
-
     this._budget.x = this._inputPadding;
-    this._budget.y = this._scrollPosition + this._inputPadding;
+    this._budget.y = this._budgetHeader.y + this._budgetHeader.height + this._inputPadding;
 
     GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w,this._budget.y+this._budget.boundingBox.height+this._inputPadding);
 };
@@ -7206,7 +7216,7 @@ App.EditCategoryScreen.prototype._render = function _render()
  */
 App.EditCategoryScreen.prototype.enable = function enable()
 {
-    App.Screen.prototype.enable.call(this);
+    App.InputScrollScreen.prototype.enable.call(this);
 
     this._colorList.enable();
     this._topIconList.enable();
@@ -7219,7 +7229,7 @@ App.EditCategoryScreen.prototype.enable = function enable()
  */
 App.EditCategoryScreen.prototype.disable = function disable()
 {
-    App.Screen.prototype.disable.call(this);
+    App.InputScrollScreen.prototype.disable.call(this);
 
     this._input.disable();
     this._colorList.disable();
@@ -7235,7 +7245,7 @@ App.EditCategoryScreen.prototype.disable = function disable()
  */
 App.EditCategoryScreen.prototype._registerEventListeners = function _registerEventListeners()
 {
-    App.Screen.prototype._registerEventListeners.call(this);
+    App.InputScrollScreen.prototype._registerEventListeners.call(this);
 
     var EventType = App.EventType;
 
@@ -7251,7 +7261,7 @@ App.EditCategoryScreen.prototype._registerEventListeners = function _registerEve
  */
 App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
 {
-    App.Screen.prototype._unRegisterEventListeners.call(this);
+    App.InputScrollScreen.prototype._unRegisterEventListeners.call(this);
 
     var EventType = App.EventType;
 
@@ -7278,6 +7288,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
         //TODO first check if it needs to scroll in first place
         this._scrollInput = this._input;
         this._focusInput();
+        this._subCategoryList.closeButtons();
     }
     else if (y >= this._colorList.y && y < this._colorList.y + this._colorList.boundingBox.height)
     {
@@ -7300,107 +7311,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
     {
         this._scrollInput = this._budget;
         this._focusInput();
-    }
-};
-
-/**
- * On tick
- * @private
- */
-App.EditCategoryScreen.prototype._onTick = function _onTick()
-{
-    App.Screen.prototype._onTick.call(this);
-
-    if (this._scrollTween.isRunning()) this._onScrollTweenUpdate();
-};
-
-/**
- * On scroll tween update
- * @private
- */
-App.EditCategoryScreen.prototype._onScrollTweenUpdate = function _onScrollTweenUpdate()
-{
-    var TransitionState = App.TransitionState;
-    if (this._scrollState === TransitionState.SHOWING)
-    {
-        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * this._scrollTween.progress);
-    }
-    else if (this._scrollState === TransitionState.HIDING)
-    {
-        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * (1 - this._scrollTween.progress));
-    }
-};
-
-/**
- * On scroll tween complete
- * @private
- */
-App.EditCategoryScreen.prototype._onScrollTweenComplete = function _onScrollTweenComplete()
-{
-    var TransitionState = App.TransitionState;
-    console.log(this._scrollPosition);
-    this._onScrollTweenUpdate();
-
-    if (this._scrollState === TransitionState.SHOWING)
-    {
-        this._scrollState = TransitionState.SHOWN;
-
-        this._subCategoryList.closeButtons(true);
-
-        this._scrollInput.enable();
-        this._scrollInput.focus();
-    }
-    else if (this._scrollState === TransitionState.HIDING)
-    {
-        this._scrollState = TransitionState.HIDDEN;
-
-        this._pane.enable();
-
-        App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
-    }
-};
-
-/**
- * Focus budget
- * @private
- */
-App.EditCategoryScreen.prototype._focusInput = function _focusInput()
-{
-    var TransitionState = App.TransitionState;
-    if (this._scrollState === TransitionState.HIDDEN || this._scrollState === TransitionState.HIDING)
-    {
-        this._scrollState = TransitionState.SHOWING;
-
-        this._pane.disable();
-
-        this._scrollPosition = this._scrollInput.y - this._inputPadding;
-
-        this._scrollTween.start();
-    }
-};
-
-/**
- * On budget field blur
- * @private
- */
-App.EditCategoryScreen.prototype._onInputBlur = function _onInputBlur()
-{
-    var TransitionState = App.TransitionState;
-    if (this._scrollState === TransitionState.SHOWN || this._scrollState === TransitionState.SHOWING)
-    {
-        this._scrollState = TransitionState.HIDING;
-
-        this._scrollInput.disable();
-
-        if (this._scrollInput === this._budget)
-        {
-            this._scrollTween.restart();
-        }
-        else
-        {
-            this._pane.resetScroll();
-            this._onScrollTweenComplete();
-        }
+        this._subCategoryList.closeButtons();
     }
 };
 
@@ -8580,7 +8491,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
 
     this._header = new App.Header(this._layout);
 
-    this._screenStack.selectChildByIndex(App.ScreenName.EDIT_CATEGORY);//TODO move this into separate command?
+    this._screenStack.selectChildByIndex(App.ScreenName.ADD_TRANSACTION);//TODO move this into separate command?
     this._screenStack.show();
 
     this.scrollTo(0);

@@ -1,13 +1,13 @@
 /**
  * @class AddTransactionScreen
- * @extends Screen
+ * @extends InputScrollScreen
  * @param {Transaction} model
  * @param {Object} layout
  * @constructor
  */
 App.AddTransactionScreen = function AddTransactionScreen(model,layout)
 {
-    App.Screen.call(this,model,layout,0.4);
+    App.InputScrollScreen.call(this,model,layout);
 
     var TransactionOptionButton = App.TransactionOptionButton,
         TransactionToggleButton = App.TransactionToggleButton,
@@ -37,12 +37,6 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._background = new PIXI.Graphics();
     this._transactionInput = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
     this._noteInput = new App.Input("Add Note",20,inputWidth,inputHeight,r,true);
-    //TODO add other 'scroll-' properties into TweenProxy?
-    this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
-    this._scrollState = App.TransitionState.HIDDEN;
-    this._scrollInput = null;
-    this._scrollPosition = 0;
-    this._inputPadding = Math.round(10 * r);
 
     this._toggleButtonList = new App.List(App.Direction.X);
     this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false}),false);
@@ -73,7 +67,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._clickThreshold = 10 * r;
 };
 
-App.AddTransactionScreen.prototype = Object.create(App.Screen.prototype);
+App.AddTransactionScreen.prototype = Object.create(App.InputScrollScreen.prototype);
 App.AddTransactionScreen.prototype.constructor = App.AddTransactionScreen;
 
 /**
@@ -125,7 +119,7 @@ App.AddTransactionScreen.prototype._render = function _render()
  */
 App.AddTransactionScreen.prototype.enable = function enable()
 {
-    App.Screen.prototype.enable.call(this);
+    App.InputScrollScreen.prototype.enable.call(this);
 
     this._pane.enable();
 };
@@ -135,7 +129,7 @@ App.AddTransactionScreen.prototype.enable = function enable()
  */
 App.AddTransactionScreen.prototype.disable = function disable()
 {
-    App.Screen.prototype.disable.call(this);
+    App.InputScrollScreen.prototype.disable.call(this);
 
     this._transactionInput.disable();
     this._noteInput.disable();
@@ -148,7 +142,7 @@ App.AddTransactionScreen.prototype.disable = function disable()
  */
 App.AddTransactionScreen.prototype._registerEventListeners = function _registerEventListeners()
 {
-    App.Screen.prototype._registerEventListeners.call(this);
+    App.InputScrollScreen.prototype._registerEventListeners.call(this);
 
     var EventType = App.EventType;
 
@@ -164,7 +158,7 @@ App.AddTransactionScreen.prototype._registerEventListeners = function _registerE
  */
 App.AddTransactionScreen.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
 {
-    App.Screen.prototype._unRegisterEventListeners.call(this);
+    App.InputScrollScreen.prototype._unRegisterEventListeners.call(this);
 
     var EventType = App.EventType;
 
@@ -203,104 +197,5 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     {
         this._scrollInput = this._noteInput;
         this._focusInput();
-    }
-};
-
-/**
- * On tick
- * @private
- */
-App.AddTransactionScreen.prototype._onTick = function _onTick()
-{
-    App.Screen.prototype._onTick.call(this);
-
-    if (this._scrollTween.isRunning()) this._onScrollTweenUpdate();
-};
-
-/**
- * On scroll tween update
- * @private
- */
-App.AddTransactionScreen.prototype._onScrollTweenUpdate = function _onScrollTweenUpdate()
-{
-    var TransitionState = App.TransitionState;
-    if (this._scrollState === TransitionState.SHOWING)
-    {
-        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * this._scrollTween.progress);
-    }
-    else if (this._scrollState === TransitionState.HIDING)
-    {
-        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * (1 - this._scrollTween.progress));
-    }
-};
-
-/**
- * On scroll tween complete
- * @private
- */
-App.AddTransactionScreen.prototype._onScrollTweenComplete = function _onScrollTweenComplete()
-{
-    var TransitionState = App.TransitionState;
-
-    this._onScrollTweenUpdate();
-
-    if (this._scrollState === TransitionState.SHOWING)
-    {
-        this._scrollState = TransitionState.SHOWN;
-
-        this._scrollInput.enable();
-        this._scrollInput.focus();
-    }
-    else if (this._scrollState === TransitionState.HIDING)
-    {
-        this._scrollState = TransitionState.HIDDEN;
-
-        this._pane.enable();
-
-        App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
-    }
-};
-
-/**
- * Focus budget
- * @private
- */
-App.AddTransactionScreen.prototype._focusInput = function _focusInput()
-{
-    var TransitionState = App.TransitionState;
-    if (this._scrollState === TransitionState.HIDDEN || this._scrollState === TransitionState.HIDING)
-    {
-        this._scrollState = TransitionState.SHOWING;
-
-        this._pane.disable();
-
-        this._scrollPosition = this._scrollInput.y - this._inputPadding;
-
-        this._scrollTween.start();
-    }
-};
-
-/**
- * On budget field blur
- * @private
- */
-App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
-{
-    var TransitionState = App.TransitionState;
-    if (this._scrollState === TransitionState.SHOWN || this._scrollState === TransitionState.SHOWING)
-    {
-        this._scrollState = TransitionState.HIDING;
-
-        this._scrollInput.disable();
-
-        if (this._scrollInput === this._noteInput)
-        {
-            this._scrollTween.restart();
-        }
-        else
-        {
-            this._pane.resetScroll();
-            this._onScrollTweenComplete();
-        }
     }
 };

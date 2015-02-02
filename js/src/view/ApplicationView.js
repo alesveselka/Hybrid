@@ -47,7 +47,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
 
     this._header = new App.Header(this._layout);
 
-    this._screenStack.selectChildByIndex(App.ScreenName.EDIT_CATEGORY);//TODO move this into separate command?
+    this._screenStack.selectChildByIndex(App.ScreenName.ADD_TRANSACTION);//TODO move this into separate command?
     this._screenStack.show();
 
     this.scrollTo(0);
