@@ -41,13 +41,14 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.EditCategoryScreen(null,this._layout),
         new App.TransactionScreen(null,this._layout),
         new App.ReportScreen(null,this._layout),
-        new App.AddTransactionScreen(null,this._layout)
+        new App.AddTransactionScreen(null,this._layout),
+        new App.Menu(this._layout)//TODO is Menu part of stack?
     ]);
     this._screenStack.y = this._layout.headerHeight;
 
     this._header = new App.Header(this._layout);
 
-    this._screenStack.selectChildByIndex(App.ScreenName.ADD_TRANSACTION);//TODO move this into separate command?
+    this._screenStack.selectChildByIndex(App.ScreenName.MENU);//TODO move this into separate command?
     this._screenStack.show();
 
     this.scrollTo(0);

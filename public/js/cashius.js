@@ -773,7 +773,7 @@ App.Direction = {
 /**
  * Screen Name
  * @enum {number}
- * @return {{ACCOUNT:number,CATEGORY:number,SELECT_TIME:number,EDIT_CATEGORY:number,TRANSACTIONS:number,REPORT:number,ADD_TRANSACTION:number}}
+ * @return {{ACCOUNT:number,CATEGORY:number,SELECT_TIME:number,EDIT_CATEGORY:number,TRANSACTIONS:number,REPORT:number,ADD_TRANSACTION:number,MENU:number}}
  */
 App.ScreenName = {
     ACCOUNT:0,
@@ -782,7 +782,8 @@ App.ScreenName = {
     EDIT_CATEGORY:3,
     TRANSACTIONS:4,
     REPORT:5,
-    ADD_TRANSACTION:6
+    ADD_TRANSACTION:6,
+    MENU:7
 };
 
 /**
@@ -1463,7 +1464,20 @@ App.ViewLocator = {
 /**
  * ColorTheme
  * @enum {number}
- * @type {{WHITE:number,BLUE: number,BLUE_DARK:number,BLUE_LIGHT:number,GREY: number, GREY_DARK: number, GREY_LIGHT: number,RED:number,RED_DARK:number,RED_LIGHT:number,GREEN:number,INPUT_HIGHLIGHT:number}}
+ * @type {{
+ *      WHITE:number,
+ *      BLUE: number,
+ *      BLUE_DARK:number,
+ *      BLUE_LIGHT:number,
+ *      GREY: number,
+ *      GREY_DARK: number,
+ *      GREY_LIGHT: number,
+ *      RED:number,
+ *      RED_DARK:number,
+ *      RED_LIGHT:number,
+ *      GREEN:number,
+ *      INPUT_HIGHLIGHT:number
+ * }}
  */
 App.ColorTheme = {
     WHITE:0xfffffe,
@@ -5467,28 +5481,6 @@ App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
 };
 
 /**
- * Destroy
- */
-App.Screen.prototype.destroy = function destroy()
-{
-    this.disable();
-
-    this._eventDispatcher.destroy();
-    this._eventDispatcher = null;
-
-    this._showHideTween.destroy();
-    this._showHideTween = null;
-
-    this._ticker = null;
-    this._model = null;
-    this._layout = null;
-    this._transitionState = null;
-    this._mouseDownPosition = null;
-
-    //TODO make sure everything is destroyed
-};
-
-/**
  * @class InputScrollScreen
  * @extends Screen
  * @param {Transaction} model
@@ -7288,6 +7280,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
         //TODO first check if it needs to scroll in first place
         this._scrollInput = this._input;
         this._focusInput();
+
         this._subCategoryList.closeButtons();
     }
     else if (y >= this._colorList.y && y < this._colorList.y + this._colorList.boundingBox.height)
@@ -7311,6 +7304,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
     {
         this._scrollInput = this._budget;
         this._focusInput();
+
         this._subCategoryList.closeButtons();
     }
 };
@@ -8442,6 +8436,173 @@ App.ReportScreen.prototype._buttonsInTransition = function _buttonsInTransition(
     return inTransition;
 };
 
+App.MenuItem = function MenuItem(label,iconName,screenId,options)
+{
+    PIXI.Graphics.call(this);
+
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
+
+    this._screenId = screenId;
+    this._pixelRatio = options.pixelRatio;
+    this._icon = PIXI.Sprite.fromFrame(iconName);
+    this._iconResizeRatio = Math.round(22 * options.pixelRatio) / this._icon.height;
+    this._labelField = new PIXI.Text(label,options.style);
+
+    this._render();
+
+    this.addChild(this._icon);
+    this.addChild(this._labelField);
+};
+
+App.MenuItem.prototype = Object.create(PIXI.Graphics.prototype);
+App.MenuItem.prototype.constructor = App.MenuItem;
+
+/**
+ * Render
+ * @private
+ */
+App.MenuItem.prototype._render = function _render()
+{
+    var ColorTheme = App.ColorTheme,
+        h = this.boundingBox.height;
+
+    this._icon.scale.x = this._iconResizeRatio;
+    this._icon.scale.y = this._iconResizeRatio;
+    this._icon.x = Math.round(15 * this._pixelRatio);
+    this._icon.y = Math.round((h - this._icon.height) / 2);
+    this._icon.tint = ColorTheme.WHITE;
+
+    this._labelField.x = Math.round(60 * this._pixelRatio);
+    this._labelField.y = Math.round((h - this._labelField.height) / 2);
+
+    App.GraphicUtils.drawRect(this,ColorTheme.BLUE,1,0,0,this.boundingBox.width,h);
+};
+
+/**
+ * Return associated screen ID
+ * @returns {number}
+ */
+App.MenuItem.prototype.getScreenId = function getScreenId()
+{
+    return this._screenId;
+};
+
+App.Menu = function Menu(layout)
+{
+    App.Screen.call(this,null,layout);
+
+    var MenuItem = App.MenuItem,
+        ScreenName = App.ScreenName,
+        r = layout.pixelRatio,
+        w = layout.width,
+        FontStyle = App.FontStyle,
+        itemLabelStyle = FontStyle.get(20,FontStyle.WHITE),
+        itemOptions = {
+            width:w,
+            height:Math.round(40 * r),
+            pixelRatio:r,
+            style:itemLabelStyle
+        };
+
+    this._addTransactionItem = new MenuItem("Add Transaction","transactions",ScreenName.ADD_TRANSACTION,{width:w,height:Math.round(50*r),pixelRatio:r,style:itemLabelStyle});
+    this._accountsItem = new MenuItem("Accounts","account",ScreenName.ACCOUNT,itemOptions);
+    this._reportItem = new MenuItem("Report","chart",ScreenName.REPORT,itemOptions);
+    this._budgetItem = new MenuItem("Budgets","budget",-1,itemOptions);
+    this._transactionsItem = new MenuItem("Transactions","transactions",ScreenName.TRANSACTIONS,itemOptions);
+    this._currenciesItem = new MenuItem("Currencies","currencies",-1,itemOptions);
+    this._settignsItem = new MenuItem("Settings","settings-app",-1,itemOptions);
+    this._container = new PIXI.Graphics();
+    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
+    this._background = new PIXI.Graphics();
+    this._items = [];
+
+    this._render();
+
+    this.addChild(this._background);
+    this._items.push(this._container.addChild(this._addTransactionItem));
+    this._items.push(this._container.addChild(this._accountsItem));
+    this._items.push(this._container.addChild(this._reportItem));
+    this._items.push(this._container.addChild(this._budgetItem));
+    this._items.push(this._container.addChild(this._transactionsItem));
+    this._items.push(this._container.addChild(this._currenciesItem));
+    this._items.push(this._container.addChild(this._settignsItem));
+    this._pane.setContent(this._container);
+    this.addChild(this._pane);
+};
+
+App.Menu.prototype = Object.create(App.Screen.prototype);
+App.Menu.prototype.constructor = App.Menu;
+
+/**
+ * Render
+ * @private
+ */
+App.Menu.prototype._render = function _render()
+{
+    var r = this._layout.pixelRatio,
+        smallGap = Math.round(2 * r),
+        bigGap = Math.round(25 * r),
+        GraphicUtils = App.GraphicUtils,
+        bgColor = App.ColorTheme.BLUE_DARK;
+
+    this._accountsItem.y = this._addTransactionItem.boundingBox.height + bigGap;
+    this._reportItem.y = this._accountsItem.y + this._accountsItem.boundingBox.height + smallGap;
+    this._budgetItem.y = this._reportItem.y + this._reportItem.boundingBox.height + smallGap;
+    this._transactionsItem.y = this._budgetItem.y + this._budgetItem.boundingBox.height + smallGap;
+    this._currenciesItem.y = this._transactionsItem.y + this._transactionsItem.boundingBox.height + bigGap;
+    this._settignsItem.y = this._currenciesItem.y + this._currenciesItem.boundingBox.height + smallGap;
+
+    GraphicUtils.drawRect(this._container,bgColor,1,0,0,this._layout.width,this._settignsItem.y+this._settignsItem.boundingBox.height);
+    GraphicUtils.drawRect(this._background,bgColor,1,0,0,this._layout.width,this._layout.contentHeight);
+};
+
+/**
+ * Enable
+ */
+App.Menu.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._pane.enable();
+};
+
+/**
+ * Disable
+ */
+App.Menu.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._pane.disable();
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.Menu.prototype._onClick = function _onClick()
+{
+    this._pane.cancelScroll();
+
+    var y = this.stage.getTouchData().getLocalPosition(this._container).y,
+        i = 0,
+        l = this._items.length,
+        item = null;
+
+    for (;i<l;)
+    {
+        item = this._items[i++];
+        if (y >= item.y && y < item.y + item.boundingBox.height)
+        {
+            if (item.getScreenId() > -1)
+            {
+                App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,item.getScreenId());
+                break;
+            }
+        }
+    }
+};
+
 /**
  * @class ApplicationView
  * @extends DisplayObjectContainer
@@ -8485,13 +8646,14 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.EditCategoryScreen(null,this._layout),
         new App.TransactionScreen(null,this._layout),
         new App.ReportScreen(null,this._layout),
-        new App.AddTransactionScreen(null,this._layout)
+        new App.AddTransactionScreen(null,this._layout),
+        new App.Menu(this._layout)//TODO is Menu part of stack?
     ]);
     this._screenStack.y = this._layout.headerHeight;
 
     this._header = new App.Header(this._layout);
 
-    this._screenStack.selectChildByIndex(App.ScreenName.ADD_TRANSACTION);//TODO move this into separate command?
+    this._screenStack.selectChildByIndex(App.ScreenName.MENU);//TODO move this into separate command?
     this._screenStack.show();
 
     this.scrollTo(0);
@@ -9382,6 +9544,7 @@ App.ChangeScreen.prototype.constructor = App.ChangeScreen;
  */
 App.ChangeScreen.prototype.execute = function execute(screenName)
 {
+    //TODO if current screen is edited, cancel the changes
     App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).changeScreen(screenName);
 
     this.dispatchEvent(App.EventType.COMPLETE,this);

@@ -80,6 +80,8 @@ module.exports = function(grunt)
         "js/src/view/screens/report/ReportChartHighlight.js",
         "js/src/view/screens/report/ReportChart.js",
         "js/src/view/screens/report/ReportScreen.js",
+        "js/src/view/screens/menu/MenuItem.js",
+        "js/src/view/screens/menu/Menu.js",
         "js/src/view/ApplicationView.js",
         "js/src/tween/Easing.js",
         "js/src/tween/TweenProxy.js",

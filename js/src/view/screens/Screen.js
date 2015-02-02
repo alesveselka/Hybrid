@@ -337,25 +337,3 @@ App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
 {
     // Abstract
 };
-
-/**
- * Destroy
- */
-App.Screen.prototype.destroy = function destroy()
-{
-    this.disable();
-
-    this._eventDispatcher.destroy();
-    this._eventDispatcher = null;
-
-    this._showHideTween.destroy();
-    this._showHideTween = null;
-
-    this._ticker = null;
-    this._model = null;
-    this._layout = null;
-    this._transitionState = null;
-    this._mouseDownPosition = null;
-
-    //TODO make sure everything is destroyed
-};
