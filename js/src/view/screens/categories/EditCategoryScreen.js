@@ -13,6 +13,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
         InfiniteList = App.InfiniteList,
         Direction = App.Direction,
         IconSample = App.IconSample,
+        HeaderAction = App.HeaderAction,
         Input = App.Input,
         r = layout.pixelRatio,
         w = layout.width,
@@ -53,6 +54,9 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
+    this._headerInfo.leftAction = HeaderAction.CANCEL;
+    this._headerInfo.rightAction = HeaderAction.CONFIRM;
+    this._headerInfo.name = "Edit Category";
     this._swipeEnabled = true;
 };
 

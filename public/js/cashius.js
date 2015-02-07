@@ -787,6 +787,19 @@ App.ScreenName = {
 };
 
 /**
+ * HeaderAction
+ * @enum {number}
+ * @return {{NONE:number,MENU:number,CANCEL:number,CONFIRM:number,ADD_TRANSACTION:number}}
+ */
+App.HeaderAction = {
+    NONE:-1,
+    MENU:1,
+    CANCEL:2,
+    CONFIRM:3,
+    ADD_TRANSACTION:4
+};
+
+/**
  * @class EventListener
  * @param {number} index
  * @constructor
@@ -1560,23 +1573,258 @@ App.FontStyle = {
     RED_DARK:"#990000"
 };
 
+/**
+ * @class HeaderSegment
+ * @extends DisplayObjectContainer
+ * @param {number} value
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.HeaderSegment = function HeaderSegment(value,width,height,pixelRatio)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this._action = value;
+    this._width = width;
+    this._height = height;
+    this._pixelRatio = pixelRatio;
+    this._frontElement = null;
+    this._backElement = null;
+    this._middlePosition = Math.round(15 * pixelRatio);
+    this._needsUpdate = true;
+    this._mask = new PIXI.Graphics();
+    this.mask = this._mask;
+
+    this.addChild(this._mask);
+};
+
+App.HeaderSegment.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.HeaderSegment.prototype.constructor = App.HeaderSegment;
+
+/**
+ * Render
+ * @private
+ */
+App.HeaderSegment.prototype._render = function _render()
+{
+    var padding = Math.round(10 * this._pixelRatio);
+
+    App.GraphicUtils.drawRect(this._mask,0xff0000,0.5,0,0,this._width,this._height-padding*2);
+    this._mask.y = padding;
+};
+
+/**
+ * Change
+ * @param {number} action
+ */
+App.HeaderSegment.prototype.change = function change(action)
+{
+    var tempIcon = this._frontElement;
+
+    this._frontElement = this._backElement;
+    this._backElement = tempIcon;
+
+    this._needsUpdate = this._action !== action;
+
+    this._action = action;
+};
+
+/**
+ * Update
+ * @param {number} progress
+ */
+App.HeaderSegment.prototype.update = function update(progress)
+{
+    if (this._needsUpdate)
+    {
+        this._frontElement.y = Math.round((this._middlePosition + this._frontElement.height) * progress - this._frontElement.height);
+        this._backElement.y = Math.round(this._middlePosition + (this._height - this._middlePosition) * progress);
+    }
+};
+
+/**
+ * @class HeaderIcon
+ * @extends HeaderSegment
+ * @param {number} value
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.HeaderIcon = function HeaderIcon(value,width,height,pixelRatio)
+{
+    App.HeaderSegment.call(this,value,width,height,pixelRatio);
+
+    this._frontElement = PIXI.Sprite.fromFrame(this._getIconByAction(value));
+    this._backElement = PIXI.Sprite.fromFrame(this._getIconByAction(value));
+    this._iconResizeRatio = Math.round(20 * pixelRatio) / this._frontElement.height;
+
+    this._render();
+
+    this.addChild(this._frontElement);
+    this.addChild(this._backElement);
+};
+
+App.HeaderIcon.prototype = Object.create(App.HeaderSegment.prototype);
+App.HeaderIcon.prototype.constructor = App.HeaderIcon;
+
+/**
+ * Render
+ * @private
+ */
+App.HeaderIcon.prototype._render = function _render()
+{
+    App.HeaderSegment.prototype._render.call(this);
+
+    var ColorTheme = App.ColorTheme;
+
+    this._frontElement.scale.x = this._iconResizeRatio;
+    this._frontElement.scale.y = this._iconResizeRatio;
+    this._frontElement.x = this._middlePosition;
+    this._frontElement.y = this._height;
+    this._frontElement.tint = ColorTheme.WHITE;
+    this._frontElement.alpha = 0.0;
+
+    this._backElement.scale.x = this._iconResizeRatio;
+    this._backElement.scale.y = this._iconResizeRatio;
+    this._backElement.x = this._middlePosition;
+    this._backElement.y = this._height;
+    this._backElement.tint = ColorTheme.WHITE;
+    this._backElement.alpha = 0.0;
+};
+
+/**
+ * Return icon name by action passed in
+ * @param {number} action
+ * @returns {string}
+ * @private
+ */
+App.HeaderIcon.prototype._getIconByAction = function _getIconByAction(action)
+{
+    var HeaderAction = App.HeaderAction,
+        iconName = null;
+
+    if (action === HeaderAction.MENU) iconName = "menu-app";
+    else if (action === HeaderAction.CANCEL) iconName = "close-app";
+    else if (action === HeaderAction.CONFIRM) iconName = "apply-app";
+    else if (action === HeaderAction.ADD_TRANSACTION) iconName = "plus-app";
+
+    return iconName;
+};
+
+/**
+ * Change
+ * @param {number} action
+ */
+App.HeaderIcon.prototype.change = function change(action)
+{
+    App.HeaderSegment.prototype.change.call(this,action);
+
+    var iconName = this._getIconByAction(action);
+
+    if (iconName === null)
+    {
+        this._frontElement.alpha = 0.0;
+    }
+    else
+    {
+        this._frontElement.setTexture(PIXI.TextureCache[iconName]);
+        this._frontElement.alpha = 1.0;
+    }
+};
+
+/**
+ * @class HeaderTitle
+ * @extends HeaderSegment
+ * @param {string} value
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @param {{font:string,fill:string}} fontStyle
+ * @constructor
+ */
+App.HeaderTitle = function HeaderTitle(value,width,height,pixelRatio,fontStyle)
+{
+    App.HeaderSegment.call(this,value,width,height,pixelRatio);
+
+    this._frontElement = new PIXI.Text(value,fontStyle);
+    this._backElement = new PIXI.Text(value,fontStyle);
+
+    this._render();
+
+    this.addChild(this._frontElement);
+    this.addChild(this._backElement);
+};
+
+App.HeaderTitle.prototype = Object.create(App.HeaderSegment.prototype);
+App.HeaderTitle.prototype.constructor = App.HeaderTitle;
+
+/**
+ * Render
+ * @private
+ */
+App.HeaderTitle.prototype._render = function _render()
+{
+    App.HeaderSegment.prototype._render.call(this);
+
+    this._middlePosition = Math.round(18 * this._pixelRatio);
+
+    this._frontElement.x = Math.round((this._width - this._frontElement.width) / 2);
+    this._frontElement.y = this._height;
+    this._frontElement.alpha = 0.0;
+
+    this._backElement.x = Math.round((this._width - this._backElement.width) / 2);
+    this._backElement.y = this._height;
+    this._backElement.alpha = 0.0;
+};
+
+/**
+ * Change
+ * @param {string} name
+ */
+App.HeaderTitle.prototype.change = function change(name)
+{
+    App.HeaderSegment.prototype.change.call(this,name);
+
+    this._frontElement.setText(name);
+    this._frontElement.x = Math.round((this._width - this._frontElement.width) / 2);
+    this._frontElement.alpha = 1.0;
+};
+
+/**
+ * @class Header
+ * @extends Graphics
+ * @param {Object} layout
+ * @constructor
+ */
 App.Header = function Header(layout)
 {
     PIXI.Graphics.call(this);
 
-    var FontStyle = App.FontStyle;
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        HeaderIcon = App.HeaderIcon,
+        HeaderAction = App.HeaderAction,
+        FontStyle = App.FontStyle,
+        r = layout.pixelRatio;
 
     this._layout = layout;
-    this._leftIcon = PIXI.Sprite.fromFrame("menu-app");
-    this._title = new PIXI.Text("Add Transaction",FontStyle.get(20,FontStyle.WHITE));
-    this._rightIcon = PIXI.Sprite.fromFrame("close-app");
-    this._iconResizeRatio = Math.round(20 * layout.pixelRatio) / this._leftIcon.height;
+    this._iconSize = Math.round(50 * r);
+    this._leftIcon = new HeaderIcon(HeaderAction.CANCEL,this._iconSize,this._iconSize,r);
+    this._rightIcon = new HeaderIcon(HeaderAction.CONFIRM,this._iconSize,this._iconSize,r);
+    this._title = new App.HeaderTitle("Cashius",this._layout.width-this._iconSize*2,this._iconSize,r,FontStyle.get(20,FontStyle.WHITE));
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._tween = new App.TweenProxy(0.7,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
 
     this._render();
 
     this.addChild(this._leftIcon);
     this.addChild(this._title);
     this.addChild(this._rightIcon);
+
+    this.interactive = true;
 };
 
 App.Header.prototype = Object.create(PIXI.Graphics.prototype);
@@ -1593,35 +1841,105 @@ App.Header.prototype._render = function _render()
         r = this._layout.pixelRatio,
         w = this._layout.width,
         h = this._layout.headerHeight,
-        size = Math.round(50 * r),
-        offset = h - size,
+        offset = h - this._iconSize,
         padding = Math.round(10 * r);
 
-    this._leftIcon.scale.x = this._iconResizeRatio;
-    this._leftIcon.scale.y = this._iconResizeRatio;
-    this._leftIcon.x = Math.round((size - this._leftIcon.width) / 2);
-    this._leftIcon.y = Math.round(offset + (size - this._leftIcon.height) / 2);
-    this._leftIcon.tint = ColorTheme.WHITE;
-
-    this._rightIcon.scale.x = this._iconResizeRatio;
-    this._rightIcon.scale.y = this._iconResizeRatio;
-    this._rightIcon.x = Math.round(w - (size - this._rightIcon.width) / 2 - this._rightIcon.width);
-    this._rightIcon.y = Math.round(offset + (size - this._rightIcon.height) / 2);
-    this._rightIcon.tint = ColorTheme.WHITE;
-
-    this._title.x = Math.round((w - this._title.width) / 2);
-    this._title.y = Math.round(offset + (size - this._title.height) / 2);
+    this._title.x = this._iconSize;
+    this._rightIcon.x = w - this._iconSize;
 
     GraphicUtils.drawRects(this,ColorTheme.BLUE,1,[0,0,w,h],true,false);
     GraphicUtils.drawRects(this,ColorTheme.BLUE_LIGHT,1,[
-        size+1,offset+padding,1,size-padding*2,
-        w-size,offset+padding,1,size-padding*2
+        this._iconSize+1,offset+padding,1,this._iconSize-padding*2,
+        w-this._iconSize,offset+padding,1,this._iconSize-padding*2
     ],false,false);
     GraphicUtils.drawRects(this,ColorTheme.BLUE_DARK,1,[
         0,h-1,w,1,
-        size,offset+padding,1,size-padding*2,
-        w-size-1,offset+padding,1,size-padding*2
+        this._iconSize,offset+padding,1,this._iconSize-padding*2,
+        w-this._iconSize-1,offset+padding,1,this._iconSize-padding*2
     ],false,true);
+};
+
+/**
+ * Register event listeners
+ * @param {App.ApplicationView} applicationView
+ * @private
+ */
+App.Header.prototype.registerEventListeners = function registerEventListeners(applicationView)
+{
+    //applicationView.addEventListener(App.EventType.CHANGE,this,this._onScreenChange);
+
+    if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
+    else this.click = this._onClick;
+
+    this._tween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+};
+
+/**
+ * Change
+ * @param {{leftAction:number,rightAction:number,name:string}} info
+ * @private
+ */
+App.Header.prototype.change = function change(info)
+{
+    this._leftIcon.change(info.leftAction);
+    this._title.change(info.name);
+    this._rightIcon.change(info.rightAction);
+
+    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._tween.restart();
+};
+
+/**
+ * On RAF Tick
+ * @private
+ */
+App.Header.prototype._onTick = function _onTick()
+{
+    this._onTweenUpdate();
+};
+
+/**
+ * On tween update
+ * @private
+ */
+App.Header.prototype._onTweenUpdate = function _onTweenUpdate()
+{
+    var progress = this._tween.progress;
+
+    this._leftIcon.update(progress);
+    this._title.update(progress);
+    this._rightIcon.update(progress);
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.Header.prototype._onTweenComplete = function _onTweenComplete()
+{
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._onTweenUpdate();
+};
+
+/**
+ * On click
+ * @param {InteractionData} data
+ * @private
+ */
+App.Header.prototype._onClick = function _onClick(data)
+{
+    var position = data.getLocalPosition(this).x;
+
+    if (position <= this._iconSize)
+    {
+        console.log("left action: ");
+    }
+    else if (position >= this._layout.width - this._iconSize)
+    {
+        console.log("right action: ");
+    }
 };
 
 /**
@@ -5156,6 +5474,7 @@ App.Screen = function Screen(model,layout,tweenDuration)
 
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName,
+        HeaderAction = App.HeaderAction,
         pixelRatio = layout.pixelRatio;
 
     this._model = model;
@@ -5173,6 +5492,11 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._clickThreshold = 5 * pixelRatio;
     this._swipeEnabled = false;
     this._preferScroll = true;
+    this._headerInfo = {
+        leftAction:HeaderAction.MENU,
+        rightAction:HeaderAction.ADD_TRANSACTION,
+        name:null
+    };
 
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
     this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
@@ -5478,6 +5802,15 @@ App.Screen.prototype._swipeStart = function _swipeStart(preferScroll)
 App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
 {
     // Abstract
+};
+
+/**
+ * Return header info
+ * @returns {number}
+ */
+App.Screen.prototype.getHeaderInfo = function getHeaderInfo()
+{
+    return this._headerInfo;
 };
 
 /**
@@ -5814,11 +6147,12 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
 
     var TransactionOptionButton = App.TransactionOptionButton,
         TransactionToggleButton = App.TransactionToggleButton,
+        HeaderAction = App.HeaderAction,
+        FontStyle = App.FontStyle,
         r = layout.pixelRatio,
         w = layout.width,
         inputWidth = w - Math.round(10 * r) * 2,
         inputHeight = Math.round(40 * r),
-        FontStyle = App.FontStyle,
         toggleOptions = {
             width:Math.round(w / 3),
             height:Math.round(40 * r),
@@ -5868,6 +6202,9 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this.addChild(this._pane);
 
     this._clickThreshold = 10 * r;
+    this._headerInfo.leftAction = HeaderAction.CANCEL;
+    this._headerInfo.rightAction = HeaderAction.CONFIRM;
+    this._headerInfo.name = "Add Transaction";
 };
 
 App.AddTransactionScreen.prototype = Object.create(App.InputScrollScreen.prototype);
@@ -6016,7 +6353,8 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
 
     var r = layout.pixelRatio,
         w = layout.width,
-        ScrollPolicy = App.ScrollPolicy;
+        ScrollPolicy = App.ScrollPolicy,
+        HeaderAction = App.HeaderAction;
 
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
@@ -6037,6 +6375,10 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
     this._pane.setContent(this._container);
 
     this.addChild(this._pane);
+
+    this._headerInfo.leftAction = HeaderAction.CANCEL;
+    this._headerInfo.rightAction = HeaderAction.CONFIRM;
+    this._headerInfo.name = "Select Time";
 };
 
 App.SelectTimeScreen.prototype = Object.create(App.Screen.prototype);
@@ -6255,7 +6597,10 @@ App.AccountScreen = function AccountScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
-    var i = 0, l = this._model.length(), AccountButton = App.AccountButton, button = null;
+    var AccountButton = App.AccountButton,
+        i = 0,
+        l = this._model.length(),
+        button = null;
 
     this._buttons = new Array(l);
     this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
@@ -6272,6 +6617,8 @@ App.AccountScreen = function AccountScreen(model,layout)
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
+
+    this._headerInfo.name = "Accounts";
 };
 
 App.AccountScreen.prototype = Object.create(App.Screen.prototype);
@@ -6732,6 +7079,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 
     this.addChild(this._pane);
 
+    this._headerInfo.name = "Categories";
 //    this._swipeEnabled = true;
 };
 
@@ -7113,6 +7461,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
         InfiniteList = App.InfiniteList,
         Direction = App.Direction,
         IconSample = App.IconSample,
+        HeaderAction = App.HeaderAction,
         Input = App.Input,
         r = layout.pixelRatio,
         w = layout.width,
@@ -7153,6 +7502,9 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
+    this._headerInfo.leftAction = HeaderAction.CANCEL;
+    this._headerInfo.rightAction = HeaderAction.CONFIRM;
+    this._headerInfo.name = "Edit Category";
     this._swipeEnabled = true;
 };
 
@@ -7623,6 +7975,8 @@ App.TransactionScreen = function TransactionScreen(model,layout)
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
+
+    this._headerInfo.name = "Transactions";
 };
 
 App.TransactionScreen.prototype = Object.create(App.Screen.prototype);
@@ -8290,6 +8644,8 @@ App.ReportScreen = function ReportScreen(model,layout)
     this.addChild(this._percentField);
     this.addChild(this._chart);
     this.addChild(this._pane);
+
+    this._headerInfo.name = "Report";
 };
 
 App.ReportScreen.prototype = Object.create(App.Screen.prototype);
@@ -8436,6 +8792,15 @@ App.ReportScreen.prototype._buttonsInTransition = function _buttonsInTransition(
     return inTransition;
 };
 
+/**
+ * @class MenuItem
+ * @extends Graphics
+ * @param {string} label
+ * @param {string} iconName
+ * @param {number} screenId
+ * @param {{width:number,height:number,pixelRatio:number,style:Object}} options
+ * @constructor
+ */
 App.MenuItem = function MenuItem(label,iconName,screenId,options)
 {
     PIXI.Graphics.call(this);
@@ -8493,9 +8858,10 @@ App.Menu = function Menu(layout)
 
     var MenuItem = App.MenuItem,
         ScreenName = App.ScreenName,
+        HeaderAction = App.HeaderAction,
+        FontStyle = App.FontStyle,
         r = layout.pixelRatio,
         w = layout.width,
-        FontStyle = App.FontStyle,
         itemLabelStyle = FontStyle.get(20,FontStyle.WHITE),
         itemOptions = {
             width:w,
@@ -8528,6 +8894,10 @@ App.Menu = function Menu(layout)
     this._items.push(this._container.addChild(this._settignsItem));
     this._pane.setContent(this._container);
     this.addChild(this._pane);
+
+    this._headerInfo.leftAction = HeaderAction.NONE;
+    this._headerInfo.rightAction = HeaderAction.CANCEL;
+    this._headerInfo.name = "Menu";
 };
 
 App.Menu.prototype = Object.create(App.Screen.prototype);
@@ -8634,8 +9004,9 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         pixelRatio:pixelRatio
     };
 
+    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
     this._background = new PIXI.Graphics();
-    App.GraphicUtils.drawRect(this._background,0xbada55,1,0,0,this._layout.width,this._layout.height);
+    this._header = new App.Header(this._layout);
 
     //TODO use ScreenFactory for the screens?
     //TODO deffer initiation and/or rendering of most of the screens?
@@ -8647,26 +9018,36 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.TransactionScreen(null,this._layout),
         new App.ReportScreen(null,this._layout),
         new App.AddTransactionScreen(null,this._layout),
-        new App.Menu(this._layout)//TODO is Menu part of stack?
+        new App.Menu(this._layout)//TODO is Menu part of stack? And if it is, it should be at bottom
     ]);
-    this._screenStack.y = this._layout.headerHeight;
 
-    this._header = new App.Header(this._layout);
-
-    this._screenStack.selectChildByIndex(App.ScreenName.MENU);//TODO move this into separate command?
-    this._screenStack.show();
-
-    this.scrollTo(0);
+    this._init();
 
     this.addChild(this._background);
     this.addChild(this._screenStack);
     this.addChild(this._header);
-
-    this._registerEventListeners();
 };
 
 App.ApplicationView.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.ApplicationView.prototype.constructor = App.ApplicationView;
+
+/**
+ * Init
+ * @private
+ */
+App.ApplicationView.prototype._init = function _init()
+{
+    App.GraphicUtils.drawRect(this._background,0xbada55,1,0,0,this._layout.width,this._layout.height);
+
+    this.scrollTo(0);
+
+    this._registerEventListeners();
+
+    this._screenStack.y = this._layout.headerHeight;
+    this._screenStack.selectChildByIndex(App.ScreenName.MENU);//TODO move this into separate command?
+    this._screenStack.show();
+    this.changeScreen(App.ScreenName.MENU);
+};
 
 /**
  * Register event listeners
@@ -8677,6 +9058,8 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
     App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._header.registerEventListeners(this);
 };
 
 /**
@@ -8688,6 +9071,9 @@ App.ApplicationView.prototype.changeScreen = function changeScreen(screenName)
     this._screenStack.selectChildByIndex(screenName);
     this._screenStack.show();
     this._screenStack.hide();
+
+    //this._eventDispatcher.dispatchEvent(App.EventType.CHANGE,this._screenStack.getSelectedChild());
+    this._header.change(this._screenStack.getSelectedChild().getHeaderInfo());
 };
 
 /**
@@ -8719,6 +9105,28 @@ App.ApplicationView.prototype._onTick = function _onTick()
 App.ApplicationView.prototype._onResize = function _onResize()
 {
     //this.scrollTo(0);
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.ApplicationView.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.ApplicationView.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };
 
 /**

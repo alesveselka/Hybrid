@@ -42,6 +42,8 @@ App.TransactionScreen = function TransactionScreen(model,layout)
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
+
+    this._headerInfo.name = "Transactions";
 };
 
 App.TransactionScreen.prototype = Object.create(App.Screen.prototype);

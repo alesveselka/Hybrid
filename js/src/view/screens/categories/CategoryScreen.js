@@ -39,6 +39,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
 
     this.addChild(this._pane);
 
+    this._headerInfo.name = "Categories";
 //    this._swipeEnabled = true;
 };
 

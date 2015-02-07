@@ -14,6 +14,7 @@ App.Screen = function Screen(model,layout,tweenDuration)
 
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName,
+        HeaderAction = App.HeaderAction,
         pixelRatio = layout.pixelRatio;
 
     this._model = model;
@@ -31,6 +32,11 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._clickThreshold = 5 * pixelRatio;
     this._swipeEnabled = false;
     this._preferScroll = true;
+    this._headerInfo = {
+        leftAction:HeaderAction.MENU,
+        rightAction:HeaderAction.ADD_TRANSACTION,
+        name:null
+    };
 
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
     this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
@@ -336,4 +342,13 @@ App.Screen.prototype._swipeStart = function _swipeStart(preferScroll)
 App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
 {
     // Abstract
+};
+
+/**
+ * Return header info
+ * @returns {number}
+ */
+App.Screen.prototype.getHeaderInfo = function getHeaderInfo()
+{
+    return this._headerInfo;
 };

@@ -11,7 +11,8 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
 
     var r = layout.pixelRatio,
         w = layout.width,
-        ScrollPolicy = App.ScrollPolicy;
+        ScrollPolicy = App.ScrollPolicy,
+        HeaderAction = App.HeaderAction;
 
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
@@ -32,6 +33,10 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
     this._pane.setContent(this._container);
 
     this.addChild(this._pane);
+
+    this._headerInfo.leftAction = HeaderAction.CANCEL;
+    this._headerInfo.rightAction = HeaderAction.CONFIRM;
+    this._headerInfo.name = "Select Time";
 };
 
 App.SelectTimeScreen.prototype = Object.create(App.Screen.prototype);

@@ -29,8 +29,9 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         pixelRatio:pixelRatio
     };
 
+    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
     this._background = new PIXI.Graphics();
-    App.GraphicUtils.drawRect(this._background,0xbada55,1,0,0,this._layout.width,this._layout.height);
+    this._header = new App.Header(this._layout);
 
     //TODO use ScreenFactory for the screens?
     //TODO deffer initiation and/or rendering of most of the screens?
@@ -42,26 +43,36 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.TransactionScreen(null,this._layout),
         new App.ReportScreen(null,this._layout),
         new App.AddTransactionScreen(null,this._layout),
-        new App.Menu(this._layout)//TODO is Menu part of stack?
+        new App.Menu(this._layout)//TODO is Menu part of stack? And if it is, it should be at bottom
     ]);
-    this._screenStack.y = this._layout.headerHeight;
 
-    this._header = new App.Header(this._layout);
-
-    this._screenStack.selectChildByIndex(App.ScreenName.MENU);//TODO move this into separate command?
-    this._screenStack.show();
-
-    this.scrollTo(0);
+    this._init();
 
     this.addChild(this._background);
     this.addChild(this._screenStack);
     this.addChild(this._header);
-
-    this._registerEventListeners();
 };
 
 App.ApplicationView.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.ApplicationView.prototype.constructor = App.ApplicationView;
+
+/**
+ * Init
+ * @private
+ */
+App.ApplicationView.prototype._init = function _init()
+{
+    App.GraphicUtils.drawRect(this._background,0xbada55,1,0,0,this._layout.width,this._layout.height);
+
+    this.scrollTo(0);
+
+    this._registerEventListeners();
+
+    this._screenStack.y = this._layout.headerHeight;
+    this._screenStack.selectChildByIndex(App.ScreenName.MENU);//TODO move this into separate command?
+    this._screenStack.show();
+    this.changeScreen(App.ScreenName.MENU);
+};
 
 /**
  * Register event listeners
@@ -72,6 +83,8 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
     App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._header.registerEventListeners(this);
 };
 
 /**
@@ -83,6 +96,9 @@ App.ApplicationView.prototype.changeScreen = function changeScreen(screenName)
     this._screenStack.selectChildByIndex(screenName);
     this._screenStack.show();
     this._screenStack.hide();
+
+    //this._eventDispatcher.dispatchEvent(App.EventType.CHANGE,this._screenStack.getSelectedChild());
+    this._header.change(this._screenStack.getSelectedChild().getHeaderInfo());
 };
 
 /**
@@ -114,4 +130,26 @@ App.ApplicationView.prototype._onTick = function _onTick()
 App.ApplicationView.prototype._onResize = function _onResize()
 {
     //this.scrollTo(0);
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.ApplicationView.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.ApplicationView.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };

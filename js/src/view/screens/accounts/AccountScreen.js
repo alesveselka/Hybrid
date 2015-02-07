@@ -9,7 +9,10 @@ App.AccountScreen = function AccountScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
-    var i = 0, l = this._model.length(), AccountButton = App.AccountButton, button = null;
+    var AccountButton = App.AccountButton,
+        i = 0,
+        l = this._model.length(),
+        button = null;
 
     this._buttons = new Array(l);
     this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
@@ -26,6 +29,8 @@ App.AccountScreen = function AccountScreen(model,layout)
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
+
+    this._headerInfo.name = "Accounts";
 };
 
 App.AccountScreen.prototype = Object.create(App.Screen.prototype);

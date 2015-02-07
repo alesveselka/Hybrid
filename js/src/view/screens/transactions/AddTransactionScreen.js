@@ -11,11 +11,12 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
 
     var TransactionOptionButton = App.TransactionOptionButton,
         TransactionToggleButton = App.TransactionToggleButton,
+        HeaderAction = App.HeaderAction,
+        FontStyle = App.FontStyle,
         r = layout.pixelRatio,
         w = layout.width,
         inputWidth = w - Math.round(10 * r) * 2,
         inputHeight = Math.round(40 * r),
-        FontStyle = App.FontStyle,
         toggleOptions = {
             width:Math.round(w / 3),
             height:Math.round(40 * r),
@@ -65,6 +66,9 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this.addChild(this._pane);
 
     this._clickThreshold = 10 * r;
+    this._headerInfo.leftAction = HeaderAction.CANCEL;
+    this._headerInfo.rightAction = HeaderAction.CONFIRM;
+    this._headerInfo.name = "Add Transaction";
 };
 
 App.AddTransactionScreen.prototype = Object.create(App.InputScrollScreen.prototype);

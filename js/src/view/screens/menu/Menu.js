@@ -4,9 +4,10 @@ App.Menu = function Menu(layout)
 
     var MenuItem = App.MenuItem,
         ScreenName = App.ScreenName,
+        HeaderAction = App.HeaderAction,
+        FontStyle = App.FontStyle,
         r = layout.pixelRatio,
         w = layout.width,
-        FontStyle = App.FontStyle,
         itemLabelStyle = FontStyle.get(20,FontStyle.WHITE),
         itemOptions = {
             width:w,
@@ -39,6 +40,10 @@ App.Menu = function Menu(layout)
     this._items.push(this._container.addChild(this._settignsItem));
     this._pane.setContent(this._container);
     this.addChild(this._pane);
+
+    this._headerInfo.leftAction = HeaderAction.NONE;
+    this._headerInfo.rightAction = HeaderAction.CANCEL;
+    this._headerInfo.name = "Menu";
 };
 
 App.Menu.prototype = Object.create(App.Screen.prototype);

@@ -47,6 +47,8 @@ App.ReportScreen = function ReportScreen(model,layout)
     this.addChild(this._percentField);
     this.addChild(this._chart);
     this.addChild(this._pane);
+
+    this._headerInfo.name = "Report";
 };
 
 App.ReportScreen.prototype = Object.create(App.Screen.prototype);
