@@ -9,6 +9,8 @@ App.TransactionScreen = function TransactionScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
+    //TODO bottom items are not rendered when the screen is re-shown (due to scrolled position)
+
     var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
         r = layout.pixelRatio,
@@ -57,6 +59,7 @@ App.TransactionScreen.prototype.enable = function enable()
     App.Screen.prototype.enable.call(this);
 
     this._pane.resetScroll();
+    this._buttonList.reset();
     this._pane.enable();
 
     this._swipeEnabled = true;
@@ -68,7 +71,6 @@ App.TransactionScreen.prototype.enable = function enable()
 App.TransactionScreen.prototype.disable = function disable()
 {
     App.Screen.prototype.disable.call(this);
-
     this._pane.disable();
 
     this._swipeEnabled = false;

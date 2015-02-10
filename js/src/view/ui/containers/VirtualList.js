@@ -226,6 +226,39 @@ App.VirtualList.prototype.updateY = function updateY(position)
 };
 
 /**
+ * Reset scroll position
+ */
+App.VirtualList.prototype.reset = function reset()
+{
+    var i = 0,
+        l = this._items.length,
+        item = null,
+        position = 0,
+        Direction = App.Direction;
+
+    if (this._direction === Direction.X)
+    {
+        for (;i<l;i++)
+        {
+            item = this._items[i];
+            item.x = position;
+            item.setModel(i,this._model[i]);
+            position = Math.round(position + this._itemSize);
+        }
+    }
+    else if (this._direction === Direction.Y)
+    {
+        for (;i<l;i++)
+        {
+            item = this._items[i];
+            item.y = position;
+            item.setModel(i,this._model[i]);
+            position = Math.round(position + this._itemSize);
+        }
+    }
+};
+
+/**
  * Update layout
  * @param {boolean} [updatePosition=false]
  * @private
