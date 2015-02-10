@@ -229,11 +229,11 @@ App.ExpandButton.prototype.close = function close(immediate)
 
     if (immediate)
     {
-        this._transitionState = TransitionState.CLOSED;
+        this._transitionState = TransitionState.CLOSING;
 
         this._expandTween.stop();
 
-        this._eventDispatcher.dispatchEvent(EventType.COMPLETE,this);
+        this._onTransitionComplete();
     }
     else
     {
