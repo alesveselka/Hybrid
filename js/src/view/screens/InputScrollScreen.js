@@ -9,6 +9,9 @@ App.InputScrollScreen = function InputScrollScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
+    //TODO screen also needs to blur input on hide
+    //TODO also disable header actions if input is focused and soft keyboard shown
+
     //TODO add other 'scroll-' properties into TweenProxy?
     this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._scrollState = App.TransitionState.HIDDEN;
@@ -118,4 +121,19 @@ App.InputScrollScreen.prototype._onInputBlur = function _onInputBlur()
             this._onScrollTweenComplete();
         }
     }
+};
+
+/**
+ * Reset screen scroll
+ */
+App.InputScrollScreen.prototype.resetScroll = function resetScroll()
+{
+    if (this._scrollInput) this._scrollInput.blur();
+
+    this._scrollTween.stop();
+
+    this._pane.y = 0;
+    this._pane.resetScroll();
+
+    App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
 };

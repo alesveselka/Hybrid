@@ -125,6 +125,8 @@ App.EditCategoryScreen.prototype.enable = function enable()
  */
 App.EditCategoryScreen.prototype.disable = function disable()
 {
+    this.resetScroll();
+
     App.InputScrollScreen.prototype.disable.call(this);
 
     this._input.disable();

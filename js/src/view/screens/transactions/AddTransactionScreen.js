@@ -51,8 +51,8 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._optionList.add(new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",options),false);
     this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",options),true);
 
-    //TODO add overlay for bluring inputs?
-    //TODO autmatically focus input when this screen is shown?
+    //TODO add overlay for blurring inputs?
+    //TODO automatically focus input when this screen is shown?
 
     this._transactionInput.restrict(/\D/);
     this._render();
@@ -133,6 +133,8 @@ App.AddTransactionScreen.prototype.enable = function enable()
  */
 App.AddTransactionScreen.prototype.disable = function disable()
 {
+    this.resetScroll();
+
     App.InputScrollScreen.prototype.disable.call(this);
 
     this._transactionInput.disable();
