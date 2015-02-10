@@ -117,6 +117,15 @@ App.InfiniteList.prototype.selectItemByPosition = function selectItemByPosition(
 };
 
 /**
+ * Cancel scroll
+ */
+App.InfiniteList.prototype.cancelScroll = function cancelScroll()
+{
+    this._speed = 0.0;
+    this._state = null;
+};
+
+/**
  * Register event listeners
  * @private
  */

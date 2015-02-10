@@ -197,6 +197,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
         else
         {
             list = this._colorList;
+            list.cancelScroll();
             list.selectItemByPosition(position.x);
         }
     }
@@ -210,6 +211,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
         {
             list = this._topIconList;
             list.selectItemByPosition(position.x);
+            list.cancelScroll();
             this._bottomIconList.selectItemByPosition(-1000);
         }
     }
@@ -222,6 +224,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
         else
         {
             list = this._bottomIconList;
+            list.cancelScroll();
             list.selectItemByPosition(position.x);
             this._topIconList.selectItemByPosition(-1000);
         }
