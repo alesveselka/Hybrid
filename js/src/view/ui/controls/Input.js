@@ -351,3 +351,13 @@ App.Input.prototype._format = function _format(finish)
 
     return this._inputProxy.value;
 };
+
+/**
+ * Test if position passed in falls within this input boundaries
+ * @param {number} position
+ * @returns {boolean}
+ */
+App.Input.prototype.hitTest = function hitTest(position)
+{
+    return position >= this.y && position < this.y + this.boundingBox.height;
+};

@@ -51,7 +51,6 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._optionList.add(new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",options),false);
     this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",options),true);
 
-    //TODO add overlay for blurring inputs?
     //TODO automatically focus input when this screen is shown?
 
     this._transactionInput.restrict(/\D/);
@@ -133,7 +132,7 @@ App.AddTransactionScreen.prototype.enable = function enable()
  */
 App.AddTransactionScreen.prototype.disable = function disable()
 {
-    this.resetScroll();
+    this.resetScroll();//TODO reset before the screen start hiding
 
     App.InputScrollScreen.prototype.disable.call(this);
 
@@ -182,26 +181,28 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
 {
     this._pane.cancelScroll();
 
-    var pointerData = this.stage.getTouchData(),
-        y = pointerData.getLocalPosition(this._container).y;
+    var inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput,
+        pointerData = this.stage.getTouchData(),
+        position = pointerData.getLocalPosition(this._container).y;
 
-    if (y >= this._transactionInput.y && y < this._transactionInput.y + this._transactionInput.boundingBox.height)
+    if (this._transactionInput.hitTest(position))
     {
-        //TODO first check if it needs to scroll in first place
         this._scrollInput = this._transactionInput;
-        this._focusInput();
+        this._focusInput(this._scrollInput.y + this._container.y > 0);
     }
-    else if (y >= this._toggleButtonList.y && y < this._toggleButtonList.y + this._toggleButtonList.boundingBox.height)
+    else if (this._toggleButtonList.hitTest(position))
     {
-        this._toggleButtonList.getItemUnderPoint(pointerData).toggle();
+        if (inputFocused) this._scrollInput.blur();
+        else this._toggleButtonList.getItemUnderPoint(pointerData).toggle();
     }
-    else if (y >= this._optionList.y && y < this._optionList.y + this._optionList.boundingBox.height)
+    else if (this._optionList.hitTest(position))
     {
+        if (inputFocused) this._scrollInput.blur();
         //console.log(this._optionList.getItemUnderPoint(pointerData));
     }
-    else if (y >= this._noteInput.y && y < this._noteInput.y + this._noteInput.boundingBox.height)
+    else if (this._noteInput.hitTest(position))
     {
         this._scrollInput = this._noteInput;
-        this._focusInput();
+        this._focusInput(false);
     }
 };

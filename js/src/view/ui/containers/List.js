@@ -113,3 +113,13 @@ App.List.prototype.getItemUnderPoint = function getItemUnderPoint(data)
 
     return null;
 };
+
+/**
+ * Test if position passed in falls within this list boundaries
+ * @param {number} position
+ * @returns {boolean}
+ */
+App.List.prototype.hitTest = function hitTest(position)
+{
+    return position >= this.y && position < this.y + this.boundingBox.height;
+};

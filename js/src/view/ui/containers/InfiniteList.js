@@ -386,3 +386,13 @@ App.InfiniteList.prototype._updateLayout = function _updateLayout(updatePosition
         if (updatePosition) this._updateY(this.y);
     }
 };
+
+/**
+ * Test if position passed in falls within this list boundaries
+ * @param {number} position
+ * @returns {boolean}
+ */
+App.InfiniteList.prototype.hitTest = function hitTest(position)
+{
+    return position >= this.y && position < this.y + this.boundingBox.height;
+};

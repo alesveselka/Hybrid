@@ -34,7 +34,6 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._budgetHeader = new App.ListHeader("Budget",w,r);
     this._budget = new Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);
 
-    //TODO add overlay for blurring inputs?
     //TODO add modal window to confirm deleting sub-category
 
     this._budget.restrict(/\D/);
@@ -125,7 +124,7 @@ App.EditCategoryScreen.prototype.enable = function enable()
  */
 App.EditCategoryScreen.prototype.disable = function disable()
 {
-    this.resetScroll();
+    this.resetScroll();//TODO reset before the screen start hiding
 
     App.InputScrollScreen.prototype.disable.call(this);
 
@@ -177,39 +176,60 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
 {
     this._pane.cancelScroll();
 
-    var position = this.stage.getTouchData().getLocalPosition(this._container),
+    var inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput,
+        position = this.stage.getTouchData().getLocalPosition(this._container),
         y = position.y,
         list = null;
 
-    if (y >= this._input.y && y < this._input.y + this._input.boundingBox.height)
+    if (this._input.hitTest(y))
     {
-        //TODO first check if it needs to scroll in first place
         this._scrollInput = this._input;
-        this._focusInput();
+        this._focusInput(this._scrollInput.y + this._container.y > 0);
 
         this._subCategoryList.closeButtons();
     }
-    else if (y >= this._colorList.y && y < this._colorList.y + this._colorList.boundingBox.height)
+    else if (this._colorList.hitTest(y))
     {
-        list = this._colorList;
-        list.selectItemByPosition(position.x);
+        if (inputFocused)
+        {
+            this._scrollInput.blur();
+        }
+        else
+        {
+            list = this._colorList;
+            list.selectItemByPosition(position.x);
+        }
     }
-    else if (y >= this._topIconList.y && y < this._topIconList.y + this._topIconList.boundingBox.height)
+    else if (this._topIconList.hitTest(y))
     {
-        list = this._topIconList;
-        list.selectItemByPosition(position.x);
-        this._bottomIconList.selectItemByPosition(-1000);
+        if (inputFocused)
+        {
+            this._scrollInput.blur();
+        }
+        else
+        {
+            list = this._topIconList;
+            list.selectItemByPosition(position.x);
+            this._bottomIconList.selectItemByPosition(-1000);
+        }
     }
-    else if (y >= this._bottomIconList.y && y < this._bottomIconList.y + this._bottomIconList.boundingBox.height)
+    else if (this._bottomIconList.hitTest(y))
     {
-        list = this._bottomIconList;
-        list.selectItemByPosition(position.x);
-        this._topIconList.selectItemByPosition(-1000);
+        if (inputFocused)
+        {
+            this._scrollInput.blur();
+        }
+        else
+        {
+            list = this._bottomIconList;
+            list.selectItemByPosition(position.x);
+            this._topIconList.selectItemByPosition(-1000);
+        }
     }
-    else if (y >= this._budget.y && y < this._budget.y + this._budget.boundingBox.height)
+    else if (this._budget.hitTest(y))
     {
         this._scrollInput = this._budget;
-        this._focusInput();
+        this._focusInput(false);
 
         this._subCategoryList.closeButtons();
     }

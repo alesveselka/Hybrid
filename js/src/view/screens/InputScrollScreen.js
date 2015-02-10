@@ -9,7 +9,6 @@ App.InputScrollScreen = function InputScrollScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
-    //TODO screen also needs to blur input on hide
     //TODO also disable header actions if input is focused and soft keyboard shown
 
     //TODO add other 'scroll-' properties into TweenProxy?
@@ -80,9 +79,10 @@ App.InputScrollScreen.prototype._onScrollTweenComplete = function _onScrollTween
 
 /**
  * Focus budget
+ * @param {boolean} [immediate=false] Flag if input should be focused immediately without tweening
  * @private
  */
-App.InputScrollScreen.prototype._focusInput = function _focusInput()
+App.InputScrollScreen.prototype._focusInput = function _focusInput(immediate)
 {
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.HIDDEN || this._scrollState === TransitionState.HIDING)
@@ -91,9 +91,18 @@ App.InputScrollScreen.prototype._focusInput = function _focusInput()
 
         this._pane.disable();
 
-        this._scrollPosition = this._scrollInput.y - this._inputPadding;
+        if (immediate)
+        {
+            this._scrollPosition = 0;
 
-        this._scrollTween.start();
+            this._onScrollTweenComplete();
+        }
+        else
+        {
+            this._scrollPosition = this._scrollInput.y - this._inputPadding;
+
+            this._scrollTween.start();
+        }
     }
 };
 
@@ -109,7 +118,6 @@ App.InputScrollScreen.prototype._onInputBlur = function _onInputBlur()
         this._scrollState = TransitionState.HIDING;
 
         this._scrollInput.disable();
-        this._scrollTween.restart();
 
         if (this._scrollPosition  > 0)
         {
