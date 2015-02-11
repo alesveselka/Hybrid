@@ -69,9 +69,6 @@ App.ApplicationView.prototype._init = function _init()
     this._registerEventListeners();
 
     this._screenStack.y = this._layout.headerHeight;
-    this._screenStack.selectChildByIndex(App.ScreenName.MENU);//TODO move this into separate command?
-    this._screenStack.show();
-    this.changeScreen(App.ScreenName.MENU);
 };
 
 /**
@@ -97,7 +94,7 @@ App.ApplicationView.prototype.changeScreen = function changeScreen(screenName)
     this._screenStack.show();
     this._screenStack.hide();
 
-    //this._eventDispatcher.dispatchEvent(App.EventType.CHANGE,this._screenStack.getSelectedChild());
+    //this._eventDispatcher.dispatchEvent(App.EventType.CHANGE,this._screenStack.getSelectedChild());//TODO I don't need ED if I don't use this
     this._header.change(this._screenStack.getSelectedChild().getHeaderInfo());
 };
 
@@ -119,7 +116,7 @@ App.ApplicationView.prototype.scrollTo = function scrollTo(value)
  */
 App.ApplicationView.prototype._onTick = function _onTick()
 {
-    //TODO do not render if nothing happens (prop 'dirty'?)
+    //TODO do not render if nothing happens (prop 'dirty'?) - drains battery
     this._renderer.render(this._stage);
 };
 

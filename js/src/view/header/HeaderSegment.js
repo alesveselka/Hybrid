@@ -46,12 +46,18 @@ App.HeaderSegment.prototype._render = function _render()
  */
 App.HeaderSegment.prototype.change = function change(action)
 {
-    var tempIcon = this._frontElement;
+    if (this._action === action)
+    {
+        this._needsUpdate = false;
+    }
+    else
+    {
+        var tempIcon = this._frontElement;
+        this._frontElement = this._backElement;
+        this._backElement = tempIcon;
 
-    this._frontElement = this._backElement;
-    this._backElement = tempIcon;
-
-    this._needsUpdate = this._action !== action;
+        this._needsUpdate = true;
+    }
 
     this._action = action;
 };
@@ -67,4 +73,13 @@ App.HeaderSegment.prototype.update = function update(progress)
         this._frontElement.y = Math.round((this._middlePosition + this._frontElement.height) * progress - this._frontElement.height);
         this._backElement.y = Math.round(this._middlePosition + (this._height - this._middlePosition) * progress);
     }
+};
+
+/**
+ * Return action
+ * @returns {number}
+ */
+App.HeaderSegment.prototype.getAction = function getAction()
+{
+    return this._action;
 };

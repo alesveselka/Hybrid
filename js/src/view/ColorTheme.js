@@ -13,7 +13,8 @@
  *      RED_DARK:number,
  *      RED_LIGHT:number,
  *      GREEN:number,
- *      INPUT_HIGHLIGHT:number
+ *      INPUT_HIGHLIGHT:number,
+ *      BLACK:number
  * }}
  */
 App.ColorTheme = {
@@ -28,5 +29,6 @@ App.ColorTheme = {
     RED_DARK:0x990000,
     RED_LIGHT:0xFF3300,
     GREEN:0x33CC33,
-    INPUT_HIGHLIGHT:0x0099ff
+    INPUT_HIGHLIGHT:0x0099ff,
+    BLACK:0x000000
 };

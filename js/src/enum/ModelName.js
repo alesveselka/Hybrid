@@ -9,7 +9,8 @@
  *      SETTINGS:string,
  *      FILTERS:string,
  *      CURRENCIES:string,
- *      ICONS:string
+ *      ICONS:string,
+ *      SCREEN_CHAIN:string
  * }}
  */
 App.ModelName = {
@@ -20,5 +21,6 @@ App.ModelName = {
     SETTINGS:"SETTINGS",
     FILTERS:"FILTERS",
     CURRENCIES:"CURRENCIES",
-    ICONS:"ICONS"
+    ICONS:"ICONS",
+    SCREEN_CHAIN:"SCREEN_CHAIN"
 };

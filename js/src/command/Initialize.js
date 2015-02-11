@@ -39,8 +39,10 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
     this._loadDataCommand = null;
     
     this._initModel(data);
-    this._initCommands();
+    this._initController();
     this._initView();
+
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.MENU);
 
     this.dispatchEvent(App.EventType.COMPLETE);
 };
@@ -61,6 +63,7 @@ App.Initialize.prototype._initModel = function _initModel(data)
     //TODO initiate all proxies in once 'init' method? Same as Controller ...
     ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
     ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
+    ModelLocator.addProxy(ModelName.SCREEN_CHAIN,new App.Stack());
     ModelLocator.addProxy(ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}));
     ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(
         JSON.parse(data.accounts).accounts,//TODO parse JSON on data from localStorage
@@ -87,10 +90,10 @@ App.Initialize.prototype._initModel = function _initModel(data)
 /**
  * Initialize commands
  *
- * @method _initCommands
+ * @method _initController
  * @private
  */
-App.Initialize.prototype._initCommands = function _initCommands()
+App.Initialize.prototype._initController = function _initController()
 {
     App.Controller.init(this._eventListenerPool,[
         {eventType:App.EventType.CHANGE_SCREEN,command:App.ChangeScreen}

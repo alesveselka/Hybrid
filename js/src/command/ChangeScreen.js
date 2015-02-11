@@ -19,8 +19,10 @@ App.ChangeScreen.prototype.constructor = App.ChangeScreen;
  */
 App.ChangeScreen.prototype.execute = function execute(screenName)
 {
-    //TODO if current screen is edited, cancel the changes
     App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).changeScreen(screenName);
+
+    //TODO flush previous screens if they'll not be needed anymore
+//    App.ModelLocator.getProxy(App.ModelName.SCREEN_CHAIN).push(screenName);
 
     this.dispatchEvent(App.EventType.COMPLETE,this);
 };

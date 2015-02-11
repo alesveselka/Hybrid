@@ -13,6 +13,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
         TransactionToggleButton = App.TransactionToggleButton,
         HeaderAction = App.HeaderAction,
         FontStyle = App.FontStyle,
+        ScreenName = App.ScreenName,
         r = layout.pixelRatio,
         w = layout.width,
         inputWidth = w - Math.round(10 * r) * 2,
@@ -46,13 +47,12 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._toggleButtonList.add(new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true}),true);
 
     this._optionList = new App.List(App.Direction.Y);
-    this._optionList.add(new TransactionOptionButton("account","Account","Personal",options),false);
-    this._optionList.add(new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",options),false);
-    this._optionList.add(new TransactionOptionButton("credit-card","Mode","Cash",options),false);
-    this._optionList.add(new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",options),false);
-    this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",options),true);
+    this._optionList.add(new TransactionOptionButton("account","Account","Personal",ScreenName.ACCOUNT,options),false);
+    this._optionList.add(new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",ScreenName.CATEGORY,options),false);
+    this._optionList.add(new TransactionOptionButton("credit-card","Mode","Cash",ScreenName.CATEGORY,options),false);
+    this._optionList.add(new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",ScreenName.SELECT_TIME,options),false);
+    this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",ScreenName.ACCOUNT,options),true);
 
-    //TODO also add 'Delete' button
     //TODO automatically focus input when this screen is shown?
 
     this._transactionInput.restrict(/\D/);
@@ -207,8 +207,17 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     }
     else if (this._optionList.hitTest(position))
     {
-        if (inputFocused) this._scrollInput.blur();
-        //console.log(this._optionList.getItemUnderPoint(pointerData));
+        if (inputFocused)
+        {
+            this._scrollInput.blur();
+        }
+        else
+        {
+            App.Controller.dispatchEvent(
+                App.EventType.CHANGE_SCREEN,
+                this._optionList.getItemUnderPoint(pointerData).getTargetScreenName()
+            );
+        }
     }
     else if (this._noteInput.hitTest(position))
     {

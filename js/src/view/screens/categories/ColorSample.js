@@ -15,12 +15,9 @@ App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
     this._modelIndex = modelIndex;
     this._pixelRatio = pixelRatio;
     this._color = color;
-    this._label = new PIXI.Text(modelIndex,App.FontStyle.get(18,"#000000"));
     this._selected = false;
 
     this._render();
-
-    this.addChild(this._label);
 };
 
 App.ColorSample.prototype = Object.create(PIXI.Graphics.prototype);
@@ -41,10 +38,6 @@ App.ColorSample.prototype._render = function _render()
     this.beginFill("0x"+this._color);
     this.drawRoundedRect(xPadding,yPadding,w-xPadding*2,h-yPadding*2,Math.round(5*this._pixelRatio));
     this.endFill();
-
-    this._label.setText(this._modelIndex);
-    this._label.x = Math.round((w - this._label.width) / 2);
-    this._label.y = Math.round((h - this._label.height) / 2);
 };
 
 /**

@@ -4,10 +4,11 @@
  * @param {string} iconName
  * @param {string} name
  * @param {string} value
+ * @param {number} targetScreenName
  * @param {{width:number,height:number,pixelRatio:number,nameStyle:Object,valueStyle:Object,valueDetailStyle:Object}} options
  * @constructor
  */
-App.TransactionOptionButton = function TransactionOptionButton(iconName,name,value,options)
+App.TransactionOptionButton = function TransactionOptionButton(iconName,name,value,targetScreenName,options)
 {
     PIXI.Graphics.call(this);
 
@@ -21,6 +22,7 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,val
     this._nameField = new Text(name,options.nameStyle);
     this._valueField = new Text(value,options.valueStyle);
     this._valueDetailField = null;
+    this._targetScreenName = targetScreenName;
     this._arrow = new Sprite.fromFrame("arrow-app");
     this._iconResizeRatio = Math.round(20 * this._pixelRatio) / this._icon.height;
     this._arrowResizeRatio = Math.round(12 * this._pixelRatio) / this._arrow.height;
@@ -86,4 +88,13 @@ App.TransactionOptionButton.prototype._render = function _render()
     GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,h],true,false);
     GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
     GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
+};
+
+/**
+ * Return target screen name
+ * @returns {number}
+ */
+App.TransactionOptionButton.prototype.getTargetScreenName = function getTargetScreenName()
+{
+    return this._targetScreenName;
 };

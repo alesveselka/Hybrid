@@ -691,7 +691,8 @@ App.EventType = {
  *      SETTINGS:string,
  *      FILTERS:string,
  *      CURRENCIES:string,
- *      ICONS:string
+ *      ICONS:string,
+ *      SCREEN_CHAIN:string
  * }}
  */
 App.ModelName = {
@@ -702,7 +703,8 @@ App.ModelName = {
     SETTINGS:"SETTINGS",
     FILTERS:"FILTERS",
     CURRENCIES:"CURRENCIES",
-    ICONS:"ICONS"
+    ICONS:"ICONS",
+    SCREEN_CHAIN:"SCREEN_CHAIN"
 };
 
 /**
@@ -773,9 +775,10 @@ App.Direction = {
 /**
  * Screen Name
  * @enum {number}
- * @return {{ACCOUNT:number,CATEGORY:number,SELECT_TIME:number,EDIT_CATEGORY:number,TRANSACTIONS:number,REPORT:number,ADD_TRANSACTION:number,MENU:number}}
+ * @return {{BACK:number,ACCOUNT:number,CATEGORY:number,SELECT_TIME:number,EDIT_CATEGORY:number,TRANSACTIONS:number,REPORT:number,ADD_TRANSACTION:number,MENU:number}}
  */
 App.ScreenName = {
+    BACK:-1,
     ACCOUNT:0,
     CATEGORY:1,
     SELECT_TIME:2,
@@ -1433,6 +1436,62 @@ App.Filter = function Filter(startDate,endDate,categories)
 };
 
 /**
+ * @class Stack
+ * @constructor
+ */
+App.Stack = function Stack()
+{
+    this._source = [];
+    this._top = 0;
+    //TODO let's add ObjPool if items pushed in are objects
+};
+
+/**
+ * Push item into stack
+ * @param {*} item
+ */
+App.Stack.prototype.push = function push(item)
+{
+    this._source[this._top++] = item;
+//    console.log(this._source);
+};
+
+/**
+ * Remove item from top of the stack
+ * @returns {*}
+ */
+App.Stack.prototype.pop = function pop()
+{
+    return this._source[--this._top];
+};
+
+/**
+ * Peek what on top of the stack
+ * @returns {*}
+ */
+App.Stack.prototype.peek = function peek()
+{
+    return this._source[this._top-1];
+};
+
+/**
+ * Return size of the stack
+ * @returns {number}
+ */
+App.Stack.prototype.length = function length()
+{
+    return this._top;
+};
+
+/**
+ * Clear stack, more precisely move pointer to bottom
+ */
+App.Stack.prototype.clear = function clear()
+{
+    this._top = 0;
+};
+
+/**
  * @class ViewLocator
  * @type {{_viewSegments:Object, addViewSegment: Function, hasViewSegment: Function, getViewSegment: Function}}
  */
@@ -1489,7 +1548,8 @@ App.ViewLocator = {
  *      RED_DARK:number,
  *      RED_LIGHT:number,
  *      GREEN:number,
- *      INPUT_HIGHLIGHT:number
+ *      INPUT_HIGHLIGHT:number,
+ *      BLACK:number
  * }}
  */
 App.ColorTheme = {
@@ -1504,7 +1564,8 @@ App.ColorTheme = {
     RED_DARK:0x990000,
     RED_LIGHT:0xFF3300,
     GREEN:0x33CC33,
-    INPUT_HIGHLIGHT:0x0099ff
+    INPUT_HIGHLIGHT:0x0099ff,
+    BLACK:0x000000
 };
 
 /**
@@ -1621,12 +1682,18 @@ App.HeaderSegment.prototype._render = function _render()
  */
 App.HeaderSegment.prototype.change = function change(action)
 {
-    var tempIcon = this._frontElement;
+    if (this._action === action)
+    {
+        this._needsUpdate = false;
+    }
+    else
+    {
+        var tempIcon = this._frontElement;
+        this._frontElement = this._backElement;
+        this._backElement = tempIcon;
 
-    this._frontElement = this._backElement;
-    this._backElement = tempIcon;
-
-    this._needsUpdate = this._action !== action;
+        this._needsUpdate = true;
+    }
 
     this._action = action;
 };
@@ -1642,6 +1709,15 @@ App.HeaderSegment.prototype.update = function update(progress)
         this._frontElement.y = Math.round((this._middlePosition + this._frontElement.height) * progress - this._frontElement.height);
         this._backElement.y = Math.round(this._middlePosition + (this._height - this._middlePosition) * progress);
     }
+};
+
+/**
+ * Return action
+ * @returns {number}
+ */
+App.HeaderSegment.prototype.getAction = function getAction()
+{
+    return this._action;
 };
 
 /**
@@ -1906,7 +1982,7 @@ App.Header.prototype._onTick = function _onTick()
 App.Header.prototype._onTweenUpdate = function _onTweenUpdate()
 {
     var progress = this._tween.progress;
-
+    //TODO offset each segment for effect
     this._leftIcon.update(progress);
     this._title.update(progress);
     this._rightIcon.update(progress);
@@ -1930,15 +2006,21 @@ App.Header.prototype._onTweenComplete = function _onTweenComplete()
  */
 App.Header.prototype._onClick = function _onClick(data)
 {
-    var position = data.getLocalPosition(this).x;
+    var position = data.getLocalPosition(this).x,
+        HeaderAction = App.HeaderAction,
+        action = HeaderAction.NONE;
 
+    //TODO here dispatch event, and each screen will handle action accordingly, instead of handling it here ...
+    //TODO "pipe" events from icons?
     if (position <= this._iconSize)
     {
-        console.log("left action: ");
+        action = this._leftIcon.getAction();
+        if (action === HeaderAction.MENU || action === HeaderAction.CANCEL) App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.MENU);
     }
     else if (position >= this._layout.width - this._iconSize)
     {
-        console.log("right action: ");
+        action = this._rightIcon.getAction();
+        if (action === HeaderAction.ADD_TRANSACTION) App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ADD_TRANSACTION);
     }
 };
 
@@ -2513,6 +2595,16 @@ App.Input.prototype._format = function _format(finish)
 };
 
 /**
+ * Test if position passed in falls within this input boundaries
+ * @param {number} position
+ * @returns {boolean}
+ */
+App.Input.prototype.hitTest = function hitTest(position)
+{
+    return position >= this.y && position < this.y + this.boundingBox.height;
+};
+
+/**
  * @class TimeInput
  * @extends Input
  * @param {string} placeholder
@@ -2600,6 +2692,51 @@ App.TimeInput.prototype._format = function _format(finish)
 App.TimeInput.prototype._updateAlignment = function _updateAlignment()
 {
     this._textField.x = Math.round((this._width - this._textField.width) / 2);
+};
+
+/**
+ * @class Button
+ * @extend Graphics
+ * @param {string} label
+ * @param {{width:number,height:number,pixelRatio:number,style:Object,backgroundColor:number}} options
+ * @constructor
+ */
+App.Button = function Button(label,options)
+{
+    PIXI.Graphics.call(this);
+
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
+
+    this._pixelRatio = options.pixelRatio;
+    this._label = label;
+    this._style = options.style;
+    this._backgroundColor = options.backgroundColor;
+    this._labelField = new PIXI.Text(label,this._style);
+
+    this._render();
+
+    this.addChild(this._labelField);
+};
+
+App.Button.prototype = Object.create(PIXI.Graphics.prototype);
+App.Button.prototype.constructor = App.Button;
+
+/**
+ * Render
+ * @private
+ */
+App.Button.prototype._render = function _render()
+{
+    var w = this.boundingBox.width,
+        h = this.boundingBox.height;
+
+    this.clear();
+    this.beginFill(this._backgroundColor);
+    this.drawRoundedRect(0,0,w,h,Math.round(5 * this._pixelRatio));
+    this.endFill();
+
+    this._labelField.x = Math.round((w - this._labelField.width) / 2);
+    this._labelField.y = Math.round((h - this._labelField.height) / 2);
 };
 
 /**
@@ -3871,6 +4008,15 @@ App.InfiniteList.prototype.selectItemByPosition = function selectItemByPosition(
 };
 
 /**
+ * Cancel scroll
+ */
+App.InfiniteList.prototype.cancelScroll = function cancelScroll()
+{
+    this._speed = 0.0;
+    this._state = null;
+};
+
+/**
  * Register event listeners
  * @private
  */
@@ -4142,6 +4288,16 @@ App.InfiniteList.prototype._updateLayout = function _updateLayout(updatePosition
 };
 
 /**
+ * Test if position passed in falls within this list boundaries
+ * @param {number} position
+ * @returns {boolean}
+ */
+App.InfiniteList.prototype.hitTest = function hitTest(position)
+{
+    return position >= this.y && position < this.y + this.boundingBox.height;
+};
+
+/**
  * Difference between VirtualList and InfiniteList is, that VirtualList doesn't repeat its items infinitely; it just scroll from first model to last.
  * Also, if there are less models than items items would fill, then VirtualList will not fill whole size and will not scroll
  *
@@ -4369,6 +4525,39 @@ App.VirtualList.prototype.updateY = function updateY(position)
 };
 
 /**
+ * Reset scroll position
+ */
+App.VirtualList.prototype.reset = function reset()
+{
+    var i = 0,
+        l = this._items.length,
+        item = null,
+        position = 0,
+        Direction = App.Direction;
+
+    if (this._direction === Direction.X)
+    {
+        for (;i<l;i++)
+        {
+            item = this._items[i];
+            item.x = position;
+            item.setModel(i,this._model[i]);
+            position = Math.round(position + this._itemSize);
+        }
+    }
+    else if (this._direction === Direction.Y)
+    {
+        for (;i<l;i++)
+        {
+            item = this._items[i];
+            item.y = position;
+            item.setModel(i,this._model[i]);
+            position = Math.round(position + this._itemSize);
+        }
+    }
+};
+
+/**
  * Update layout
  * @param {boolean} [updatePosition=false]
  * @private
@@ -4543,6 +4732,16 @@ App.List.prototype.getItemUnderPoint = function getItemUnderPoint(data)
     }
 
     return null;
+};
+
+/**
+ * Test if position passed in falls within this list boundaries
+ * @param {number} position
+ * @returns {boolean}
+ */
+App.List.prototype.hitTest = function hitTest(position)
+{
+    return position >= this.y && position < this.y + this.boundingBox.height;
 };
 
 /**
@@ -5184,9 +5383,10 @@ App.SwipeButton.prototype._getSwipePosition = function _getSwipePosition()
  * @extends DisplayObjectContainer
  * @param {number} width
  * @param {number} height
+ * @param {boolean} useMask
  * @constructor
  */
-App.ExpandButton = function ExpandButton(width,height)
+App.ExpandButton = function ExpandButton(width,height,useMask)
 {
     PIXI.DisplayObjectContainer.call(this);
 
@@ -5199,7 +5399,7 @@ App.ExpandButton = function ExpandButton(width,height)
     this._content = null;
     this._contentHeight = height;
     this._buttonHeight = height;
-    this._mask = new PIXI.Graphics();
+    this._useMask = useMask;
 
     this._eventsRegistered = false;
     this._transitionState = App.TransitionState.CLOSED;
@@ -5207,10 +5407,13 @@ App.ExpandButton = function ExpandButton(width,height)
     this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
 
-    this._updateMask();
-
-    this.mask = this._mask;
-    this.addChild(this._mask);
+    if (this._useMask)
+    {
+        this._mask = new PIXI.Graphics();
+        this.mask = this._mask;
+        this._updateMask();
+        this.addChild(this._mask);
+    }
 };
 
 App.ExpandButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -5275,7 +5478,7 @@ App.ExpandButton.prototype._onTick = function _onTick()
 App.ExpandButton.prototype._updateTransition = function _updateTransition()
 {
     this._updateBounds(false);
-    this._updateMask();
+    if (this._useMask) this._updateMask();
 
     this._eventDispatcher.dispatchEvent(App.EventType.LAYOUT_UPDATE);
 };
@@ -5302,7 +5505,7 @@ App.ExpandButton.prototype._onTransitionComplete = function _onTransitionComplet
     this._unRegisterEventListeners();
 
     this._updateBounds(false);
-    this._updateMask();
+    if (this._useMask) this._updateMask();
 
     if (!this.isInTransition()) this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
 };
@@ -5410,11 +5613,11 @@ App.ExpandButton.prototype.close = function close(immediate)
 
     if (immediate)
     {
-        this._transitionState = TransitionState.CLOSED;
+        this._transitionState = TransitionState.CLOSING;
 
         this._expandTween.stop();
 
-        this._eventDispatcher.dispatchEvent(EventType.COMPLETE,this);
+        this._onTransitionComplete();
     }
     else
     {
@@ -5824,6 +6027,8 @@ App.InputScrollScreen = function InputScrollScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
+    //TODO also disable header actions if input is focused and soft keyboard shown
+
     //TODO add other 'scroll-' properties into TweenProxy?
     this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._scrollState = App.TransitionState.HIDDEN;
@@ -5892,9 +6097,10 @@ App.InputScrollScreen.prototype._onScrollTweenComplete = function _onScrollTween
 
 /**
  * Focus budget
+ * @param {boolean} [immediate=false] Flag if input should be focused immediately without tweening
  * @private
  */
-App.InputScrollScreen.prototype._focusInput = function _focusInput()
+App.InputScrollScreen.prototype._focusInput = function _focusInput(immediate)
 {
     var TransitionState = App.TransitionState;
     if (this._scrollState === TransitionState.HIDDEN || this._scrollState === TransitionState.HIDING)
@@ -5903,9 +6109,18 @@ App.InputScrollScreen.prototype._focusInput = function _focusInput()
 
         this._pane.disable();
 
-        this._scrollPosition = this._scrollInput.y - this._inputPadding;
+        if (immediate)
+        {
+            this._scrollPosition = 0;
 
-        this._scrollTween.start();
+            this._onScrollTweenComplete();
+        }
+        else
+        {
+            this._scrollPosition = this._scrollInput.y - this._inputPadding;
+
+            this._scrollTween.start();
+        }
     }
 };
 
@@ -5921,7 +6136,6 @@ App.InputScrollScreen.prototype._onInputBlur = function _onInputBlur()
         this._scrollState = TransitionState.HIDING;
 
         this._scrollInput.disable();
-        this._scrollTween.restart();
 
         if (this._scrollPosition  > 0)
         {
@@ -5936,8 +6150,23 @@ App.InputScrollScreen.prototype._onInputBlur = function _onInputBlur()
 };
 
 /**
+ * Reset screen scroll
+ */
+App.InputScrollScreen.prototype.resetScroll = function resetScroll()
+{
+    if (this._scrollInput) this._scrollInput.blur();
+
+    this._scrollTween.stop();
+
+    this._pane.y = 0;
+    this._pane.resetScroll();
+
+    App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
+};
+
+/**
  * @class TransactionToggleButton
- * @extends Graphics
+ * @extends Button
  * @param {string} iconName
  * @param {string} label
  * @param {{width:number,height:number,pixelRatio:number,style:Object,toggleStyle:Object}} options
@@ -5946,28 +6175,21 @@ App.InputScrollScreen.prototype._onInputBlur = function _onInputBlur()
  */
 App.TransactionToggleButton = function TransactionToggleButton(iconName,label,options,toggleOptions)
 {
-    PIXI.Graphics.call(this);
-
-    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
-
-    this._pixelRatio = options.pixelRatio;
     this._iconName = iconName;
-    this._label = label;
-    this._style = options.style;
     this._toggleStyle = options.toggleStyle;
     this._toggleOptions = toggleOptions;
     this._icon = PIXI.Sprite.fromFrame(iconName);
-    this._labelField = new PIXI.Text(label,this._style);
     this._toggle = false;
-    this._iconResizeRatio = Math.round(20 * this._pixelRatio) / this._icon.height;
+    this._iconResizeRatio = Math.round(20 * options.pixelRatio) / this._icon.height;
+
+    App.Button.call(this,label,options);
 
     this._render(true);
 
     this.addChild(this._icon);
-    this.addChild(this._labelField);
 };
 
-App.TransactionToggleButton.prototype = Object.create(PIXI.Graphics.prototype);
+App.TransactionToggleButton.prototype = Object.create(App.Button.prototype);
 App.TransactionToggleButton.prototype.constructor = App.TransactionToggleButton;
 
 /**
@@ -6050,10 +6272,11 @@ App.TransactionToggleButton.prototype.isToggled = function isToggled()
  * @param {string} iconName
  * @param {string} name
  * @param {string} value
+ * @param {number} targetScreenName
  * @param {{width:number,height:number,pixelRatio:number,nameStyle:Object,valueStyle:Object,valueDetailStyle:Object}} options
  * @constructor
  */
-App.TransactionOptionButton = function TransactionOptionButton(iconName,name,value,options)
+App.TransactionOptionButton = function TransactionOptionButton(iconName,name,value,targetScreenName,options)
 {
     PIXI.Graphics.call(this);
 
@@ -6067,6 +6290,7 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,val
     this._nameField = new Text(name,options.nameStyle);
     this._valueField = new Text(value,options.valueStyle);
     this._valueDetailField = null;
+    this._targetScreenName = targetScreenName;
     this._arrow = new Sprite.fromFrame("arrow-app");
     this._iconResizeRatio = Math.round(20 * this._pixelRatio) / this._icon.height;
     this._arrowResizeRatio = Math.round(12 * this._pixelRatio) / this._arrow.height;
@@ -6135,6 +6359,15 @@ App.TransactionOptionButton.prototype._render = function _render()
 };
 
 /**
+ * Return target screen name
+ * @returns {number}
+ */
+App.TransactionOptionButton.prototype.getTargetScreenName = function getTargetScreenName()
+{
+    return this._targetScreenName;
+};
+
+/**
  * @class AddTransactionScreen
  * @extends InputScrollScreen
  * @param {Transaction} model
@@ -6149,6 +6382,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
         TransactionToggleButton = App.TransactionToggleButton,
         HeaderAction = App.HeaderAction,
         FontStyle = App.FontStyle,
+        ScreenName = App.ScreenName,
         r = layout.pixelRatio,
         w = layout.width,
         inputWidth = w - Math.round(10 * r) * 2,
@@ -6174,6 +6408,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._background = new PIXI.Graphics();
     this._transactionInput = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
     this._noteInput = new App.Input("Add Note",20,inputWidth,inputHeight,r,true);
+    this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
 
     this._toggleButtonList = new App.List(App.Direction.X);
     this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false}),false);
@@ -6181,14 +6416,13 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._toggleButtonList.add(new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true}),true);
 
     this._optionList = new App.List(App.Direction.Y);
-    this._optionList.add(new TransactionOptionButton("account","Account","Personal",options),false);
-    this._optionList.add(new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",options),false);
-    this._optionList.add(new TransactionOptionButton("credit-card","Mode","Cash",options),false);
-    this._optionList.add(new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",options),false);
-    this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",options),true);
+    this._optionList.add(new TransactionOptionButton("account","Account","Personal",ScreenName.ACCOUNT,options),false);
+    this._optionList.add(new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",ScreenName.CATEGORY,options),false);
+    this._optionList.add(new TransactionOptionButton("credit-card","Mode","Cash",ScreenName.CATEGORY,options),false);
+    this._optionList.add(new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",ScreenName.SELECT_TIME,options),false);
+    this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",ScreenName.ACCOUNT,options),true);
 
-    //TODO add overlay for bluring inputs?
-    //TODO autmatically focus input when this screen is shown?
+    //TODO automatically focus input when this screen is shown?
 
     this._transactionInput.restrict(/\D/);
     this._render();
@@ -6198,6 +6432,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._container.addChild(this._toggleButtonList);
     this._container.addChild(this._optionList);
     this._container.addChild(this._noteInput);
+    this._container.addChild(this._deleteButton);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
@@ -6239,17 +6474,24 @@ App.AddTransactionScreen.prototype._render = function _render()
     this._noteInput.x = padding;
     this._noteInput.y = bottom + padding;
 
+    bottom = bottom + inputHeight;
+
+    this._deleteButton.x = padding;
+    this._deleteButton.y = bottom + padding;
+
     GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w,bottom+inputHeight],true,false);
     GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[
         padding,inputHeight-1,separatorWidth,1,
         toggleWidth-1,inputHeight+padding,1,toggleHeight-padding*2,
         toggleWidth*2-1,inputHeight+padding,1,toggleHeight-padding*2,
-        padding,inputHeight+toggleHeight-1,separatorWidth,1
+        padding,inputHeight+toggleHeight-1,separatorWidth,1,
+        padding,bottom-1,separatorWidth,1
     ],false,false);
     GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[
         padding,inputHeight,separatorWidth,1,
         toggleWidth,inputHeight+padding,1,toggleHeight-padding*2,
         toggleWidth*2,inputHeight+padding,1,toggleHeight-padding*2,
+        padding,bottom-inputHeight,separatorWidth,1,
         padding,bottom,separatorWidth,1
     ],false,true);
 };
@@ -6269,6 +6511,8 @@ App.AddTransactionScreen.prototype.enable = function enable()
  */
 App.AddTransactionScreen.prototype.disable = function disable()
 {
+    this.resetScroll();//TODO reset before the screen start hiding
+
     App.InputScrollScreen.prototype.disable.call(this);
 
     this._transactionInput.disable();
@@ -6316,40 +6560,51 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
 {
     this._pane.cancelScroll();
 
-    var pointerData = this.stage.getTouchData(),
-        y = pointerData.getLocalPosition(this._container).y;
+    var inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput,
+        pointerData = this.stage.getTouchData(),
+        position = pointerData.getLocalPosition(this._container).y;
 
-    if (y >= this._transactionInput.y && y < this._transactionInput.y + this._transactionInput.boundingBox.height)
+    if (this._transactionInput.hitTest(position))
     {
-        //TODO first check if it needs to scroll in first place
         this._scrollInput = this._transactionInput;
-        this._focusInput();
+        this._focusInput(this._scrollInput.y + this._container.y > 0);
     }
-    else if (y >= this._toggleButtonList.y && y < this._toggleButtonList.y + this._toggleButtonList.boundingBox.height)
+    else if (this._toggleButtonList.hitTest(position))
     {
-        this._toggleButtonList.getItemUnderPoint(pointerData).toggle();
+        if (inputFocused) this._scrollInput.blur();
+        else this._toggleButtonList.getItemUnderPoint(pointerData).toggle();
     }
-    else if (y >= this._optionList.y && y < this._optionList.y + this._optionList.boundingBox.height)
+    else if (this._optionList.hitTest(position))
     {
-        //console.log(this._optionList.getItemUnderPoint(pointerData));
+        if (inputFocused)
+        {
+            this._scrollInput.blur();
+        }
+        else
+        {
+            App.Controller.dispatchEvent(
+                App.EventType.CHANGE_SCREEN,
+                this._optionList.getItemUnderPoint(pointerData).getTargetScreenName()
+            );
+        }
     }
-    else if (y >= this._noteInput.y && y < this._noteInput.y + this._noteInput.boundingBox.height)
+    else if (this._noteInput.hitTest(position))
     {
         this._scrollInput = this._noteInput;
-        this._focusInput();
+        this._focusInput(false);
     }
 };
 
 /**
  * @class SelectTimeScreen
- * @extends Screen
+ * @extends InputScrollScreen
  * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
 App.SelectTimeScreen = function SelectTimeScreen(model,layout)
 {
-    App.Screen.call(this,model,layout,0.4);
+    App.InputScrollScreen.call(this,model,layout);
 
     var r = layout.pixelRatio,
         w = layout.width,
@@ -6359,21 +6614,19 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._inputBackground = new PIXI.Graphics();//TODO do I need BG? I can use BG below whole screen ...
-    this._inputOverlay = new PIXI.Graphics();
     this._input = new App.TimeInput("00:00",30,w - Math.round(20 * r),Math.round(40 * r),r);
     this._header = new App.ListHeader("Select Date",w,r);
     this._calendar = new App.Calendar(new Date(),w,r);
-    this._inputFocused = false;
+
     //TODO enable 'swiping' for interactively changing calendar's months
+
     this._render();
 
     this._container.addChild(this._inputBackground);
     this._container.addChild(this._header);
     this._container.addChild(this._calendar);
     this._container.addChild(this._input);
-
     this._pane.setContent(this._container);
-
     this.addChild(this._pane);
 
     this._headerInfo.leftAction = HeaderAction.CANCEL;
@@ -6381,7 +6634,7 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
     this._headerInfo.name = "Select Time";
 };
 
-App.SelectTimeScreen.prototype = Object.create(App.Screen.prototype);
+App.SelectTimeScreen.prototype = Object.create(App.InputScrollScreen.prototype);
 App.SelectTimeScreen.prototype.constructor = App.SelectTimeScreen;
 
 /**
@@ -6405,8 +6658,6 @@ App.SelectTimeScreen.prototype._render = function _render()
     this._header.y = inputBgHeight;
 
     this._calendar.y = Math.round(this._header.y + this._header.height);
-
-    GraphicUtils.drawRect(this._inputOverlay,0x000000,0.2,0,0,w,this._calendar.y+this._calendar.boundingBox.height);
 };
 
 /**
@@ -6414,9 +6665,8 @@ App.SelectTimeScreen.prototype._render = function _render()
  */
 App.SelectTimeScreen.prototype.enable = function enable()
 {
-    App.Screen.prototype.enable.call(this);
+    App.InputScrollScreen.prototype.enable.call(this);
 
-    this._input.enable();
     this._pane.enable();
 };
 
@@ -6425,7 +6675,9 @@ App.SelectTimeScreen.prototype.enable = function enable()
  */
 App.SelectTimeScreen.prototype.disable = function disable()
 {
-    App.Screen.prototype.disable.call(this);
+    this.resetScroll();
+
+    App.InputScrollScreen.prototype.disable.call(this);
 
     this._input.disable();
     this._pane.disable();
@@ -6437,10 +6689,12 @@ App.SelectTimeScreen.prototype.disable = function disable()
  */
 App.SelectTimeScreen.prototype._registerEventListeners = function _registerEventListener()
 {
-    App.Screen.prototype._registerEventListeners.call(this);
+    App.InputScrollScreen.prototype._registerEventListeners.call(this);
 
     var EventType = App.EventType;
-    this._input.addEventListener(EventType.FOCUS,this,this._onInputFocus);
+
+    this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
+
     this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
 };
 
@@ -6450,35 +6704,13 @@ App.SelectTimeScreen.prototype._registerEventListeners = function _registerEvent
  */
 App.SelectTimeScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener()
 {
+    App.InputScrollScreen.prototype._unRegisterEventListeners.call(this);
+
     var EventType = App.EventType;
-    this._input.removeEventListener(EventType.FOCUS,this,this._onInputFocus);
+
+    this._scrollTween.removeEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
+
     this._input.removeEventListener(EventType.BLUR,this,this._onInputBlur);
-
-    App.Screen.prototype._unRegisterEventListeners.call(this);
-};
-
-/**
- * On input focus
- * @private
- */
-App.SelectTimeScreen.prototype._onInputFocus = function _onInputFocus()
-{
-    this._inputFocused = true;
-
-    this._pane.cancelScroll();
-
-    if (!this._container.contains(this._inputOverlay)) this._container.addChildAt(this._inputOverlay,this._container.getChildIndex(this._input));
-};
-
-/**
- * On input blur
- * @private
- */
-App.SelectTimeScreen.prototype._onInputBlur = function _onInputBlur()
-{
-    if (this._container.contains(this._inputOverlay)) this._container.removeChild(this._inputOverlay);
-
-    this._inputFocused = false;
 };
 
 /**
@@ -6487,14 +6719,22 @@ App.SelectTimeScreen.prototype._onInputBlur = function _onInputBlur()
  */
 App.SelectTimeScreen.prototype._onClick = function _onClick()
 {
-    if (this._inputFocused)
+    this._pane.cancelScroll();
+
+    var inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput,
+        pointerData = this.stage.getTouchData(),
+        position = pointerData.getLocalPosition(this._container).y;
+
+    if (this._input.hitTest(position))
     {
-        this._pane.cancelScroll();
-
-        this._input.blur();
+        this._scrollInput = this._input;
+        this._focusInput(this._input.y + this._container.y > 0);
     }
-
-    this._calendar.onClick();
+    else
+    {
+        if (inputFocused) this._scrollInput.blur();
+        else this._calendar.onClick();
+    }
 };
 
 /**
@@ -6601,6 +6841,8 @@ App.AccountScreen = function AccountScreen(model,layout)
         i = 0,
         l = this._model.length(),
         button = null;
+
+    //TODO when there is nothing set up at beginning yet, add messages to guide user how to set things up
 
     this._buttons = new Array(l);
     this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
@@ -7008,7 +7250,7 @@ App.CategoryButtonEdit.prototype._getSwipePosition = function _getSwipePosition(
  */
 App.CategoryButtonExpand = function CategoryButtonExpand(model,layout,nameLabelStyle)
 {
-    App.ExpandButton.call(this,layout.width,Math.round(50 * layout.pixelRatio));
+    App.ExpandButton.call(this,layout.width,Math.round(50 * layout.pixelRatio),false);
 
     this._model = model;
     this._layout = layout;
@@ -7285,12 +7527,9 @@ App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
     this._modelIndex = modelIndex;
     this._pixelRatio = pixelRatio;
     this._color = color;
-    this._label = new PIXI.Text(modelIndex,App.FontStyle.get(18,"#000000"));
     this._selected = false;
 
     this._render();
-
-    this.addChild(this._label);
 };
 
 App.ColorSample.prototype = Object.create(PIXI.Graphics.prototype);
@@ -7311,10 +7550,6 @@ App.ColorSample.prototype._render = function _render()
     this.beginFill("0x"+this._color);
     this.drawRoundedRect(xPadding,yPadding,w-xPadding*2,h-yPadding*2,Math.round(5*this._pixelRatio));
     this.endFill();
-
-    this._label.setText(this._modelIndex);
-    this._label.x = Math.round((w - this._label.width) / 2);
-    this._label.y = Math.round((h - this._label.height) / 2);
 };
 
 /**
@@ -7462,9 +7697,12 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
         Direction = App.Direction,
         IconSample = App.IconSample,
         HeaderAction = App.HeaderAction,
+        FontStyle = App.FontStyle,
         Input = App.Input,
         r = layout.pixelRatio,
         w = layout.width,
+        inputWidth = w - Math.round(20 * r),
+        inputHeight = Math.round(40 * r),
         icons = App.ModelLocator.getProxy(App.ModelName.ICONS),
         iconsHeight = Math.round(64 * r);
 
@@ -7480,10 +7718,11 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._bottomIconList = new InfiniteList(icons.slice(Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._subCategoryList = new App.SubCategoryList(null,w,r);
     this._budgetHeader = new App.ListHeader("Budget",w,r);
-    this._budget = new Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);
+    this._budget = new Input("Enter Budget",20,inputWidth,inputHeight,r,true);
+    this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
 
-    //TODO add overlay for blurring inputs?
-    //TODO add modal window to confirm deleting sub-category
+    //TODO add modal window to confirm deleting sub-category. Also offer option 'Edit'?
+    //TODO center selected color/icon when shown
 
     this._budget.restrict(/\D/);
     this._render();
@@ -7499,6 +7738,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._container.addChild(this._subCategoryList);
     this._container.addChild(this._budgetHeader);
     this._container.addChild(this._budget);
+    this._container.addChild(this._deleteButton);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
@@ -7524,7 +7764,8 @@ App.EditCategoryScreen.prototype._render = function _render()
         inputFragmentHeight = Math.round(60 * r),
         colorListHeight = this._colorList.boundingBox.height,
         iconResizeRatio = Math.round(32 * r) / this._icon.height,
-        separatorWidth = w - this._inputPadding * 2;
+        separatorWidth = w - this._inputPadding * 2,
+        bottom = 0;
 
     GraphicUtils.drawRect(this._colorStripe,0xff6600,1,0,0,Math.round(4*r),Math.round(59 * r));
 
@@ -7541,18 +7782,32 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
     this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
 
-    GraphicUtils.drawRects(this._separators,ColorTheme.GREY_DARK,1,[0,0,separatorWidth,1,0,colorListHeight,separatorWidth,1],true,false);
-    GraphicUtils.drawRects(this._separators,ColorTheme.GREY_LIGHT,1,[0,1,separatorWidth,1,0,colorListHeight+1,separatorWidth,1],false,true);
-    this._separators.x = this._inputPadding;
-    this._separators.y = inputFragmentHeight - 1;
-
     this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
+
     this._budgetHeader.y = this._subCategoryList.y + this._subCategoryList.boundingBox.height;
 
-    this._budget.x = this._inputPadding;
-    this._budget.y = this._budgetHeader.y + this._budgetHeader.height + this._inputPadding;
+    bottom = this._budgetHeader.y + this._budgetHeader.height;
 
-    GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w,this._budget.y+this._budget.boundingBox.height+this._inputPadding);
+    this._budget.x = this._inputPadding;
+    this._budget.y = bottom + this._inputPadding;
+
+    bottom = bottom + inputFragmentHeight;
+
+    this._deleteButton.x = this._inputPadding;
+    this._deleteButton.y = bottom + this._inputPadding;
+
+    GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w,bottom+inputFragmentHeight);
+    GraphicUtils.drawRects(this._separators,ColorTheme.GREY_DARK,1,[
+        0,inputFragmentHeight-1,separatorWidth,1,
+        0,inputFragmentHeight+colorListHeight,separatorWidth,1,
+        0,bottom-1,separatorWidth,1
+    ],true,false);
+    GraphicUtils.drawRects(this._separators,ColorTheme.GREY_LIGHT,1,[
+        0,inputFragmentHeight,separatorWidth,1,
+        0,inputFragmentHeight+colorListHeight+1,separatorWidth,1,
+        0,bottom,separatorWidth,1
+    ],false,true);
+    this._separators.x = this._inputPadding;
 };
 
 /**
@@ -7573,6 +7828,8 @@ App.EditCategoryScreen.prototype.enable = function enable()
  */
 App.EditCategoryScreen.prototype.disable = function disable()
 {
+    this.resetScroll();//TODO reset before the screen start hiding
+
     App.InputScrollScreen.prototype.disable.call(this);
 
     this._input.disable();
@@ -7623,39 +7880,63 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
 {
     this._pane.cancelScroll();
 
-    var position = this.stage.getTouchData().getLocalPosition(this._container),
+    var inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput,
+        position = this.stage.getTouchData().getLocalPosition(this._container),
         y = position.y,
         list = null;
 
-    if (y >= this._input.y && y < this._input.y + this._input.boundingBox.height)
+    if (this._input.hitTest(y))
     {
-        //TODO first check if it needs to scroll in first place
         this._scrollInput = this._input;
-        this._focusInput();
+        this._focusInput(this._scrollInput.y + this._container.y > 0);
 
         this._subCategoryList.closeButtons();
     }
-    else if (y >= this._colorList.y && y < this._colorList.y + this._colorList.boundingBox.height)
+    else if (this._colorList.hitTest(y))
     {
-        list = this._colorList;
-        list.selectItemByPosition(position.x);
+        if (inputFocused)
+        {
+            this._scrollInput.blur();
+        }
+        else
+        {
+            list = this._colorList;
+            list.cancelScroll();
+            list.selectItemByPosition(position.x);
+        }
     }
-    else if (y >= this._topIconList.y && y < this._topIconList.y + this._topIconList.boundingBox.height)
+    else if (this._topIconList.hitTest(y))
     {
-        list = this._topIconList;
-        list.selectItemByPosition(position.x);
-        this._bottomIconList.selectItemByPosition(-1000);
+        if (inputFocused)
+        {
+            this._scrollInput.blur();
+        }
+        else
+        {
+            list = this._topIconList;
+            list.selectItemByPosition(position.x);
+            list.cancelScroll();
+            this._bottomIconList.selectItemByPosition(-1000);
+        }
     }
-    else if (y >= this._bottomIconList.y && y < this._bottomIconList.y + this._bottomIconList.boundingBox.height)
+    else if (this._bottomIconList.hitTest(y))
     {
-        list = this._bottomIconList;
-        list.selectItemByPosition(position.x);
-        this._topIconList.selectItemByPosition(-1000);
+        if (inputFocused)
+        {
+            this._scrollInput.blur();
+        }
+        else
+        {
+            list = this._bottomIconList;
+            list.cancelScroll();
+            list.selectItemByPosition(position.x);
+            this._topIconList.selectItemByPosition(-1000);
+        }
     }
-    else if (y >= this._budget.y && y < this._budget.y + this._budget.boundingBox.height)
+    else if (this._budget.hitTest(y))
     {
         this._scrollInput = this._budget;
-        this._focusInput();
+        this._focusInput(false);
 
         this._subCategoryList.closeButtons();
     }
@@ -7942,6 +8223,8 @@ App.TransactionScreen = function TransactionScreen(model,layout)
 {
     App.Screen.call(this,model,layout,0.4);
 
+    //TODO bottom items are not rendered when the screen is re-shown (due to scrolled position)
+
     var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
         r = layout.pixelRatio,
@@ -7990,6 +8273,7 @@ App.TransactionScreen.prototype.enable = function enable()
     App.Screen.prototype.enable.call(this);
 
     this._pane.resetScroll();
+    this._buttonList.reset();
     this._pane.enable();
 
     this._swipeEnabled = true;
@@ -8001,7 +8285,6 @@ App.TransactionScreen.prototype.enable = function enable()
 App.TransactionScreen.prototype.disable = function disable()
 {
     App.Screen.prototype.disable.call(this);
-
     this._pane.disable();
 
     this._swipeEnabled = false;
@@ -8150,7 +8433,7 @@ App.SubCategoryReportList.prototype._render = function _render()
  */
 App.ReportCategoryButton = function ReportCategoryButton(model,width,height,pixelRatio,labelStyles)
 {
-    App.ExpandButton.call(this,width,height);
+    App.ExpandButton.call(this,width,height,false);
 
     this._model = model;
     this._width = width;
@@ -8212,7 +8495,7 @@ App.ReportCategoryButton.prototype._render = function _render()
  */
 App.ReportAccountButton = function ReportAccountButton(model,width,height,pixelRatio,labelStyles)
 {
-    App.ExpandButton.call(this,width,height);
+    App.ExpandButton.call(this,width,height,true);
 
     var ReportCategoryButton = App.ReportCategoryButton,
         itemHeight = Math.round(40 * pixelRatio);
@@ -8873,7 +9156,7 @@ App.Menu = function Menu(layout)
     this._addTransactionItem = new MenuItem("Add Transaction","transactions",ScreenName.ADD_TRANSACTION,{width:w,height:Math.round(50*r),pixelRatio:r,style:itemLabelStyle});
     this._accountsItem = new MenuItem("Accounts","account",ScreenName.ACCOUNT,itemOptions);
     this._reportItem = new MenuItem("Report","chart",ScreenName.REPORT,itemOptions);
-    this._budgetItem = new MenuItem("Budgets","budget",-1,itemOptions);
+    this._budgetItem = new MenuItem("Budgets","budget",ScreenName.EDIT_CATEGORY,itemOptions);
     this._transactionsItem = new MenuItem("Transactions","transactions",ScreenName.TRANSACTIONS,itemOptions);
     this._currenciesItem = new MenuItem("Currencies","currencies",-1,itemOptions);
     this._settignsItem = new MenuItem("Settings","settings-app",-1,itemOptions);
@@ -9044,9 +9327,6 @@ App.ApplicationView.prototype._init = function _init()
     this._registerEventListeners();
 
     this._screenStack.y = this._layout.headerHeight;
-    this._screenStack.selectChildByIndex(App.ScreenName.MENU);//TODO move this into separate command?
-    this._screenStack.show();
-    this.changeScreen(App.ScreenName.MENU);
 };
 
 /**
@@ -9072,7 +9352,7 @@ App.ApplicationView.prototype.changeScreen = function changeScreen(screenName)
     this._screenStack.show();
     this._screenStack.hide();
 
-    //this._eventDispatcher.dispatchEvent(App.EventType.CHANGE,this._screenStack.getSelectedChild());
+    //this._eventDispatcher.dispatchEvent(App.EventType.CHANGE,this._screenStack.getSelectedChild());//TODO I don't need ED if I don't use this
     this._header.change(this._screenStack.getSelectedChild().getHeaderInfo());
 };
 
@@ -9094,7 +9374,7 @@ App.ApplicationView.prototype.scrollTo = function scrollTo(value)
  */
 App.ApplicationView.prototype._onTick = function _onTick()
 {
-    //TODO do not render if nothing happens (prop 'dirty'?)
+    //TODO do not render if nothing happens (prop 'dirty'?) - drains battery
     this._renderer.render(this._stage);
 };
 
@@ -9797,8 +10077,10 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
     this._loadDataCommand = null;
     
     this._initModel(data);
-    this._initCommands();
+    this._initController();
     this._initView();
+
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.MENU);
 
     this.dispatchEvent(App.EventType.COMPLETE);
 };
@@ -9819,6 +10101,7 @@ App.Initialize.prototype._initModel = function _initModel(data)
     //TODO initiate all proxies in once 'init' method? Same as Controller ...
     ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
     ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
+    ModelLocator.addProxy(ModelName.SCREEN_CHAIN,new App.Stack());
     ModelLocator.addProxy(ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}));
     ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(
         JSON.parse(data.accounts).accounts,//TODO parse JSON on data from localStorage
@@ -9845,10 +10128,10 @@ App.Initialize.prototype._initModel = function _initModel(data)
 /**
  * Initialize commands
  *
- * @method _initCommands
+ * @method _initController
  * @private
  */
-App.Initialize.prototype._initCommands = function _initCommands()
+App.Initialize.prototype._initController = function _initController()
 {
     App.Controller.init(this._eventListenerPool,[
         {eventType:App.EventType.CHANGE_SCREEN,command:App.ChangeScreen}
@@ -9952,8 +10235,10 @@ App.ChangeScreen.prototype.constructor = App.ChangeScreen;
  */
 App.ChangeScreen.prototype.execute = function execute(screenName)
 {
-    //TODO if current screen is edited, cancel the changes
     App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).changeScreen(screenName);
+
+    //TODO flush previous screens if they'll not be needed anymore
+//    App.ModelLocator.getProxy(App.ModelName.SCREEN_CHAIN).push(screenName);
 
     this.dispatchEvent(App.EventType.COMPLETE,this);
 };

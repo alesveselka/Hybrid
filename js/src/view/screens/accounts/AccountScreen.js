@@ -14,6 +14,8 @@ App.AccountScreen = function AccountScreen(model,layout)
         l = this._model.length(),
         button = null;
 
+    //TODO when there is nothing set up at beginning yet, add messages to guide user how to set things up
+
     this._buttons = new Array(l);
     this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
 

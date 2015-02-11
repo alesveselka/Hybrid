@@ -111,7 +111,7 @@ App.Header.prototype._onTick = function _onTick()
 App.Header.prototype._onTweenUpdate = function _onTweenUpdate()
 {
     var progress = this._tween.progress;
-
+    //TODO offset each segment for effect
     this._leftIcon.update(progress);
     this._title.update(progress);
     this._rightIcon.update(progress);
@@ -135,14 +135,20 @@ App.Header.prototype._onTweenComplete = function _onTweenComplete()
  */
 App.Header.prototype._onClick = function _onClick(data)
 {
-    var position = data.getLocalPosition(this).x;
+    var position = data.getLocalPosition(this).x,
+        HeaderAction = App.HeaderAction,
+        action = HeaderAction.NONE;
 
+    //TODO here dispatch event, and each screen will handle action accordingly, instead of handling it here ...
+    //TODO "pipe" events from icons?
     if (position <= this._iconSize)
     {
-        console.log("left action: ");
+        action = this._leftIcon.getAction();
+        if (action === HeaderAction.MENU || action === HeaderAction.CANCEL) App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.MENU);
     }
     else if (position >= this._layout.width - this._iconSize)
     {
-        console.log("right action: ");
+        action = this._rightIcon.getAction();
+        if (action === HeaderAction.ADD_TRANSACTION) App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ADD_TRANSACTION);
     }
 };
