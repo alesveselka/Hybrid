@@ -38,6 +38,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._background = new PIXI.Graphics();
     this._transactionInput = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
     this._noteInput = new App.Input("Add Note",20,inputWidth,inputHeight,r,true);
+    this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
 
     this._toggleButtonList = new App.List(App.Direction.X);
     this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false}),false);
@@ -51,6 +52,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._optionList.add(new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",options),false);
     this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",options),true);
 
+    //TODO also add 'Delete' button
     //TODO automatically focus input when this screen is shown?
 
     this._transactionInput.restrict(/\D/);
@@ -61,6 +63,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._container.addChild(this._toggleButtonList);
     this._container.addChild(this._optionList);
     this._container.addChild(this._noteInput);
+    this._container.addChild(this._deleteButton);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
@@ -102,17 +105,24 @@ App.AddTransactionScreen.prototype._render = function _render()
     this._noteInput.x = padding;
     this._noteInput.y = bottom + padding;
 
+    bottom = bottom + inputHeight;
+
+    this._deleteButton.x = padding;
+    this._deleteButton.y = bottom + padding;
+
     GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w,bottom+inputHeight],true,false);
     GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[
         padding,inputHeight-1,separatorWidth,1,
         toggleWidth-1,inputHeight+padding,1,toggleHeight-padding*2,
         toggleWidth*2-1,inputHeight+padding,1,toggleHeight-padding*2,
-        padding,inputHeight+toggleHeight-1,separatorWidth,1
+        padding,inputHeight+toggleHeight-1,separatorWidth,1,
+        padding,bottom-1,separatorWidth,1
     ],false,false);
     GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[
         padding,inputHeight,separatorWidth,1,
         toggleWidth,inputHeight+padding,1,toggleHeight-padding*2,
         toggleWidth*2,inputHeight+padding,1,toggleHeight-padding*2,
+        padding,bottom-inputHeight,separatorWidth,1,
         padding,bottom,separatorWidth,1
     ],false,true);
 };

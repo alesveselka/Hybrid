@@ -1,6 +1,6 @@
 /**
  * @class TransactionToggleButton
- * @extends Graphics
+ * @extends Button
  * @param {string} iconName
  * @param {string} label
  * @param {{width:number,height:number,pixelRatio:number,style:Object,toggleStyle:Object}} options
@@ -9,28 +9,21 @@
  */
 App.TransactionToggleButton = function TransactionToggleButton(iconName,label,options,toggleOptions)
 {
-    PIXI.Graphics.call(this);
-
-    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
-
-    this._pixelRatio = options.pixelRatio;
     this._iconName = iconName;
-    this._label = label;
-    this._style = options.style;
     this._toggleStyle = options.toggleStyle;
     this._toggleOptions = toggleOptions;
     this._icon = PIXI.Sprite.fromFrame(iconName);
-    this._labelField = new PIXI.Text(label,this._style);
     this._toggle = false;
-    this._iconResizeRatio = Math.round(20 * this._pixelRatio) / this._icon.height;
+    this._iconResizeRatio = Math.round(20 * options.pixelRatio) / this._icon.height;
+
+    App.Button.call(this,label,options);
 
     this._render(true);
 
     this.addChild(this._icon);
-    this.addChild(this._labelField);
 };
 
-App.TransactionToggleButton.prototype = Object.create(PIXI.Graphics.prototype);
+App.TransactionToggleButton.prototype = Object.create(App.Button.prototype);
 App.TransactionToggleButton.prototype.constructor = App.TransactionToggleButton;
 
 /**
