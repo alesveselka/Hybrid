@@ -14,9 +14,12 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
         Direction = App.Direction,
         IconSample = App.IconSample,
         HeaderAction = App.HeaderAction,
+        FontStyle = App.FontStyle,
         Input = App.Input,
         r = layout.pixelRatio,
         w = layout.width,
+        inputWidth = w - Math.round(20 * r),
+        inputHeight = Math.round(40 * r),
         icons = App.ModelLocator.getProxy(App.ModelName.ICONS),
         iconsHeight = Math.round(64 * r);
 
@@ -32,9 +35,11 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._bottomIconList = new InfiniteList(icons.slice(Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._subCategoryList = new App.SubCategoryList(null,w,r);
     this._budgetHeader = new App.ListHeader("Budget",w,r);
-    this._budget = new Input("Enter Budget",20,w - Math.round(20 * r),Math.round(40 * r),r,true);
+    this._budget = new Input("Enter Budget",20,inputWidth,inputHeight,r,true);
+    this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
 
-    //TODO add modal window to confirm deleting sub-category
+    //TODO add modal window to confirm deleting sub-category. Also offer option 'Edit'?
+    //TODO center selected color/icon when shown
 
     this._budget.restrict(/\D/);
     this._render();
@@ -50,6 +55,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._container.addChild(this._subCategoryList);
     this._container.addChild(this._budgetHeader);
     this._container.addChild(this._budget);
+    this._container.addChild(this._deleteButton);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
@@ -75,7 +81,8 @@ App.EditCategoryScreen.prototype._render = function _render()
         inputFragmentHeight = Math.round(60 * r),
         colorListHeight = this._colorList.boundingBox.height,
         iconResizeRatio = Math.round(32 * r) / this._icon.height,
-        separatorWidth = w - this._inputPadding * 2;
+        separatorWidth = w - this._inputPadding * 2,
+        bottom = 0;
 
     GraphicUtils.drawRect(this._colorStripe,0xff6600,1,0,0,Math.round(4*r),Math.round(59 * r));
 
@@ -92,18 +99,32 @@ App.EditCategoryScreen.prototype._render = function _render()
     this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
     this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
 
-    GraphicUtils.drawRects(this._separators,ColorTheme.GREY_DARK,1,[0,0,separatorWidth,1,0,colorListHeight,separatorWidth,1],true,false);
-    GraphicUtils.drawRects(this._separators,ColorTheme.GREY_LIGHT,1,[0,1,separatorWidth,1,0,colorListHeight+1,separatorWidth,1],false,true);
-    this._separators.x = this._inputPadding;
-    this._separators.y = inputFragmentHeight - 1;
-
     this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
+
     this._budgetHeader.y = this._subCategoryList.y + this._subCategoryList.boundingBox.height;
 
-    this._budget.x = this._inputPadding;
-    this._budget.y = this._budgetHeader.y + this._budgetHeader.height + this._inputPadding;
+    bottom = this._budgetHeader.y + this._budgetHeader.height;
 
-    GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w,this._budget.y+this._budget.boundingBox.height+this._inputPadding);
+    this._budget.x = this._inputPadding;
+    this._budget.y = bottom + this._inputPadding;
+
+    bottom = bottom + inputFragmentHeight;
+
+    this._deleteButton.x = this._inputPadding;
+    this._deleteButton.y = bottom + this._inputPadding;
+
+    GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w,bottom+inputFragmentHeight);
+    GraphicUtils.drawRects(this._separators,ColorTheme.GREY_DARK,1,[
+        0,inputFragmentHeight-1,separatorWidth,1,
+        0,inputFragmentHeight+colorListHeight,separatorWidth,1,
+        0,bottom-1,separatorWidth,1
+    ],true,false);
+    GraphicUtils.drawRects(this._separators,ColorTheme.GREY_LIGHT,1,[
+        0,inputFragmentHeight,separatorWidth,1,
+        0,inputFragmentHeight+colorListHeight+1,separatorWidth,1,
+        0,bottom,separatorWidth,1
+    ],false,true);
+    this._separators.x = this._inputPadding;
 };
 
 /**
