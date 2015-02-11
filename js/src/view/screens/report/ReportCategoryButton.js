@@ -10,7 +10,7 @@
  */
 App.ReportCategoryButton = function ReportCategoryButton(model,width,height,pixelRatio,labelStyles)
 {
-    App.ExpandButton.call(this,width,height);
+    App.ExpandButton.call(this,width,height,false);
 
     this._model = model;
     this._width = width;

@@ -3,9 +3,10 @@
  * @extends DisplayObjectContainer
  * @param {number} width
  * @param {number} height
+ * @param {boolean} useMask
  * @constructor
  */
-App.ExpandButton = function ExpandButton(width,height)
+App.ExpandButton = function ExpandButton(width,height,useMask)
 {
     PIXI.DisplayObjectContainer.call(this);
 
@@ -18,7 +19,7 @@ App.ExpandButton = function ExpandButton(width,height)
     this._content = null;
     this._contentHeight = height;
     this._buttonHeight = height;
-    this._mask = new PIXI.Graphics();
+    this._useMask = useMask;
 
     this._eventsRegistered = false;
     this._transitionState = App.TransitionState.CLOSED;
@@ -26,10 +27,13 @@ App.ExpandButton = function ExpandButton(width,height)
     this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
 
-    this._updateMask();
-
-    this.mask = this._mask;
-    this.addChild(this._mask);
+    if (this._useMask)
+    {
+        this._mask = new PIXI.Graphics();
+        this.mask = this._mask;
+        this._updateMask();
+        this.addChild(this._mask);
+    }
 };
 
 App.ExpandButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -94,7 +98,7 @@ App.ExpandButton.prototype._onTick = function _onTick()
 App.ExpandButton.prototype._updateTransition = function _updateTransition()
 {
     this._updateBounds(false);
-    this._updateMask();
+    if (this._useMask) this._updateMask();
 
     this._eventDispatcher.dispatchEvent(App.EventType.LAYOUT_UPDATE);
 };
@@ -121,7 +125,7 @@ App.ExpandButton.prototype._onTransitionComplete = function _onTransitionComplet
     this._unRegisterEventListeners();
 
     this._updateBounds(false);
-    this._updateMask();
+    if (this._useMask) this._updateMask();
 
     if (!this.isInTransition()) this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
 };

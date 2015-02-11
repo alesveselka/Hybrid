@@ -10,7 +10,7 @@
  */
 App.ReportAccountButton = function ReportAccountButton(model,width,height,pixelRatio,labelStyles)
 {
-    App.ExpandButton.call(this,width,height);
+    App.ExpandButton.call(this,width,height,true);
 
     var ReportCategoryButton = App.ReportCategoryButton,
         itemHeight = Math.round(40 * pixelRatio);

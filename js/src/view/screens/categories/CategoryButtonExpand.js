@@ -8,7 +8,7 @@
  */
 App.CategoryButtonExpand = function CategoryButtonExpand(model,layout,nameLabelStyle)
 {
-    App.ExpandButton.call(this,layout.width,Math.round(50 * layout.pixelRatio));
+    App.ExpandButton.call(this,layout.width,Math.round(50 * layout.pixelRatio),false);
 
     this._model = model;
     this._layout = layout;
