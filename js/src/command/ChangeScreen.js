@@ -26,13 +26,3 @@ App.ChangeScreen.prototype.execute = function execute(screenName)
 
     this.dispatchEvent(App.EventType.COMPLETE,this);
 };
-
-/**
- * Destroy the command
- *
- * @method destroy
- */
-App.ChangeScreen.prototype.destroy = function destroy()
-{
-    App.Command.prototype.destroy.call(this);
-};

@@ -54,7 +54,7 @@ App.Collection.prototype.setCurrent = function setCurrent(value,force)
 
     //data.currentItem = this._currentItem;
 
-    this.dispatchEvent(App.EventType.CHANGE,data);
+    this.dispatchEvent(App.EventType.CHANGE/*,data*/);
 };
 
 /**
@@ -127,6 +127,16 @@ App.Collection.prototype.hasItem = function hasItem(item)
 };
 
 /**
+ * @method removeItem Remove item passed in
+ * @param {*} item
+ * @return {*} item
+ */
+App.Collection.prototype.removeItem = function removeItem(item)
+{
+    return this.removeItemAt(this.indexOf(item));
+};
+
+/**
  * @method removeItemAt Remove item at index passed in
  * @return {*} item
  */
@@ -135,6 +145,7 @@ App.Collection.prototype.removeItemAt = function removeItemAt(index)
     var item = this._items.splice(index,1)[0];
 
     this._updateCurrentIndex();
+    if (this._currentIndex === -1) this._currentItem = null;
 
     this.dispatchEvent(App.EventType.REMOVED,item);
 

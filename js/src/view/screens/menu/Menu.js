@@ -100,21 +100,41 @@ App.Menu.prototype._onClick = function _onClick()
 {
     this._pane.cancelScroll();
 
-    var y = this.stage.getTouchData().getLocalPosition(this._container).y,
-        i = 0,
+    var ScreenName = App.ScreenName,
+        item = this._getItemByPosition(this.stage.getTouchData().getLocalPosition(this._container).y),
+        screenName = item ? item.getScreenName() : -1;
+
+    switch (screenName)
+    {
+        case ScreenName.ADD_TRANSACTION:
+            App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
+                nextCommand:new App.ChangeScreen(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL)),
+                screenName:ScreenName.ADD_TRANSACTION
+            });
+            break;
+
+        default:
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,ScreenName.ACCOUNT);
+    }
+};
+
+/**
+ * Return item by position passed in
+ * @param {number} position
+ * @return {MenuItem}
+ * @private
+ */
+App.Menu.prototype._getItemByPosition = function _getItemByPosition(position)
+{
+    var i = 0,
         l = this._items.length,
         item = null;
 
     for (;i<l;)
     {
         item = this._items[i++];
-        if (y >= item.y && y < item.y + item.boundingBox.height)
-        {
-            if (item.getScreenId() > -1)
-            {
-                App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,item.getScreenId());
-                break;
-            }
-        }
+        if (position >= item.y && position < item.y + item.boundingBox.height) return item;
     }
+
+    return null;
 };

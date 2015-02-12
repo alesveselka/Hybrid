@@ -44,6 +44,14 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
 
     App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.MENU);
 
+//    console.log(new Date());
+//    var time = new Date().getTime();
+//    console.log(new Date(time),time);
+//    var transactions = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS);
+//    var time = transactions.getItemAt(0).time;
+//    var nTime = parseInt(time,10);
+//    console.log(time,nTime,new Date(nTime));
+
     this.dispatchEvent(App.EventType.COMPLETE);
 };
 
@@ -51,7 +59,7 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  * Initialize application model
  *
  * @method _initModel
- * @param {{accounts:string,icons:Object}} data
+ * @param {{accounts:string,transactions:string,icons:Object}} data
  * @private
  */
 App.Initialize.prototype._initModel = function _initModel(data)
@@ -63,7 +71,7 @@ App.Initialize.prototype._initModel = function _initModel(data)
     //TODO initiate all proxies in once 'init' method? Same as Controller ...
     ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
     ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
-    ModelLocator.addProxy(ModelName.SCREEN_CHAIN,new App.Stack());
+//    ModelLocator.addProxy(ModelName.SCREEN_CHAIN,new App.Stack());
     ModelLocator.addProxy(ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}));
     ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(
         JSON.parse(data.accounts).accounts,//TODO parse JSON on data from localStorage
@@ -71,13 +79,13 @@ App.Initialize.prototype._initModel = function _initModel(data)
         null,
         this._eventListenerPool
     ));
-    /*ModelLocator.addProxy(ModelName.TRANSACTIONS,new Collection(
-        localStorage.getItem(ModelName.TRANSACTIONS),
+    ModelLocator.addProxy(ModelName.TRANSACTIONS,new Collection(
+        JSON.parse(data.accounts).transactions,//TODO parse JSON on data from localStorage
         App.Transaction,
         null,
         this._eventListenerPool
     ));
-    ModelLocator.addProxy(ModelName.FILTERS,new Collection(
+    /*ModelLocator.addProxy(ModelName.FILTERS,new Collection(
         localStorage.getItem(ModelName.FILTERS),
         App.Filter,
         null,
@@ -95,8 +103,11 @@ App.Initialize.prototype._initModel = function _initModel(data)
  */
 App.Initialize.prototype._initController = function _initController()
 {
+    var EventType = App.EventType;
+
     App.Controller.init(this._eventListenerPool,[
-        {eventType:App.EventType.CHANGE_SCREEN,command:App.ChangeScreen}
+        {eventType:EventType.CHANGE_SCREEN,command:App.ChangeScreen},
+        {eventType:EventType.CREATE_TRANSACTION,command:App.CreateTransaction}
     ]);
 };
 

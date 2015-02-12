@@ -345,6 +345,19 @@ App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
 };
 
 /**
+ * Set header info
+ * @param {number} leftAction
+ * @param {number} rightAction
+ * @param {string} name
+ */
+App.Screen.prototype.setHeaderInfo = function setHeaderInfo(leftAction,rightAction,name)
+{
+    this._headerInfo.leftAction = leftAction;
+    this._headerInfo.rightAction = rightAction;
+    this._headerInfo.name = name;
+};
+
+/**
  * Return header info
  * @returns {number}
  */

@@ -36,7 +36,7 @@ module.exports = function(grunt)
         "js/src/model/Transaction.js",
         "js/src/model/Category.js",
         "js/src/model/Filter.js",
-        "js/src/model/Stack.js",
+//        "js/src/model/Stack.js",
         "js/src/view/ViewLocator.js",
         "js/src/view/ColorTheme.js",
         "js/src/view/FontStyle.js",
@@ -94,9 +94,11 @@ module.exports = function(grunt)
         "js/src/core/Ticker.js",
         "js/src/control/Controller.js",
         "js/src/command/Command.js",
+        "js/src/command/SequenceCommand.js",
         "js/src/command/LoadData.js",
         "js/src/command/Initialize.js",
         "js/src/command/ChangeScreen.js",
+        "js/src/command/CreateTransaction.js",
         "js/src/main.js"
     ];
 

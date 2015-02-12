@@ -622,6 +622,7 @@ App.LayoutUtils = {
  * @enum {string}
  * @return {{
  *      CHANGE_SCREEN:string,
+ *      CREATE_TRANSACTION:string,
  *      START:string,
  *      COMPLETE:string,
  *      UPDATE:string,
@@ -649,6 +650,7 @@ App.LayoutUtils = {
 App.EventType = {
     // Commands
     CHANGE_SCREEN:"CHANGE_SCREEN",
+    CREATE_TRANSACTION:"CREATE_TRANSACTION",
 
     // App
     START:"START",
@@ -1170,7 +1172,7 @@ App.Collection.prototype.setCurrent = function setCurrent(value,force)
 
     //data.currentItem = this._currentItem;
 
-    this.dispatchEvent(App.EventType.CHANGE,data);
+    this.dispatchEvent(App.EventType.CHANGE/*,data*/);
 };
 
 /**
@@ -1243,6 +1245,16 @@ App.Collection.prototype.hasItem = function hasItem(item)
 };
 
 /**
+ * @method removeItem Remove item passed in
+ * @param {*} item
+ * @return {*} item
+ */
+App.Collection.prototype.removeItem = function removeItem(item)
+{
+    return this.removeItemAt(this.indexOf(item));
+};
+
+/**
  * @method removeItemAt Remove item at index passed in
  * @return {*} item
  */
@@ -1251,6 +1263,7 @@ App.Collection.prototype.removeItemAt = function removeItemAt(index)
     var item = this._items.splice(index,1)[0];
 
     this._updateCurrentIndex();
+    if (this._currentIndex === -1) this._currentItem = null;
 
     this.dispatchEvent(App.EventType.REMOVED,item);
 
@@ -1405,16 +1418,17 @@ App.Account.prototype.getCategories = function getCategories()
     return this._categories;
 };
 
-App.Transaction = function Transaction(amount,currency,category,date,type,mode,repeating,pending)
+App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
 {
-    this.amount = amount;
-    this.currency = currency;
-    this.category = category;
-    this.date = date;
-    this.type = type;
-    this.mode = mode;
-    this.repeating = repeating;
-    this.pending = pending;
+    this.amount = data.amount || 0;
+    this.type = data.type || "expense";//TODO remove hard-coded value
+    this.category = data.category || null;
+    this.time = data.time || -1;
+    this.mode = data.mode || "cash";//TODO remove hard-coded value
+    this.currency = data.currency || "CZK";//TODO remove hard-coded value
+    this.repeat = data.repeat || 0;
+    this.pending = data.pending || 0;
+    this.note = data.note || null;//TODO decode
 };
 
 App.Category = function Category(data,collection,parent,eventListenerPool)
@@ -1433,62 +1447,6 @@ App.Filter = function Filter(startDate,endDate,categories)
     this.startDate = startDate;
     this.endDate = endDate;
     this.categories = categories;
-};
-
-/**
- * @class Stack
- * @constructor
- */
-App.Stack = function Stack()
-{
-    this._source = [];
-    this._top = 0;
-    //TODO let's add ObjPool if items pushed in are objects
-};
-
-/**
- * Push item into stack
- * @param {*} item
- */
-App.Stack.prototype.push = function push(item)
-{
-    this._source[this._top++] = item;
-//    console.log(this._source);
-};
-
-/**
- * Remove item from top of the stack
- * @returns {*}
- */
-App.Stack.prototype.pop = function pop()
-{
-    return this._source[--this._top];
-};
-
-/**
- * Peek what on top of the stack
- * @returns {*}
- */
-App.Stack.prototype.peek = function peek()
-{
-    return this._source[this._top-1];
-};
-
-/**
- * Return size of the stack
- * @returns {number}
- */
-App.Stack.prototype.length = function length()
-{
-    return this._top;
-};
-
-/**
- * Clear stack, more precisely move pointer to bottom
- */
-App.Stack.prototype.clear = function clear()
-{
-    this._top = 0;
 };
 
 /**
@@ -6008,6 +5966,19 @@ App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
 };
 
 /**
+ * Set header info
+ * @param {number} leftAction
+ * @param {number} rightAction
+ * @param {string} name
+ */
+App.Screen.prototype.setHeaderInfo = function setHeaderInfo(leftAction,rightAction,name)
+{
+    this._headerInfo.leftAction = leftAction;
+    this._headerInfo.rightAction = rightAction;
+    this._headerInfo.name = name;
+};
+
+/**
  * Return header info
  * @returns {number}
  */
@@ -6418,8 +6389,8 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._optionList = new App.List(App.Direction.Y);
     this._optionList.add(new TransactionOptionButton("account","Account","Personal",ScreenName.ACCOUNT,options),false);
     this._optionList.add(new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",ScreenName.CATEGORY,options),false);
-    this._optionList.add(new TransactionOptionButton("credit-card","Mode","Cash",ScreenName.CATEGORY,options),false);
     this._optionList.add(new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",ScreenName.SELECT_TIME,options),false);
+    this._optionList.add(new TransactionOptionButton("credit-card","Mode","Cash",ScreenName.CATEGORY,options),false);
     this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",ScreenName.ACCOUNT,options),true);
 
     //TODO automatically focus input when this screen is shown?
@@ -6504,6 +6475,8 @@ App.AddTransactionScreen.prototype.enable = function enable()
     App.InputScrollScreen.prototype.enable.call(this);
 
     this._pane.enable();
+
+    console.log(App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent());
 };
 
 /**
@@ -6582,9 +6555,15 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
         }
         else
         {
+            var HeaderAction = App.HeaderAction;
+
             App.Controller.dispatchEvent(
-                App.EventType.CHANGE_SCREEN,
-                this._optionList.getItemUnderPoint(pointerData).getTargetScreenName()
+                App.EventType.CHANGE_SCREEN,{
+                    screenName:this._optionList.getItemUnderPoint(pointerData).getTargetScreenName(),
+                    headerLeftAction:HeaderAction.CONFIRM,
+                    headerRightAction:HeaderAction.CANCEL,
+                    headerName:"Filter"
+                }
             );
         }
     }
@@ -9080,17 +9059,17 @@ App.ReportScreen.prototype._buttonsInTransition = function _buttonsInTransition(
  * @extends Graphics
  * @param {string} label
  * @param {string} iconName
- * @param {number} screenId
+ * @param {number} screenName
  * @param {{width:number,height:number,pixelRatio:number,style:Object}} options
  * @constructor
  */
-App.MenuItem = function MenuItem(label,iconName,screenId,options)
+App.MenuItem = function MenuItem(label,iconName,screenName,options)
 {
     PIXI.Graphics.call(this);
 
     this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
-    this._screenId = screenId;
+    this._screenName = screenName;
     this._pixelRatio = options.pixelRatio;
     this._icon = PIXI.Sprite.fromFrame(iconName);
     this._iconResizeRatio = Math.round(22 * options.pixelRatio) / this._icon.height;
@@ -9127,12 +9106,12 @@ App.MenuItem.prototype._render = function _render()
 };
 
 /**
- * Return associated screen ID
+ * Return associated screen name
  * @returns {number}
  */
-App.MenuItem.prototype.getScreenId = function getScreenId()
+App.MenuItem.prototype.getScreenName = function getScreenName()
 {
-    return this._screenId;
+    return this._screenName;
 };
 
 App.Menu = function Menu(layout)
@@ -9237,23 +9216,43 @@ App.Menu.prototype._onClick = function _onClick()
 {
     this._pane.cancelScroll();
 
-    var y = this.stage.getTouchData().getLocalPosition(this._container).y,
-        i = 0,
+    var ScreenName = App.ScreenName,
+        item = this._getItemByPosition(this.stage.getTouchData().getLocalPosition(this._container).y),
+        screenName = item ? item.getScreenName() : -1;
+
+    switch (screenName)
+    {
+        case ScreenName.ADD_TRANSACTION:
+            App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
+                nextCommand:new App.ChangeScreen(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL)),
+                screenName:ScreenName.ADD_TRANSACTION
+            });
+            break;
+
+        default:
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,ScreenName.ACCOUNT);
+    }
+};
+
+/**
+ * Return item by position passed in
+ * @param {number} position
+ * @return {MenuItem}
+ * @private
+ */
+App.Menu.prototype._getItemByPosition = function _getItemByPosition(position)
+{
+    var i = 0,
         l = this._items.length,
         item = null;
 
     for (;i<l;)
     {
         item = this._items[i++];
-        if (y >= item.y && y < item.y + item.boundingBox.height)
-        {
-            if (item.getScreenId() > -1)
-            {
-                App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,item.getScreenId());
-                break;
-            }
-        }
+        if (position >= item.y && position < item.y + item.boundingBox.height) return item;
     }
+
+    return null;
 };
 
 /**
@@ -9911,7 +9910,65 @@ App.Command.prototype.execute = function execute(data) {};
 App.Command.prototype.destroy = function destroy()
 {
     App.EventDispatcher.prototype.destroy.call(this);
+
+    console.log("destroy ",this);
 };
+
+/**
+ * @class SequenceCommand
+ * @extends Command
+ * @param {boolean} allowMultipleInstances
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.SequenceCommand = function SequenceCommand(allowMultipleInstances,eventListenerPool)
+{
+    App.Command.call(this,allowMultipleInstances,eventListenerPool);
+
+    this._nextCommand = null;
+};
+
+App.SequenceCommand.prototype = Object.create(App.Command.prototype);
+App.SequenceCommand.prototype.constructor = App.SequenceCommand;
+
+/**
+ * Execute next command
+ * @param {*} [data=null]
+ * @private
+ */
+App.SequenceCommand.prototype._executeNextCommand = function _executeNextCommand(data)
+{
+    this._nextCommand.addEventListener(App.EventType.COMPLETE,this,this._onNextCommandComplete);
+    this._nextCommand.execute(data);
+};
+
+/**
+ * On next command complete
+ * @private
+ */
+App.SequenceCommand.prototype._onNextCommandComplete = function _onNextCommandComplete()
+{
+    this._nextCommand.removeEventListener(App.EventType.COMPLETE,this,this._onNextCommandComplete);
+
+    this.dispatchEvent(App.EventType.COMPLETE,this);
+};
+
+/**
+ * Destroy current instance
+ *
+ * @method destroy
+ */
+App.SequenceCommand.prototype.destroy = function destroy()
+{
+    App.Command.prototype.destroy.call(this);
+
+    if (this._nextCommand)
+    {
+        this._nextCommand.destroy();
+        this._nextCommand = null;
+    }
+};
+
 /**
  * @class LoadData
  * @extends {Command}
@@ -10082,6 +10139,14 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
 
     App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.MENU);
 
+//    console.log(new Date());
+//    var time = new Date().getTime();
+//    console.log(new Date(time),time);
+//    var transactions = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS);
+//    var time = transactions.getItemAt(0).time;
+//    var nTime = parseInt(time,10);
+//    console.log(time,nTime,new Date(nTime));
+
     this.dispatchEvent(App.EventType.COMPLETE);
 };
 
@@ -10089,7 +10154,7 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  * Initialize application model
  *
  * @method _initModel
- * @param {{accounts:string,icons:Object}} data
+ * @param {{accounts:string,transactions:string,icons:Object}} data
  * @private
  */
 App.Initialize.prototype._initModel = function _initModel(data)
@@ -10101,7 +10166,7 @@ App.Initialize.prototype._initModel = function _initModel(data)
     //TODO initiate all proxies in once 'init' method? Same as Controller ...
     ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
     ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
-    ModelLocator.addProxy(ModelName.SCREEN_CHAIN,new App.Stack());
+//    ModelLocator.addProxy(ModelName.SCREEN_CHAIN,new App.Stack());
     ModelLocator.addProxy(ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}));
     ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(
         JSON.parse(data.accounts).accounts,//TODO parse JSON on data from localStorage
@@ -10109,13 +10174,13 @@ App.Initialize.prototype._initModel = function _initModel(data)
         null,
         this._eventListenerPool
     ));
-    /*ModelLocator.addProxy(ModelName.TRANSACTIONS,new Collection(
-        localStorage.getItem(ModelName.TRANSACTIONS),
+    ModelLocator.addProxy(ModelName.TRANSACTIONS,new Collection(
+        JSON.parse(data.accounts).transactions,//TODO parse JSON on data from localStorage
         App.Transaction,
         null,
         this._eventListenerPool
     ));
-    ModelLocator.addProxy(ModelName.FILTERS,new Collection(
+    /*ModelLocator.addProxy(ModelName.FILTERS,new Collection(
         localStorage.getItem(ModelName.FILTERS),
         App.Filter,
         null,
@@ -10133,8 +10198,11 @@ App.Initialize.prototype._initModel = function _initModel(data)
  */
 App.Initialize.prototype._initController = function _initController()
 {
+    var EventType = App.EventType;
+
     App.Controller.init(this._eventListenerPool,[
-        {eventType:App.EventType.CHANGE_SCREEN,command:App.ChangeScreen}
+        {eventType:EventType.CHANGE_SCREEN,command:App.ChangeScreen},
+        {eventType:EventType.CREATE_TRANSACTION,command:App.CreateTransaction}
     ]);
 };
 
@@ -10235,6 +10303,7 @@ App.ChangeScreen.prototype.constructor = App.ChangeScreen;
  */
 App.ChangeScreen.prototype.execute = function execute(screenName)
 {
+    console.log("execute ChangeScreen");
     App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).changeScreen(screenName);
 
     //TODO flush previous screens if they'll not be needed anymore
@@ -10244,13 +10313,38 @@ App.ChangeScreen.prototype.execute = function execute(screenName)
 };
 
 /**
- * Destroy the command
- *
- * @method destroy
+ * @class CreateTransaction
+ * @extends SequenceCommand
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
  */
-App.ChangeScreen.prototype.destroy = function destroy()
+App.CreateTransaction = function CreateTransaction(eventListenerPool)
 {
-    App.Command.prototype.destroy.call(this);
+    App.SequenceCommand.call(this,false,eventListenerPool);
+};
+
+App.CreateTransaction.prototype = Object.create(App.SequenceCommand.prototype);
+App.CreateTransaction.prototype.constructor = App.CreateTransaction;
+
+/**
+ * Execute the command
+ *
+ * @method execute
+ * @param {{nextCommand:Command,screenName:number}} data
+ */
+App.CreateTransaction.prototype.execute = function execute(data)
+{
+    console.log("execute CreateTransaction");
+    this._nextCommand = data.nextCommand;
+
+    var transactions = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS),
+        transaction = new App.Transaction({},transactions);//TODO do I need to pass in empty object?
+
+    transactions.addItem(transaction);
+    transactions.setCurrent(transaction);
+
+    if (this._nextCommand) this._executeNextCommand(data.screenName);
+    else this.dispatchEvent(App.EventType.COMPLETE,this);
 };
 
 (function()

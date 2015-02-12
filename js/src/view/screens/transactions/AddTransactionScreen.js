@@ -49,8 +49,8 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._optionList = new App.List(App.Direction.Y);
     this._optionList.add(new TransactionOptionButton("account","Account","Personal",ScreenName.ACCOUNT,options),false);
     this._optionList.add(new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",ScreenName.CATEGORY,options),false);
-    this._optionList.add(new TransactionOptionButton("credit-card","Mode","Cash",ScreenName.CATEGORY,options),false);
     this._optionList.add(new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",ScreenName.SELECT_TIME,options),false);
+    this._optionList.add(new TransactionOptionButton("credit-card","Mode","Cash",ScreenName.CATEGORY,options),false);
     this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",ScreenName.ACCOUNT,options),true);
 
     //TODO automatically focus input when this screen is shown?
@@ -135,6 +135,8 @@ App.AddTransactionScreen.prototype.enable = function enable()
     App.InputScrollScreen.prototype.enable.call(this);
 
     this._pane.enable();
+
+    //console.log(App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent());
 };
 
 /**
@@ -213,9 +215,15 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
         }
         else
         {
+            var HeaderAction = App.HeaderAction;
+
             App.Controller.dispatchEvent(
-                App.EventType.CHANGE_SCREEN,
-                this._optionList.getItemUnderPoint(pointerData).getTargetScreenName()
+                App.EventType.CHANGE_SCREEN,{
+                    screenName:this._optionList.getItemUnderPoint(pointerData).getTargetScreenName(),
+                    headerLeftAction:HeaderAction.CONFIRM,
+                    headerRightAction:HeaderAction.CANCEL,
+                    headerName:"Filter"
+                }
             );
         }
     }

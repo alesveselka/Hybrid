@@ -3,17 +3,17 @@
  * @extends Graphics
  * @param {string} label
  * @param {string} iconName
- * @param {number} screenId
+ * @param {number} screenName
  * @param {{width:number,height:number,pixelRatio:number,style:Object}} options
  * @constructor
  */
-App.MenuItem = function MenuItem(label,iconName,screenId,options)
+App.MenuItem = function MenuItem(label,iconName,screenName,options)
 {
     PIXI.Graphics.call(this);
 
     this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
-    this._screenId = screenId;
+    this._screenName = screenName;
     this._pixelRatio = options.pixelRatio;
     this._icon = PIXI.Sprite.fromFrame(iconName);
     this._iconResizeRatio = Math.round(22 * options.pixelRatio) / this._icon.height;
@@ -50,10 +50,10 @@ App.MenuItem.prototype._render = function _render()
 };
 
 /**
- * Return associated screen ID
+ * Return associated screen name
  * @returns {number}
  */
-App.MenuItem.prototype.getScreenId = function getScreenId()
+App.MenuItem.prototype.getScreenName = function getScreenName()
 {
-    return this._screenId;
+    return this._screenName;
 };

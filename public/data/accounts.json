@@ -37,5 +37,5 @@
     ]}
 ],
 "transactions":[
-    {"amount":100,"type":"expense","pending":false,"repeat":false,"category":"1.3.1","mode":"cash","date":"...","currency":"CZK","note":"Jimmys Coffee"}
+    {"amount":100,"type":"expense","pending":false,"repeat":false,"category":"1.3.1","mode":"cash","time":"1423750915663","currency":"CZK","note":"Jimmys Coffee"}
 ]}
