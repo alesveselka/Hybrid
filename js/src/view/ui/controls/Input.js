@@ -353,6 +353,16 @@ App.Input.prototype._format = function _format(finish)
 };
 
 /**
+ * Set value
+ * @param {string} value
+ */
+App.Input.prototype.setValue = function setValue(value)
+{
+    this._inputProxy.value = value;
+    this._updateText(false);
+};
+
+/**
  * Test if position passed in falls within this input boundaries
  * @param {number} position
  * @returns {boolean}

@@ -44,14 +44,6 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
 
     App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.MENU);
 
-//    console.log(new Date());
-//    var time = new Date().getTime();
-//    console.log(new Date(time),time);
-//    var transactions = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS);
-//    var time = transactions.getItemAt(0).time;
-//    var nTime = parseInt(time,10);
-//    console.log(time,nTime,new Date(nTime));
-
     this.dispatchEvent(App.EventType.COMPLETE);
 };
 

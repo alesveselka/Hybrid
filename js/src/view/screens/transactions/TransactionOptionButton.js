@@ -30,10 +30,11 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,val
     if (value.indexOf("\n") > -1)
     {
         this._valueField.setText(value.substring(0,value.indexOf("\n")));
-        this._valueDetailField = new Text(value.substring(value.indexOf("\n"),value.length),options.valueDetailStyle);
+        this._valueDetailField = new Text(value.substring(value.indexOf("\n")+1,value.length),options.valueDetailStyle);
     }
 
     this._render();
+    this._update();
 
     this.addChild(this._icon);
     this.addChild(this._nameField);
@@ -67,18 +68,6 @@ App.TransactionOptionButton.prototype._render = function _render()
     this._nameField.x = Math.round(50 * r);
     this._nameField.y = Math.round((h - this._nameField.height) / 2);
 
-    this._valueField.x = Math.round(w - 35 * r - this._valueField.width);
-    if (this._valueDetailField)
-    {
-        this._valueField.y = Math.round(9 * r);
-        this._valueDetailField.y = Math.round(17 * r);
-        this._valueDetailField.x = Math.round(w - 35 * r - this._valueDetailField.width);
-    }
-    else
-    {
-        this._valueField.y = Math.round((h - this._valueField.height) / 2);
-    }
-
     this._arrow.scale.x = this._arrowResizeRatio;
     this._arrow.scale.y = this._arrowResizeRatio;
     this._arrow.x = Math.round(w - 15 * r - this._arrow.width);
@@ -91,10 +80,46 @@ App.TransactionOptionButton.prototype._render = function _render()
 };
 
 /**
+ * Update
+ * @private
+ */
+App.TransactionOptionButton.prototype._update = function _update()
+{
+    var r = this._pixelRatio,
+        offset = this.boundingBox.width - 35 * r;
+
+    this._valueField.x = Math.round(offset - this._valueField.width);
+    if (this._valueDetailField)
+    {
+        this._valueField.y = Math.round(9 * r);
+        this._valueDetailField.y = Math.round(30 * r);
+        this._valueDetailField.x = Math.round(offset - this._valueDetailField.width);
+    }
+    else
+    {
+        this._valueField.y = Math.round((this.boundingBox.height - this._valueField.height) / 2);
+    }
+};
+
+/**
  * Return target screen name
  * @returns {number}
  */
 App.TransactionOptionButton.prototype.getTargetScreenName = function getTargetScreenName()
 {
     return this._targetScreenName;
+};
+
+/**
+ * Set value
+ * @param {string} value
+ * @param {string} [details=null]
+ */
+App.TransactionOptionButton.prototype.setValue = function setValue(value,details)
+{
+    this._valueField.setText(value);
+
+    if (this._valueDetailField && details) this._valueDetailField.setText(details);
+
+    this._update();
 };

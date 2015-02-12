@@ -41,21 +41,28 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._noteInput = new App.Input("Add Note",20,inputWidth,inputHeight,r,true);
     this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
 
+    this._optionList = new App.List(App.Direction.Y);
+    //TODO do not need pass any string - all will be updated from model
+    this._accountOption = new TransactionOptionButton("account","Account","Personal",ScreenName.ACCOUNT,options);
+    this._categoryOption = new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",ScreenName.CATEGORY,options);
+    this._timeOption = new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",ScreenName.SELECT_TIME,options);
+    this._modeOption = new TransactionOptionButton("credit-card","Mode","Cash",ScreenName.CATEGORY,options);
+    this._currencyOption = new TransactionOptionButton("currencies","Currency","CZK",ScreenName.ACCOUNT,options);
+
     this._toggleButtonList = new App.List(App.Direction.X);
     this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false}),false);
     this._toggleButtonList.add(new TransactionToggleButton("pending-app","Pending",toggleOptions,{toggleColor:true}),false);
     this._toggleButtonList.add(new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true}),true);
 
-    this._optionList = new App.List(App.Direction.Y);
-    this._optionList.add(new TransactionOptionButton("account","Account","Personal",ScreenName.ACCOUNT,options),false);
-    this._optionList.add(new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",ScreenName.CATEGORY,options),false);
-    this._optionList.add(new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",ScreenName.SELECT_TIME,options),false);
-    this._optionList.add(new TransactionOptionButton("credit-card","Mode","Cash",ScreenName.CATEGORY,options),false);
-    this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",ScreenName.ACCOUNT,options),true);
+    this._optionList.add(this._accountOption,false);
+    this._optionList.add(this._categoryOption,false);
+    this._optionList.add(this._timeOption,false);
+    this._optionList.add(this._modeOption,false);
+    this._optionList.add(this._currencyOption,true);
 
     //TODO automatically focus input when this screen is shown?
 
-    this._transactionInput.restrict(/\D/);
+    this._transactionInput.restrict(/\D/g);
     this._render();
 
     this._container.addChild(this._background);
@@ -128,6 +135,41 @@ App.AddTransactionScreen.prototype._render = function _render()
 };
 
 /**
+ * Update
+ * @private
+ */
+App.AddTransactionScreen.prototype._update = function _update()
+{
+    var time = this._model.time;
+
+    this._transactionInput.setValue(this._model.amount);
+
+    //this._accountOption.setValue(this._model.accounr);//TODO parse category
+    this._timeOption.setValue(App.DateUtils.getMilitaryTime(time),time.toDateString());
+    this._modeOption.setValue(this._model.mode);
+    this._currencyOption.setValue(this._model.currency);
+
+    this._noteInput.setValue(this._model.note);
+};
+
+/**
+ * Show
+ */
+App.AddTransactionScreen.prototype.show = function show()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.HIDDEN || this._transitionState === TransitionState.HIDING)
+    {
+        var transaction = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent();
+        if (this._model !== transaction) this._model = transaction;
+        this._update();
+    }
+
+    App.InputScrollScreen.prototype.show.call(this);
+};
+
+/**
  * Enable
  */
 App.AddTransactionScreen.prototype.enable = function enable()
@@ -135,8 +177,6 @@ App.AddTransactionScreen.prototype.enable = function enable()
     App.InputScrollScreen.prototype.enable.call(this);
 
     this._pane.enable();
-
-    //console.log(App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent());
 };
 
 /**

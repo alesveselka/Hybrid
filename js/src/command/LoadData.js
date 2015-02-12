@@ -87,7 +87,7 @@ App.LoadData.prototype._loadData = function _loadData()
     //TODO Access local storage
 
     var request = new XMLHttpRequest();
-    request.open('GET','./data/accounts.json',true);
+    request.open('GET','./data/data.json',true);
 
     request.onload = function() {
         if (request.status >= 200 && request.status < 400)

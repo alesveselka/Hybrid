@@ -16,6 +16,7 @@ module.exports = function(grunt)
         "js/src/utils/Device.js",
         "js/src/utils/GraphicUtils.js",
         "js/src/utils/LayoutUtils.js",
+        "js/src/utils/StringUtils.js",
         "js/src/enum/EventType.js",
         "js/src/enum/ModelName.js",
         "js/src/enum/ViewName.js",

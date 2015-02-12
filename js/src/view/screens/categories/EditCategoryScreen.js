@@ -41,7 +41,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     //TODO add modal window to confirm deleting sub-category. Also offer option 'Edit'?
     //TODO center selected color/icon when shown
 
-    this._budget.restrict(/\D/);
+    this._budget.restrict(/\D/g);
     this._render();
 
     this._container.addChild(this._background);

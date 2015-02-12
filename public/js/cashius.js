@@ -463,6 +463,18 @@ App.DateUtils = {
     getDaysInMonth:function getDaysInMonth(year,month)
     {
         return (month === 1 && (year % 400 === 0 || year % 4 === 0)) ? 29 : this._daysInMonth[month];
+    },
+
+    /**
+     * Format and return military time
+     * @param {Date} time
+     * @returns {string}
+     */
+    getMilitaryTime:function getMilitaryTime(time)
+    {
+        var padFunction = App.StringUtils.pad;
+
+        return padFunction(time.getHours()) + ":" + padFunction(time.getMinutes());
     }
 };
 
@@ -614,6 +626,33 @@ App.LayoutUtils = {
                 position = Math.round(position + item.boundingBox.height);
             }
         }
+    }
+};
+
+/**
+ * StringUtils
+ * @type {{encode: Function}}
+ */
+App.StringUtils = {
+    /**
+     * Encode URI component
+     * @param {string} str
+     * @returns {string}
+     */
+    encode:function encode(str)
+    {
+        //encodeURIComponent(str).replace(/[!'()]/g,escape).replace(/\*/g,"%2A").replace(/%(?:7C|60|5E)/g,unescape);
+        return encodeURIComponent(str).replace(/[!'()]/g,escape).replace(/\*/g,"%2A");
+    },
+
+    /**
+     * Add leading zero to number passed in
+     * @param {number} value
+     */
+    pad:function pad(value)
+    {
+        if (value < 10) return '0' + value;
+        return value;
     }
 };
 
@@ -1420,15 +1459,15 @@ App.Account.prototype.getCategories = function getCategories()
 
 App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
 {
-    this.amount = data.amount || 0;
+    this.amount = data.amount || "";
     this.type = data.type || "expense";//TODO remove hard-coded value
     this.category = data.category || null;
-    this.time = data.time || -1;
+    this.time = data.time ? new Date(data.time) : new Date();
     this.mode = data.mode || "cash";//TODO remove hard-coded value
-    this.currency = data.currency || "CZK";//TODO remove hard-coded value
+    this.currency = data.currency || "CZK";//TODO base currency from Settings
     this.repeat = data.repeat || 0;
     this.pending = data.pending || 0;
-    this.note = data.note || null;//TODO decode
+    this.note = data.note ? decodeURI(data.note) : null;
 };
 
 App.Category = function Category(data,collection,parent,eventListenerPool)
@@ -2550,6 +2589,16 @@ App.Input.prototype._format = function _format(finish)
     if (this._restrictPattern) this._inputProxy.value = this._inputProxy.value.replace(this._restrictPattern,"");
 
     return this._inputProxy.value;
+};
+
+/**
+ * Set value
+ * @param {string} value
+ */
+App.Input.prototype.setValue = function setValue(value)
+{
+    this._inputProxy.value = value;
+    this._updateText(false);
 };
 
 /**
@@ -6269,10 +6318,11 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,val
     if (value.indexOf("\n") > -1)
     {
         this._valueField.setText(value.substring(0,value.indexOf("\n")));
-        this._valueDetailField = new Text(value.substring(value.indexOf("\n"),value.length),options.valueDetailStyle);
+        this._valueDetailField = new Text(value.substring(value.indexOf("\n")+1,value.length),options.valueDetailStyle);
     }
 
     this._render();
+    this._update();
 
     this.addChild(this._icon);
     this.addChild(this._nameField);
@@ -6306,18 +6356,6 @@ App.TransactionOptionButton.prototype._render = function _render()
     this._nameField.x = Math.round(50 * r);
     this._nameField.y = Math.round((h - this._nameField.height) / 2);
 
-    this._valueField.x = Math.round(w - 35 * r - this._valueField.width);
-    if (this._valueDetailField)
-    {
-        this._valueField.y = Math.round(9 * r);
-        this._valueDetailField.y = Math.round(17 * r);
-        this._valueDetailField.x = Math.round(w - 35 * r - this._valueDetailField.width);
-    }
-    else
-    {
-        this._valueField.y = Math.round((h - this._valueField.height) / 2);
-    }
-
     this._arrow.scale.x = this._arrowResizeRatio;
     this._arrow.scale.y = this._arrowResizeRatio;
     this._arrow.x = Math.round(w - 15 * r - this._arrow.width);
@@ -6330,12 +6368,48 @@ App.TransactionOptionButton.prototype._render = function _render()
 };
 
 /**
+ * Update
+ * @private
+ */
+App.TransactionOptionButton.prototype._update = function _update()
+{
+    var r = this._pixelRatio,
+        offset = this.boundingBox.width - 35 * r;
+
+    this._valueField.x = Math.round(offset - this._valueField.width);
+    if (this._valueDetailField)
+    {
+        this._valueField.y = Math.round(9 * r);
+        this._valueDetailField.y = Math.round(30 * r);
+        this._valueDetailField.x = Math.round(offset - this._valueDetailField.width);
+    }
+    else
+    {
+        this._valueField.y = Math.round((this.boundingBox.height - this._valueField.height) / 2);
+    }
+};
+
+/**
  * Return target screen name
  * @returns {number}
  */
 App.TransactionOptionButton.prototype.getTargetScreenName = function getTargetScreenName()
 {
     return this._targetScreenName;
+};
+
+/**
+ * Set value
+ * @param {string} value
+ * @param {string} [details=null]
+ */
+App.TransactionOptionButton.prototype.setValue = function setValue(value,details)
+{
+    this._valueField.setText(value);
+
+    if (this._valueDetailField && details) this._valueDetailField.setText(details);
+
+    this._update();
 };
 
 /**
@@ -6381,21 +6455,28 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._noteInput = new App.Input("Add Note",20,inputWidth,inputHeight,r,true);
     this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
 
+    this._optionList = new App.List(App.Direction.Y);
+    //TODO do not need pass any string - all will be updated from model
+    this._accountOption = new TransactionOptionButton("account","Account","Personal",ScreenName.ACCOUNT,options);
+    this._categoryOption = new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",ScreenName.CATEGORY,options);
+    this._timeOption = new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",ScreenName.SELECT_TIME,options);
+    this._modeOption = new TransactionOptionButton("credit-card","Mode","Cash",ScreenName.CATEGORY,options);
+    this._currencyOption = new TransactionOptionButton("currencies","Currency","CZK",ScreenName.ACCOUNT,options);
+
     this._toggleButtonList = new App.List(App.Direction.X);
     this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false}),false);
     this._toggleButtonList.add(new TransactionToggleButton("pending-app","Pending",toggleOptions,{toggleColor:true}),false);
     this._toggleButtonList.add(new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true}),true);
 
-    this._optionList = new App.List(App.Direction.Y);
-    this._optionList.add(new TransactionOptionButton("account","Account","Personal",ScreenName.ACCOUNT,options),false);
-    this._optionList.add(new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",ScreenName.CATEGORY,options),false);
-    this._optionList.add(new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",ScreenName.SELECT_TIME,options),false);
-    this._optionList.add(new TransactionOptionButton("credit-card","Mode","Cash",ScreenName.CATEGORY,options),false);
-    this._optionList.add(new TransactionOptionButton("currencies","Currency","CZK",ScreenName.ACCOUNT,options),true);
+    this._optionList.add(this._accountOption,false);
+    this._optionList.add(this._categoryOption,false);
+    this._optionList.add(this._timeOption,false);
+    this._optionList.add(this._modeOption,false);
+    this._optionList.add(this._currencyOption,true);
 
     //TODO automatically focus input when this screen is shown?
 
-    this._transactionInput.restrict(/\D/);
+    this._transactionInput.restrict(/\D/g);
     this._render();
 
     this._container.addChild(this._background);
@@ -6468,6 +6549,41 @@ App.AddTransactionScreen.prototype._render = function _render()
 };
 
 /**
+ * Update
+ * @private
+ */
+App.AddTransactionScreen.prototype._update = function _update()
+{
+    var time = this._model.time;
+
+    this._transactionInput.setValue(this._model.amount);
+
+    //this._accountOption.setValue(this._model.accounr);//TODO parse category
+    this._timeOption.setValue(App.DateUtils.getMilitaryTime(time),time.toDateString());
+    this._modeOption.setValue(this._model.mode);
+    this._currencyOption.setValue(this._model.currency);
+
+    this._noteInput.setValue(this._model.note);
+};
+
+/**
+ * Show
+ */
+App.AddTransactionScreen.prototype.show = function show()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.HIDDEN || this._transitionState === TransitionState.HIDING)
+    {
+        var transaction = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent();
+        if (this._model !== transaction) this._model = transaction;
+        this._update();
+    }
+
+    App.InputScrollScreen.prototype.show.call(this);
+};
+
+/**
  * Enable
  */
 App.AddTransactionScreen.prototype.enable = function enable()
@@ -6475,8 +6591,6 @@ App.AddTransactionScreen.prototype.enable = function enable()
     App.InputScrollScreen.prototype.enable.call(this);
 
     this._pane.enable();
-
-    console.log(App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent());
 };
 
 /**
@@ -7703,7 +7817,7 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     //TODO add modal window to confirm deleting sub-category. Also offer option 'Edit'?
     //TODO center selected color/icon when shown
 
-    this._budget.restrict(/\D/);
+    this._budget.restrict(/\D/g);
     this._render();
 
     this._container.addChild(this._background);
@@ -9910,8 +10024,6 @@ App.Command.prototype.execute = function execute(data) {};
 App.Command.prototype.destroy = function destroy()
 {
     App.EventDispatcher.prototype.destroy.call(this);
-
-    console.log("destroy ",this);
 };
 
 /**
@@ -10058,7 +10170,7 @@ App.LoadData.prototype._loadData = function _loadData()
     //TODO Access local storage
 
     var request = new XMLHttpRequest();
-    request.open('GET','./data/accounts.json',true);
+    request.open('GET','./data/data.json',true);
 
     request.onload = function() {
         if (request.status >= 200 && request.status < 400)
@@ -10303,7 +10415,6 @@ App.ChangeScreen.prototype.constructor = App.ChangeScreen;
  */
 App.ChangeScreen.prototype.execute = function execute(screenName)
 {
-    console.log("execute ChangeScreen");
     App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).changeScreen(screenName);
 
     //TODO flush previous screens if they'll not be needed anymore
@@ -10334,7 +10445,6 @@ App.CreateTransaction.prototype.constructor = App.CreateTransaction;
  */
 App.CreateTransaction.prototype.execute = function execute(data)
 {
-    console.log("execute CreateTransaction");
     this._nextCommand = data.nextCommand;
 
     var transactions = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS),

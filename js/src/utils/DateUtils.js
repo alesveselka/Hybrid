@@ -107,5 +107,17 @@ App.DateUtils = {
     getDaysInMonth:function getDaysInMonth(year,month)
     {
         return (month === 1 && (year % 400 === 0 || year % 4 === 0)) ? 29 : this._daysInMonth[month];
+    },
+
+    /**
+     * Format and return military time
+     * @param {Date} time
+     * @returns {string}
+     */
+    getMilitaryTime:function getMilitaryTime(time)
+    {
+        var padFunction = App.StringUtils.pad;
+
+        return padFunction(time.getHours()) + ":" + padFunction(time.getMinutes());
     }
 };
