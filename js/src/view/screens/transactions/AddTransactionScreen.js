@@ -46,7 +46,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._accountOption = new TransactionOptionButton("account","Account","Personal",ScreenName.ACCOUNT,options);
     this._categoryOption = new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",ScreenName.CATEGORY,options);
     this._timeOption = new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",ScreenName.SELECT_TIME,options);
-    this._modeOption = new TransactionOptionButton("credit-card","Mode","Cash",ScreenName.CATEGORY,options);
+    this._methodOption = new TransactionOptionButton("credit-card","Method","Cash",ScreenName.CATEGORY,options);
     this._currencyOption = new TransactionOptionButton("currencies","Currency","CZK",ScreenName.ACCOUNT,options);
 
     this._toggleButtonList = new App.List(App.Direction.X);
@@ -57,7 +57,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._optionList.add(this._accountOption,false);
     this._optionList.add(this._categoryOption,false);
     this._optionList.add(this._timeOption,false);
-    this._optionList.add(this._modeOption,false);
+    this._optionList.add(this._methodOption,false);
     this._optionList.add(this._currencyOption,true);
 
     //TODO automatically focus input when this screen is shown?
@@ -140,13 +140,13 @@ App.AddTransactionScreen.prototype._render = function _render()
  */
 App.AddTransactionScreen.prototype._update = function _update()
 {
-    var time = this._model.time;
+    var date = this._model.date;
 
     this._transactionInput.setValue(this._model.amount);
 
     //this._accountOption.setValue(this._model.accounr);//TODO parse category
-    this._timeOption.setValue(App.DateUtils.getMilitaryTime(time),time.toDateString());
-    this._modeOption.setValue(this._model.mode);
+    this._timeOption.setValue(App.DateUtils.getMilitaryTime(date),date.toDateString());
+    this._methodOption.setValue(this._model.method);
     this._currencyOption.setValue(this._model.currency);
 
     this._noteInput.setValue(this._model.note);

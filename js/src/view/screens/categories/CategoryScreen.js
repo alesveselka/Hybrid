@@ -15,7 +15,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
         nameLabelStyle = FontStyle.get(18,FontStyle.BLUE),
         editLabelStyle = FontStyle.get(18,FontStyle.WHITE),
         i = 0,
-        l = this._model.length(),
+        l = this._model.length,
         button = null;
 
     this._interactiveButton = null;
@@ -25,7 +25,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     for (;i<l;i++)
     {
 //        button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle,editLabelStyle);
-        button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle);
+        button = new CategoryButton(this._model[i],layout,nameLabelStyle);
         this._buttons[i] = button;
         this._buttonList.add(button);
     }

@@ -19,9 +19,9 @@ App.AccountScreen = function AccountScreen(model,layout)
     this._buttons = new Array(l);
     this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
 
-    for (;i<30;i++)
+    for (;i<l;i++)
     {
-        button = new AccountButton(this._model.getItemAt(0),this._layout,i);
+        button = new AccountButton(this._model.getItemAt(i),this._layout,i);
         this._buttons[i] = button;
         this._buttonList.add(button);
     }

@@ -6,6 +6,18 @@ App.ModelLocator = {
     _proxies:{},
 
     /**
+     * Initialize with array of proxies passed in
+     * @param {Array.<>} proxies
+     */
+    init:function init(proxies)
+    {
+        var i = 0,
+            l = proxies.length;
+
+        for (;i<l;) this._proxies[proxies[i++]] = proxies[i++];
+    },
+
+    /**
      * @method addPoxy Add proxy to the locator
      * @param {string} proxyName
      * @param {*} proxy

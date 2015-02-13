@@ -14,7 +14,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
 
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName,
-        categories = ModelLocator.getProxy(ModelName.ACCOUNTS).getItemAt(0).getCategories();
+        account = ModelLocator.getProxy(ModelName.ACCOUNTS);//TODO I could also leave this up the the particular screen
 
     this._renderer = renderer;
     this._stage = stage;
@@ -36,8 +36,8 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     //TODO use ScreenFactory for the screens?
     //TODO deffer initiation and/or rendering of most of the screens?
     this._screenStack = new App.ViewStack([
-        new App.AccountScreen(categories,this._layout),
-        new App.CategoryScreen(categories,this._layout),
+        new App.AccountScreen(account,this._layout),
+        new App.CategoryScreen(account.getItemAt(1).categories,this._layout),
         new App.SelectTimeScreen(null,this._layout),
         new App.EditCategoryScreen(null,this._layout),
         new App.TransactionScreen(null,this._layout),

@@ -280,7 +280,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
             position = Math.round(position + this._itemSize);
         }
 
-        if (updatePosition) this._updateX(this.x);
+//        if (updatePosition) this._updateX(this.x);
     }
     else if (this._direction === Direction.Y)
     {
@@ -291,7 +291,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
             position = Math.round(position + this._itemSize);
         }
 
-        if (updatePosition) this._updateY(this.y);
+//        if (updatePosition) this._updateY(this.y);
     }
 };
 

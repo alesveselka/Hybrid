@@ -1,10 +1,9 @@
 App.Category = function Category(data,collection,parent,eventListenerPool)
 {
-    this._data = data;
-    this._account = parent;
-    this.name = data.name;
-    this.color = data.color;
-    this.icon = data.icon;
-    this.subCategories = data.subCategories;
-    //this.budget = budget;
+    this.id = data[0];
+    this.name = data[1];
+    this.color = data[2];
+    this.icon = data[3];
+    this.subCategories = data[4];
+    this.budget = data[5];
 };

@@ -4,23 +4,25 @@
  * @return {{
  *      TICKER:string,
  *      EVENT_LISTENER_POOL:string,
+ *      PAYMENT_METHODS:string,
+ *      CURRENCIES:string,
+ *      SUB_CATEGORIES:string,
+ *      CATEGORIES:string,
  *      ACCOUNTS:string,
  *      TRANSACTIONS:string,
  *      SETTINGS:string,
- *      FILTERS:string,
- *      CURRENCIES:string,
- *      ICONS:string,
- *      SCREEN_CHAIN:string
+ *      ICONS:string
  * }}
  */
 App.ModelName = {
     TICKER:"TICKER",
     EVENT_LISTENER_POOL:"EVENT_LISTENER_POOL",
+    PAYMENT_METHODS:"PAYMENT_METHODS",
+    CURRENCIES:"CURRENCIES",
+    SUB_CATEGORIES:"SUB_CATEGORIES",
+    CATEGORIES:"CATEGORIES",
     ACCOUNTS:"ACCOUNTS",
     TRANSACTIONS:"TRANSACTIONS",
     SETTINGS:"SETTINGS",
-    FILTERS:"FILTERS",
-    CURRENCIES:"CURRENCIES",
-    ICONS:"ICONS",
-    SCREEN_CHAIN:"SCREEN_CHAIN"
+    ICONS:"ICONS"
 };

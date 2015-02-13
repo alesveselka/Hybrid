@@ -727,25 +727,27 @@ App.EventType = {
  * @return {{
  *      TICKER:string,
  *      EVENT_LISTENER_POOL:string,
+ *      PAYMENT_METHODS:string,
+ *      CURRENCIES:string,
+ *      SUB_CATEGORIES:string,
+ *      CATEGORIES:string,
  *      ACCOUNTS:string,
  *      TRANSACTIONS:string,
  *      SETTINGS:string,
- *      FILTERS:string,
- *      CURRENCIES:string,
- *      ICONS:string,
- *      SCREEN_CHAIN:string
+ *      ICONS:string
  * }}
  */
 App.ModelName = {
     TICKER:"TICKER",
     EVENT_LISTENER_POOL:"EVENT_LISTENER_POOL",
+    PAYMENT_METHODS:"PAYMENT_METHODS",
+    CURRENCIES:"CURRENCIES",
+    SUB_CATEGORIES:"SUB_CATEGORIES",
+    CATEGORIES:"CATEGORIES",
     ACCOUNTS:"ACCOUNTS",
     TRANSACTIONS:"TRANSACTIONS",
     SETTINGS:"SETTINGS",
-    FILTERS:"FILTERS",
-    CURRENCIES:"CURRENCIES",
-    ICONS:"ICONS",
-    SCREEN_CHAIN:"SCREEN_CHAIN"
+    ICONS:"ICONS"
 };
 
 /**
@@ -841,6 +843,15 @@ App.HeaderAction = {
     CANCEL:2,
     CONFIRM:3,
     ADD_TRANSACTION:4
+};
+
+/**
+ * TransactionType
+ * @type {{EXPENSE: number, INCOME: number}}
+ */
+App.TransactionType = {
+    EXPENSE:1,
+    INCOME:2
 };
 
 /**
@@ -1065,6 +1076,18 @@ App.ModelLocator = {
     _proxies:{},
 
     /**
+     * Initialize with array of proxies passed in
+     * @param {Array.<>} proxies
+     */
+    init:function init(proxies)
+    {
+        var i = 0,
+            l = proxies.length;
+
+        for (;i<l;) this._proxies[proxies[i++]] = proxies[i++];
+    },
+
+    /**
      * @method addPoxy Add proxy to the locator
      * @param {string} proxyName
      * @param {*} proxy
@@ -1234,6 +1257,36 @@ App.Collection.prototype.getItemAt = function getItemAt(index)
 };
 
 /**
+ * Filter collection against value passed in
+ * @param {string|Array} value
+ * @param {string} [property=null]
+ * @returns {Array}
+ */
+App.Collection.prototype.filter = function filter(value,property)
+{
+    var i = 0,
+        l = this._items.length,
+        result = [];
+
+    if (property)
+    {
+        for (;i<l;i++)
+        {
+            if (value.indexOf(this._items[i][property]) > -1) result.push(this._items[i]);
+        }
+    }
+    else
+    {
+        for (;i<l;i++)
+        {
+            if (value.indexOf(this._items[i]) > -1) result.push(this._items[i]);
+        }
+    }
+
+    return result;
+};
+
+/**
  * @method previous Return previous item
  * @returns {*}
  */
@@ -1393,6 +1446,84 @@ App.Settings = {
 };
 
 /**
+ * @class PaymentMethod
+ * @param {{id:number,name:string}} data
+ * @param {Collection} collection
+ * @param {*} parent
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.PaymentMethod = function PaymentMethod(data,collection,parent,eventListenerPool)
+{
+    this.id = data[0];
+    this.name = data[1];
+};
+
+/**
+ * @class Currency
+ * @param {{id:number,name:string}} data
+ * @param {Collection} collection
+ * @param {*} parent
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.Currency = function Currency(data,collection,parent,eventListenerPool)
+{
+    this.id = data[0];
+    this.name = data[1];
+};
+
+App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
+{
+    this._data = data;
+    this.amount = data[0] || "";
+    this.type = data[1] || App.TransactionType.EXPENSE;
+    this.pending = data[2] || 0;
+    this.repeat = data[3] || 0;
+    this.account = data[4] || null;
+    this.method = data[5] || 1;
+    this.date = data[6] ? new Date(data[6]) : new Date();
+    this.currency = data[7] || "CZK";//TODO base currency from Settings
+    this.note = data[8] ? decodeURI(data[8]) : null;
+};
+
+/**
+ * @property amount
+ * @type string
+ *//*
+Object.defineProperty(App.Transaction.prototype,'amount',{
+    get:function()
+    {
+        if (!this.amount) this.amount = this._data[0] || "";
+        return  this.amount;
+    }
+});*/
+
+/**
+ * @class SubCategory
+ * @param {Array} data
+ * @param {Collection} collection
+ * @param {*} parent
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
+{
+    this._data = data;
+    this.name = data[1];
+};
+
+App.Category = function Category(data,collection,parent,eventListenerPool)
+{
+    this.id = data[0];
+    this.name = data[1];
+    this.color = data[2];
+    this.icon = data[3];
+    this.subCategories = data[4];
+    this.budget = data[5];
+};
+
+/**
  * @class Account
  * @param {{name:string,categories:Array.<Category>}} data
  * @param {Collection} collection
@@ -1403,83 +1534,22 @@ App.Settings = {
 App.Account = function Account(data,collection,parent,eventListenerPool)
 {
     this._data = data;
-    this._name = null;
+    //this._id = this._data[0];
+    this.name = this._data[1];
     this._categories = null;
-    this._eventListenerPool = eventListenerPool;
 };
 
 /**
- * Create and return name
- *
- * @method getName
- * @returns {string}
+ * @property categories
+ * @type Collection
  */
-App.Account.prototype.getName = function getName()
-{
-    if (!this._name) this._name = this._data.name;
-
-    return this._name;
-};
-
-App.Account.prototype.getBalance = function getBalance()
-{
-
-};
-
-App.Account.prototype.getExpenses = function getExpenses()
-{
-
-};
-
-App.Account.prototype.getIncome = function getIncome()
-{
-
-};
-
-/**
- * Create and return categories collection
- *
- * @method getCategories
- * @returns {Collection}
- */
-App.Account.prototype.getCategories = function getCategories()
-{
-    if (!this._categories)
+Object.defineProperty(App.Account.prototype,'categories',{
+    get:function()
     {
-        this._categories = new App.Collection(
-            this._data.categories,
-            App.Category,
-            this,
-            this._eventListenerPool
-        );
+        if (!this._categories) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2],"id");
+        return this._categories;
     }
-
-    return this._categories;
-};
-
-App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
-{
-    this.amount = data.amount || "";
-    this.type = data.type || "expense";//TODO remove hard-coded value
-    this.category = data.category || null;
-    this.time = data.time ? new Date(data.time) : new Date();
-    this.mode = data.mode || "cash";//TODO remove hard-coded value
-    this.currency = data.currency || "CZK";//TODO base currency from Settings
-    this.repeat = data.repeat || 0;
-    this.pending = data.pending || 0;
-    this.note = data.note ? decodeURI(data.note) : null;
-};
-
-App.Category = function Category(data,collection,parent,eventListenerPool)
-{
-    this._data = data;
-    this._account = parent;
-    this.name = data.name;
-    this.color = data.color;
-    this.icon = data.icon;
-    this.subCategories = data.subCategories;
-    //this.budget = budget;
-};
+});
 
 App.Filter = function Filter(startDate,endDate,categories)
 {
@@ -4586,7 +4656,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
             position = Math.round(position + this._itemSize);
         }
 
-        if (updatePosition) this._updateX(this.x);
+//        if (updatePosition) this._updateX(this.x);
     }
     else if (this._direction === Direction.Y)
     {
@@ -4597,7 +4667,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
             position = Math.round(position + this._itemSize);
         }
 
-        if (updatePosition) this._updateY(this.y);
+//        if (updatePosition) this._updateY(this.y);
     }
 };
 
@@ -4668,7 +4738,7 @@ App.List.prototype.updateLayout = function updateLayout()
         item = null,
         position = 0,
         Direction = App.Direction;
-
+    //TODO rewrite for bracelet access - less code. As well as other classes and methods!
     if (this._direction === Direction.X)
     {
         for (;i<l;)
@@ -6460,7 +6530,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._accountOption = new TransactionOptionButton("account","Account","Personal",ScreenName.ACCOUNT,options);
     this._categoryOption = new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",ScreenName.CATEGORY,options);
     this._timeOption = new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",ScreenName.SELECT_TIME,options);
-    this._modeOption = new TransactionOptionButton("credit-card","Mode","Cash",ScreenName.CATEGORY,options);
+    this._methodOption = new TransactionOptionButton("credit-card","Method","Cash",ScreenName.CATEGORY,options);
     this._currencyOption = new TransactionOptionButton("currencies","Currency","CZK",ScreenName.ACCOUNT,options);
 
     this._toggleButtonList = new App.List(App.Direction.X);
@@ -6471,7 +6541,7 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._optionList.add(this._accountOption,false);
     this._optionList.add(this._categoryOption,false);
     this._optionList.add(this._timeOption,false);
-    this._optionList.add(this._modeOption,false);
+    this._optionList.add(this._methodOption,false);
     this._optionList.add(this._currencyOption,true);
 
     //TODO automatically focus input when this screen is shown?
@@ -6554,13 +6624,13 @@ App.AddTransactionScreen.prototype._render = function _render()
  */
 App.AddTransactionScreen.prototype._update = function _update()
 {
-    var time = this._model.time;
+    var date = this._model.date;
 
     this._transactionInput.setValue(this._model.amount);
 
     //this._accountOption.setValue(this._model.accounr);//TODO parse category
-    this._timeOption.setValue(App.DateUtils.getMilitaryTime(time),time.toDateString());
-    this._modeOption.setValue(this._model.mode);
+    this._timeOption.setValue(App.DateUtils.getMilitaryTime(date),date.toDateString());
+    this._methodOption.setValue(this._model.method);
     this._currencyOption.setValue(this._model.currency);
 
     this._noteInput.setValue(this._model.note);
@@ -6940,9 +7010,9 @@ App.AccountScreen = function AccountScreen(model,layout)
     this._buttons = new Array(l);
     this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
 
-    for (;i<30;i++)
+    for (;i<l;i++)
     {
-        button = new AccountButton(this._model.getItemAt(0),this._layout,i);
+        button = new AccountButton(this._model.getItemAt(i),this._layout,i);
         this._buttons[i] = button;
         this._buttonList.add(button);
     }
@@ -7390,7 +7460,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
         nameLabelStyle = FontStyle.get(18,FontStyle.BLUE),
         editLabelStyle = FontStyle.get(18,FontStyle.WHITE),
         i = 0,
-        l = this._model.length(),
+        l = this._model.length,
         button = null;
 
     this._interactiveButton = null;
@@ -7400,7 +7470,7 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     for (;i<l;i++)
     {
 //        button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle,editLabelStyle);
-        button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle);
+        button = new CategoryButton(this._model[i],layout,nameLabelStyle);
         this._buttons[i] = button;
         this._buttonList.add(button);
     }
@@ -9385,7 +9455,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
 
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName,
-        categories = ModelLocator.getProxy(ModelName.ACCOUNTS).getItemAt(0).getCategories();
+        account = ModelLocator.getProxy(ModelName.ACCOUNTS);//TODO I could also leave this up the the particular screen
 
     this._renderer = renderer;
     this._stage = stage;
@@ -9407,8 +9477,8 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     //TODO use ScreenFactory for the screens?
     //TODO deffer initiation and/or rendering of most of the screens?
     this._screenStack = new App.ViewStack([
-        new App.AccountScreen(categories,this._layout),
-        new App.CategoryScreen(categories,this._layout),
+        new App.AccountScreen(account,this._layout),
+        new App.CategoryScreen(account.getItemAt(1).categories,this._layout),
         new App.SelectTimeScreen(null,this._layout),
         new App.EditCategoryScreen(null,this._layout),
         new App.TransactionScreen(null,this._layout),
@@ -9906,21 +9976,16 @@ App.Controller = {
     /**
      * Init
      * @param {ObjectPool} eventListenerPool
-     * @param {Array.<{eventType:string,command:Function}>} eventMap
+     * @param {Array.<>} eventMap
      */
     init:function init(eventListenerPool,eventMap)
     {
         this._eventListenerPool = eventListenerPool;
 
-        var i = 0, l = eventMap.length, obj = null;
-        for (;i<l;)
-        {
-            obj = eventMap[i++];
-            this._eventCommandMap[obj.eventType] = {constructor:obj.command};
-        }
-        obj = null;
-        eventMap = null;
+        var i = 0,
+            l = eventMap.length;
 
+        for (;i<l;) this._eventCommandMap[eventMap[i++]] = {constructor:eventMap[i++]};
     },
 
     /**
@@ -10175,7 +10240,7 @@ App.LoadData.prototype._loadData = function _loadData()
     request.onload = function() {
         if (request.status >= 200 && request.status < 400)
         {
-            this.dispatchEvent(App.EventType.COMPLETE,{accounts:request.responseText,icons:this._icons});
+            this.dispatchEvent(App.EventType.COMPLETE,{userData:request.responseText,icons:this._icons});
         } else {
             console.log("error");
         }
@@ -10251,14 +10316,6 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
 
     App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.MENU);
 
-//    console.log(new Date());
-//    var time = new Date().getTime();
-//    console.log(new Date(time),time);
-//    var transactions = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS);
-//    var time = transactions.getItemAt(0).time;
-//    var nTime = parseInt(time,10);
-//    console.log(time,nTime,new Date(nTime));
-
     this.dispatchEvent(App.EventType.COMPLETE);
 };
 
@@ -10266,38 +10323,26 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  * Initialize application model
  *
  * @method _initModel
- * @param {{accounts:string,transactions:string,icons:Object}} data
+ * @param {{userData:string,transactions:string,icons:Object}} data
  * @private
  */
 App.Initialize.prototype._initModel = function _initModel(data)
 {
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        Collection = App.Collection;
+    var ModelName = App.ModelName,
+        Collection = App.Collection,
+        userData = JSON.parse(data.userData);
 
-    //TODO initiate all proxies in once 'init' method? Same as Controller ...
-    ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
-    ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
-//    ModelLocator.addProxy(ModelName.SCREEN_CHAIN,new App.Stack());
-    ModelLocator.addProxy(ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}));
-    ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(
-        JSON.parse(data.accounts).accounts,//TODO parse JSON on data from localStorage
-        App.Account,
-        null,
-        this._eventListenerPool
-    ));
-    ModelLocator.addProxy(ModelName.TRANSACTIONS,new Collection(
-        JSON.parse(data.accounts).transactions,//TODO parse JSON on data from localStorage
-        App.Transaction,
-        null,
-        this._eventListenerPool
-    ));
-    /*ModelLocator.addProxy(ModelName.FILTERS,new Collection(
-        localStorage.getItem(ModelName.FILTERS),
-        App.Filter,
-        null,
-        this._eventListenerPool
-    ));*/
+    App.ModelLocator.init([
+        ModelName.EVENT_LISTENER_POOL,this._eventListenerPool,
+        ModelName.TICKER,new App.Ticker(this._eventListenerPool),
+        ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}),
+        ModelName.PAYMENT_METHODS,new Collection(userData.paymentMethods,App.PaymentMethod,null,this._eventListenerPool),
+        ModelName.CURRENCIES,new Collection(userData.currencies,App.Currency,null,this._eventListenerPool),
+        ModelName.SUB_CATEGORIES,new Collection(userData.subCategories,App.SubCategory,null,this._eventListenerPool),
+        ModelName.CATEGORIES,new Collection(userData.categories,App.Category,null,this._eventListenerPool),
+        ModelName.ACCOUNTS,new Collection(userData.accounts,App.Account,null,this._eventListenerPool),
+        ModelName.TRANSACTIONS,new Collection(userData.transactions,App.Transaction,null,this._eventListenerPool)
+    ]);
 
     App.Settings.setStartOfWeek(1);
 };
@@ -10313,8 +10358,8 @@ App.Initialize.prototype._initController = function _initController()
     var EventType = App.EventType;
 
     App.Controller.init(this._eventListenerPool,[
-        {eventType:EventType.CHANGE_SCREEN,command:App.ChangeScreen},
-        {eventType:EventType.CREATE_TRANSACTION,command:App.CreateTransaction}
+        EventType.CHANGE_SCREEN,App.ChangeScreen,
+        EventType.CREATE_TRANSACTION,App.CreateTransaction
     ]);
 };
 

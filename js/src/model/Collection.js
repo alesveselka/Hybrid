@@ -77,6 +77,36 @@ App.Collection.prototype.getItemAt = function getItemAt(index)
 };
 
 /**
+ * Filter collection against value passed in
+ * @param {string|Array} value
+ * @param {string} [property=null]
+ * @returns {Array}
+ */
+App.Collection.prototype.filter = function filter(value,property)
+{
+    var i = 0,
+        l = this._items.length,
+        result = [];
+
+    if (property)
+    {
+        for (;i<l;i++)
+        {
+            if (value.indexOf(this._items[i][property]) > -1) result.push(this._items[i]);
+        }
+    }
+    else
+    {
+        for (;i<l;i++)
+        {
+            if (value.indexOf(this._items[i]) > -1) result.push(this._items[i]);
+        }
+    }
+
+    return result;
+};
+
+/**
  * @method previous Return previous item
  * @returns {*}
  */

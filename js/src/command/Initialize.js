@@ -51,38 +51,26 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  * Initialize application model
  *
  * @method _initModel
- * @param {{accounts:string,transactions:string,icons:Object}} data
+ * @param {{userData:string,transactions:string,icons:Object}} data
  * @private
  */
 App.Initialize.prototype._initModel = function _initModel(data)
 {
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        Collection = App.Collection;
+    var ModelName = App.ModelName,
+        Collection = App.Collection,
+        userData = JSON.parse(data.userData);
 
-    //TODO initiate all proxies in once 'init' method? Same as Controller ...
-    ModelLocator.addProxy(ModelName.EVENT_LISTENER_POOL,this._eventListenerPool);
-    ModelLocator.addProxy(ModelName.TICKER,new App.Ticker(this._eventListenerPool));
-//    ModelLocator.addProxy(ModelName.SCREEN_CHAIN,new App.Stack());
-    ModelLocator.addProxy(ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}));
-    ModelLocator.addProxy(ModelName.ACCOUNTS,new Collection(
-        JSON.parse(data.accounts).accounts,//TODO parse JSON on data from localStorage
-        App.Account,
-        null,
-        this._eventListenerPool
-    ));
-    ModelLocator.addProxy(ModelName.TRANSACTIONS,new Collection(
-        JSON.parse(data.accounts).transactions,//TODO parse JSON on data from localStorage
-        App.Transaction,
-        null,
-        this._eventListenerPool
-    ));
-    /*ModelLocator.addProxy(ModelName.FILTERS,new Collection(
-        localStorage.getItem(ModelName.FILTERS),
-        App.Filter,
-        null,
-        this._eventListenerPool
-    ));*/
+    App.ModelLocator.init([
+        ModelName.EVENT_LISTENER_POOL,this._eventListenerPool,
+        ModelName.TICKER,new App.Ticker(this._eventListenerPool),
+        ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}),
+        ModelName.PAYMENT_METHODS,new Collection(userData.paymentMethods,App.PaymentMethod,null,this._eventListenerPool),
+        ModelName.CURRENCIES,new Collection(userData.currencies,App.Currency,null,this._eventListenerPool),
+        ModelName.SUB_CATEGORIES,new Collection(userData.subCategories,App.SubCategory,null,this._eventListenerPool),
+        ModelName.CATEGORIES,new Collection(userData.categories,App.Category,null,this._eventListenerPool),
+        ModelName.ACCOUNTS,new Collection(userData.accounts,App.Account,null,this._eventListenerPool),
+        ModelName.TRANSACTIONS,new Collection(userData.transactions,App.Transaction,null,this._eventListenerPool)
+    ]);
 
     App.Settings.setStartOfWeek(1);
 };
@@ -98,8 +86,8 @@ App.Initialize.prototype._initController = function _initController()
     var EventType = App.EventType;
 
     App.Controller.init(this._eventListenerPool,[
-        {eventType:EventType.CHANGE_SCREEN,command:App.ChangeScreen},
-        {eventType:EventType.CREATE_TRANSACTION,command:App.CreateTransaction}
+        EventType.CHANGE_SCREEN,App.ChangeScreen,
+        EventType.CREATE_TRANSACTION,App.CreateTransaction
     ]);
 };
 

@@ -41,7 +41,7 @@ App.List.prototype.updateLayout = function updateLayout()
         item = null,
         position = 0,
         Direction = App.Direction;
-
+    //TODO rewrite for bracelet access - less code. As well as other classes and methods!
     if (this._direction === Direction.X)
     {
         for (;i<l;)

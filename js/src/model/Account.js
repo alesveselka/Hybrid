@@ -9,56 +9,19 @@
 App.Account = function Account(data,collection,parent,eventListenerPool)
 {
     this._data = data;
-    this._name = null;
+    //this._id = this._data[0];
+    this.name = this._data[1];
     this._categories = null;
-    this._eventListenerPool = eventListenerPool;
 };
 
 /**
- * Create and return name
- *
- * @method getName
- * @returns {string}
+ * @property categories
+ * @type Collection
  */
-App.Account.prototype.getName = function getName()
-{
-    if (!this._name) this._name = this._data.name;
-
-    return this._name;
-};
-
-App.Account.prototype.getBalance = function getBalance()
-{
-
-};
-
-App.Account.prototype.getExpenses = function getExpenses()
-{
-
-};
-
-App.Account.prototype.getIncome = function getIncome()
-{
-
-};
-
-/**
- * Create and return categories collection
- *
- * @method getCategories
- * @returns {Collection}
- */
-App.Account.prototype.getCategories = function getCategories()
-{
-    if (!this._categories)
+Object.defineProperty(App.Account.prototype,'categories',{
+    get:function()
     {
-        this._categories = new App.Collection(
-            this._data.categories,
-            App.Category,
-            this,
-            this._eventListenerPool
-        );
+        if (!this._categories) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2],"id");
+        return this._categories;
     }
-
-    return this._categories;
-};
+});

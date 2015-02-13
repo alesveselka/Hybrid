@@ -92,7 +92,7 @@ App.LoadData.prototype._loadData = function _loadData()
     request.onload = function() {
         if (request.status >= 200 && request.status < 400)
         {
-            this.dispatchEvent(App.EventType.COMPLETE,{accounts:request.responseText,icons:this._icons});
+            this.dispatchEvent(App.EventType.COMPLETE,{userData:request.responseText,icons:this._icons});
         } else {
             console.log("error");
         }

@@ -11,21 +11,16 @@ App.Controller = {
     /**
      * Init
      * @param {ObjectPool} eventListenerPool
-     * @param {Array.<{eventType:string,command:Function}>} eventMap
+     * @param {Array.<>} eventMap
      */
     init:function init(eventListenerPool,eventMap)
     {
         this._eventListenerPool = eventListenerPool;
 
-        var i = 0, l = eventMap.length, obj = null;
-        for (;i<l;)
-        {
-            obj = eventMap[i++];
-            this._eventCommandMap[obj.eventType] = {constructor:obj.command};
-        }
-        obj = null;
-        eventMap = null;
+        var i = 0,
+            l = eventMap.length;
 
+        for (;i<l;) this._eventCommandMap[eventMap[i++]] = {constructor:eventMap[i++]};
     },
 
     /**
