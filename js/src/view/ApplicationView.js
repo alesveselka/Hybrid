@@ -14,7 +14,10 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
 
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName,
-        account = ModelLocator.getProxy(ModelName.ACCOUNTS);//TODO I could also leave this up the the particular screen
+        ViewLocator = App.ViewLocator,
+        ViewName = App.ViewName,
+        account = ModelLocator.getProxy(ModelName.ACCOUNTS),
+        listenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
 
     this._renderer = renderer;
     this._stage = stage;
@@ -29,22 +32,23 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         pixelRatio:pixelRatio
     };
 
-    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._eventDispatcher = new App.EventDispatcher(listenerPool);
     this._background = new PIXI.Graphics();
-    this._header = new App.Header(this._layout);
 
     //TODO use ScreenFactory for the screens?
     //TODO deffer initiation and/or rendering of most of the screens?
-    this._screenStack = new App.ViewStack([
+    this._screenStack = ViewLocator.addViewSegment(ViewName.SCREEN_STACK,new App.ViewStack([
         new App.AccountScreen(account,this._layout),
-        new App.CategoryScreen(account.getItemAt(1).categories,this._layout),
-        new App.SelectTimeScreen(null,this._layout),
-        new App.EditCategoryScreen(null,this._layout),
-        new App.TransactionScreen(null,this._layout),
-        new App.ReportScreen(null,this._layout),
-        new App.AddTransactionScreen(null,this._layout),
+        new App.CategoryScreen(this._layout),
+        new App.SelectTimeScreen(this._layout),
+        new App.EditCategoryScreen(this._layout),
+        new App.TransactionScreen(this._layout),
+        new App.ReportScreen(this._layout),
+        new App.AddTransactionScreen(this._layout),
         new App.Menu(this._layout)//TODO is Menu part of stack? And if it is, it should be at bottom
-    ]);
+    ],false,listenerPool));
+
+    this._header = ViewLocator.addViewSegment(ViewName.HEADER,new App.Header(this._layout));
 
     this._init();
 
@@ -79,23 +83,21 @@ App.ApplicationView.prototype._init = function _init()
  */
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
-    App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
+    var EventType = App.EventType;
 
-    this._header.registerEventListeners(this);
+    this._screenStack.addEventListener(EventType.CHANGE,this,this._onScreenChange);
+
+    App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(EventType.TICK,this,this._onTick);
 };
 
 /**
- * Change screen by the name passed in
- * @param {number} screenName
+ * On screen change
+ * @private
  */
-App.ApplicationView.prototype.changeScreen = function changeScreen(screenName)
+App.ApplicationView.prototype._onScreenChange = function _onScreenChange()
 {
-    this._screenStack.selectChildByIndex(screenName);
     this._screenStack.show();
     this._screenStack.hide();
-
-    //this._eventDispatcher.dispatchEvent(App.EventType.CHANGE,this._screenStack.getSelectedChild());//TODO I don't need ED if I don't use this
-    this._header.change(this._screenStack.getSelectedChild().getHeaderInfo());
 };
 
 /**

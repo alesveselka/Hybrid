@@ -1,13 +1,12 @@
 /**
  * @class TransactionScreen
  * @extends Screen
- * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
-App.TransactionScreen = function TransactionScreen(model,layout)
+App.TransactionScreen = function TransactionScreen(layout)
 {
-    App.Screen.call(this,model,layout,0.4);
+    App.Screen.call(this,null,layout,0.4);
 
     //TODO bottom items are not rendered when the screen is re-shown (due to scrolled position)
 
@@ -44,8 +43,6 @@ App.TransactionScreen = function TransactionScreen(model,layout)
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
-
-    this._headerInfo.name = "Transactions";
 };
 
 App.TransactionScreen.prototype = Object.create(App.Screen.prototype);

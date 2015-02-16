@@ -753,10 +753,12 @@ App.ModelName = {
 /**
  * View Segment state
  * @enum {string}
- * @return {{APPLICATION_VIEW:string,LOG:string}}
+ * @return {{APPLICATION_VIEW:string,HEADER:string,SCREEN_STACK:string,LOG:string}}
  */
 App.ViewName = {
     APPLICATION_VIEW:"APPLICATION_VIEW",
+    HEADER:"HEADER",
+    SCREEN_STACK:"SCREEN_STACK",
     LOG:"LOG"
 };
 
@@ -856,6 +858,17 @@ App.TransactionType = {
     {
         return type === App.TransactionType.INCOME ? "Income" : "Expense";
     }
+};
+
+/**
+ * ScreenMode
+ * @type {{DEFAULT: number, ADD: number, EDIT: number, SELECT: number}}
+ */
+App.ScreenMode = {
+    DEFAULT:1,
+    ADD:2,
+    EDIT:3,
+    SELECT:4
 };
 
 /**
@@ -1553,7 +1566,7 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
         this._data = null;
 
         this.amount = "";
-        this.type = App.TransactionType.INCOME;
+        this.type = App.TransactionType.EXPENSE;
         this.pending = false;
         this.repeat = false;
         this._account = null;
@@ -1564,6 +1577,14 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
         this._currency = null;
         this.note = "";
     }
+};
+
+/**
+ * Destroy
+ */
+App.Transaction.prototype.destroy = function destroy()
+{
+    //TODO implement
 };
 
 /**
@@ -2169,15 +2190,17 @@ App.Header = function Header(layout)
         HeaderIcon = App.HeaderIcon,
         HeaderAction = App.HeaderAction,
         FontStyle = App.FontStyle,
-        r = layout.pixelRatio;
+        r = layout.pixelRatio,
+        listenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
 
     this._layout = layout;
     this._iconSize = Math.round(50 * r);
-    this._leftIcon = new HeaderIcon(HeaderAction.CANCEL,this._iconSize,this._iconSize,r);
-    this._rightIcon = new HeaderIcon(HeaderAction.CONFIRM,this._iconSize,this._iconSize,r);
+    this._leftIcon = new HeaderIcon(HeaderAction.ADD_TRANSACTION,this._iconSize,this._iconSize,r);
+    this._rightIcon = new HeaderIcon(HeaderAction.MENU,this._iconSize,this._iconSize,r);
     this._title = new App.HeaderTitle("Cashius",this._layout.width-this._iconSize*2,this._iconSize,r,FontStyle.get(20,FontStyle.WHITE));
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-    this._tween = new App.TweenProxy(0.7,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._tween = new App.TweenProxy(0.7,App.Easing.outExpo,0,listenerPool);
+    this._eventDispatcher = new App.EventDispatcher(listenerPool);
 
     this._render();
 
@@ -2185,7 +2208,7 @@ App.Header = function Header(layout)
     this.addChild(this._title);
     this.addChild(this._rightIcon);
 
-    this.interactive = true;
+    this._registerEventListeners();
 };
 
 App.Header.prototype = Object.create(PIXI.Graphics.prototype);
@@ -2222,33 +2245,43 @@ App.Header.prototype._render = function _render()
 
 /**
  * Register event listeners
- * @param {App.ApplicationView} applicationView
  * @private
  */
-App.Header.prototype.registerEventListeners = function registerEventListeners(applicationView)
+App.Header.prototype._registerEventListeners = function _registerEventListeners()
 {
-    //applicationView.addEventListener(App.EventType.CHANGE,this,this._onScreenChange);
+    App.ViewLocator.getViewSegment(App.ViewName.SCREEN_STACK).addEventListener(App.EventType.CHANGE,this,this._onScreenChange);
 
     if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
     else this.click = this._onClick;
 
     this._tween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+
+    this.interactive = true;
+};
+
+/**
+ * On screen change
+ * @private
+ */
+App.Header.prototype._onScreenChange = function _onScreenChange()
+{
+    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._tween.restart();
 };
 
 /**
  * Change
- * @param {{leftAction:number,rightAction:number,name:string}} info
+ * @param {number} leftAction
+ * @param {number} rightAction
+ * @param {string} name
  * @private
  */
-App.Header.prototype.change = function change(info)
+App.Header.prototype.change = function change(leftAction,rightAction,name)
 {
-    this._leftIcon.change(info.leftAction);
-    this._title.change(info.name);
-    this._rightIcon.change(info.rightAction);
-
-    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._tween.restart();
+    this._leftIcon.change(leftAction);
+    this._title.change(name);
+    this._rightIcon.change(rightAction);
 };
 
 /**
@@ -2295,18 +2328,32 @@ App.Header.prototype._onClick = function _onClick(data)
         HeaderAction = App.HeaderAction,
         action = HeaderAction.NONE;
 
-    //TODO here dispatch event, and each screen will handle action accordingly, instead of handling it here ...
-    //TODO "pipe" events from icons?
-    if (position <= this._iconSize)
-    {
-        action = this._leftIcon.getAction();
-        if (action === HeaderAction.MENU || action === HeaderAction.CANCEL) App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.MENU);
-    }
-    else if (position >= this._layout.width - this._iconSize)
-    {
-        action = this._rightIcon.getAction();
-        if (action === HeaderAction.ADD_TRANSACTION) App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ADD_TRANSACTION);
-    }
+    if (position <= this._iconSize) action = this._leftIcon.getAction();
+    else if (position >= this._layout.width - this._iconSize) action = this._rightIcon.getAction();
+
+    if (action !== HeaderAction.NONE) this._eventDispatcher.dispatchEvent(App.EventType.CLICK,action);
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Header.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Header.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };
 
 /**
@@ -4490,7 +4537,7 @@ App.InfiniteList.prototype._updateX = function _updateX(position)
             else modelIndex = (xIndex - virtualIndex) % modelLength;
             if (modelIndex < 0) modelIndex = modelLength + modelIndex;
             else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
-
+            //TODO check that I don't set the model way too many times!
             item.setModel(modelIndex,this._model[modelIndex],this._selectedModelIndex);
         }
 
@@ -4782,7 +4829,7 @@ App.VirtualList.prototype.updateY = function updateY(position)
         maxBeginning = modelLength - l,
         moveToEnd = false,
         moveToBeginning = false,
-        y = 0,
+        itemY = 0,
         item = null;
 
     this._virtualY = position;
@@ -4790,15 +4837,15 @@ App.VirtualList.prototype.updateY = function updateY(position)
     for (;i<l;)
     {
         item = this._items[i++];
-        y = item.y + positionDifference;
-        moveToBeginning = y > this._height;
-        moveToEnd = y + this._itemSize < 0;
+        itemY = item.y + positionDifference;
+        moveToBeginning = itemY > this._height && positionDifference > 0;
+        moveToEnd = itemY + this._itemSize < 0 && positionDifference < 0;
 
         if (moveToBeginning || moveToEnd)
         {
-            itemScreenIndex = -Math.floor(y / this._height);
-            y += itemScreenIndex * l * this._itemSize;
-            yIndex = Math.floor(y / this._itemSize);
+            itemScreenIndex = -Math.floor(itemY / this._height);
+            itemY += itemScreenIndex * l * this._itemSize;
+            yIndex = Math.floor(itemY / this._itemSize);
 
             if (virtualIndex >= 0) modelIndex = (yIndex - (virtualIndex % modelLength)) % modelLength;
             else modelIndex = (yIndex - virtualIndex) % modelLength;
@@ -4811,11 +4858,11 @@ App.VirtualList.prototype.updateY = function updateY(position)
             }
             else
             {
-                y = item.y + positionDifference;
+                itemY = item.y + positionDifference;
             }
         }
 
-        item.y = y;
+        item.y = itemY;
     }
 };
 
@@ -4874,7 +4921,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
             position = Math.round(position + this._itemSize);
         }
 
-//        if (updatePosition) this._updateX(this.x);
+        if (updatePosition) this._updateX(this.x);
     }
     else if (this._direction === Direction.Y)
     {
@@ -4885,7 +4932,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
             position = Math.round(position + this._itemSize);
         }
 
-//        if (updatePosition) this._updateY(this.y);
+        if (updatePosition) this._updateY(this.y);
     }
 };
 
@@ -4897,7 +4944,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
  */
 Object.defineProperty(App.VirtualList.prototype,'x',{
     get: function() {
-        return  this._virtualX;//TODO use just 'x'? defineProperty is too slow!
+        return  this._virtualX;
     }
 });
 
@@ -5208,11 +5255,12 @@ App.TilePane.prototype._updateY = function _updateY(position)
 /**
  * @class ViewStack
  * @extends DisplayObjectContainer
- * @param {Array.<Screen>} children
+ * @param {Array} children
  * @param {boolean} [addToStage=false]
+ * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.ViewStack = function ViewStack(children,addToStage)
+App.ViewStack = function ViewStack(children,addToStage,eventListenerPool)
 {
     PIXI.DisplayObjectContainer.call(this);
 
@@ -5220,6 +5268,7 @@ App.ViewStack = function ViewStack(children,addToStage)
     this._selectedChild = null;
     this._selectedIndex = -1;
     this._childrenToHide = [];
+    this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
 
     if (children)
     {
@@ -5267,6 +5316,8 @@ App.ViewStack.prototype.selectChild = function selectChild(child)
             this._selectedIndex = i - 1;
         }
     }
+
+    this._eventDispatcher.dispatchEvent(App.EventType.CHANGE);
 };
 
 /**
@@ -5287,6 +5338,8 @@ App.ViewStack.prototype.selectChildByIndex = function selectChildByIndex(index)
 
     this._selectedChild = this._children[index];
     this._selectedIndex = index;
+
+    this._eventDispatcher.dispatchEvent(App.EventType.CHANGE);
 };
 
 /**
@@ -5385,6 +5438,28 @@ App.ViewStack.prototype._onHideComplete = function _onHideComplete(data)
             }
         }
     }
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.ViewStack.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.ViewStack.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };
 
 /**
@@ -5972,7 +6047,6 @@ App.Screen = function Screen(model,layout,tweenDuration)
 
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName,
-        HeaderAction = App.HeaderAction,
         pixelRatio = layout.pixelRatio;
 
     this._model = model;
@@ -5990,11 +6064,7 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._clickThreshold = 5 * pixelRatio;
     this._swipeEnabled = false;
     this._preferScroll = true;
-    this._headerInfo = {
-        leftAction:HeaderAction.MENU,
-        rightAction:HeaderAction.ADD_TRANSACTION,
-        name:null
-    };
+    this._mode = App.ScreenMode.DEFAULT;
 
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
     this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
@@ -6114,6 +6184,8 @@ App.Screen.prototype._registerEventListeners = function _registerEventListeners(
             this.mouseupoutside = this._onPointerUp;
         }
 
+        App.ViewLocator.getViewSegment(App.ViewName.HEADER).addEventListener(App.EventType.CLICK,this,this._onHeaderClick);
+
         this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
 
         this._showHideTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
@@ -6129,6 +6201,8 @@ App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListen
     this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
 
     this._showHideTween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+
+    App.ViewLocator.getViewSegment(App.ViewName.HEADER).removeEventListener(App.EventType.CLICK,this,this._onHeaderClick);
 
     if (App.Device.TOUCH_SUPPORTED)
     {
@@ -6283,6 +6357,16 @@ App.Screen.prototype._onClick = function _onClick()
 };
 
 /**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.Screen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    // Abstract
+};
+
+/**
  * Called when swipe starts
  * @param {boolean} [preferScroll=false]
  * @private
@@ -6300,28 +6384,6 @@ App.Screen.prototype._swipeStart = function _swipeStart(preferScroll)
 App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
 {
     // Abstract
-};
-
-/**
- * Set header info
- * @param {number} leftAction
- * @param {number} rightAction
- * @param {string} name
- */
-App.Screen.prototype.setHeaderInfo = function setHeaderInfo(leftAction,rightAction,name)
-{
-    this._headerInfo.leftAction = leftAction;
-    this._headerInfo.rightAction = rightAction;
-    this._headerInfo.name = name;
-};
-
-/**
- * Return header info
- * @returns {number}
- */
-App.Screen.prototype.getHeaderInfo = function getHeaderInfo()
-{
-    return this._headerInfo;
 };
 
 /**
@@ -6579,7 +6641,6 @@ App.TransactionToggleButton.prototype.isSelected = function isSelected()
  * @extends Graphics
  * @param {string} iconName
  * @param {string} name
- * @param {string} value
  * @param {number} targetScreenName
  * @param {{width:number,height:number,pixelRatio:number,nameStyle:Object,valueStyle:Object,valueDetailStyle:Object}} options
  * @constructor
@@ -6708,13 +6769,12 @@ App.TransactionOptionButton.prototype.setValue = function setValue(value,details
 /**
  * @class AddTransactionScreen
  * @extends InputScrollScreen
- * @param {Transaction} model
  * @param {Object} layout
  * @constructor
  */
-App.AddTransactionScreen = function AddTransactionScreen(model,layout)
+App.AddTransactionScreen = function AddTransactionScreen(layout)
 {
-    App.InputScrollScreen.call(this,model,layout);
+    App.InputScrollScreen.call(this,null,layout);
 
     var TransactionOptionButton = App.TransactionOptionButton,
         TransactionToggleButton = App.TransactionToggleButton,
@@ -6784,9 +6844,6 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this.addChild(this._pane);
 
     this._clickThreshold = 10 * r;
-    this._headerInfo.leftAction = HeaderAction.CANCEL;
-    this._headerInfo.rightAction = HeaderAction.CONFIRM;
-    this._headerInfo.name = "Add Transaction";
 };
 
 App.AddTransactionScreen.prototype = Object.create(App.InputScrollScreen.prototype);
@@ -6809,6 +6866,8 @@ App.AddTransactionScreen.prototype._render = function _render()
         separatorWidth = w - padding * 2,
         bottom = 0;
 
+    //TODO check screen mode
+
     this._transactionInput.x = padding;
     this._transactionInput.y = padding;
 
@@ -6821,10 +6880,13 @@ App.AddTransactionScreen.prototype._render = function _render()
     this._noteInput.x = padding;
     this._noteInput.y = bottom + padding;
 
-    bottom = bottom + inputHeight;
+    if (this._mode === App.ScreenMode.EDIT)
+    {
+        bottom = bottom + inputHeight;
 
-    this._deleteButton.x = padding;
-    this._deleteButton.y = bottom + padding;
+        this._deleteButton.x = padding;
+        this._deleteButton.y = bottom + padding;
+    }
 
     GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w,bottom+inputHeight],true,false);
     GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[
@@ -6847,7 +6909,7 @@ App.AddTransactionScreen.prototype._render = function _render()
  * Update
  * @private
  */
-App.AddTransactionScreen.prototype._update = function _update()
+App.AddTransactionScreen.prototype.update = function update(data,mode)
 {
     var date = this._model.date;
 
@@ -6877,7 +6939,7 @@ App.AddTransactionScreen.prototype.show = function show()
     {
         var transaction = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent();
         if (this._model !== transaction) this._model = transaction;
-        this._update();
+        this.update();
     }
 
     App.InputScrollScreen.prototype.show.call(this);
@@ -6970,15 +7032,30 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
         else
         {
             var HeaderAction = App.HeaderAction;
+            var button = this._optionList.getItemUnderPoint(pointerData);
 
-            App.Controller.dispatchEvent(
-                App.EventType.CHANGE_SCREEN,{
-                    screenName:this._optionList.getItemUnderPoint(pointerData).getTargetScreenName(),
-                    headerLeftAction:HeaderAction.CONFIRM,
-                    headerRightAction:HeaderAction.CANCEL,
-                    headerName:"Filter"
-                }
-            );
+            if (button === this._accountOption)
+            {
+                App.Controller.dispatchEvent(
+                    App.EventType.CHANGE_SCREEN,{
+                        screenName:App.ScreenName.ACCOUNT,
+                        headerLeftAction:HeaderAction.CANCEL,
+                        headerRightAction:HeaderAction.NONE,
+                        headerName:"Select Account"//TODO remove hard-coded value
+                    }
+                );
+            }
+            else if (button === this._categoryOption)
+            {
+                App.Controller.dispatchEvent(
+                    App.EventType.CHANGE_SCREEN,
+                    App.ScreenName.CATEGORY/*,
+                     headerLeftAction:HeaderAction.CONFIRM,
+                     headerRightAction:HeaderAction.CANCEL,
+                     headerName:"Accounts"
+                     }*/
+                );
+            }
         }
     }
     else if (this._noteInput.hitTest(position))
@@ -6995,13 +7072,12 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
 /**
  * @class SelectTimeScreen
  * @extends InputScrollScreen
- * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
-App.SelectTimeScreen = function SelectTimeScreen(model,layout)
+App.SelectTimeScreen = function SelectTimeScreen(layout)
 {
-    App.InputScrollScreen.call(this,model,layout);
+    App.InputScrollScreen.call(this,null,layout);
 
     var r = layout.pixelRatio,
         w = layout.width,
@@ -7025,10 +7101,6 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
     this._container.addChild(this._input);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
-
-    this._headerInfo.leftAction = HeaderAction.CANCEL;
-    this._headerInfo.rightAction = HeaderAction.CONFIRM;
-    this._headerInfo.name = "Select Time";
 };
 
 App.SelectTimeScreen.prototype = Object.create(App.InputScrollScreen.prototype);
@@ -7256,8 +7328,6 @@ App.AccountScreen = function AccountScreen(model,layout)
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
-
-    this._headerInfo.name = "Accounts";
 };
 
 App.AccountScreen.prototype = Object.create(App.Screen.prototype);
@@ -7680,13 +7750,12 @@ App.CategoryButtonExpand.prototype._render = function _render()
 /**
  * @class CategoryScreen
  * @extends Screen
- * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
-App.CategoryScreen = function CategoryScreen(model,layout)
+App.CategoryScreen = function CategoryScreen(layout)
 {
-    App.Screen.call(this,model,layout,0.4);
+    App.Screen.call(this,null,layout,0.4);
 
     var CategoryButton = App.CategoryButtonExpand,
         ScrollPolicy = App.ScrollPolicy,
@@ -7694,9 +7763,9 @@ App.CategoryScreen = function CategoryScreen(model,layout)
         nameLabelStyle = FontStyle.get(18,FontStyle.BLUE),
         editLabelStyle = FontStyle.get(18,FontStyle.WHITE),
         i = 0,
-        l = this._model.length,
+//        l = this._model.length,
         button = null;
-
+/*
     this._interactiveButton = null;
     this._buttons = new Array(l);
     this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
@@ -7716,9 +7785,8 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.contentHeight,layout.pixelRatio,false);
     this._pane.setContent(this._buttonList);
 
-    this.addChild(this._pane);
+    this.addChild(this._pane);*/
 
-    this._headerInfo.name = "Categories";
 //    this._swipeEnabled = true;
 };
 
@@ -8081,13 +8149,12 @@ App.IconSample.prototype.select = function select(selectedIndex)
 /**
  * @class EditCategoryScreen
  * @extends InputScrollScreen
- * @param {Category} model
  * @param {Object} layout
  * @constructor
  */
-App.EditCategoryScreen = function EditCategoryScreen(model,layout)
+App.EditCategoryScreen = function EditCategoryScreen(layout)
 {
-    App.InputScrollScreen.call(this,model,layout);
+    App.InputScrollScreen.call(this,null,layout);
 
     var ScrollPolicy = App.ScrollPolicy,
         InfiniteList = App.InfiniteList,
@@ -8139,9 +8206,6 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
-    this._headerInfo.leftAction = HeaderAction.CANCEL;
-    this._headerInfo.rightAction = HeaderAction.CONFIRM;
-    this._headerInfo.name = "Edit Category";
     this._swipeEnabled = true;
 };
 
@@ -8391,7 +8455,7 @@ App.EditCategoryScreen.prototype._getColorSamples = function _getColorSamples()
  * @class TransactionButton
  * @extends SwipeButton
  * @param {number} modelIndex
- * @param {Object} model
+ * @param {Transaction} model
  * @param {{width:number,height:number,pixelRatio:number:labelStyles:Object}} options
  * @constructor
  */
@@ -8612,13 +8676,12 @@ App.TransactionButton.prototype._getSwipePosition = function _getSwipePosition()
 /**
  * @class TransactionScreen
  * @extends Screen
- * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
-App.TransactionScreen = function TransactionScreen(model,layout)
+App.TransactionScreen = function TransactionScreen(layout)
 {
-    App.Screen.call(this,model,layout,0.4);
+    App.Screen.call(this,null,layout,0.4);
 
     //TODO bottom items are not rendered when the screen is re-shown (due to scrolled position)
 
@@ -8655,8 +8718,6 @@ App.TransactionScreen = function TransactionScreen(model,layout)
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
-
-    this._headerInfo.name = "Transactions";
 };
 
 App.TransactionScreen.prototype = Object.create(App.Screen.prototype);
@@ -9278,13 +9339,12 @@ App.ReportChart.prototype._onTweenComplete = function _onTweenComplete()
 /**
  * @class ReportScreen
  * @extends Screen
- * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
-App.ReportScreen = function ReportScreen(model,layout)
+App.ReportScreen = function ReportScreen(layout)
 {
-    App.Screen.call(this,model,layout,0.4);
+    App.Screen.call(this,null,layout,0.4);
 
     var ReportAccountButton = App.ReportAccountButton,
         ScrollPolicy = App.ScrollPolicy,
@@ -9324,8 +9384,6 @@ App.ReportScreen = function ReportScreen(model,layout)
     this.addChild(this._percentField);
     this.addChild(this._chart);
     this.addChild(this._pane);
-
-    this._headerInfo.name = "Report";
 };
 
 App.ReportScreen.prototype = Object.create(App.Screen.prototype);
@@ -9574,10 +9632,6 @@ App.Menu = function Menu(layout)
     this._items.push(this._container.addChild(this._settignsItem));
     this._pane.setContent(this._container);
     this.addChild(this._pane);
-
-    this._headerInfo.leftAction = HeaderAction.NONE;
-    this._headerInfo.rightAction = HeaderAction.CANCEL;
-    this._headerInfo.name = "Menu";
 };
 
 App.Menu.prototype = Object.create(App.Screen.prototype);
@@ -9635,6 +9689,7 @@ App.Menu.prototype._onClick = function _onClick()
     this._pane.cancelScroll();
 
     var ScreenName = App.ScreenName,
+        HeaderAction = App.HeaderAction,
         item = this._getItemByPosition(this.stage.getTouchData().getLocalPosition(this._container).y),
         screenName = item ? item.getScreenName() : -1;
 
@@ -9642,13 +9697,19 @@ App.Menu.prototype._onClick = function _onClick()
     {
         case ScreenName.ADD_TRANSACTION:
             App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
-                nextCommand:new App.ChangeScreen(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL)),
-                screenName:ScreenName.ADD_TRANSACTION
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:{
+                    screenName:ScreenName.ADD_TRANSACTION,
+                    mode:App.ScreenMode.EDIT,
+                    headerLeftAction:HeaderAction.CANCEL,
+                    headerRightAction:HeaderAction.CONFIRM,
+                    headerName:"Add Transaction"//TODO remove hard-coded value
+                }
             });
             break;
 
         default:
-            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,ScreenName.ACCOUNT);
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,{screenName:ScreenName.TRANSACTIONS});
     }
 };
 
@@ -9689,7 +9750,10 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
 
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName,
-        account = ModelLocator.getProxy(ModelName.ACCOUNTS);//TODO I could also leave this up the the particular screen
+        ViewLocator = App.ViewLocator,
+        ViewName = App.ViewName,
+        account = ModelLocator.getProxy(ModelName.ACCOUNTS),
+        listenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
 
     this._renderer = renderer;
     this._stage = stage;
@@ -9704,22 +9768,23 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         pixelRatio:pixelRatio
     };
 
-    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._eventDispatcher = new App.EventDispatcher(listenerPool);
     this._background = new PIXI.Graphics();
-    this._header = new App.Header(this._layout);
 
     //TODO use ScreenFactory for the screens?
     //TODO deffer initiation and/or rendering of most of the screens?
-    this._screenStack = new App.ViewStack([
+    this._screenStack = ViewLocator.addViewSegment(ViewName.SCREEN_STACK,new App.ViewStack([
         new App.AccountScreen(account,this._layout),
-        new App.CategoryScreen(account.getItemAt(1).categories,this._layout),
-        new App.SelectTimeScreen(null,this._layout),
-        new App.EditCategoryScreen(null,this._layout),
-        new App.TransactionScreen(null,this._layout),
-        new App.ReportScreen(null,this._layout),
-        new App.AddTransactionScreen(null,this._layout),
+        new App.CategoryScreen(this._layout),
+        new App.SelectTimeScreen(this._layout),
+        new App.EditCategoryScreen(this._layout),
+        new App.TransactionScreen(this._layout),
+        new App.ReportScreen(this._layout),
+        new App.AddTransactionScreen(this._layout),
         new App.Menu(this._layout)//TODO is Menu part of stack? And if it is, it should be at bottom
-    ]);
+    ],false,listenerPool));
+
+    this._header = ViewLocator.addViewSegment(ViewName.HEADER,new App.Header(this._layout));
 
     this._init();
 
@@ -9754,23 +9819,21 @@ App.ApplicationView.prototype._init = function _init()
  */
 App.ApplicationView.prototype._registerEventListeners = function _registerEventListeners()
 {
-    App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(App.EventType.TICK,this,this._onTick);
+    var EventType = App.EventType;
 
-    this._header.registerEventListeners(this);
+    this._screenStack.addEventListener(EventType.CHANGE,this,this._onScreenChange);
+
+    App.ModelLocator.getProxy(App.ModelName.TICKER).addEventListener(EventType.TICK,this,this._onTick);
 };
 
 /**
- * Change screen by the name passed in
- * @param {number} screenName
+ * On screen change
+ * @private
  */
-App.ApplicationView.prototype.changeScreen = function changeScreen(screenName)
+App.ApplicationView.prototype._onScreenChange = function _onScreenChange()
 {
-    this._screenStack.selectChildByIndex(screenName);
     this._screenStack.show();
     this._screenStack.hide();
-
-    //this._eventDispatcher.dispatchEvent(App.EventType.CHANGE,this._screenStack.getSelectedChild());//TODO I don't need ED if I don't use this
-    this._header.change(this._screenStack.getSelectedChild().getHeaderInfo());
 };
 
 /**
@@ -10548,7 +10611,12 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
     this._initController();
     this._initView();
 
-    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.MENU);
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,{
+        screenName:App.ScreenName.MENU,
+        headerLeftAction:App.HeaderAction.CANCEL,
+        headerRightAction:App.HeaderAction.NONE,
+        headerName:"Menu"//TODO remove hard-coded value
+    });
 
     this.dispatchEvent(App.EventType.COMPLETE);
 };
@@ -10562,8 +10630,7 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  */
 App.Initialize.prototype._initModel = function _initModel(data)
 {
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
+    var ModelName = App.ModelName,
         Collection = App.Collection,
         PaymentMethod = App.PaymentMethod,
         Currency = App.Currency,
@@ -10572,7 +10639,7 @@ App.Initialize.prototype._initModel = function _initModel(data)
 
     currencies.addItem(new Currency([1,"USD"]));
 
-    ModelLocator.init([
+    App.ModelLocator.init([
         ModelName.EVENT_LISTENER_POOL,this._eventListenerPool,
         ModelName.TICKER,new App.Ticker(this._eventListenerPool),
         ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}),
@@ -10681,12 +10748,11 @@ App.Initialize.prototype.destroy = function destroy()
 /**
  * @class ChangeScreen
  * @extends {Command}
- * @param {ObjectPool} pool
  * @constructor
  */
-App.ChangeScreen = function ChangeScreen(pool)
+App.ChangeScreen = function ChangeScreen()
 {
-    App.Command.call(this,false,pool);
+    App.Command.call(this,false,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
 };
 
 App.ChangeScreen.prototype = Object.create(App.Command.prototype);
@@ -10697,12 +10763,16 @@ App.ChangeScreen.prototype.constructor = App.ChangeScreen;
  *
  * @method execute
  */
-App.ChangeScreen.prototype.execute = function execute(screenName)
+App.ChangeScreen.prototype.execute = function execute(data)
 {
-    App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).changeScreen(screenName);
+    var ViewLocator = App.ViewLocator,
+        ViewName = App.ViewName,
+        screenStack = ViewLocator.getViewSegment(ViewName.SCREEN_STACK),
+        screen = screenStack.getChildByIndex(data.screenName);
 
-    //TODO flush previous screens if they'll not be needed anymore
-//    App.ModelLocator.getProxy(App.ModelName.SCREEN_CHAIN).push(screenName);
+    ViewLocator.getViewSegment(ViewName.HEADER).change(data.headerLeftAction,data.headerRightAction,data.headerName);
+
+    screenStack.selectChild(screen);
 
     this.dispatchEvent(App.EventType.COMPLETE,this);
 };
@@ -10737,7 +10807,7 @@ App.CreateTransaction.prototype.execute = function execute(data)
     transactions.addItem(transaction);
     transactions.setCurrent(transaction);
 
-    if (this._nextCommand) this._executeNextCommand(data.screenName);
+    if (this._nextCommand) this._executeNextCommand(data.nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);
 };
 

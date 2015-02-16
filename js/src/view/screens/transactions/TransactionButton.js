@@ -2,7 +2,7 @@
  * @class TransactionButton
  * @extends SwipeButton
  * @param {number} modelIndex
- * @param {Object} model
+ * @param {Transaction} model
  * @param {{width:number,height:number,pixelRatio:number:labelStyles:Object}} options
  * @constructor
  */

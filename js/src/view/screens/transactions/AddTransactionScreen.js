@@ -1,13 +1,12 @@
 /**
  * @class AddTransactionScreen
  * @extends InputScrollScreen
- * @param {Transaction} model
  * @param {Object} layout
  * @constructor
  */
-App.AddTransactionScreen = function AddTransactionScreen(model,layout)
+App.AddTransactionScreen = function AddTransactionScreen(layout)
 {
-    App.InputScrollScreen.call(this,model,layout);
+    App.InputScrollScreen.call(this,null,layout);
 
     var TransactionOptionButton = App.TransactionOptionButton,
         TransactionToggleButton = App.TransactionToggleButton,
@@ -77,9 +76,6 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this.addChild(this._pane);
 
     this._clickThreshold = 10 * r;
-    this._headerInfo.leftAction = HeaderAction.CANCEL;
-    this._headerInfo.rightAction = HeaderAction.CONFIRM;
-    this._headerInfo.name = "Add Transaction";
 };
 
 App.AddTransactionScreen.prototype = Object.create(App.InputScrollScreen.prototype);
@@ -102,6 +98,8 @@ App.AddTransactionScreen.prototype._render = function _render()
         separatorWidth = w - padding * 2,
         bottom = 0;
 
+    //TODO check screen mode
+
     this._transactionInput.x = padding;
     this._transactionInput.y = padding;
 
@@ -114,10 +112,13 @@ App.AddTransactionScreen.prototype._render = function _render()
     this._noteInput.x = padding;
     this._noteInput.y = bottom + padding;
 
-    bottom = bottom + inputHeight;
+    if (this._mode === App.ScreenMode.EDIT)
+    {
+        bottom = bottom + inputHeight;
 
-    this._deleteButton.x = padding;
-    this._deleteButton.y = bottom + padding;
+        this._deleteButton.x = padding;
+        this._deleteButton.y = bottom + padding;
+    }
 
     GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w,bottom+inputHeight],true,false);
     GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[
@@ -140,7 +141,7 @@ App.AddTransactionScreen.prototype._render = function _render()
  * Update
  * @private
  */
-App.AddTransactionScreen.prototype._update = function _update()
+App.AddTransactionScreen.prototype.update = function update(data,mode)
 {
     var date = this._model.date;
 
@@ -170,7 +171,7 @@ App.AddTransactionScreen.prototype.show = function show()
     {
         var transaction = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent();
         if (this._model !== transaction) this._model = transaction;
-        this._update();
+        this.update();
     }
 
     App.InputScrollScreen.prototype.show.call(this);
@@ -263,15 +264,30 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
         else
         {
             var HeaderAction = App.HeaderAction;
+            var button = this._optionList.getItemUnderPoint(pointerData);
 
-            App.Controller.dispatchEvent(
-                App.EventType.CHANGE_SCREEN,{
-                    screenName:this._optionList.getItemUnderPoint(pointerData).getTargetScreenName(),
-                    headerLeftAction:HeaderAction.CONFIRM,
-                    headerRightAction:HeaderAction.CANCEL,
-                    headerName:"Filter"
-                }
-            );
+            if (button === this._accountOption)
+            {
+                App.Controller.dispatchEvent(
+                    App.EventType.CHANGE_SCREEN,{
+                        screenName:App.ScreenName.ACCOUNT,
+                        headerLeftAction:HeaderAction.CANCEL,
+                        headerRightAction:HeaderAction.NONE,
+                        headerName:"Select Account"//TODO remove hard-coded value
+                    }
+                );
+            }
+            else if (button === this._categoryOption)
+            {
+                App.Controller.dispatchEvent(
+                    App.EventType.CHANGE_SCREEN,
+                    App.ScreenName.CATEGORY/*,
+                     headerLeftAction:HeaderAction.CONFIRM,
+                     headerRightAction:HeaderAction.CANCEL,
+                     headerName:"Accounts"
+                     }*/
+                );
+            }
         }
     }
     else if (this._noteInput.hitTest(position))

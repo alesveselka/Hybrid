@@ -304,7 +304,7 @@ App.InfiniteList.prototype._updateX = function _updateX(position)
             else modelIndex = (xIndex - virtualIndex) % modelLength;
             if (modelIndex < 0) modelIndex = modelLength + modelIndex;
             else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
-
+            //TODO check that I don't set the model way too many times!
             item.setModel(modelIndex,this._model[modelIndex],this._selectedModelIndex);
         }
 

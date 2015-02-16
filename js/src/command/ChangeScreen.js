@@ -1,12 +1,11 @@
 /**
  * @class ChangeScreen
  * @extends {Command}
- * @param {ObjectPool} pool
  * @constructor
  */
-App.ChangeScreen = function ChangeScreen(pool)
+App.ChangeScreen = function ChangeScreen()
 {
-    App.Command.call(this,false,pool);
+    App.Command.call(this,false,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
 };
 
 App.ChangeScreen.prototype = Object.create(App.Command.prototype);
@@ -17,12 +16,16 @@ App.ChangeScreen.prototype.constructor = App.ChangeScreen;
  *
  * @method execute
  */
-App.ChangeScreen.prototype.execute = function execute(screenName)
+App.ChangeScreen.prototype.execute = function execute(data)
 {
-    App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).changeScreen(screenName);
+    var ViewLocator = App.ViewLocator,
+        ViewName = App.ViewName,
+        screenStack = ViewLocator.getViewSegment(ViewName.SCREEN_STACK),
+        screen = screenStack.getChildByIndex(data.screenName);
 
-    //TODO flush previous screens if they'll not be needed anymore
-//    App.ModelLocator.getProxy(App.ModelName.SCREEN_CHAIN).push(screenName);
+    ViewLocator.getViewSegment(ViewName.HEADER).change(data.headerLeftAction,data.headerRightAction,data.headerName);
+
+    screenStack.selectChild(screen);
 
     this.dispatchEvent(App.EventType.COMPLETE,this);
 };

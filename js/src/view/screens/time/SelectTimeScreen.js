@@ -1,13 +1,12 @@
 /**
  * @class SelectTimeScreen
  * @extends InputScrollScreen
- * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
-App.SelectTimeScreen = function SelectTimeScreen(model,layout)
+App.SelectTimeScreen = function SelectTimeScreen(layout)
 {
-    App.InputScrollScreen.call(this,model,layout);
+    App.InputScrollScreen.call(this,null,layout);
 
     var r = layout.pixelRatio,
         w = layout.width,
@@ -31,10 +30,6 @@ App.SelectTimeScreen = function SelectTimeScreen(model,layout)
     this._container.addChild(this._input);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
-
-    this._headerInfo.leftAction = HeaderAction.CANCEL;
-    this._headerInfo.rightAction = HeaderAction.CONFIRM;
-    this._headerInfo.name = "Select Time";
 };
 
 App.SelectTimeScreen.prototype = Object.create(App.InputScrollScreen.prototype);

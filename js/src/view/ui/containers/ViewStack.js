@@ -1,11 +1,12 @@
 /**
  * @class ViewStack
  * @extends DisplayObjectContainer
- * @param {Array.<Screen>} children
+ * @param {Array} children
  * @param {boolean} [addToStage=false]
+ * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.ViewStack = function ViewStack(children,addToStage)
+App.ViewStack = function ViewStack(children,addToStage,eventListenerPool)
 {
     PIXI.DisplayObjectContainer.call(this);
 
@@ -13,6 +14,7 @@ App.ViewStack = function ViewStack(children,addToStage)
     this._selectedChild = null;
     this._selectedIndex = -1;
     this._childrenToHide = [];
+    this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
 
     if (children)
     {
@@ -60,6 +62,8 @@ App.ViewStack.prototype.selectChild = function selectChild(child)
             this._selectedIndex = i - 1;
         }
     }
+
+    this._eventDispatcher.dispatchEvent(App.EventType.CHANGE);
 };
 
 /**
@@ -80,6 +84,8 @@ App.ViewStack.prototype.selectChildByIndex = function selectChildByIndex(index)
 
     this._selectedChild = this._children[index];
     this._selectedIndex = index;
+
+    this._eventDispatcher.dispatchEvent(App.EventType.CHANGE);
 };
 
 /**
@@ -178,4 +184,26 @@ App.ViewStack.prototype._onHideComplete = function _onHideComplete(data)
             }
         }
     }
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.ViewStack.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.ViewStack.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };

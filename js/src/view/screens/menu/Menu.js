@@ -40,10 +40,6 @@ App.Menu = function Menu(layout)
     this._items.push(this._container.addChild(this._settignsItem));
     this._pane.setContent(this._container);
     this.addChild(this._pane);
-
-    this._headerInfo.leftAction = HeaderAction.NONE;
-    this._headerInfo.rightAction = HeaderAction.CANCEL;
-    this._headerInfo.name = "Menu";
 };
 
 App.Menu.prototype = Object.create(App.Screen.prototype);
@@ -101,6 +97,7 @@ App.Menu.prototype._onClick = function _onClick()
     this._pane.cancelScroll();
 
     var ScreenName = App.ScreenName,
+        HeaderAction = App.HeaderAction,
         item = this._getItemByPosition(this.stage.getTouchData().getLocalPosition(this._container).y),
         screenName = item ? item.getScreenName() : -1;
 
@@ -108,13 +105,19 @@ App.Menu.prototype._onClick = function _onClick()
     {
         case ScreenName.ADD_TRANSACTION:
             App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
-                nextCommand:new App.ChangeScreen(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL)),
-                screenName:ScreenName.ADD_TRANSACTION
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:{
+                    screenName:ScreenName.ADD_TRANSACTION,
+                    mode:App.ScreenMode.EDIT,
+                    headerLeftAction:HeaderAction.CANCEL,
+                    headerRightAction:HeaderAction.CONFIRM,
+                    headerName:"Add Transaction"//TODO remove hard-coded value
+                }
             });
             break;
 
         default:
-            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,ScreenName.ACCOUNT);
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,{screenName:ScreenName.TRANSACTIONS});
     }
 };
 

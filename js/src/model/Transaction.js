@@ -43,6 +43,14 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
 };
 
 /**
+ * Destroy
+ */
+App.Transaction.prototype.destroy = function destroy()
+{
+    //TODO implement
+};
+
+/**
  * @property account
  * @type Account
  */

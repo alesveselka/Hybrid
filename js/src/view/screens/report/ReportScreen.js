@@ -1,13 +1,12 @@
 /**
  * @class ReportScreen
  * @extends Screen
- * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
-App.ReportScreen = function ReportScreen(model,layout)
+App.ReportScreen = function ReportScreen(layout)
 {
-    App.Screen.call(this,model,layout,0.4);
+    App.Screen.call(this,null,layout,0.4);
 
     var ReportAccountButton = App.ReportAccountButton,
         ScrollPolicy = App.ScrollPolicy,
@@ -47,8 +46,6 @@ App.ReportScreen = function ReportScreen(model,layout)
     this.addChild(this._percentField);
     this.addChild(this._chart);
     this.addChild(this._pane);
-
-    this._headerInfo.name = "Report";
 };
 
 App.ReportScreen.prototype = Object.create(App.Screen.prototype);

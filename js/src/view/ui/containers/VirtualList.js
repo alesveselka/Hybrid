@@ -188,7 +188,7 @@ App.VirtualList.prototype.updateY = function updateY(position)
         maxBeginning = modelLength - l,
         moveToEnd = false,
         moveToBeginning = false,
-        y = 0,
+        itemY = 0,
         item = null;
 
     this._virtualY = position;
@@ -196,15 +196,15 @@ App.VirtualList.prototype.updateY = function updateY(position)
     for (;i<l;)
     {
         item = this._items[i++];
-        y = item.y + positionDifference;
-        moveToBeginning = y > this._height;
-        moveToEnd = y + this._itemSize < 0;
+        itemY = item.y + positionDifference;
+        moveToBeginning = itemY > this._height && positionDifference > 0;
+        moveToEnd = itemY + this._itemSize < 0 && positionDifference < 0;
 
         if (moveToBeginning || moveToEnd)
         {
-            itemScreenIndex = -Math.floor(y / this._height);
-            y += itemScreenIndex * l * this._itemSize;
-            yIndex = Math.floor(y / this._itemSize);
+            itemScreenIndex = -Math.floor(itemY / this._height);
+            itemY += itemScreenIndex * l * this._itemSize;
+            yIndex = Math.floor(itemY / this._itemSize);
 
             if (virtualIndex >= 0) modelIndex = (yIndex - (virtualIndex % modelLength)) % modelLength;
             else modelIndex = (yIndex - virtualIndex) % modelLength;
@@ -217,11 +217,11 @@ App.VirtualList.prototype.updateY = function updateY(position)
             }
             else
             {
-                y = item.y + positionDifference;
+                itemY = item.y + positionDifference;
             }
         }
 
-        item.y = y;
+        item.y = itemY;
     }
 };
 
@@ -280,7 +280,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
             position = Math.round(position + this._itemSize);
         }
 
-//        if (updatePosition) this._updateX(this.x);
+        if (updatePosition) this._updateX(this.x);
     }
     else if (this._direction === Direction.Y)
     {
@@ -291,7 +291,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
             position = Math.round(position + this._itemSize);
         }
 
-//        if (updatePosition) this._updateY(this.y);
+        if (updatePosition) this._updateY(this.y);
     }
 };
 
@@ -303,7 +303,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
  */
 Object.defineProperty(App.VirtualList.prototype,'x',{
     get: function() {
-        return  this._virtualX;//TODO use just 'x'? defineProperty is too slow!
+        return  this._virtualX;
     }
 });
 

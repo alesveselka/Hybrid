@@ -1,13 +1,12 @@
 /**
  * @class EditCategoryScreen
  * @extends InputScrollScreen
- * @param {Category} model
  * @param {Object} layout
  * @constructor
  */
-App.EditCategoryScreen = function EditCategoryScreen(model,layout)
+App.EditCategoryScreen = function EditCategoryScreen(layout)
 {
-    App.InputScrollScreen.call(this,model,layout);
+    App.InputScrollScreen.call(this,null,layout);
 
     var ScrollPolicy = App.ScrollPolicy,
         InfiniteList = App.InfiniteList,
@@ -59,9 +58,6 @@ App.EditCategoryScreen = function EditCategoryScreen(model,layout)
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
-    this._headerInfo.leftAction = HeaderAction.CANCEL;
-    this._headerInfo.rightAction = HeaderAction.CONFIRM;
-    this._headerInfo.name = "Edit Category";
     this._swipeEnabled = true;
 };
 

@@ -1,13 +1,12 @@
 /**
  * @class CategoryScreen
  * @extends Screen
- * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
-App.CategoryScreen = function CategoryScreen(model,layout)
+App.CategoryScreen = function CategoryScreen(layout)
 {
-    App.Screen.call(this,model,layout,0.4);
+    App.Screen.call(this,null,layout,0.4);
 
     var CategoryButton = App.CategoryButtonExpand,
         ScrollPolicy = App.ScrollPolicy,
@@ -15,9 +14,9 @@ App.CategoryScreen = function CategoryScreen(model,layout)
         nameLabelStyle = FontStyle.get(18,FontStyle.BLUE),
         editLabelStyle = FontStyle.get(18,FontStyle.WHITE),
         i = 0,
-        l = this._model.length,
+//        l = this._model.length,
         button = null;
-
+/*
     this._interactiveButton = null;
     this._buttons = new Array(l);
     this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
@@ -37,9 +36,8 @@ App.CategoryScreen = function CategoryScreen(model,layout)
     this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.contentHeight,layout.pixelRatio,false);
     this._pane.setContent(this._buttonList);
 
-    this.addChild(this._pane);
+    this.addChild(this._pane);*/
 
-    this._headerInfo.name = "Categories";
 //    this._swipeEnabled = true;
 };
 

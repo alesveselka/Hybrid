@@ -31,8 +31,6 @@ App.AccountScreen = function AccountScreen(model,layout)
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
-
-    this._headerInfo.name = "Accounts";
 };
 
 App.AccountScreen.prototype = Object.create(App.Screen.prototype);

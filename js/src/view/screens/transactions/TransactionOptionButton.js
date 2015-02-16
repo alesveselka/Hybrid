@@ -3,7 +3,6 @@
  * @extends Graphics
  * @param {string} iconName
  * @param {string} name
- * @param {string} value
  * @param {number} targetScreenName
  * @param {{width:number,height:number,pixelRatio:number,nameStyle:Object,valueStyle:Object,valueDetailStyle:Object}} options
  * @constructor

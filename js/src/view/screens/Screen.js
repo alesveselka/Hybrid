@@ -14,7 +14,6 @@ App.Screen = function Screen(model,layout,tweenDuration)
 
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName,
-        HeaderAction = App.HeaderAction,
         pixelRatio = layout.pixelRatio;
 
     this._model = model;
@@ -32,11 +31,7 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._clickThreshold = 5 * pixelRatio;
     this._swipeEnabled = false;
     this._preferScroll = true;
-    this._headerInfo = {
-        leftAction:HeaderAction.MENU,
-        rightAction:HeaderAction.ADD_TRANSACTION,
-        name:null
-    };
+    this._mode = App.ScreenMode.DEFAULT;
 
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
     this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
@@ -156,6 +151,8 @@ App.Screen.prototype._registerEventListeners = function _registerEventListeners(
             this.mouseupoutside = this._onPointerUp;
         }
 
+        App.ViewLocator.getViewSegment(App.ViewName.HEADER).addEventListener(App.EventType.CLICK,this,this._onHeaderClick);
+
         this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
 
         this._showHideTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
@@ -171,6 +168,8 @@ App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListen
     this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
 
     this._showHideTween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+
+    App.ViewLocator.getViewSegment(App.ViewName.HEADER).removeEventListener(App.EventType.CLICK,this,this._onHeaderClick);
 
     if (App.Device.TOUCH_SUPPORTED)
     {
@@ -325,6 +324,16 @@ App.Screen.prototype._onClick = function _onClick()
 };
 
 /**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.Screen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    // Abstract
+};
+
+/**
  * Called when swipe starts
  * @param {boolean} [preferScroll=false]
  * @private
@@ -342,26 +351,4 @@ App.Screen.prototype._swipeStart = function _swipeStart(preferScroll)
 App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
 {
     // Abstract
-};
-
-/**
- * Set header info
- * @param {number} leftAction
- * @param {number} rightAction
- * @param {string} name
- */
-App.Screen.prototype.setHeaderInfo = function setHeaderInfo(leftAction,rightAction,name)
-{
-    this._headerInfo.leftAction = leftAction;
-    this._headerInfo.rightAction = rightAction;
-    this._headerInfo.name = name;
-};
-
-/**
- * Return header info
- * @returns {number}
- */
-App.Screen.prototype.getHeaderInfo = function getHeaderInfo()
-{
-    return this._headerInfo;
 };

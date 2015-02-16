@@ -13,15 +13,17 @@ App.Header = function Header(layout)
         HeaderIcon = App.HeaderIcon,
         HeaderAction = App.HeaderAction,
         FontStyle = App.FontStyle,
-        r = layout.pixelRatio;
+        r = layout.pixelRatio,
+        listenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
 
     this._layout = layout;
     this._iconSize = Math.round(50 * r);
-    this._leftIcon = new HeaderIcon(HeaderAction.CANCEL,this._iconSize,this._iconSize,r);
-    this._rightIcon = new HeaderIcon(HeaderAction.CONFIRM,this._iconSize,this._iconSize,r);
+    this._leftIcon = new HeaderIcon(HeaderAction.ADD_TRANSACTION,this._iconSize,this._iconSize,r);
+    this._rightIcon = new HeaderIcon(HeaderAction.MENU,this._iconSize,this._iconSize,r);
     this._title = new App.HeaderTitle("Cashius",this._layout.width-this._iconSize*2,this._iconSize,r,FontStyle.get(20,FontStyle.WHITE));
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-    this._tween = new App.TweenProxy(0.7,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._tween = new App.TweenProxy(0.7,App.Easing.outExpo,0,listenerPool);
+    this._eventDispatcher = new App.EventDispatcher(listenerPool);
 
     this._render();
 
@@ -29,7 +31,7 @@ App.Header = function Header(layout)
     this.addChild(this._title);
     this.addChild(this._rightIcon);
 
-    this.interactive = true;
+    this._registerEventListeners();
 };
 
 App.Header.prototype = Object.create(PIXI.Graphics.prototype);
@@ -66,33 +68,45 @@ App.Header.prototype._render = function _render()
 
 /**
  * Register event listeners
- * @param {App.ApplicationView} applicationView
  * @private
  */
-App.Header.prototype.registerEventListeners = function registerEventListeners(applicationView)
+App.Header.prototype._registerEventListeners = function _registerEventListeners()
 {
-    //applicationView.addEventListener(App.EventType.CHANGE,this,this._onScreenChange);
+    var EventType = App.EventType;
+
+    App.ViewLocator.getViewSegment(App.ViewName.SCREEN_STACK).addEventListener(EventType.CHANGE,this,this._onScreenChange);
 
     if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
     else this.click = this._onClick;
 
-    this._tween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+    this._tween.addEventListener(EventType.COMPLETE,this,this._onTweenComplete);
+
+    this.interactive = true;
+};
+
+/**
+ * On screen change
+ * @private
+ */
+App.Header.prototype._onScreenChange = function _onScreenChange()
+{
+    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._tween.restart();
 };
 
 /**
  * Change
- * @param {{leftAction:number,rightAction:number,name:string}} info
+ * @param {number} leftAction
+ * @param {number} rightAction
+ * @param {string} name
  * @private
  */
-App.Header.prototype.change = function change(info)
+App.Header.prototype.change = function change(leftAction,rightAction,name)
 {
-    this._leftIcon.change(info.leftAction);
-    this._title.change(info.name);
-    this._rightIcon.change(info.rightAction);
-
-    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._tween.restart();
+    this._leftIcon.change(leftAction);
+    this._title.change(name);
+    this._rightIcon.change(rightAction);
 };
 
 /**
@@ -139,16 +153,30 @@ App.Header.prototype._onClick = function _onClick(data)
         HeaderAction = App.HeaderAction,
         action = HeaderAction.NONE;
 
-    //TODO here dispatch event, and each screen will handle action accordingly, instead of handling it here ...
-    //TODO "pipe" events from icons?
-    if (position <= this._iconSize)
-    {
-        action = this._leftIcon.getAction();
-        if (action === HeaderAction.MENU || action === HeaderAction.CANCEL) App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.MENU);
-    }
-    else if (position >= this._layout.width - this._iconSize)
-    {
-        action = this._rightIcon.getAction();
-        if (action === HeaderAction.ADD_TRANSACTION) App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ADD_TRANSACTION);
-    }
+    if (position <= this._iconSize) action = this._leftIcon.getAction();
+    else if (position >= this._layout.width - this._iconSize) action = this._rightIcon.getAction();
+
+    if (action !== HeaderAction.NONE) this._eventDispatcher.dispatchEvent(App.EventType.CLICK,action);
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Header.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Header.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };

@@ -28,6 +28,6 @@ App.CreateTransaction.prototype.execute = function execute(data)
     transactions.addItem(transaction);
     transactions.setCurrent(transaction);
 
-    if (this._nextCommand) this._executeNextCommand(data.screenName);
+    if (this._nextCommand) this._executeNextCommand(data.nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);
 };

@@ -27,6 +27,7 @@ module.exports = function(grunt)
         "js/src/enum/ScreenName.js",
         "js/src/enum/HeaderAction.js",
         "js/src/enum/TransactionType.js",
+        "js/src/enum/ScreenMode.js",
         "js/src/event/EventListener.js",
         "js/src/event/EventDispatcher.js",
         "js/src/geom/Rectangle.js",

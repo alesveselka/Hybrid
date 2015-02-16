@@ -42,7 +42,12 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
     this._initController();
     this._initView();
 
-    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.MENU);
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,{
+        screenName:App.ScreenName.MENU,
+        headerLeftAction:App.HeaderAction.CANCEL,
+        headerRightAction:App.HeaderAction.NONE,
+        headerName:"Menu"//TODO remove hard-coded value
+    });
 
     this.dispatchEvent(App.EventType.COMPLETE);
 };
@@ -56,8 +61,7 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  */
 App.Initialize.prototype._initModel = function _initModel(data)
 {
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
+    var ModelName = App.ModelName,
         Collection = App.Collection,
         PaymentMethod = App.PaymentMethod,
         Currency = App.Currency,
@@ -66,7 +70,7 @@ App.Initialize.prototype._initModel = function _initModel(data)
 
     currencies.addItem(new Currency([1,"USD"]));
 
-    ModelLocator.init([
+    App.ModelLocator.init([
         ModelName.EVENT_LISTENER_POOL,this._eventListenerPool,
         ModelName.TICKER,new App.Ticker(this._eventListenerPool),
         ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}),
