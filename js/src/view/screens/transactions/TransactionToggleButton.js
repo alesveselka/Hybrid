@@ -92,10 +92,10 @@ App.TransactionToggleButton.prototype.toggle = function toggle()
 };
 
 /**
- * Is button toggled?
+ * Is button selected?
  * @returns {boolean}
  */
-App.TransactionToggleButton.prototype.isToggled = function isToggled()
+App.TransactionToggleButton.prototype.isSelected = function isSelected()
 {
     return this._toggle;
 };

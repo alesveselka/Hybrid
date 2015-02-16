@@ -303,7 +303,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
  */
 Object.defineProperty(App.VirtualList.prototype,'x',{
     get: function() {
-        return  this._virtualX;
+        return  this._virtualX;//TODO use just 'x'? defineProperty is too slow!
     }
 });
 

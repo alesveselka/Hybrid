@@ -42,25 +42,27 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
 
     this._optionList = new App.List(App.Direction.Y);
-    //TODO do not need pass any string - all will be updated from model
-    this._accountOption = new TransactionOptionButton("account","Account","Personal",ScreenName.ACCOUNT,options);
-    this._categoryOption = new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",ScreenName.CATEGORY,options);
-    this._timeOption = new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",ScreenName.SELECT_TIME,options);
-    this._methodOption = new TransactionOptionButton("credit-card","Method","Cash",ScreenName.CATEGORY,options);
-    this._currencyOption = new TransactionOptionButton("currencies","Currency","CZK",ScreenName.ACCOUNT,options);
+    this._accountOption = new TransactionOptionButton("account","Account",ScreenName.ACCOUNT,options);
+    this._categoryOption = new TransactionOptionButton("folder-app","Category",ScreenName.CATEGORY,options);
+    this._timeOption = new TransactionOptionButton("calendar","Time",ScreenName.SELECT_TIME,options);
+    this._methodOption = new TransactionOptionButton("credit-card","Method",ScreenName.CATEGORY,options);
+    this._currencyOption = new TransactionOptionButton("currencies","Currency",ScreenName.ACCOUNT,options);
 
     this._toggleButtonList = new App.List(App.Direction.X);
-    this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false}),false);
-    this._toggleButtonList.add(new TransactionToggleButton("pending-app","Pending",toggleOptions,{toggleColor:true}),false);
-    this._toggleButtonList.add(new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true}),true);
+    this._typeToggle = new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false});
+    this._pendingToggle = new TransactionToggleButton("pending-app","Pending",toggleOptions,{toggleColor:true});
+    this._repeatToggle = new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true});
 
+    //TODO automatically focus input when this screen is shown?
+
+    this._toggleButtonList.add(this._typeToggle,false);
+    this._toggleButtonList.add(this._pendingToggle,false);
+    this._toggleButtonList.add(this._repeatToggle,true);
     this._optionList.add(this._accountOption,false);
     this._optionList.add(this._categoryOption,false);
     this._optionList.add(this._timeOption,false);
     this._optionList.add(this._methodOption,false);
     this._optionList.add(this._currencyOption,true);
-
-    //TODO automatically focus input when this screen is shown?
 
     this._transactionInput.restrict(/\D/g);
     this._render();
@@ -144,10 +146,15 @@ App.AddTransactionScreen.prototype._update = function _update()
 
     this._transactionInput.setValue(this._model.amount);
 
-    //this._accountOption.setValue(this._model.accounr);//TODO parse category
+    if (this._model.type === App.TransactionType.INCOME && !this._typeToggle.isSelected()) this._typeToggle.toggle();
+    if (this._model.pending && !this._pendingToggle.isSelected()) this._pendingToggle.toggle();
+    if (this._model.repeat && !this._repeatToggle.isSelected()) this._repeatToggle.toggle();
+
+    this._accountOption.setValue(this._model.account);
+    this._categoryOption.setValue(this._model.category,this._model.subCategory);
     this._timeOption.setValue(App.DateUtils.getMilitaryTime(date),date.toDateString());
-    this._methodOption.setValue(this._model.method);
-    this._currencyOption.setValue(this._model.currency);
+    this._methodOption.setValue(this._model.method.name);
+    this._currencyOption.setValue(this._model.currency.symbol);
 
     this._noteInput.setValue(this._model.note);
 };
@@ -271,5 +278,9 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     {
         this._scrollInput = this._noteInput;
         this._focusInput(false);
+    }
+    else
+    {
+        if (inputFocused) this._scrollInput.blur();
     }
 };

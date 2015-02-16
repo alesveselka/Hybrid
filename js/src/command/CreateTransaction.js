@@ -23,7 +23,7 @@ App.CreateTransaction.prototype.execute = function execute(data)
     this._nextCommand = data.nextCommand;
 
     var transactions = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS),
-        transaction = new App.Transaction({},transactions);//TODO do I need to pass in empty object?
+        transaction = new App.Transaction();
 
     transactions.addItem(transaction);
     transactions.setCurrent(transaction);

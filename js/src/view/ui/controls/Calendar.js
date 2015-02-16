@@ -15,7 +15,7 @@ App.Calendar = function Calendar(date,width,pixelRatio)
         Text = PIXI.Text,
         DateUtils = App.DateUtils,
         FontStyle = App.FontStyle,
-        startOfWeek = App.Settings.getStartOfWeek(),
+        startOfWeek = App.ModelLocator.getProxy(App.ModelName.SETTINGS).startOfWeek,
         month = DateUtils.getMonth(date,startOfWeek),
         dayLabels = DateUtils.getDayLabels(startOfWeek),
         daysInWeek = dayLabels.length,
@@ -238,7 +238,7 @@ App.Calendar.prototype._changeDate = function _changeDate(direction,selectDate)
 
     this._updateMonthLabel();
 
-    var month = App.DateUtils.getMonth(this._date,App.Settings.getStartOfWeek()),
+    var month = App.DateUtils.getMonth(this._date,App.ModelLocator.getProxy(App.ModelName.SETTINGS).startOfWeek),
         weeksInMonth = month.length,
         selectedMonth = this._selectedDate.getFullYear() === newYear && this._selectedDate.getMonth() === newMonth,
         selectedDate = selectedMonth ? this._selectedDate.getDate() : -1,

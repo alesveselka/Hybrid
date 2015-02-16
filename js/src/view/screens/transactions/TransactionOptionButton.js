@@ -8,7 +8,7 @@
  * @param {{width:number,height:number,pixelRatio:number,nameStyle:Object,valueStyle:Object,valueDetailStyle:Object}} options
  * @constructor
  */
-App.TransactionOptionButton = function TransactionOptionButton(iconName,name,value,targetScreenName,options)
+App.TransactionOptionButton = function TransactionOptionButton(iconName,name,targetScreenName,options)
 {
     PIXI.Graphics.call(this);
 
@@ -17,21 +17,16 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,val
 
     this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
+    this._options = options;
     this._pixelRatio = options.pixelRatio;
     this._icon = new Sprite.fromFrame(iconName);
     this._nameField = new Text(name,options.nameStyle);
-    this._valueField = new Text(value,options.valueStyle);
+    this._valueField = new Text("",options.valueStyle);
     this._valueDetailField = null;
     this._targetScreenName = targetScreenName;
     this._arrow = new Sprite.fromFrame("arrow-app");
     this._iconResizeRatio = Math.round(20 * this._pixelRatio) / this._icon.height;
     this._arrowResizeRatio = Math.round(12 * this._pixelRatio) / this._arrow.height;
-
-    if (value.indexOf("\n") > -1)
-    {
-        this._valueField.setText(value.substring(0,value.indexOf("\n")));
-        this._valueDetailField = new Text(value.substring(value.indexOf("\n")+1,value.length),options.valueDetailStyle);
-    }
 
     this._render();
     this._update();
@@ -39,7 +34,6 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,val
     this.addChild(this._icon);
     this.addChild(this._nameField);
     this.addChild(this._valueField);
-    if (this._valueDetailField) this.addChild(this._valueDetailField);
     this.addChild(this._arrow);
 };
 
@@ -117,9 +111,20 @@ App.TransactionOptionButton.prototype.getTargetScreenName = function getTargetSc
  */
 App.TransactionOptionButton.prototype.setValue = function setValue(value,details)
 {
-    this._valueField.setText(value);
+    this._valueField.setText(value ? value : "?");
 
-    if (this._valueDetailField && details) this._valueDetailField.setText(details);
+    if (details)
+    {
+        if (this._valueDetailField)
+        {
+            this._valueDetailField.setText(details);
+        }
+        else
+        {
+            this._valueDetailField = new PIXI.Text(details,this._options.valueDetailStyle);
+            this.addChild(this._valueDetailField);
+        }
+    }
 
     this._update();
 };

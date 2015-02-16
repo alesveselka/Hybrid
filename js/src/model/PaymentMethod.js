@@ -1,13 +1,17 @@
 /**
  * @class PaymentMethod
- * @param {{id:number,name:string}} data
+ * @param {string} name
  * @param {Collection} collection
  * @param {*} parent
  * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.PaymentMethod = function PaymentMethod(data,collection,parent,eventListenerPool)
+App.PaymentMethod = function PaymentMethod(name,collection,parent,eventListenerPool)
 {
-    this.id = data[0];
-    this.name = data[1];
+    this.id = App.PaymentMethod._ID++;
+    this.name = name;
 };
+
+App.PaymentMethod._ID = 1;
+App.PaymentMethod.CASH = "Cash";
+App.PaymentMethod.CREDIT_CARD = "Credit-Card";

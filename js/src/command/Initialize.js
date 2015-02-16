@@ -56,23 +56,28 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  */
 App.Initialize.prototype._initModel = function _initModel(data)
 {
-    var ModelName = App.ModelName,
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
         Collection = App.Collection,
-        userData = JSON.parse(data.userData);
+        PaymentMethod = App.PaymentMethod,
+        Currency = App.Currency,
+        userData = JSON.parse(data.userData),
+        currencies = new Collection(userData.currencies,Currency,null,this._eventListenerPool);
 
-    App.ModelLocator.init([
+    currencies.addItem(new Currency([1,"USD"]));
+
+    ModelLocator.init([
         ModelName.EVENT_LISTENER_POOL,this._eventListenerPool,
         ModelName.TICKER,new App.Ticker(this._eventListenerPool),
         ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}),
-        ModelName.PAYMENT_METHODS,new Collection(userData.paymentMethods,App.PaymentMethod,null,this._eventListenerPool),
-        ModelName.CURRENCIES,new Collection(userData.currencies,App.Currency,null,this._eventListenerPool),
+        ModelName.PAYMENT_METHODS,new Collection([PaymentMethod.CASH,PaymentMethod.CREDIT_CARD],PaymentMethod,null,this._eventListenerPool),
+        ModelName.CURRENCIES,currencies,
+        ModelName.SETTINGS,new App.Settings(userData.settings),
         ModelName.SUB_CATEGORIES,new Collection(userData.subCategories,App.SubCategory,null,this._eventListenerPool),
         ModelName.CATEGORIES,new Collection(userData.categories,App.Category,null,this._eventListenerPool),
         ModelName.ACCOUNTS,new Collection(userData.accounts,App.Account,null,this._eventListenerPool),
         ModelName.TRANSACTIONS,new Collection(userData.transactions,App.Transaction,null,this._eventListenerPool)
     ]);
-
-    App.Settings.setStartOfWeek(1);
 };
 
 /**

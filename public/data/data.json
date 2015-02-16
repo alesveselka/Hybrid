@@ -1,16 +1,9 @@
 {
-"settings":{
-
-},
-"_commentPaymentMethod":["id","name"],
-"paymentMethods":[
-    [1,"Cash"],
-    [2,"Credit-Card"]
-],
-"_commentCurrencies":["id","name"],
+"_commentSettings":["startOfWeek","baseCurrency","paymentMethod"],
+"settings":[1,1,1],
+"_commentCurrencies":["id","symbol","baseCurrency","rate"],
 "currencies":[
-    [1,"CZK"],
-    [2,"USD"]
+    [2,"CZK","USD",24.285]
 ],
 "_commentSubCategories":["id","name"],
 "subCategories":[

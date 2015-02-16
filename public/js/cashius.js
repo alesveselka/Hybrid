@@ -847,11 +847,15 @@ App.HeaderAction = {
 
 /**
  * TransactionType
- * @type {{EXPENSE: number, INCOME: number}}
+ * @type {{EXPENSE: number, INCOME: number, toString: Function}}
  */
 App.TransactionType = {
     EXPENSE:1,
-    INCOME:2
+    INCOME:2,
+    toString:function toString(type)
+    {
+        return type === App.TransactionType.INCOME ? "Income" : "Expense";
+    }
 };
 
 /**
@@ -1421,47 +1425,89 @@ App.Collection.prototype.length = function length()
 
 /**
  * @class Settings
- * @type {{_startOfWeek: number, setStartOfWeek: Function,getStartOfWeek:Function}}
+ * @param {Array} data
+ * @constructor
  */
-App.Settings = {
-    _startOfWeek:0,// 0 = Sun, ..., 6 = Sat
+App.Settings = function Settings(data)
+{
+    this._data = data;
 
-    /**
-     * Set start of a week
-     * @param {number} value
-     */
-    setStartOfWeek:function setStartOfWeek(value)
-    {
-        if (value >= 0 && value <= 6) this._startOfWeek = value;
-    },
-
-    /**
-     * Return start of a week
-     * @returns {number}
-     */
-    getStartOfWeek:function getStartOfWeek()
-    {
-        return this._startOfWeek;
-    }
+    this._startOfWeek = data[0];
+    this._baseCurrency = null;
+    this._defaultPaymentMethod = null;
+    this.defaultAccount = null;
+    this.defaultCategory = null;
+    this.defaultSubCategory = null;
 };
 
 /**
+ * @property startOfWeek
+ * @type number
+ */
+Object.defineProperty(App.Settings.prototype,'startOfWeek',{
+    get:function()
+    {
+        return this._startOfWeek;
+    },
+    set:function(value)
+    {
+        if (value >= 0 && value <= 6) this.startOfWeek = value;
+    }
+});
+
+/**
+ * @property baseCurrency
+ * @type Currency
+ */
+Object.defineProperty(App.Settings.prototype,'baseCurrency',{
+    get:function()
+    {
+        if (!this._baseCurrency) this._baseCurrency = App.ModelLocator.getProxy(App.ModelName.CURRENCIES).filter([this._data[1]],"id")[0];
+        return this._baseCurrency;
+    },
+    set:function(value)
+    {
+        this._baseCurrency = value;
+    }
+});
+
+/**
+ * @property defaultPaymentMethod
+ * @type PaymentMethod
+ */
+Object.defineProperty(App.Settings.prototype,'defaultPaymentMethod',{
+    get:function()
+    {
+        if (!this._defaultPaymentMethod) this._defaultPaymentMethod = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).filter([this._data[2]],"id")[0];
+        return this._defaultPaymentMethod;
+    },
+    set:function(value)
+    {
+        this._defaultPaymentMethod = value;
+    }
+});
+
+/**
  * @class PaymentMethod
- * @param {{id:number,name:string}} data
+ * @param {string} name
  * @param {Collection} collection
  * @param {*} parent
  * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.PaymentMethod = function PaymentMethod(data,collection,parent,eventListenerPool)
+App.PaymentMethod = function PaymentMethod(name,collection,parent,eventListenerPool)
 {
-    this.id = data[0];
-    this.name = data[1];
+    this.id = App.PaymentMethod._ID++;
+    this.name = name;
 };
+
+App.PaymentMethod._ID = 1;
+App.PaymentMethod.CASH = "Cash";
+App.PaymentMethod.CREDIT_CARD = "Credit-Card";
 
 /**
  * @class Currency
- * @param {{id:number,name:string}} data
+ * @param {{symbol:string,rate:number,pair:Currency}} data
  * @param {Collection} collection
  * @param {*} parent
  * @param {ObjectPool} eventListenerPool
@@ -1470,34 +1516,183 @@ App.PaymentMethod = function PaymentMethod(data,collection,parent,eventListenerP
 App.Currency = function Currency(data,collection,parent,eventListenerPool)
 {
     this.id = data[0];
-    this.name = data[1];
-};
-
-App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
-{
-    this._data = data;
-    this.amount = data[0] || "";
-    this.type = data[1] || App.TransactionType.EXPENSE;
-    this.pending = data[2] || 0;
-    this.repeat = data[3] || 0;
-    this.account = data[4] || null;
-    this.method = data[5] || 1;
-    this.date = data[6] ? new Date(data[6]) : new Date();
-    this.currency = data[7] || "CZK";//TODO base currency from Settings
-    this.note = data[8] ? decodeURI(data[8]) : null;
+    this.symbol = data[1];//quote symbol
+    this.base = data[2];
+    this.rate = data[3];
+    this.default = this.id === 1;
 };
 
 /**
- * @property amount
- * @type string
- *//*
-Object.defineProperty(App.Transaction.prototype,'amount',{
+ * @class Transaction
+ * @param {Array} data
+ * @param {Collection} collection
+ * @param {*} parent
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
+{
+    if (data)
+    {
+        this._data = data;
+
+        this.amount = data[0];
+        this.type = data[1];
+        this.pending = data[2] === 1;
+        this.repeat = data[3] === 1;
+        this._account = null;
+        this._category = null;
+        this._subCategory = null;
+        this._method = null;
+        this._date = null;
+        this._currency = null;
+        this.note = data[8] ? decodeURI(data[8]) : null;
+    }
+    else
+    {
+        this._data = null;
+
+        this.amount = "";
+        this.type = App.TransactionType.INCOME;
+        this.pending = false;
+        this.repeat = false;
+        this._account = null;
+        this._category = null;
+        this._subCategory = null;
+        this._method = null;
+        this._date = null;
+        this._currency = null;
+        this.note = "";
+    }
+};
+
+/**
+ * @property account
+ * @type Account
+ */
+Object.defineProperty(App.Transaction.prototype,'account',{
     get:function()
     {
-        if (!this.amount) this.amount = this._data[0] || "";
-        return  this.amount;
+        if (!this._account)
+        {
+            if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).filter([this._data[4].split(".")[0]],"id")[0];
+            else this._account = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultAccount;
+        }
+        return this._account;//TODO save last used account as 'default' on save
+    },
+    set:function(value)
+    {
+        this._account = value;
     }
-});*/
+});
+
+/**
+ * @property category
+ * @type Category
+ */
+Object.defineProperty(App.Transaction.prototype,'category',{
+    get:function()
+    {
+        if (!this._category)
+        {
+            if (this._data)
+            {
+                var ModelLocator = App.ModelLocator,
+                    ModelName = App.ModelName,
+                    ids = this._data[4].split(".");
+
+                this._category = ModelLocator.getProxy(ModelName.CATEGORIES).filter([ids[1]],"id")[0];
+                this._subCategory = ModelLocator.getProxy(ModelName.SUB_CATEGORIES).filter([ids[2]],"id")[0];
+            }
+            else
+            {
+                this._category = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultCategory;
+                this._subCategory = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultSubCategory;
+            }
+        }
+        return this._category;//TODO save last used account as 'default' on save
+    },
+    set:function(value)
+    {
+        this._category = value;
+    }
+});
+
+/**
+ * @property subCategory
+ * @type SubCategory
+ */
+Object.defineProperty(App.Transaction.prototype,'subCategory',{
+    get:function()
+    {
+        if (!this._subCategory)
+        {
+            if (this._data) this._subCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).filter([this._data[4].split(".")[2]],"id")[0];
+            else this._subCategory = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultSubCategory;
+        }
+        return this._subCategory;
+    },
+    set:function(value)
+    {
+        this._subCategory = value;
+    }
+});
+
+/**
+ * @property method
+ * @type PaymentMethod
+ */
+Object.defineProperty(App.Transaction.prototype,'method',{
+    get:function()
+    {
+        if (!this._method)
+        {
+            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).filter([this._data[4]],"id")[0];
+            else this._method = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultPaymentMethod;
+        }
+        return this._method;
+    },
+    set:function(value)
+    {
+        this._method = value;
+    }
+});
+
+/**
+ * @property date
+ * @type Date
+ */
+Object.defineProperty(App.Transaction.prototype,'date',{
+    get:function()
+    {
+        if (!this._date)
+        {
+            if (this._data) this._date = new Date(this._data[6]);
+            else this._date = new Date();
+        }
+        return this._date;
+    }//TODO set new date object, or modify the original?
+});
+
+/**
+ * @property currency
+ * @type Currency
+ */
+Object.defineProperty(App.Transaction.prototype,'currency',{
+    get:function()
+    {
+        if (!this._currency)
+        {
+            if (this._data) this._currency = App.ModelLocator.getProxy(App.ModelName.CURRENCIES).filter([this._data[7]],"id")[0];
+            else this._currency = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
+        }
+        return this._currency;
+    },
+    set:function(value)
+    {
+        this._currency = value;
+    }
+});
 
 /**
  * @class SubCategory
@@ -1509,23 +1704,45 @@ Object.defineProperty(App.Transaction.prototype,'amount',{
  */
 App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
 {
-    this._data = data;
+    this.id = data[0];
     this.name = data[1];
 };
 
+/**
+ * @class Category
+ * @param {Array} data
+ * @param {Collection} collection
+ * @param {*} parent
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
 App.Category = function Category(data,collection,parent,eventListenerPool)
 {
+    this._data = data;
+
     this.id = data[0];
     this.name = data[1];
     this.color = data[2];
     this.icon = data[3];
-    this.subCategories = data[4];
     this.budget = data[5];
+    this._subCategories = null;
 };
 
 /**
+ * @property subCategories
+ * @type Array.<SubCategory>
+ */
+Object.defineProperty(App.Category.prototype,'subCategories',{
+    get:function()
+    {
+        if (!this._subCategories) this._subCategories = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).filter(this._data[4],"id");
+        return this._subCategories;
+    }
+});
+
+/**
  * @class Account
- * @param {{name:string,categories:Array.<Category>}} data
+ * @param {Array} data
  * @param {Collection} collection
  * @param {Object} parent
  * @param {ObjectPool} eventListenerPool
@@ -1534,19 +1751,20 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
 App.Account = function Account(data,collection,parent,eventListenerPool)
 {
     this._data = data;
-    //this._id = this._data[0];
+
+    this._id = this._data[0];
     this.name = this._data[1];
     this._categories = null;
 };
 
 /**
  * @property categories
- * @type Collection
+ * @type Array.<Category>
  */
 Object.defineProperty(App.Account.prototype,'categories',{
     get:function()
     {
-        if (!this._categories) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2],"id");
+        if (!this._categories) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2].split(","),"id");
         return this._categories;
     }
 });
@@ -3046,7 +3264,7 @@ App.Calendar = function Calendar(date,width,pixelRatio)
         Text = PIXI.Text,
         DateUtils = App.DateUtils,
         FontStyle = App.FontStyle,
-        startOfWeek = App.Settings.getStartOfWeek(),
+        startOfWeek = App.ModelLocator.getProxy(App.ModelName.SETTINGS).startOfWeek,
         month = DateUtils.getMonth(date,startOfWeek),
         dayLabels = DateUtils.getDayLabels(startOfWeek),
         daysInWeek = dayLabels.length,
@@ -3269,7 +3487,7 @@ App.Calendar.prototype._changeDate = function _changeDate(direction,selectDate)
 
     this._updateMonthLabel();
 
-    var month = App.DateUtils.getMonth(this._date,App.Settings.getStartOfWeek()),
+    var month = App.DateUtils.getMonth(this._date,App.ModelLocator.getProxy(App.ModelName.SETTINGS).startOfWeek),
         weeksInMonth = month.length,
         selectedMonth = this._selectedDate.getFullYear() === newYear && this._selectedDate.getMonth() === newMonth,
         selectedDate = selectedMonth ? this._selectedDate.getDate() : -1,
@@ -4679,7 +4897,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
  */
 Object.defineProperty(App.VirtualList.prototype,'x',{
     get: function() {
-        return  this._virtualX;
+        return  this._virtualX;//TODO use just 'x'? defineProperty is too slow!
     }
 });
 
@@ -6348,10 +6566,10 @@ App.TransactionToggleButton.prototype.toggle = function toggle()
 };
 
 /**
- * Is button toggled?
+ * Is button selected?
  * @returns {boolean}
  */
-App.TransactionToggleButton.prototype.isToggled = function isToggled()
+App.TransactionToggleButton.prototype.isSelected = function isSelected()
 {
     return this._toggle;
 };
@@ -6366,7 +6584,7 @@ App.TransactionToggleButton.prototype.isToggled = function isToggled()
  * @param {{width:number,height:number,pixelRatio:number,nameStyle:Object,valueStyle:Object,valueDetailStyle:Object}} options
  * @constructor
  */
-App.TransactionOptionButton = function TransactionOptionButton(iconName,name,value,targetScreenName,options)
+App.TransactionOptionButton = function TransactionOptionButton(iconName,name,targetScreenName,options)
 {
     PIXI.Graphics.call(this);
 
@@ -6375,21 +6593,16 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,val
 
     this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
+    this._options = options;
     this._pixelRatio = options.pixelRatio;
     this._icon = new Sprite.fromFrame(iconName);
     this._nameField = new Text(name,options.nameStyle);
-    this._valueField = new Text(value,options.valueStyle);
+    this._valueField = new Text("",options.valueStyle);
     this._valueDetailField = null;
     this._targetScreenName = targetScreenName;
     this._arrow = new Sprite.fromFrame("arrow-app");
     this._iconResizeRatio = Math.round(20 * this._pixelRatio) / this._icon.height;
     this._arrowResizeRatio = Math.round(12 * this._pixelRatio) / this._arrow.height;
-
-    if (value.indexOf("\n") > -1)
-    {
-        this._valueField.setText(value.substring(0,value.indexOf("\n")));
-        this._valueDetailField = new Text(value.substring(value.indexOf("\n")+1,value.length),options.valueDetailStyle);
-    }
 
     this._render();
     this._update();
@@ -6397,7 +6610,6 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,val
     this.addChild(this._icon);
     this.addChild(this._nameField);
     this.addChild(this._valueField);
-    if (this._valueDetailField) this.addChild(this._valueDetailField);
     this.addChild(this._arrow);
 };
 
@@ -6475,9 +6687,20 @@ App.TransactionOptionButton.prototype.getTargetScreenName = function getTargetSc
  */
 App.TransactionOptionButton.prototype.setValue = function setValue(value,details)
 {
-    this._valueField.setText(value);
+    this._valueField.setText(value ? value : "?");
 
-    if (this._valueDetailField && details) this._valueDetailField.setText(details);
+    if (details)
+    {
+        if (this._valueDetailField)
+        {
+            this._valueDetailField.setText(details);
+        }
+        else
+        {
+            this._valueDetailField = new PIXI.Text(details,this._options.valueDetailStyle);
+            this.addChild(this._valueDetailField);
+        }
+    }
 
     this._update();
 };
@@ -6526,25 +6749,27 @@ App.AddTransactionScreen = function AddTransactionScreen(model,layout)
     this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
 
     this._optionList = new App.List(App.Direction.Y);
-    //TODO do not need pass any string - all will be updated from model
-    this._accountOption = new TransactionOptionButton("account","Account","Personal",ScreenName.ACCOUNT,options);
-    this._categoryOption = new TransactionOptionButton("folder-app","Category","Cinema\nin Entertainment",ScreenName.CATEGORY,options);
-    this._timeOption = new TransactionOptionButton("calendar","Time","14:56\nJan 29th, 2014",ScreenName.SELECT_TIME,options);
-    this._methodOption = new TransactionOptionButton("credit-card","Method","Cash",ScreenName.CATEGORY,options);
-    this._currencyOption = new TransactionOptionButton("currencies","Currency","CZK",ScreenName.ACCOUNT,options);
+    this._accountOption = new TransactionOptionButton("account","Account",ScreenName.ACCOUNT,options);
+    this._categoryOption = new TransactionOptionButton("folder-app","Category",ScreenName.CATEGORY,options);
+    this._timeOption = new TransactionOptionButton("calendar","Time",ScreenName.SELECT_TIME,options);
+    this._methodOption = new TransactionOptionButton("credit-card","Method",ScreenName.CATEGORY,options);
+    this._currencyOption = new TransactionOptionButton("currencies","Currency",ScreenName.ACCOUNT,options);
 
     this._toggleButtonList = new App.List(App.Direction.X);
-    this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false}),false);
-    this._toggleButtonList.add(new TransactionToggleButton("pending-app","Pending",toggleOptions,{toggleColor:true}),false);
-    this._toggleButtonList.add(new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true}),true);
+    this._typeToggle = new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false});
+    this._pendingToggle = new TransactionToggleButton("pending-app","Pending",toggleOptions,{toggleColor:true});
+    this._repeatToggle = new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true});
 
+    //TODO automatically focus input when this screen is shown?
+
+    this._toggleButtonList.add(this._typeToggle,false);
+    this._toggleButtonList.add(this._pendingToggle,false);
+    this._toggleButtonList.add(this._repeatToggle,true);
     this._optionList.add(this._accountOption,false);
     this._optionList.add(this._categoryOption,false);
     this._optionList.add(this._timeOption,false);
     this._optionList.add(this._methodOption,false);
     this._optionList.add(this._currencyOption,true);
-
-    //TODO automatically focus input when this screen is shown?
 
     this._transactionInput.restrict(/\D/g);
     this._render();
@@ -6628,10 +6853,15 @@ App.AddTransactionScreen.prototype._update = function _update()
 
     this._transactionInput.setValue(this._model.amount);
 
-    //this._accountOption.setValue(this._model.accounr);//TODO parse category
+    if (this._model.type === App.TransactionType.INCOME && !this._typeToggle.isSelected()) this._typeToggle.toggle();
+    if (this._model.pending && !this._pendingToggle.isSelected()) this._pendingToggle.toggle();
+    if (this._model.repeat && !this._repeatToggle.isSelected()) this._repeatToggle.toggle();
+
+    this._accountOption.setValue(this._model.account);
+    this._categoryOption.setValue(this._model.category,this._model.subCategory);
     this._timeOption.setValue(App.DateUtils.getMilitaryTime(date),date.toDateString());
-    this._methodOption.setValue(this._model.method);
-    this._currencyOption.setValue(this._model.currency);
+    this._methodOption.setValue(this._model.method.name);
+    this._currencyOption.setValue(this._model.currency.symbol);
 
     this._noteInput.setValue(this._model.note);
 };
@@ -6755,6 +6985,10 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     {
         this._scrollInput = this._noteInput;
         this._focusInput(false);
+    }
+    else
+    {
+        if (inputFocused) this._scrollInput.blur();
     }
 };
 
@@ -10328,23 +10562,28 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  */
 App.Initialize.prototype._initModel = function _initModel(data)
 {
-    var ModelName = App.ModelName,
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
         Collection = App.Collection,
-        userData = JSON.parse(data.userData);
+        PaymentMethod = App.PaymentMethod,
+        Currency = App.Currency,
+        userData = JSON.parse(data.userData),
+        currencies = new Collection(userData.currencies,Currency,null,this._eventListenerPool);
 
-    App.ModelLocator.init([
+    currencies.addItem(new Currency([1,"USD"]));
+
+    ModelLocator.init([
         ModelName.EVENT_LISTENER_POOL,this._eventListenerPool,
         ModelName.TICKER,new App.Ticker(this._eventListenerPool),
         ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}),
-        ModelName.PAYMENT_METHODS,new Collection(userData.paymentMethods,App.PaymentMethod,null,this._eventListenerPool),
-        ModelName.CURRENCIES,new Collection(userData.currencies,App.Currency,null,this._eventListenerPool),
+        ModelName.PAYMENT_METHODS,new Collection([PaymentMethod.CASH,PaymentMethod.CREDIT_CARD],PaymentMethod,null,this._eventListenerPool),
+        ModelName.CURRENCIES,currencies,
+        ModelName.SETTINGS,new App.Settings(userData.settings),
         ModelName.SUB_CATEGORIES,new Collection(userData.subCategories,App.SubCategory,null,this._eventListenerPool),
         ModelName.CATEGORIES,new Collection(userData.categories,App.Category,null,this._eventListenerPool),
         ModelName.ACCOUNTS,new Collection(userData.accounts,App.Account,null,this._eventListenerPool),
         ModelName.TRANSACTIONS,new Collection(userData.transactions,App.Transaction,null,this._eventListenerPool)
     ]);
-
-    App.Settings.setStartOfWeek(1);
 };
 
 /**
@@ -10493,7 +10732,7 @@ App.CreateTransaction.prototype.execute = function execute(data)
     this._nextCommand = data.nextCommand;
 
     var transactions = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS),
-        transaction = new App.Transaction({},transactions);//TODO do I need to pass in empty object?
+        transaction = new App.Transaction();
 
     transactions.addItem(transaction);
     transactions.setCurrent(transaction);
