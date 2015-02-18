@@ -2,12 +2,14 @@
  * @class ObjectPool
  * @param {Function} objectClass
  * @param {number} size
+ * @param {Object} constructorData
  * @constructor
  */
-App.ObjectPool = function ObjectPool(objectClass,size)
+App.ObjectPool = function ObjectPool(objectClass,size,constructorData)
 {
     this._objectClass = objectClass;
     this._size = size;
+    this._constructorData = constructorData;
     this._items = [];
     this._freeItems = [];
 };
@@ -25,7 +27,7 @@ App.ObjectPool.prototype.preAllocate = function preAllocate()
 
     for (;i < newSize;i++)
     {
-        this._items[i] = new this._objectClass(i);
+        this._items[i] = new this._objectClass(i,this._constructorData);
         this._freeItems.push(i);
     }
 };

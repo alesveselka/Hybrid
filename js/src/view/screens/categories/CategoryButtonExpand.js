@@ -1,18 +1,20 @@
 /**
  * @class CategoryButtonExpand
  * @extends ExpandButton
- * @param {Category} model
- * @param {Object} layout
- * @param {{font:string,fill:string}} nameLabelStyle
+ * @param {number} poolIndex
+ * @param {{width:number,height:number,pixelRatio:number,nameLabelStyle:{font:string,fill:string},editLabelStyle:{font:string,fill:string}}} options
  * @constructor
  */
-App.CategoryButtonExpand = function CategoryButtonExpand(model,layout,nameLabelStyle)
+App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
 {
-    App.ExpandButton.call(this,layout.width,Math.round(50 * layout.pixelRatio),false);
+    App.ExpandButton.call(this,options.width,options.height,true);
 
-    this._model = model;
-    this._layout = layout;
-    this._surface = new App.CategoryButtonSurface(model.icon,model.name,nameLabelStyle);
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+
+    this._model = null;
+    this._pixelRatio = options.pixelRatio;
+    this._surface = new App.CategoryButtonSurface(options.nameLabelStyle);
     this._subCategoryList = new PIXI.Graphics();
 
     this._render();
@@ -33,7 +35,15 @@ App.CategoryButtonExpand.prototype._render = function _render()
 {
     var w = this.boundingBox.width;
 
-    this._surface.render(w,this.boundingBox.height,this._layout.pixelRatio);
+    this._surface.render(w,this.boundingBox.height,this._pixelRatio);
 
     App.GraphicUtils.drawRect(this._subCategoryList,App.ColorTheme.GREY_LIGHT,1,0,0,w,300);
+};
+
+/**
+ * Destroy
+ */
+App.CategoryButtonExpand.prototype.destroy = function destroy()
+{
+    App.ExpandButton.prototype.destroy.call(this);
 };

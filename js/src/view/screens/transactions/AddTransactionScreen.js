@@ -10,7 +10,6 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
 
     var TransactionOptionButton = App.TransactionOptionButton,
         TransactionToggleButton = App.TransactionToggleButton,
-        HeaderAction = App.HeaderAction,
         FontStyle = App.FontStyle,
         ScreenName = App.ScreenName,
         r = layout.pixelRatio,
@@ -98,8 +97,6 @@ App.AddTransactionScreen.prototype._render = function _render()
         separatorWidth = w - padding * 2,
         bottom = 0;
 
-    //TODO check screen mode
-
     this._transactionInput.x = padding;
     this._transactionInput.y = padding;
 
@@ -143,6 +140,9 @@ App.AddTransactionScreen.prototype._render = function _render()
  */
 App.AddTransactionScreen.prototype.update = function update(data,mode)
 {
+    this._model = data;
+    this._mode = mode;
+
     var date = this._model.date;
 
     this._transactionInput.setValue(this._model.amount);
@@ -158,23 +158,15 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
     this._currencyOption.setValue(this._model.currency.symbol);
 
     this._noteInput.setValue(this._model.note);
-};
 
-/**
- * Show
- */
-App.AddTransactionScreen.prototype.show = function show()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.HIDDEN || this._transitionState === TransitionState.HIDING)
+    if (this._mode === App.ScreenMode.EDIT)
     {
-        var transaction = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent();
-        if (this._model !== transaction) this._model = transaction;
-        this.update();
+        if (!this._container.contains(this._deleteButton)) this._container.addChild(this._deleteButton);
     }
-
-    App.InputScrollScreen.prototype.show.call(this);
+    else
+    {
+        if (this._container.contains(this._deleteButton)) this._container.removeChild(this._deleteButton);
+    }
 };
 
 /**
@@ -192,7 +184,7 @@ App.AddTransactionScreen.prototype.enable = function enable()
  */
 App.AddTransactionScreen.prototype.disable = function disable()
 {
-    this.resetScroll();//TODO reset before the screen start hiding
+    this.resetScroll();
 
     App.InputScrollScreen.prototype.disable.call(this);
 
@@ -268,9 +260,11 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
 
             if (button === this._accountOption)
             {
+                //TODO use pool for ChangeScreen data?
                 App.Controller.dispatchEvent(
                     App.EventType.CHANGE_SCREEN,{
                         screenName:App.ScreenName.ACCOUNT,
+                        screenMode:App.ScreenMode.SELECT,
                         headerLeftAction:HeaderAction.CANCEL,
                         headerRightAction:HeaderAction.NONE,
                         headerName:"Select Account"//TODO remove hard-coded value
@@ -298,5 +292,22 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     else
     {
         if (inputFocused) this._scrollInput.blur();
+    }
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    if (action === App.HeaderAction.CONFIRM)
+    {
+        // confirm
+    }
+    else
+    {
+        //cancel
     }
 };

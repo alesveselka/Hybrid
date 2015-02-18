@@ -280,3 +280,31 @@ App.ExpandButton.prototype.removeEventListener = function removeEventListener(ev
 {
     this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };
+
+/**
+ * Destroy
+ */
+App.ExpandButton.prototype.destroy = function destroy()
+{
+    this._unRegisterEventListeners();
+
+    this._eventDispatcher.destroy();
+    this._eventDispatcher = null;
+
+    this._ticker = null;
+
+    this._expandTween.destroy();
+    this._expandTween = null;
+
+    if (this._useMask)
+    {
+        this.mask = null;
+        this.removeChild(this._mask);
+        this._mask.clear();
+        this._mask = null;
+    }
+
+    this.boundingBox = null;
+
+    //TODO remove and destroy content
+};

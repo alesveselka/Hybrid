@@ -10,8 +10,7 @@ App.SelectTimeScreen = function SelectTimeScreen(layout)
 
     var r = layout.pixelRatio,
         w = layout.width,
-        ScrollPolicy = App.ScrollPolicy,
-        HeaderAction = App.HeaderAction;
+        ScrollPolicy = App.ScrollPolicy;
 
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();

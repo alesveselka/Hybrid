@@ -4,7 +4,6 @@ App.Menu = function Menu(layout)
 
     var MenuItem = App.MenuItem,
         ScreenName = App.ScreenName,
-        HeaderAction = App.HeaderAction,
         FontStyle = App.FontStyle,
         r = layout.pixelRatio,
         w = layout.width,
@@ -108,7 +107,7 @@ App.Menu.prototype._onClick = function _onClick()
                 nextCommand:new App.ChangeScreen(),
                 nextCommandData:{
                     screenName:ScreenName.ADD_TRANSACTION,
-                    mode:App.ScreenMode.EDIT,
+                    screenMode:App.ScreenMode.ADD,
                     headerLeftAction:HeaderAction.CANCEL,
                     headerRightAction:HeaderAction.CONFIRM,
                     headerName:"Add Transaction"//TODO remove hard-coded value

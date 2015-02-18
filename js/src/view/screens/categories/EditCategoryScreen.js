@@ -12,7 +12,6 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
         InfiniteList = App.InfiniteList,
         Direction = App.Direction,
         IconSample = App.IconSample,
-        HeaderAction = App.HeaderAction,
         FontStyle = App.FontStyle,
         Input = App.Input,
         r = layout.pixelRatio,

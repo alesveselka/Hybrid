@@ -41,7 +41,7 @@ App.List.prototype.updateLayout = function updateLayout()
         item = null,
         position = 0,
         Direction = App.Direction;
-    //TODO rewrite for bracelet access - less code. As well as other classes and methods!
+
     if (this._direction === Direction.X)
     {
         for (;i<l;)
@@ -75,39 +75,27 @@ App.List.prototype.updateLayout = function updateLayout()
 App.List.prototype.getItemUnderPoint = function getItemUnderPoint(data)
 {
     var position = data.getLocalPosition(this).x,
-        Direction = App.Direction,
-        i = 0,
-        l = this._items.length,
-        size = 0,
+        boundsProperty = "width",
         itemPosition = 0,
-        item = null;
+        itemProperty = "x",
+        item = null,
+        i = 0,
+        l = this._items.length;
 
-    if (this._direction === Direction.X)
-    {
-        for (;i<l;)
-        {
-            item = this._items[i++];
-            itemPosition = item.x;
-            size = item.boundingBox.width;
-            if (itemPosition <= position && itemPosition + size >= position)
-            {
-                return item;
-            }
-        }
-    }
-    else if (this._direction === Direction.Y)
+    if (this._direction === App.Direction.Y)
     {
         position = data.getLocalPosition(this).y;
+        itemProperty = "y";
+        boundsProperty = "height";
+    }
 
-        for (;i<l;)
+    for (;i<l;)
+    {
+        item = this._items[i++];
+        itemPosition = item[itemProperty];
+        if (itemPosition <= position && itemPosition + item.boundingBox[boundsProperty] >= position)
         {
-            item = this._items[i++];
-            itemPosition = item.y;
-            size = item.boundingBox.height;
-            if (itemPosition <= position && itemPosition + size >= position)
-            {
-                return item;
-            }
+            return item;
         }
     }
 

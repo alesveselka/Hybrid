@@ -8,35 +8,16 @@ App.CategoryScreen = function CategoryScreen(layout)
 {
     App.Screen.call(this,null,layout,0.4);
 
-    var CategoryButton = App.CategoryButtonExpand,
-        ScrollPolicy = App.ScrollPolicy,
-        FontStyle = App.FontStyle,
-        nameLabelStyle = FontStyle.get(18,FontStyle.BLUE),
-        editLabelStyle = FontStyle.get(18,FontStyle.WHITE),
-        i = 0,
-//        l = this._model.length,
-        button = null;
-/*
     this._interactiveButton = null;
-    this._buttons = new Array(l);
-    this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
-
-    for (;i<l;i++)
-    {
-//        button = new CategoryButton(this._model.getItemAt(i),layout,nameLabelStyle,editLabelStyle);
-        button = new CategoryButton(this._model[i],layout,nameLabelStyle);
-        this._buttons[i] = button;
-        this._buttonList.add(button);
-    }
-    this._buttonList.updateLayout();
-
     this._buttonsInTransition = [];
     this._layoutDirty = false;
 
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,layout.contentHeight,layout.pixelRatio,false);
+    this._buttons = null;
+    this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
+    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.contentHeight,layout.pixelRatio,false);
     this._pane.setContent(this._buttonList);
 
-    this.addChild(this._pane);*/
+    this.addChild(this._pane);
 
 //    this._swipeEnabled = true;
 };
@@ -65,6 +46,47 @@ App.CategoryScreen.prototype.disable = function disable()
     this._pane.disable();
 
     //TODO also disable buttons
+};
+
+/**
+ * Update
+ * @private
+ */
+App.CategoryScreen.prototype.update = function update(data,mode)
+{
+    this._model = data;
+
+    if (this._mode === mode)
+    {
+        var CategoryButton = App.CategoryButtonExpand,
+            FontStyle = App.FontStyle,
+            nameLabelStyle = FontStyle.get(18,FontStyle.BLUE),
+            editLabelStyle = FontStyle.get(18,FontStyle.WHITE),
+            w = this._layout.width,
+            r = this._layout.pixelRatio,
+            i = 0,
+            l = this._model.length,
+            buttonHeight = Math.round(50 * r),
+            button = null;
+
+        this._buttons = new Array(l);
+
+        for (;i<l;i++)
+        {
+            button = new CategoryButton(this._model[i],w,buttonHeight,nameLabelStyle,r);
+            this._buttons[i] = button;
+            this._buttonList.add(button);
+        }
+    }
+
+    this._mode = mode;
+
+    //TODO clear and destroy previous buttons, or maybe move to pool
+
+
+    this._buttonList.updateLayout();
+
+    this._pane.setContent(this._buttonList);
 };
 
 /**

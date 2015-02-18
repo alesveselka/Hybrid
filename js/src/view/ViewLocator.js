@@ -1,9 +1,21 @@
 /**
  * @class ViewLocator
- * @type {{_viewSegments:Object, addViewSegment: Function, hasViewSegment: Function, getViewSegment: Function}}
+ * @type {{_viewSegments:Object,init:Function, addViewSegment: Function, hasViewSegment: Function, getViewSegment: Function}}
  */
 App.ViewLocator = {
     _viewSegments:{},
+
+    /**
+     * Initialize with array of segments passed in
+     * @param {Array.<>} segments
+     */
+    init:function init(segments)
+    {
+        var i = 0,
+            l = segments.length;
+
+        for (;i<l;) this._viewSegments[segments[i++]] = segments[i++];
+    },
 
     /**
      * Add view segment

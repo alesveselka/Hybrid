@@ -107,6 +107,15 @@ App.Screen.prototype.disable = function disable()
 };
 
 /**
+ * Update
+ * @private
+ */
+App.Screen.prototype.update = function update(data,mode)
+{
+    this._mode = mode;
+};
+
+/**
  * Add event listener
  * @param {string} eventType
  * @param {Object} scope

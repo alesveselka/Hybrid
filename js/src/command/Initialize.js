@@ -128,7 +128,17 @@ App.Initialize.prototype._initView = function _initView()
             transparent:false,
             autoResize:false,
             clearBeforeRender:false
-        });
+        }),
+        ViewName = App.ViewName,
+        ObjectPool = App.ObjectPool,
+        FontStyle = App.FontStyle,
+        categoryButtonOptions = {
+            width:Math.round(w * r),
+            height:Math.round(50 * r),
+            pixelRatio:pixelRatio,
+            nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
+            editLabelStyle:FontStyle.get(18,FontStyle.WHITE)
+        };
 
     if (pixelRatio > 1)
     {
@@ -150,10 +160,11 @@ App.Initialize.prototype._initView = function _initView()
 
     App.FontStyle.init(pixelRatio);
 
-    App.ViewLocator.addViewSegment(
-        App.ViewName.APPLICATION_VIEW,
-        stage.addChild(new App.ApplicationView(stage,renderer,w,h,pixelRatio))
-    );
+    App.ViewLocator.init([
+        ViewName.CATEGORY_BUTTON_EXPAND_POOL,new ObjectPool(App.CategoryButtonExpand,5,categoryButtonOptions),
+        ViewName.CATEGORY_BUTTON_EDIT_POOL,new ObjectPool(App.CategoryButtonEdit,5,categoryButtonOptions),
+        ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,w,h,pixelRatio))
+    ]);
 
     renderer.render(stage);
 };

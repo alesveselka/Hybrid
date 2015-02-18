@@ -2,54 +2,32 @@
  * @class AccountButton
  * @extends Graphics
  * @param {Account} model
- * @param {Object} layout
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @param {{font:string,fill:string}} nameStyle
+ * @param {{font:string,fill:string}} detailStyle
  * @constructor
  */
-App.AccountButton = function AccountButton(model,layout,index)
+App.AccountButton = function AccountButton(model,width,height,pixelRatio,nameStyle,detailStyle)
 {
     PIXI.Graphics.call(this);
 
+    this.boundingBox = new PIXI.Rectangle(0,0,width,height);
+
     this._model = model;
-    this._layout = layout;
+    this._pixelRatio = pixelRatio;
+    this._nameLabel = new PIXI.Text(this._model.name,nameStyle);
+    this._detailsLabel = new PIXI.Text("Balance: 2.876, Expenses: -250, Income: 1.500",detailStyle);//TODO remove hard-coded data
 
-    var FontStyle = App.FontStyle,
-        pixelRatio = this._layout.pixelRatio,
-        height = Math.round(70 * pixelRatio);
-
-    this.boundingBox = new PIXI.Rectangle(0,0,this._layout.width,height);
-
-    //TODO move texts and their settings objects into pools?
-    this._nameLabel = new PIXI.Text(this._model.name+" "+index,FontStyle.get(24,FontStyle.BLUE));
-    this._nameLabel.x = Math.round(15 * pixelRatio);
-    this._nameLabel.y = Math.round(15 * pixelRatio);
-
-    this._detailsLabel = new PIXI.Text("Balance: 2.876, Expenses: -250, Income: 1.500",{font:Math.round(12 * pixelRatio)+"px Arial",fill:"#999999"});
-    this._detailsLabel.x = Math.round(15 * pixelRatio);
-    this._detailsLabel.y = Math.round(45 * pixelRatio);
-
-    //this._icon =
+    this._render();
 
     this.addChild(this._nameLabel);
     this.addChild(this._detailsLabel);
-
-    this.interactive = true;
-
-    this._render();
 };
 
 App.AccountButton.prototype = Object.create(PIXI.Graphics.prototype);
 App.AccountButton.prototype.constructor = App.AccountButton;
-
-/**
- * @method _resize
- * @param {number} width
- */
-App.AccountButton.prototype.resize = function resize(width)
-{
-    this.boundingBox.width = width;
-
-    this._render();
-};
 
 /**
  * @method render
@@ -59,30 +37,28 @@ App.AccountButton.prototype._render = function _render()
 {
     var ColorTheme = App.ColorTheme,
         GraphicUtils = App.GraphicUtils,
-        padding = Math.round(10 * this._layout.pixelRatio);
+        w = this.boundingBox.width,
+        h = this.boundingBox.height,
+        r = this._pixelRatio,
+        offset = Math.round(15 * r),
+        padding = Math.round(10 * r);
 
-    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,this.boundingBox.width,this.boundingBox.height],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,this.boundingBox.width-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,this.boundingBox.height-1,this.boundingBox.width-padding*2,1],false,true);
+    this._nameLabel.x = offset;
+    this._nameLabel.y = offset;
+
+    this._detailsLabel.x = offset;
+    this._detailsLabel.y = Math.round(45 * r);
+
+    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
 };
 
 /**
- * Destroy
+ * Return model
+ * @returns {Account}
  */
-App.AccountButton.prototype.destroy = function destroy()
+App.AccountButton.prototype.getModel = function getModel()
 {
-    this.clear();
-
-    this.interactive = false;
-
-    this._layout = null;
-    this._model = null;
-
-    this.boundingBox = null;
-
-    this.removeChild(this._nameLabel);
-    this._nameLabel = null;
-
-    this.removeChild(this._detailsLabel);
-    this._detailsLabel = null;
+    return this._model;
 };

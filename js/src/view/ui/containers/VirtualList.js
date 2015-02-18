@@ -130,7 +130,7 @@ App.VirtualList.prototype.updateX = function updateX(position)
         maxBeginning = modelLength - l,
         moveToEnd = false,
         moveToBeginning = false,
-        x = 0,
+        itemX = 0,
         item = null;
 
     this._virtualX = position;
@@ -138,15 +138,15 @@ App.VirtualList.prototype.updateX = function updateX(position)
     for (;i<l;)
     {
         item = this._items[i++];
-        x = item.x + positionDifference;
-        moveToBeginning = x > this._width;
-        moveToEnd = x + this._itemSize < 0;
+        itemX = item.x + positionDifference;
+        moveToBeginning = itemX > this._width && positionDifference > 0;
+        moveToEnd = itemX + this._itemSize < 0 && positionDifference < 0;
 
         if (moveToBeginning || moveToEnd)
         {
-            itemScreenIndex = -Math.floor(x / this._width);
-            x += itemScreenIndex * l * this._itemSize;
-            xIndex = Math.floor(x / this._itemSize);
+            itemScreenIndex = -Math.floor(itemX / this._width);
+            itemX += itemScreenIndex * l * this._itemSize;
+            xIndex = Math.floor(itemX / this._itemSize);
 
             if (virtualIndex >= 0) modelIndex = (xIndex - (virtualIndex % modelLength)) % modelLength;
             else modelIndex = (xIndex - virtualIndex) % modelLength;
@@ -159,11 +159,11 @@ App.VirtualList.prototype.updateX = function updateX(position)
             }
             else
             {
-                x = item.x + positionDifference;
+                itemX = item.x + positionDifference;
             }
         }
 
-        item.x = x;
+        item.x = itemX;
     }
 };
 

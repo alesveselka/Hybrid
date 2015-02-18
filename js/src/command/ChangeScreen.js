@@ -23,6 +23,8 @@ App.ChangeScreen.prototype.execute = function execute(data)
         screenStack = ViewLocator.getViewSegment(ViewName.SCREEN_STACK),
         screen = screenStack.getChildByIndex(data.screenName);
 
+    screen.update(data.updateData,data.screenMode);
+
     ViewLocator.getViewSegment(ViewName.HEADER).change(data.headerLeftAction,data.headerRightAction,data.headerName);
 
     screenStack.selectChild(screen);

@@ -22,13 +22,16 @@ App.FontStyle = {
      * @param {number} fontSize
      * @param {string} color
      * @param {string} [align=null]
+     * @param {string} [font=null]
      * @returns {{font: string, fill: string}}
      */
-    get:function get(fontSize,color,align)
+    get:function get(fontSize,color,align,font)
     {
         var i = 0,
             l = this._styles.length,
             style = null;
+
+        font = font || "HelveticaNeueCond";
 
         for (;i<l;)
         {
@@ -49,7 +52,7 @@ App.FontStyle = {
             }
         }
 
-        style = {fontSize:fontSize,font:Math.round(fontSize * this._pixelRatio)+"px HelveticaNeueCond",fill:color,align:align ? align : "left"};
+        style = {fontSize:fontSize,font:Math.round(fontSize * this._pixelRatio)+"px "+font,fill:color,align:align ? align : "left"};
         this._styles.push(style);
 
         return style;
@@ -61,5 +64,6 @@ App.FontStyle = {
     BLUE_DARK:"#252B44",
     SHADE:"#efefef",
     SHADE_DARK:"#cccccc",
+    GREY:"#999999",
     RED_DARK:"#990000"
 };

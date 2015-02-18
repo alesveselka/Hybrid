@@ -10,24 +10,32 @@ App.AccountScreen = function AccountScreen(model,layout)
     App.Screen.call(this,model,layout,0.4);
 
     var AccountButton = App.AccountButton,
+        FontStyle = App.FontStyle,
+        nameStyle = FontStyle.get(24,FontStyle.BLUE),
+        detailStyle = FontStyle.get(12,FontStyle.GREY),
+        r = layout.pixelRatio,
+        w = layout.width,
+        h = layout.contentHeight,
         i = 0,
         l = this._model.length(),
+        itemHeight = Math.round(70 * r),
         button = null;
 
     //TODO when there is nothing set up at beginning yet, add messages to guide user how to set things up
 
     this._buttons = new Array(l);
-    this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
+    this._buttonList = new App.TileList(App.Direction.Y,h);
 
+    //TODO move this to 'update' method
     for (;i<l;i++)
     {
-        button = new AccountButton(this._model.getItemAt(i),this._layout,i);
+        button = new AccountButton(this._model.getItemAt(i),w,itemHeight,r,nameStyle,detailStyle);
         this._buttons[i] = button;
         this._buttonList.add(button);
     }
     this._buttonList.updateLayout();
 
-    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.contentHeight,layout.pixelRatio,false);
+    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,h,r,false);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
@@ -53,32 +61,30 @@ App.AccountScreen.prototype.enable = function enable()
  */
 App.AccountScreen.prototype._onClick = function _onClick()
 {
-    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.CATEGORY);
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData()),
+        HeaderAction = App.HeaderAction;
+
+    if (button)
+    {
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,{
+                screenName:App.ScreenName.CATEGORY,
+                screenMode:App.ScreenMode.SELECT,
+                updateData:button.getModel().categories,
+                headerLeftAction:HeaderAction.CANCEL,
+                headerRightAction:HeaderAction.NONE,//TODO add back(arrow) button?
+                headerName:"Select Category"//TODO remove hard-coded value
+            }
+        );
+    }
 };
 
 /**
- * Destroy
+ * On Header click
+ * @param {number} action
+ * @private
  */
-App.AccountScreen.prototype.destroy = function destroy()
+App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    App.Screen.prototype.destroy.call(this);
-
-    this.disable();
-
-    this.removeChild(this._pane);
-    this._pane.destroy();
-    this._pane = null;
-
-    /*var i = 0, l = this._buttons.length, button = null;
-    for (;i<l;)
-    {
-        button = this._buttons[i++];
-        if (this._buttonList.contains(button)) this._buttonList.removeChild(button);
-        button.destroy();
-    }
-    this._buttonList.destroy();
-    this._buttonList = null;*/
-
-    this._buttons.length = 0;
-    this._buttons = null;
+    console.log("AccountScreen _onHeaderClick ",action);
 };
