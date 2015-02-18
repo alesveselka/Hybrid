@@ -14,12 +14,12 @@ App.CategoryButtonEdit = function CategoryButtonEdit(poolIndex,options)
     this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
     this._model = null;
+    this._mode = null;
     this._pixelRatio = options.pixelRatio;
     this._swipeSurface = new App.CategoryButtonSurface(options.nameLabelStyle);
     this._background = new PIXI.Graphics();
     this._editLabel = new PIXI.Text("Edit",options.editLabelStyle);
-
-    this._render();
+    this._renderAll = true;
 
     this.addChild(this._background);
     this.addChild(this._editLabel);
@@ -38,12 +38,40 @@ App.CategoryButtonEdit.prototype._render = function _render()
     var w = this.boundingBox.width,
         h = this.boundingBox.height;
 
-    this._swipeSurface.render(w,h,this._pixelRatio);
+    this._swipeSurface.render(this._model.name,this._model.icon,w,h,this._pixelRatio);
 
-    App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
+    if (this._renderAll)
+    {
+        this._renderAll = false;
 
-    this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
-    this._editLabel.y = Math.round(18 * this._pixelRatio);
+        App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
+
+        this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
+        this._editLabel.y = Math.round(18 * this._pixelRatio);
+    }
+};
+
+/**
+ * Disable
+ */
+App.CategoryButtonEdit.prototype.disable = function disable()
+{
+    App.SwipeButton.prototype.disable.call(this);
+};
+
+/**
+ * Update
+ * @param {Category} model
+ * @param {string} mode
+ */
+App.CategoryButtonEdit.prototype.update = function update(model,mode)
+{
+    this._model = model;
+    this._mode = mode;
+
+    this._render();
+
+    this.close(true);
 };
 
 /**

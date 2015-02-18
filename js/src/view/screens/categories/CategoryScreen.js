@@ -42,7 +42,11 @@ App.CategoryScreen.prototype.disable = function disable()
 
     this._pane.disable();
 
-    //TODO also disable buttons
+    //TODO do I need disable buttons? They'll be updated on show anyway
+    /*var i = 0,
+        l = this._buttonList.length;
+
+    for (;i<l;) this._buttonList.getItemAt(i++).disable();*/
 };
 
 /**
@@ -59,25 +63,29 @@ App.CategoryScreen.prototype.update = function update(data,mode)
         buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EXPAND_POOL),
         i = 0,
         l = this._buttonList.length,
+        modelLength = this._model.length,
         button = null;
 
     if (this._mode === mode)
     {
         if (mode === ScreenMode.EDIT) buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL);
 
-        for (;i<l;i++)
+        if (l >= modelLength)
         {
-            button = this._buttonList.getItemAt(i);
-            button.update(this._model[i]);
+            for (;i<l;i++)
+            {
+                if (i < modelLength) this._buttonList.getItemAt(i).update(this._model[i],mode);
+                else buttonPool.release(this._buttonList.removeItemAt(i));
+            }
         }
-
-        l = this._model.length;
-
-        for (;i<l;)
+        else
         {
-            button = buttonPool.allocate();
-            button.update(this._model[i++]);
-            this._buttonList.add(button,false);
+            for (;i<modelLength;)
+            {
+                button = buttonPool.allocate();
+                button.update(this._model[i++],mode);
+                this._buttonList.add(button,false);
+            }
         }
     }
     else
@@ -95,7 +103,7 @@ App.CategoryScreen.prototype.update = function update(data,mode)
         for (;i<l;)
         {
             button = buttonPool.allocate();
-            button.update(this._model[i++]);
+            button.update(this._model[i++],mode);
             this._buttonList.add(button,false);
         }
     }
@@ -166,23 +174,34 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
     var i = 0,
         l = this._buttonList.length,
         button = null,
+        ScreenMode = App.ScreenMode,
         EventType = App.EventType;
 
-    for (;i<l;)
+    if (this._mode === ScreenMode.SELECT)
     {
-        button = this._buttonList.getItemAt(i++);
-        //if (button !== this._interactiveButton) button.close(immediate);
-        if (button !== this._interactiveButton && button.isOpen()) // For ~Expand button ...
+        for (;i<l;)
         {
-            if (this._buttonsInTransition.indexOf(button) === -1)
+            button = this._buttonList.getItemAt(i++);
+            if (button !== this._interactiveButton && button.isOpen())
             {
-                this._buttonsInTransition.push(button);
+                if (this._buttonsInTransition.indexOf(button) === -1)
+                {
+                    this._buttonsInTransition.push(button);
 
-                button.addEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
-                button.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+                    button.addEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
+                    button.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+                }
+
+                button.close(immediate);
             }
-
-            button.close(immediate);
+        }
+    }
+    else if (this._mode === ScreenMode.EDIT)
+    {
+        for (;i<l;)
+        {
+            button = this._buttonList.getItemAt(i++);
+            if (button !== this._interactiveButton) button.close(immediate);
         }
     }
 };
@@ -210,8 +229,6 @@ App.CategoryScreen.prototype._onClick = function _onClick()
     this._pane.cancelScroll();
 
     //this._closeButtons();
-
-    //App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ACCOUNT);
 };
 
 /**

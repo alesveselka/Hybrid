@@ -13,9 +13,10 @@ App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
     this.poolIndex = poolIndex;
 
     this._model = null;
+    this._mode = null;
     this._pixelRatio = options.pixelRatio;
     this._surface = new App.CategoryButtonSurface(options.nameLabelStyle);
-    this._subCategoryList = new PIXI.Graphics();
+    this._subCategoryList = new App.SubCategoryList(options.width,this._pixelRatio);
 
     this._setContent(this._subCategoryList);
     this.addChild(this._subCategoryList);
@@ -31,28 +32,32 @@ App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
  */
 App.CategoryButtonExpand.prototype._render = function _render()
 {
-    var w = this.boundingBox.width;
-
-    this._surface.render(this._model.name,this._model.icon,w,this.boundingBox.height,this._pixelRatio);
-
-    App.GraphicUtils.drawRect(this._subCategoryList,App.ColorTheme.GREY_LIGHT,1,0,0,w,300);
+    this._surface.render(this._model.name,this._model.icon,this.boundingBox.width,this.boundingBox.height,this._pixelRatio);//TODO do I have to pass width and height?
 };
 
 /**
  * Update
  * @param {Category} model
+ * @param {string} mode
  */
-App.CategoryButtonExpand.prototype.update = function update(model)
+App.CategoryButtonExpand.prototype.update = function update(model,mode)
 {
     this._model = model;
+    this._mode = mode;
+
+    this._subCategoryList.update(model,mode);
+
+    this._contentHeight = this._subCategoryList.boundingBox.height;
 
     this._render();
+
+    this.close(true);
 };
 
 /**
- * Destroy
+ * Disable
  */
-App.CategoryButtonExpand.prototype.destroy = function destroy()
+App.CategoryButtonExpand.prototype.disable = function disable()
 {
-    App.ExpandButton.prototype.destroy.call(this);
+    this.close(true);
 };

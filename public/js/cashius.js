@@ -753,14 +753,15 @@ App.ModelName = {
 /**
  * View Segment state
  * @enum {string}
- * @return {{APPLICATION_VIEW:string,HEADER:string,SCREEN_STACK:string,CATEGORY_BUTTON_EXPAND_POOL:string,CATEGORY_BUTTON_EDIT_POOL:string}}
+ * @return {{APPLICATION_VIEW:string,HEADER:string,SCREEN_STACK:string,CATEGORY_BUTTON_EXPAND_POOL:string,CATEGORY_BUTTON_EDIT_POOL:string,SUB_CATEGORY_BUTTON_POOL:string}}
  */
 App.ViewName = {
     APPLICATION_VIEW:"APPLICATION_VIEW",
     HEADER:"HEADER",
     SCREEN_STACK:"SCREEN_STACK",
     CATEGORY_BUTTON_EXPAND_POOL:"CATEGORY_BUTTON_EXPAND_POOL",
-    CATEGORY_BUTTON_EDIT_POOL:"CATEGORY_BUTTON_EDIT_POOL"
+    CATEGORY_BUTTON_EDIT_POOL:"CATEGORY_BUTTON_EDIT_POOL",
+    SUB_CATEGORY_BUTTON_POOL:"SUB_CATEGORY_BUTTON_POOL"
 };
 
 /**
@@ -5581,26 +5582,32 @@ App.AddNewButton.prototype.constructor = App.AddNewButton;
  */
 App.AddNewButton.prototype._render = function _render()
 {
-    var ColorTheme = App.ColorTheme,
-        w = this._labelField.width,
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height,
         gap = Math.round(10 * this._pixelRatio),
         height = this.boundingBox.height,
         padding = Math.round(10 * this._pixelRatio),
-        x = 0;
+        position = 0;
 
-    App.GraphicUtils.drawRect(this,ColorTheme.GREY_LIGHT,1,padding,0,this.boundingBox.width-padding*2,1);
+    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
 
     this._icon.scale.x = this._iconResizeRatio;
     this._icon.scale.y = this._iconResizeRatio;
 
-    w += this._icon.width + gap;
-    x = Math.round((this.boundingBox.width - w) / 2);
+    w = this._labelField.width;
 
-    this._icon.x = x;
+    w += this._icon.width + gap;
+    position = Math.round((this.boundingBox.width - w) / 2);
+
+    this._icon.x = position;
     this._icon.y = Math.round((height - this._icon.height) / 2);
     this._icon.tint = ColorTheme.GREY_DARK;
 
-    this._labelField.x = x + this._icon.width + gap;
+    this._labelField.x = position + this._icon.width + gap;
     this._labelField.y = Math.round((height - this._labelField.height) / 2);
 };
 
@@ -5627,6 +5634,15 @@ App.SwipeButton = function SwipeButton(width,openOffset)
 
 App.SwipeButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.SwipeButton.prototype.constructor = App.SwipeButton;
+
+/**
+ * Disable
+ */
+App.SwipeButton.prototype.disable = function disable()
+{
+    this._disableInteraction();
+    this.close(true);
+};
 
 /**
  * Enable interaction
@@ -6019,7 +6035,7 @@ App.ExpandButton.prototype.open = function open()
 
         this._expandTween.restart();
 
-        this._eventDispatcher.dispatchEvent(App.EventType.START,this);
+        //this._eventDispatcher.dispatchEvent(App.EventType.START,this);
     }
 };
 
@@ -6050,7 +6066,7 @@ App.ExpandButton.prototype.close = function close(immediate)
 
             this._expandTween.start(true);
 
-            this._eventDispatcher.dispatchEvent(EventType.START,this);
+            //this._eventDispatcher.dispatchEvent(EventType.START,this);
         }
         else
         {
@@ -7462,31 +7478,37 @@ App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 
 /**
  * @class SubCategoryButton
- * @param {string} label
- * @param {number} width
- * @param {number} pixelRatio
+ * @extends SwipeButton
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {number} options.openOffset
+ * @param {{font:string,fill:string}} options.nameLabelStyle
+ * @param {{font:string,fill:string}} options.deleteLabelStyle
  * @constructor
  */
-App.SubCategoryButton = function SubCategoryButton(label,width,pixelRatio)
+App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
 {
-    App.SwipeButton.call(this,width,Math.round(80*pixelRatio));
+    App.SwipeButton.call(this,options.width,options.openOffset);
 
-    var FontStyle = App.FontStyle;
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
-    this.boundingBox = new App.Rectangle(0,0,width,Math.round(40*pixelRatio));
-
-    this._label = label;
-    this._pixelRatio = pixelRatio;
+    this._model = null;
+    this._mode = null;
+    this._pixelRatio = options.pixelRatio;
     this._swipeSurface = new PIXI.Graphics();
-    this._labelField = new PIXI.Text(label,FontStyle.get(14,FontStyle.BLUE));
+    this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
     this._background = new PIXI.Graphics();
-    this._deleteLabel = new PIXI.Text("Delete",FontStyle.get(14,FontStyle.WHITE));
-
-    this._render();
+    this._deleteLabel = new PIXI.Text("Delete",options.deleteLabelStyle);
+    this._renderAll = true;
 
     this.addChild(this._background);
     this.addChild(this._deleteLabel);
-    this._swipeSurface.addChild(this._labelField);
+    this._swipeSurface.addChild(this._nameLabel);
     this.addChild(this._swipeSurface);
 };
 
@@ -7499,24 +7521,54 @@ App.SubCategoryButton.prototype.constructor = App.SubCategoryButton;
  */
 App.SubCategoryButton.prototype._render = function _render()
 {
-    var ColorTheme = App.ColorTheme,
-        GraphicUtils = App.GraphicUtils,
-        r = this._pixelRatio,
-        w = this.boundingBox.width,
-        h = this.boundingBox.height,
-        padding = Math.round(10 * r);
+    this._nameLabel.setText(this._model.name);
 
-    GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
+    if (this._renderAll)
+    {
+        this._renderAll = false;
 
-    this._deleteLabel.x = Math.round(w - 50 * r);
-    this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
+        var ColorTheme = App.ColorTheme,
+            GraphicUtils = App.GraphicUtils,
+            r = this._pixelRatio,
+            w = this.boundingBox.width,
+            h = this.boundingBox.height,
+            padding = Math.round(10 * r);
 
-    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
-    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
+        GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
 
-    this._labelField.x = Math.round(20 * r);
-    this._labelField.y = Math.round((h - this._labelField.height) / 2);
+        this._deleteLabel.x = Math.round(w - 50 * r);
+        this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
+
+        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY,1,[0,0,w,h],true,false);
+        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
+        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
+
+        this._nameLabel.x = Math.round(20 * r);
+        this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
+    }
+};
+
+/**
+ * Disable
+ */
+App.SubCategoryButton.prototype.disable = function disable()
+{
+    App.SwipeButton.prototype.disable.call(this);
+};
+
+/**
+ * Update
+ * @param {Category} model
+ * @param {string} mode
+ */
+App.SubCategoryButton.prototype.update = function update(model,mode)
+{
+    this._model = model;
+    this._mode = mode;
+
+    this._render();
+
+    this.close(true);
 };
 
 /**
@@ -7540,28 +7592,24 @@ App.SubCategoryButton.prototype._getSwipePosition = function _getSwipePosition()
 
 /**
  * @class SubCategoryList
- * @param {Category} category
+ * @extends Graphics
  * @param {number} width
  * @param {number} pixelRatio
  * @constructor
  */
-App.SubCategoryList = function SubCategoryList(category,width,pixelRatio)
+App.SubCategoryList = function SubCategoryList(width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
-    var subs = ["Cinema","Theatre","Gallery"],
-        SubCategoryButton = App.SubCategoryButton,
-        i = 0,
-        l = subs.length;
-
     this.boundingBox = new App.Rectangle(0,0,width,0);
 
-    this._category = category;
+    this._model = null;
+    this._mode = null;
     this._width = width;
     this._pixelRatio = pixelRatio;
     this._header = new App.ListHeader("Sub-Categories",width,pixelRatio);
     this._interactiveButton = null;
-    this._subButtons = new Array(l);
+    this._buttonList = new App.List(App.Direction.Y);
     this._addNewButton = new App.AddNewButton(
         "ADD SUB-CATEGORY",
         App.FontStyle.get(14,App.FontStyle.SHADE_DARK),
@@ -7570,12 +7618,8 @@ App.SubCategoryList = function SubCategoryList(category,width,pixelRatio)
         pixelRatio
     );
 
-    for (;i<l;i++) this._subButtons[i] = new SubCategoryButton(subs[i],width,pixelRatio);
-
-    this._render();
-
     this.addChild(this._header);
-    for (i=0;i<l;) this.addChild(this._subButtons[i++]);
+    this.addChild(this._buttonList);
     this.addChild(this._addNewButton);
 };
 
@@ -7588,13 +7632,55 @@ App.SubCategoryList.prototype.constructor = App.SubCategoryList;
  */
 App.SubCategoryList.prototype._render = function _render()
 {
-    var lastButton = this._subButtons[this._subButtons.length-1];
+//    var lastButton = this._subButtons[this._subButtons.length-1];
 
-    App.LayoutUtils.update(this._subButtons,App.Direction.Y,this._header.height);
+//    App.LayoutUtils.update(this._subButtons,App.Direction.Y,this._header.height);
 
-    this._addNewButton.y = lastButton.y + lastButton.boundingBox.height;
+    this._buttonList.y = this._header.height;
+
+    this._addNewButton.y = this._buttonList.y + this._buttonList.boundingBox.height;
 
     this.boundingBox.height = this._addNewButton.y + this._addNewButton.boundingBox.height;
+};
+
+/**
+ * @method update
+ * @param {App.Category} model
+ * @param {string} mode
+ */
+App.SubCategoryList.prototype.update = function update(model,mode)
+{
+    this._model = model;
+
+    var subCategories = model.subCategories,
+        buttonPool = App.ViewLocator.getViewSegment(App.ViewName.SUB_CATEGORY_BUTTON_POOL),
+        i = 0,
+        l = this._buttonList.length,
+        modelLength = subCategories.length,
+        button = null;
+
+    if (l >= modelLength)
+    {
+        for (;i<l;i++)
+        {
+            if (i < modelLength) this._buttonList.getItemAt(i).update(subCategories[i],mode);
+            else buttonPool.release(this._buttonList.removeItemAt(i));
+        }
+    }
+    else
+    {
+        for (;i<modelLength;)
+        {
+            button = buttonPool.allocate();
+            button.update(subCategories[i++],mode);
+            this._buttonList.add(button,false);
+        }
+    }
+    this._buttonList.updateLayout();
+
+    this._render();
+
+    this._mode = mode;
 };
 
 /**
@@ -7604,7 +7690,7 @@ App.SubCategoryList.prototype._render = function _render()
  */
 App.SubCategoryList.prototype.swipeStart = function swipeStart(direction)
 {
-    this._interactiveButton = this._getButtonUnderPosition(this.stage.getTouchData().getLocalPosition(this).y);
+    this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
     if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
     this.closeButtons(false);
@@ -7630,41 +7716,14 @@ App.SubCategoryList.prototype.swipeEnd = function swipeEnd()
 App.SubCategoryList.prototype.closeButtons = function closeButtons(immediate)
 {
     var i = 0,
-        l = this._subButtons.length,
+        l = this._buttonList.length,
         button = null;
 
     for (;i<l;)
     {
-        button = this._subButtons[i++];
+        button = this._buttonList.getItemAt(i++);
         if (button !== this._interactiveButton) button.close(immediate);
     }
-};
-
-/**
- * Find button under position passed in
- * @param {number} position
- * @private
- */
-App.SubCategoryList.prototype._getButtonUnderPosition = function _getButtonUnderPosition(position)
-{
-    var i = 0,
-        l = this._subButtons.length,
-        height = 0,
-        buttonY = 0,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._subButtons[i++];
-        buttonY = button.y;
-        height = button.boundingBox.height;
-        if (buttonY <= position && buttonY + height >= position)
-        {
-            return button;
-        }
-    }
-
-    return null;
 };
 
 /**
@@ -7680,6 +7739,7 @@ App.CategoryButtonSurface = function CategoryButtonSurface(labelStyle)
     this._colorStripe = new PIXI.Graphics();
     this._icon = null;
     this._nameLabel = new PIXI.Text("",labelStyle);
+    this._renderAll = true;
 
     this.addChild(this._colorStripe);
     this.addChild(this._nameLabel);
@@ -7698,35 +7758,36 @@ App.CategoryButtonSurface.prototype.constructor = App.CategoryButtonSurface;
  */
 App.CategoryButtonSurface.prototype.render = function render(label,iconName,width,height,pixelRatio)
 {
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
-        padding = Math.round(10 * pixelRatio);
+    this._nameLabel.setText(label);
 
-    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,width,height],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,width-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,height-1,width-padding*2,1],false,true);
+    if (this._icon) this._icon.setTexture(PIXI.TextureCache[iconName]);
 
-    GraphicUtils.drawRect(this._colorStripe,0xffcc00,1,0,0,Math.round(4 * pixelRatio),height);
+    App.GraphicUtils.drawRect(this._colorStripe,0xffcc00,1,0,0,Math.round(4 * pixelRatio),height);
 
-    if (this._icon)
+    if (this._renderAll)
     {
-        this._icon.setTexture(PIXI.TextureCache[iconName]);
-    }
-    else
-    {
+        this._renderAll = false;
+
+        var GraphicUtils = App.GraphicUtils,
+            ColorTheme = App.ColorTheme,
+            padding = Math.round(10 * pixelRatio);
+
+        GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,width,height],true,false);
+        GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,width-padding*2,1],false,false);
+        GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,height-1,width-padding*2,1],false,true);
+
         this._icon = PIXI.Sprite.fromFrame(iconName);
         this.addChild(this._icon);
+
+        this._icon.width = Math.round(20 * pixelRatio);
+        this._icon.height = Math.round(20 * pixelRatio);
+        this._icon.x = Math.round(25 * pixelRatio);
+        this._icon.y = Math.round((height - this._icon.height) / 2);
+        this._icon.tint = ColorTheme.BLUE;
+
+        this._nameLabel.x = Math.round(64 * pixelRatio);
+        this._nameLabel.y = Math.round(18 * pixelRatio);
     }
-
-    this._icon.width = Math.round(20 * pixelRatio);
-    this._icon.height = Math.round(20 * pixelRatio);
-    this._icon.x = Math.round(25 * pixelRatio);
-    this._icon.y = Math.round((height - this._icon.height) / 2);
-    this._icon.tint = ColorTheme.BLUE;
-
-    this._nameLabel.setText(label);
-    this._nameLabel.x = Math.round(64 * pixelRatio);
-    this._nameLabel.y = Math.round(18 * pixelRatio);
 };
 
 /**
@@ -7745,12 +7806,12 @@ App.CategoryButtonEdit = function CategoryButtonEdit(poolIndex,options)
     this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
     this._model = null;
+    this._mode = null;
     this._pixelRatio = options.pixelRatio;
     this._swipeSurface = new App.CategoryButtonSurface(options.nameLabelStyle);
     this._background = new PIXI.Graphics();
     this._editLabel = new PIXI.Text("Edit",options.editLabelStyle);
-
-    this._render();
+    this._renderAll = true;
 
     this.addChild(this._background);
     this.addChild(this._editLabel);
@@ -7769,12 +7830,40 @@ App.CategoryButtonEdit.prototype._render = function _render()
     var w = this.boundingBox.width,
         h = this.boundingBox.height;
 
-    this._swipeSurface.render(w,h,this._pixelRatio);
+    this._swipeSurface.render(this._model.name,this._model.icon,w,h,this._pixelRatio);
 
-    App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
+    if (this._renderAll)
+    {
+        this._renderAll = false;
 
-    this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
-    this._editLabel.y = Math.round(18 * this._pixelRatio);
+        App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
+
+        this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
+        this._editLabel.y = Math.round(18 * this._pixelRatio);
+    }
+};
+
+/**
+ * Disable
+ */
+App.CategoryButtonEdit.prototype.disable = function disable()
+{
+    App.SwipeButton.prototype.disable.call(this);
+};
+
+/**
+ * Update
+ * @param {Category} model
+ * @param {string} mode
+ */
+App.CategoryButtonEdit.prototype.update = function update(model,mode)
+{
+    this._model = model;
+    this._mode = mode;
+
+    this._render();
+
+    this.close(true);
 };
 
 /**
@@ -7811,9 +7900,10 @@ App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
     this.poolIndex = poolIndex;
 
     this._model = null;
+    this._mode = null;
     this._pixelRatio = options.pixelRatio;
     this._surface = new App.CategoryButtonSurface(options.nameLabelStyle);
-    this._subCategoryList = new PIXI.Graphics();
+    this._subCategoryList = new App.SubCategoryList(options.width,this._pixelRatio);
 
     this._setContent(this._subCategoryList);
     this.addChild(this._subCategoryList);
@@ -7829,30 +7919,34 @@ App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
  */
 App.CategoryButtonExpand.prototype._render = function _render()
 {
-    var w = this.boundingBox.width;
-
-    this._surface.render(this._model.name,this._model.icon,w,this.boundingBox.height,this._pixelRatio);
-
-    App.GraphicUtils.drawRect(this._subCategoryList,App.ColorTheme.GREY_LIGHT,1,0,0,w,300);
+    this._surface.render(this._model.name,this._model.icon,this.boundingBox.width,this.boundingBox.height,this._pixelRatio);//TODO do I have to pass width and height?
 };
 
 /**
  * Update
  * @param {Category} model
+ * @param {string} mode
  */
-App.CategoryButtonExpand.prototype.update = function update(model)
+App.CategoryButtonExpand.prototype.update = function update(model,mode)
 {
     this._model = model;
+    this._mode = mode;
+
+    this._subCategoryList.update(model,mode);
+
+    this._contentHeight = this._subCategoryList.boundingBox.height;
 
     this._render();
+
+    this.close(true);
 };
 
 /**
- * Destroy
+ * Disable
  */
-App.CategoryButtonExpand.prototype.destroy = function destroy()
+App.CategoryButtonExpand.prototype.disable = function disable()
 {
-    App.ExpandButton.prototype.destroy.call(this);
+    this.close(true);
 };
 
 /**
@@ -7899,7 +7993,11 @@ App.CategoryScreen.prototype.disable = function disable()
 
     this._pane.disable();
 
-    //TODO also disable buttons
+    //TODO do I need disable buttons? They'll be updated on show anyway
+    /*var i = 0,
+        l = this._buttonList.length;
+
+    for (;i<l;) this._buttonList.getItemAt(i++).disable();*/
 };
 
 /**
@@ -7916,25 +8014,29 @@ App.CategoryScreen.prototype.update = function update(data,mode)
         buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EXPAND_POOL),
         i = 0,
         l = this._buttonList.length,
+        modelLength = this._model.length,
         button = null;
 
     if (this._mode === mode)
     {
         if (mode === ScreenMode.EDIT) buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL);
 
-        for (;i<l;i++)
+        if (l >= modelLength)
         {
-            button = this._buttonList.getItemAt(i);
-            button.update(this._model[i]);
+            for (;i<l;i++)
+            {
+                if (i < modelLength) this._buttonList.getItemAt(i).update(this._model[i],mode);
+                else buttonPool.release(this._buttonList.removeItemAt(i));
+            }
         }
-
-        l = this._model.length;
-
-        for (;i<l;)
+        else
         {
-            button = buttonPool.allocate();
-            button.update(this._model[i++]);
-            this._buttonList.add(button,false);
+            for (;i<modelLength;)
+            {
+                button = buttonPool.allocate();
+                button.update(this._model[i++],mode);
+                this._buttonList.add(button,false);
+            }
         }
     }
     else
@@ -7952,7 +8054,7 @@ App.CategoryScreen.prototype.update = function update(data,mode)
         for (;i<l;)
         {
             button = buttonPool.allocate();
-            button.update(this._model[i++]);
+            button.update(this._model[i++],mode);
             this._buttonList.add(button,false);
         }
     }
@@ -8023,23 +8125,34 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
     var i = 0,
         l = this._buttonList.length,
         button = null,
+        ScreenMode = App.ScreenMode,
         EventType = App.EventType;
 
-    for (;i<l;)
+    if (this._mode === ScreenMode.SELECT)
     {
-        button = this._buttonList.getItemAt(i++);
-        //if (button !== this._interactiveButton) button.close(immediate);
-        if (button !== this._interactiveButton && button.isOpen()) // For ~Expand button ...
+        for (;i<l;)
         {
-            if (this._buttonsInTransition.indexOf(button) === -1)
+            button = this._buttonList.getItemAt(i++);
+            if (button !== this._interactiveButton && button.isOpen())
             {
-                this._buttonsInTransition.push(button);
+                if (this._buttonsInTransition.indexOf(button) === -1)
+                {
+                    this._buttonsInTransition.push(button);
 
-                button.addEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
-                button.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+                    button.addEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
+                    button.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+                }
+
+                button.close(immediate);
             }
-
-            button.close(immediate);
+        }
+    }
+    else if (this._mode === ScreenMode.EDIT)
+    {
+        for (;i<l;)
+        {
+            button = this._buttonList.getItemAt(i++);
+            if (button !== this._interactiveButton) button.close(immediate);
         }
     }
 };
@@ -8067,8 +8180,6 @@ App.CategoryScreen.prototype._onClick = function _onClick()
     this._pane.cancelScroll();
 
     //this._closeButtons();
-
-    //App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ScreenName.ACCOUNT);
 };
 
 /**
@@ -10850,6 +10961,12 @@ App.Initialize.prototype._initView = function _initView()
             width:Math.round(w * pixelRatio),
             height:Math.round(50 * pixelRatio),
             pixelRatio:pixelRatio
+        },
+        subCategoryButtonOptions = {
+            width:Math.round(w * pixelRatio),
+            height:Math.round(40 * pixelRatio),
+            pixelRatio:pixelRatio,
+            openOffset:Math.round(80 * pixelRatio)
         };
 
     if (pixelRatio > 1)
@@ -10873,10 +10990,13 @@ App.Initialize.prototype._initView = function _initView()
     App.FontStyle.init(pixelRatio);
     categoryButtonOptions.nameLabelStyle = FontStyle.get(18,FontStyle.BLUE);
     categoryButtonOptions.editLabelStyle = FontStyle.get(18,FontStyle.WHITE);
+    subCategoryButtonOptions.nameLabelStyle = FontStyle.get(14,FontStyle.BLUE);
+    subCategoryButtonOptions.deleteLabelStyle = FontStyle.get(14,FontStyle.WHITE);
 
     App.ViewLocator.init([
         ViewName.CATEGORY_BUTTON_EXPAND_POOL,new ObjectPool(App.CategoryButtonExpand,5,categoryButtonOptions),
         ViewName.CATEGORY_BUTTON_EDIT_POOL,new ObjectPool(App.CategoryButtonEdit,5,categoryButtonOptions),
+        ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions),
         ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,w,h,pixelRatio))
     ]);
 

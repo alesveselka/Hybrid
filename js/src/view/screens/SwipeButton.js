@@ -23,6 +23,15 @@ App.SwipeButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype)
 App.SwipeButton.prototype.constructor = App.SwipeButton;
 
 /**
+ * Disable
+ */
+App.SwipeButton.prototype.disable = function disable()
+{
+    this._disableInteraction();
+    this.close(true);
+};
+
+/**
  * Enable interaction
  * @private
  */

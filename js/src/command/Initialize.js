@@ -136,6 +136,12 @@ App.Initialize.prototype._initView = function _initView()
             width:Math.round(w * pixelRatio),
             height:Math.round(50 * pixelRatio),
             pixelRatio:pixelRatio
+        },
+        subCategoryButtonOptions = {
+            width:Math.round(w * pixelRatio),
+            height:Math.round(40 * pixelRatio),
+            pixelRatio:pixelRatio,
+            openOffset:Math.round(80 * pixelRatio)
         };
 
     if (pixelRatio > 1)
@@ -159,10 +165,13 @@ App.Initialize.prototype._initView = function _initView()
     App.FontStyle.init(pixelRatio);
     categoryButtonOptions.nameLabelStyle = FontStyle.get(18,FontStyle.BLUE);
     categoryButtonOptions.editLabelStyle = FontStyle.get(18,FontStyle.WHITE);
+    subCategoryButtonOptions.nameLabelStyle = FontStyle.get(14,FontStyle.BLUE);
+    subCategoryButtonOptions.deleteLabelStyle = FontStyle.get(14,FontStyle.WHITE);
 
     App.ViewLocator.init([
         ViewName.CATEGORY_BUTTON_EXPAND_POOL,new ObjectPool(App.CategoryButtonExpand,5,categoryButtonOptions),
         ViewName.CATEGORY_BUTTON_EDIT_POOL,new ObjectPool(App.CategoryButtonEdit,5,categoryButtonOptions),
+        ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions),
         ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,w,h,pixelRatio))
     ]);
 

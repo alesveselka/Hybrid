@@ -25,25 +25,31 @@ App.AddNewButton.prototype.constructor = App.AddNewButton;
  */
 App.AddNewButton.prototype._render = function _render()
 {
-    var ColorTheme = App.ColorTheme,
-        w = this._labelField.width,
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height,
         gap = Math.round(10 * this._pixelRatio),
         height = this.boundingBox.height,
         padding = Math.round(10 * this._pixelRatio),
-        x = 0;
+        position = 0;
 
-    App.GraphicUtils.drawRect(this,ColorTheme.GREY_LIGHT,1,padding,0,this.boundingBox.width-padding*2,1);
+    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
 
     this._icon.scale.x = this._iconResizeRatio;
     this._icon.scale.y = this._iconResizeRatio;
 
-    w += this._icon.width + gap;
-    x = Math.round((this.boundingBox.width - w) / 2);
+    w = this._labelField.width;
 
-    this._icon.x = x;
+    w += this._icon.width + gap;
+    position = Math.round((this.boundingBox.width - w) / 2);
+
+    this._icon.x = position;
     this._icon.y = Math.round((height - this._icon.height) / 2);
     this._icon.tint = ColorTheme.GREY_DARK;
 
-    this._labelField.x = x + this._icon.width + gap;
+    this._labelField.x = position + this._icon.width + gap;
     this._labelField.y = Math.round((height - this._labelField.height) / 2);
 };

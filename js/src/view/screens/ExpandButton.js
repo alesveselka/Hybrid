@@ -218,7 +218,7 @@ App.ExpandButton.prototype.open = function open()
 
         this._expandTween.restart();
 
-        this._eventDispatcher.dispatchEvent(App.EventType.START,this);
+        //this._eventDispatcher.dispatchEvent(App.EventType.START,this);
     }
 };
 
@@ -249,7 +249,7 @@ App.ExpandButton.prototype.close = function close(immediate)
 
             this._expandTween.start(true);
 
-            this._eventDispatcher.dispatchEvent(EventType.START,this);
+            //this._eventDispatcher.dispatchEvent(EventType.START,this);
         }
         else
         {

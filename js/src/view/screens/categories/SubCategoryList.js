@@ -1,27 +1,23 @@
 /**
  * @class SubCategoryList
- * @param {Category} category
+ * @extends Graphics
  * @param {number} width
  * @param {number} pixelRatio
  * @constructor
  */
-App.SubCategoryList = function SubCategoryList(category,width,pixelRatio)
+App.SubCategoryList = function SubCategoryList(width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
-    var subs = ["Cinema","Theatre","Gallery"],
-        SubCategoryButton = App.SubCategoryButton,
-        i = 0,
-        l = subs.length;
-
     this.boundingBox = new App.Rectangle(0,0,width,0);
 
-    this._category = category;
+    this._model = null;
+    this._mode = null;
     this._width = width;
     this._pixelRatio = pixelRatio;
     this._header = new App.ListHeader("Sub-Categories",width,pixelRatio);
     this._interactiveButton = null;
-    this._subButtons = new Array(l);
+    this._buttonList = new App.List(App.Direction.Y);
     this._addNewButton = new App.AddNewButton(
         "ADD SUB-CATEGORY",
         App.FontStyle.get(14,App.FontStyle.SHADE_DARK),
@@ -30,12 +26,8 @@ App.SubCategoryList = function SubCategoryList(category,width,pixelRatio)
         pixelRatio
     );
 
-    for (;i<l;i++) this._subButtons[i] = new SubCategoryButton(subs[i],width,pixelRatio);
-
-    this._render();
-
     this.addChild(this._header);
-    for (i=0;i<l;) this.addChild(this._subButtons[i++]);
+    this.addChild(this._buttonList);
     this.addChild(this._addNewButton);
 };
 
@@ -48,13 +40,55 @@ App.SubCategoryList.prototype.constructor = App.SubCategoryList;
  */
 App.SubCategoryList.prototype._render = function _render()
 {
-    var lastButton = this._subButtons[this._subButtons.length-1];
+//    var lastButton = this._subButtons[this._subButtons.length-1];
 
-    App.LayoutUtils.update(this._subButtons,App.Direction.Y,this._header.height);
+//    App.LayoutUtils.update(this._subButtons,App.Direction.Y,this._header.height);
 
-    this._addNewButton.y = lastButton.y + lastButton.boundingBox.height;
+    this._buttonList.y = this._header.height;
+
+    this._addNewButton.y = this._buttonList.y + this._buttonList.boundingBox.height;
 
     this.boundingBox.height = this._addNewButton.y + this._addNewButton.boundingBox.height;
+};
+
+/**
+ * @method update
+ * @param {App.Category} model
+ * @param {string} mode
+ */
+App.SubCategoryList.prototype.update = function update(model,mode)
+{
+    this._model = model;
+
+    var subCategories = model.subCategories,
+        buttonPool = App.ViewLocator.getViewSegment(App.ViewName.SUB_CATEGORY_BUTTON_POOL),
+        i = 0,
+        l = this._buttonList.length,
+        modelLength = subCategories.length,
+        button = null;
+
+    if (l >= modelLength)
+    {
+        for (;i<l;i++)
+        {
+            if (i < modelLength) this._buttonList.getItemAt(i).update(subCategories[i],mode);
+            else buttonPool.release(this._buttonList.removeItemAt(i));
+        }
+    }
+    else
+    {
+        for (;i<modelLength;)
+        {
+            button = buttonPool.allocate();
+            button.update(subCategories[i++],mode);
+            this._buttonList.add(button,false);
+        }
+    }
+    this._buttonList.updateLayout();
+
+    this._render();
+
+    this._mode = mode;
 };
 
 /**
@@ -64,7 +98,7 @@ App.SubCategoryList.prototype._render = function _render()
  */
 App.SubCategoryList.prototype.swipeStart = function swipeStart(direction)
 {
-    this._interactiveButton = this._getButtonUnderPosition(this.stage.getTouchData().getLocalPosition(this).y);
+    this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
     if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
 
     this.closeButtons(false);
@@ -90,39 +124,12 @@ App.SubCategoryList.prototype.swipeEnd = function swipeEnd()
 App.SubCategoryList.prototype.closeButtons = function closeButtons(immediate)
 {
     var i = 0,
-        l = this._subButtons.length,
+        l = this._buttonList.length,
         button = null;
 
     for (;i<l;)
     {
-        button = this._subButtons[i++];
+        button = this._buttonList.getItemAt(i++);
         if (button !== this._interactiveButton) button.close(immediate);
     }
-};
-
-/**
- * Find button under position passed in
- * @param {number} position
- * @private
- */
-App.SubCategoryList.prototype._getButtonUnderPosition = function _getButtonUnderPosition(position)
-{
-    var i = 0,
-        l = this._subButtons.length,
-        height = 0,
-        buttonY = 0,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._subButtons[i++];
-        buttonY = button.y;
-        height = button.boundingBox.height;
-        if (buttonY <= position && buttonY + height >= position)
-        {
-            return button;
-        }
-    }
-
-    return null;
 };

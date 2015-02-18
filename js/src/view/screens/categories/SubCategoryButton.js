@@ -1,30 +1,36 @@
 /**
  * @class SubCategoryButton
- * @param {string} label
- * @param {number} width
- * @param {number} pixelRatio
+ * @extends SwipeButton
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {number} options.openOffset
+ * @param {{font:string,fill:string}} options.nameLabelStyle
+ * @param {{font:string,fill:string}} options.deleteLabelStyle
  * @constructor
  */
-App.SubCategoryButton = function SubCategoryButton(label,width,pixelRatio)
+App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
 {
-    App.SwipeButton.call(this,width,Math.round(80*pixelRatio));
+    App.SwipeButton.call(this,options.width,options.openOffset);
 
-    var FontStyle = App.FontStyle;
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
-    this.boundingBox = new App.Rectangle(0,0,width,Math.round(40*pixelRatio));
-
-    this._label = label;
-    this._pixelRatio = pixelRatio;
+    this._model = null;
+    this._mode = null;
+    this._pixelRatio = options.pixelRatio;
     this._swipeSurface = new PIXI.Graphics();
-    this._labelField = new PIXI.Text(label,FontStyle.get(14,FontStyle.BLUE));
+    this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
     this._background = new PIXI.Graphics();
-    this._deleteLabel = new PIXI.Text("Delete",FontStyle.get(14,FontStyle.WHITE));
-
-    this._render();
+    this._deleteLabel = new PIXI.Text("Delete",options.deleteLabelStyle);
+    this._renderAll = true;
 
     this.addChild(this._background);
     this.addChild(this._deleteLabel);
-    this._swipeSurface.addChild(this._labelField);
+    this._swipeSurface.addChild(this._nameLabel);
     this.addChild(this._swipeSurface);
 };
 
@@ -37,24 +43,54 @@ App.SubCategoryButton.prototype.constructor = App.SubCategoryButton;
  */
 App.SubCategoryButton.prototype._render = function _render()
 {
-    var ColorTheme = App.ColorTheme,
-        GraphicUtils = App.GraphicUtils,
-        r = this._pixelRatio,
-        w = this.boundingBox.width,
-        h = this.boundingBox.height,
-        padding = Math.round(10 * r);
+    this._nameLabel.setText(this._model.name);
 
-    GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
+    if (this._renderAll)
+    {
+        this._renderAll = false;
 
-    this._deleteLabel.x = Math.round(w - 50 * r);
-    this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
+        var ColorTheme = App.ColorTheme,
+            GraphicUtils = App.GraphicUtils,
+            r = this._pixelRatio,
+            w = this.boundingBox.width,
+            h = this.boundingBox.height,
+            padding = Math.round(10 * r);
 
-    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
-    GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
+        GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
 
-    this._labelField.x = Math.round(20 * r);
-    this._labelField.y = Math.round((h - this._labelField.height) / 2);
+        this._deleteLabel.x = Math.round(w - 50 * r);
+        this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
+
+        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY,1,[0,0,w,h],true,false);
+        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
+        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
+
+        this._nameLabel.x = Math.round(20 * r);
+        this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
+    }
+};
+
+/**
+ * Disable
+ */
+App.SubCategoryButton.prototype.disable = function disable()
+{
+    App.SwipeButton.prototype.disable.call(this);
+};
+
+/**
+ * Update
+ * @param {Category} model
+ * @param {string} mode
+ */
+App.SubCategoryButton.prototype.update = function update(model,mode)
+{
+    this._model = model;
+    this._mode = mode;
+
+    this._render();
+
+    this.close(true);
 };
 
 /**
