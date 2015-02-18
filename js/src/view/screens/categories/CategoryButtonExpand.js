@@ -17,8 +17,6 @@ App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
     this._surface = new App.CategoryButtonSurface(options.nameLabelStyle);
     this._subCategoryList = new PIXI.Graphics();
 
-    this._render();
-
     this._setContent(this._subCategoryList);
     this.addChild(this._subCategoryList);
     this.addChild(this._surface);
@@ -35,9 +33,20 @@ App.CategoryButtonExpand.prototype._render = function _render()
 {
     var w = this.boundingBox.width;
 
-    this._surface.render(w,this.boundingBox.height,this._pixelRatio);
+    this._surface.render(this._model.name,this._model.icon,w,this.boundingBox.height,this._pixelRatio);
 
     App.GraphicUtils.drawRect(this._subCategoryList,App.ColorTheme.GREY_LIGHT,1,0,0,w,300);
+};
+
+/**
+ * Update
+ * @param {Category} model
+ */
+App.CategoryButtonExpand.prototype.update = function update(model)
+{
+    this._model = model;
+
+    this._render();
 };
 
 /**

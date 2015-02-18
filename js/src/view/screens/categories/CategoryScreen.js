@@ -12,14 +12,11 @@ App.CategoryScreen = function CategoryScreen(layout)
     this._buttonsInTransition = [];
     this._layoutDirty = false;
 
-    this._buttons = null;
     this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
     this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.contentHeight,layout.pixelRatio,false);
     this._pane.setContent(this._buttonList);
 
     this.addChild(this._pane);
-
-//    this._swipeEnabled = true;
 };
 
 App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
@@ -56,37 +53,57 @@ App.CategoryScreen.prototype.update = function update(data,mode)
 {
     this._model = data;
 
+    var ScreenMode = App.ScreenMode,
+        ViewLocator = App.ViewLocator,
+        ViewName = App.ViewName,
+        buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EXPAND_POOL),
+        i = 0,
+        l = this._buttonList.length,
+        button = null;
+
     if (this._mode === mode)
     {
-        var CategoryButton = App.CategoryButtonExpand,
-            FontStyle = App.FontStyle,
-            nameLabelStyle = FontStyle.get(18,FontStyle.BLUE),
-            editLabelStyle = FontStyle.get(18,FontStyle.WHITE),
-            w = this._layout.width,
-            r = this._layout.pixelRatio,
-            i = 0,
-            l = this._model.length,
-            buttonHeight = Math.round(50 * r),
-            button = null;
-
-        this._buttons = new Array(l);
+        if (mode === ScreenMode.EDIT) buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL);
 
         for (;i<l;i++)
         {
-            button = new CategoryButton(this._model[i],w,buttonHeight,nameLabelStyle,r);
-            this._buttons[i] = button;
-            this._buttonList.add(button);
+            button = this._buttonList.getItemAt(i);
+            button.update(this._model[i]);
+        }
+
+        l = this._model.length;
+
+        for (;i<l;)
+        {
+            button = buttonPool.allocate();
+            button.update(this._model[i++]);
+            this._buttonList.add(button,false);
+        }
+    }
+    else
+    {
+        if (this._mode === ScreenMode.EDIT) buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL);
+
+        for (;i<l;) buttonPool.release(this._buttonList.removeItemAt(i++));
+
+        i = 0;
+        l = this._model.length;
+
+        if (mode === ScreenMode.SELECT) buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EXPAND_POOL);
+        else if (mode === ScreenMode.EDIT) buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL);
+
+        for (;i<l;)
+        {
+            button = buttonPool.allocate();
+            button.update(this._model[i++]);
+            this._buttonList.add(button,false);
         }
     }
 
+    this._updateLayout();
+
     this._mode = mode;
-
-    //TODO clear and destroy previous buttons, or maybe move to pool
-
-
-    this._buttonList.updateLayout();
-
-    this._pane.setContent(this._buttonList);
+    this._swipeEnabled = mode === ScreenMode.EDIT;
 };
 
 /**
@@ -147,13 +164,13 @@ App.CategoryScreen.prototype._swipeEnd = function _swipeEnd()
 App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
 {
     var i = 0,
-        l = this._buttons.length,
+        l = this._buttonList.length,
         button = null,
         EventType = App.EventType;
 
     for (;i<l;)
     {
-        button = this._buttons[i++];
+        button = this._buttonList.getItemAt(i++);
         //if (button !== this._interactiveButton) button.close(immediate);
         if (button !== this._interactiveButton && button.isOpen()) // For ~Expand button ...
         {

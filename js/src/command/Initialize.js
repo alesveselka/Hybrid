@@ -133,11 +133,9 @@ App.Initialize.prototype._initView = function _initView()
         ObjectPool = App.ObjectPool,
         FontStyle = App.FontStyle,
         categoryButtonOptions = {
-            width:Math.round(w * r),
-            height:Math.round(50 * r),
-            pixelRatio:pixelRatio,
-            nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
-            editLabelStyle:FontStyle.get(18,FontStyle.WHITE)
+            width:Math.round(w * pixelRatio),
+            height:Math.round(50 * pixelRatio),
+            pixelRatio:pixelRatio
         };
 
     if (pixelRatio > 1)
@@ -159,6 +157,8 @@ App.Initialize.prototype._initView = function _initView()
     context.lineCap = "square";
 
     App.FontStyle.init(pixelRatio);
+    categoryButtonOptions.nameLabelStyle = FontStyle.get(18,FontStyle.BLUE);
+    categoryButtonOptions.editLabelStyle = FontStyle.get(18,FontStyle.WHITE);
 
     App.ViewLocator.init([
         ViewName.CATEGORY_BUTTON_EXPAND_POOL,new ObjectPool(App.CategoryButtonExpand,5,categoryButtonOptions),

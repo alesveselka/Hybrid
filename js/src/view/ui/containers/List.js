@@ -32,6 +32,37 @@ App.List.prototype.add = function add(item,updateLayout)
 };
 
 /**
+ * Remove item passed in
+ * @param {DisplayObject} item
+ */
+App.List.prototype.remove = function remove(item)
+{
+    this.removeItemAt(this._items.indexOf(item));
+};
+
+/**
+ * Remove item at index passed in
+ * @param {number} index
+ */
+App.List.prototype.removeItemAt = function removeItemAt(index)
+{
+    var item = this._items.splice(index,1)[0];
+
+    this.removeChild(item);
+
+    return item;
+};
+
+/**
+ * Return
+ * @param {number} index
+ */
+App.List.prototype.getItemAt = function getItemAt(index)
+{
+    return this._items[index];
+};
+
+/**
  * Update layout
  */
 App.List.prototype.updateLayout = function updateLayout()
@@ -111,3 +142,14 @@ App.List.prototype.hitTest = function hitTest(position)
 {
     return position >= this.y && position < this.y + this.boundingBox.height;
 };
+
+/**
+ * @property length
+ * @type number
+ */
+Object.defineProperty(App.List.prototype,'length',{
+    get:function()
+    {
+        return this._items.length;
+    }
+});
