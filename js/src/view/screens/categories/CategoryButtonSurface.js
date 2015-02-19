@@ -4,15 +4,17 @@
  * @param {{font:string,fill:string}} labelStyle
  * @constructor
  */
-App.CategoryButtonSurface = function CategoryButtonSurface(labelStyle)
+App.CategoryButtonSurface = function CategoryButtonSurface(labelStyle,skin)
 {
     PIXI.Graphics.call(this);
 
+    this._texture = new PIXI.Sprite(skin);
     this._colorStripe = new PIXI.Graphics();
     this._icon = null;
     this._nameLabel = new PIXI.Text("",labelStyle);
     this._renderAll = true;
 
+    this.addChild(this._texture);
     this.addChild(this._colorStripe);
     this.addChild(this._nameLabel);
 };
@@ -43,10 +45,10 @@ App.CategoryButtonSurface.prototype.render = function render(label,iconName,widt
         var GraphicUtils = App.GraphicUtils,
             ColorTheme = App.ColorTheme,
             padding = Math.round(10 * pixelRatio);
-
-        GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,width,height],true,false);
-        GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,width-padding*2,1],false,false);
-        GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,height-1,width-padding*2,1],false,true);
+        //TODO use RenderTexture
+//        GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,width,height],true,false);
+//        GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,width-padding*2,1],false,false);
+//        GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,height-1,width-padding*2,1],false,true);
 
         this._icon = PIXI.Sprite.fromFrame(iconName);
         this.addChild(this._icon);

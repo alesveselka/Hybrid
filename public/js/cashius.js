@@ -752,16 +752,17 @@ App.ModelName = {
 
 /**
  * View Segment state
- * @enum {string}
- * @return {{APPLICATION_VIEW:string,HEADER:string,SCREEN_STACK:string,CATEGORY_BUTTON_EXPAND_POOL:string,CATEGORY_BUTTON_EDIT_POOL:string,SUB_CATEGORY_BUTTON_POOL:string}}
+ * @enum {number}
+ * @return {{APPLICATION_VIEW:number,HEADER:number,SCREEN_STACK:number,CATEGORY_BUTTON_EXPAND_POOL:number,CATEGORY_BUTTON_EDIT_POOL:number,SUB_CATEGORY_BUTTON_POOL:number,SKIN:number}}
  */
 App.ViewName = {
-    APPLICATION_VIEW:"APPLICATION_VIEW",
-    HEADER:"HEADER",
-    SCREEN_STACK:"SCREEN_STACK",
-    CATEGORY_BUTTON_EXPAND_POOL:"CATEGORY_BUTTON_EXPAND_POOL",
-    CATEGORY_BUTTON_EDIT_POOL:"CATEGORY_BUTTON_EDIT_POOL",
-    SUB_CATEGORY_BUTTON_POOL:"SUB_CATEGORY_BUTTON_POOL"
+    APPLICATION_VIEW:0,
+    HEADER:1,
+    SCREEN_STACK:2,
+    CATEGORY_BUTTON_EXPAND_POOL:3,
+    CATEGORY_BUTTON_EDIT_POOL:4,
+    SUB_CATEGORY_BUTTON_POOL:5,
+    SKIN:6
 };
 
 /**
@@ -1907,6 +1908,8 @@ App.FontStyle = {
     init:function init(pixelRatio)
     {
         this._pixelRatio = pixelRatio;
+
+        return this;
     },
 
     /**
@@ -1958,6 +1961,45 @@ App.FontStyle = {
     SHADE_DARK:"#cccccc",
     GREY:"#999999",
     RED_DARK:"#990000"
+};
+
+/**
+ * @class Skin
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.Skin = function Skin(width,pixelRatio)
+{
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        defaultScaleMode = PIXI.scaleModes.DEFAULT,
+        padding = Math.round(10 * pixelRatio),
+        graphics = new PIXI.Graphics(),
+        w = width - padding * 2,
+        h = Math.round(40 * pixelRatio);
+
+    GraphicUtils.drawRects(graphics,ColorTheme.GREY,1,[0,0,width,h],true,false);
+    GraphicUtils.drawRects(graphics,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);
+    GraphicUtils.drawRects(graphics,ColorTheme.GREY_DARK,1,[padding,h-1,w,1],false,true);
+
+    this.GREY_40 = graphics.generateTexture(1,defaultScaleMode);
+
+    h = Math.round(50 * pixelRatio);
+
+    GraphicUtils.drawRects(graphics,ColorTheme.GREY,1,[0,0,width,h],true,false);
+    GraphicUtils.drawRects(graphics,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);
+    GraphicUtils.drawRects(graphics,ColorTheme.GREY_DARK,1,[padding,h-1,w,1],false,true);
+
+    this.GREY_50 = graphics.generateTexture(1,defaultScaleMode);
+
+    h = Math.round(70 * pixelRatio);
+
+    GraphicUtils.drawRects(graphics,ColorTheme.GREY,1,[0,0,width,h],true,false);
+    GraphicUtils.drawRects(graphics,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);
+    GraphicUtils.drawRects(graphics,ColorTheme.GREY_DARK,1,[padding,h-1,w,1],false,true);
+
+    this.GREY_70 = graphics.generateTexture(1,defaultScaleMode);
 };
 
 /**
@@ -7508,6 +7550,7 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
 
     this.addChild(this._background);
     this.addChild(this._deleteLabel);
+    this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
     this._swipeSurface.addChild(this._nameLabel);
     this.addChild(this._swipeSurface);
 };
@@ -7539,9 +7582,9 @@ App.SubCategoryButton.prototype._render = function _render()
         this._deleteLabel.x = Math.round(w - 50 * r);
         this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
 
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY,1,[0,0,w,h],true,false);
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
+//        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY,1,[0,0,w,h],true,false);
+//        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
+//        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
 
         this._nameLabel.x = Math.round(20 * r);
         this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
@@ -7732,15 +7775,17 @@ App.SubCategoryList.prototype.closeButtons = function closeButtons(immediate)
  * @param {{font:string,fill:string}} labelStyle
  * @constructor
  */
-App.CategoryButtonSurface = function CategoryButtonSurface(labelStyle)
+App.CategoryButtonSurface = function CategoryButtonSurface(labelStyle,skin)
 {
     PIXI.Graphics.call(this);
 
+    this._texture = new PIXI.Sprite(skin);
     this._colorStripe = new PIXI.Graphics();
     this._icon = null;
     this._nameLabel = new PIXI.Text("",labelStyle);
     this._renderAll = true;
 
+    this.addChild(this._texture);
     this.addChild(this._colorStripe);
     this.addChild(this._nameLabel);
 };
@@ -7771,10 +7816,10 @@ App.CategoryButtonSurface.prototype.render = function render(label,iconName,widt
         var GraphicUtils = App.GraphicUtils,
             ColorTheme = App.ColorTheme,
             padding = Math.round(10 * pixelRatio);
-
-        GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,width,height],true,false);
-        GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,width-padding*2,1],false,false);
-        GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,height-1,width-padding*2,1],false,true);
+        //TODO use RenderTexture
+//        GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,width,height],true,false);
+//        GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,width-padding*2,1],false,false);
+//        GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,height-1,width-padding*2,1],false,true);
 
         this._icon = PIXI.Sprite.fromFrame(iconName);
         this.addChild(this._icon);
@@ -7808,7 +7853,7 @@ App.CategoryButtonEdit = function CategoryButtonEdit(poolIndex,options)
     this._model = null;
     this._mode = null;
     this._pixelRatio = options.pixelRatio;
-    this._swipeSurface = new App.CategoryButtonSurface(options.nameLabelStyle);
+    this._swipeSurface = new App.CategoryButtonSurface(options.nameLabelStyle,options.texture);
     this._background = new PIXI.Graphics();
     this._editLabel = new PIXI.Text("Edit",options.editLabelStyle);
     this._renderAll = true;
@@ -7902,7 +7947,7 @@ App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
     this._model = null;
     this._mode = null;
     this._pixelRatio = options.pixelRatio;
-    this._surface = new App.CategoryButtonSurface(options.nameLabelStyle);
+    this._surface = new App.CategoryButtonSurface(options.nameLabelStyle,options.skin);
     this._subCategoryList = new App.SubCategoryList(options.width,this._pixelRatio);
 
     this._setContent(this._subCategoryList);
@@ -7932,13 +7977,22 @@ App.CategoryButtonExpand.prototype.update = function update(model,mode)
     this._model = model;
     this._mode = mode;
 
-    this._subCategoryList.update(model,mode);
+    //this._subCategoryList.update(model,mode);
 
     this._contentHeight = this._subCategoryList.boundingBox.height;
 
     this._render();
 
     this.close(true);
+};
+
+App.CategoryButtonExpand.prototype.open = function open()
+{
+    this._subCategoryList.update(this._model,this._mode);
+
+    this._contentHeight = this._subCategoryList.boundingBox.height;
+
+    App.ExpandButton.prototype.open.call(this);
 };
 
 /**
@@ -10933,8 +10987,6 @@ App.Initialize.prototype._initController = function _initController()
  */
 App.Initialize.prototype._initView = function _initView()
 {
-    //TODO initialize textures, icons, patterns?
-
     var canvas = document.getElementsByTagName("canvas")[0],
         context = canvas.getContext("2d"),
         dpr = window.devicePixelRatio || 1,
@@ -10944,10 +10996,11 @@ App.Initialize.prototype._initView = function _initView()
             context.oBackingStorePixelRatio ||
             context.backingStorePixelRatio || 1,
         pixelRatio = dpr / bsr,
-        w = window.innerWidth,
-        h = window.innerHeight,
+        width = window.innerWidth,
+        height = window.innerHeight,
+        w = Math.round(width * pixelRatio),
         stage = new PIXI.Stage(0xffffff),
-        renderer = new PIXI.CanvasRenderer(w,h,{
+        renderer = new PIXI.CanvasRenderer(width,height,{
             view:canvas,
             resolution:1,
             transparent:false,
@@ -10956,16 +11009,23 @@ App.Initialize.prototype._initView = function _initView()
         }),
         ViewName = App.ViewName,
         ObjectPool = App.ObjectPool,
-        FontStyle = App.FontStyle,
+        FontStyle = App.FontStyle.init(pixelRatio),
+        skin = new App.Skin(w,pixelRatio),
         categoryButtonOptions = {
-            width:Math.round(w * pixelRatio),
+            width:w,
             height:Math.round(50 * pixelRatio),
-            pixelRatio:pixelRatio
+            pixelRatio:pixelRatio,
+            skin:skin.GREY_50,
+            nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
+            editLabelStyle:FontStyle.get(18,FontStyle.WHITE)
         },
         subCategoryButtonOptions = {
-            width:Math.round(w * pixelRatio),
+            width:w,
             height:Math.round(40 * pixelRatio),
             pixelRatio:pixelRatio,
+            skin:skin.GREY_40,
+            nameLabelStyle:FontStyle.get(14,FontStyle.BLUE),
+            deleteLabelStyle:FontStyle.get(14,FontStyle.WHITE),
             openOffset:Math.round(80 * pixelRatio)
         };
 
@@ -10973,8 +11033,8 @@ App.Initialize.prototype._initView = function _initView()
     {
         if (pixelRatio > 2) pixelRatio = 2;
 
-        canvas.style.width = w + "px";
-        canvas.style.height = h + "px";
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
         canvas.width = canvas.width * pixelRatio;
         canvas.height = canvas.height * pixelRatio;
         context.scale(pixelRatio,pixelRatio);
@@ -10987,17 +11047,12 @@ App.Initialize.prototype._initView = function _initView()
     //context.webkitImageSmoothingEnabled = context.mozImageSmoothingEnabled = true;
     context.lineCap = "square";
 
-    App.FontStyle.init(pixelRatio);
-    categoryButtonOptions.nameLabelStyle = FontStyle.get(18,FontStyle.BLUE);
-    categoryButtonOptions.editLabelStyle = FontStyle.get(18,FontStyle.WHITE);
-    subCategoryButtonOptions.nameLabelStyle = FontStyle.get(14,FontStyle.BLUE);
-    subCategoryButtonOptions.deleteLabelStyle = FontStyle.get(14,FontStyle.WHITE);
-
     App.ViewLocator.init([
+        ViewName.SKIN,skin,
         ViewName.CATEGORY_BUTTON_EXPAND_POOL,new ObjectPool(App.CategoryButtonExpand,5,categoryButtonOptions),
         ViewName.CATEGORY_BUTTON_EDIT_POOL,new ObjectPool(App.CategoryButtonEdit,5,categoryButtonOptions),
         ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions),
-        ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,w,h,pixelRatio))
+        ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,width,height,pixelRatio))
     ]);
 
     renderer.render(stage);

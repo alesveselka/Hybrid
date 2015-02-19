@@ -30,6 +30,7 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
 
     this.addChild(this._background);
     this.addChild(this._deleteLabel);
+    this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
     this._swipeSurface.addChild(this._nameLabel);
     this.addChild(this._swipeSurface);
 };
@@ -61,9 +62,9 @@ App.SubCategoryButton.prototype._render = function _render()
         this._deleteLabel.x = Math.round(w - 50 * r);
         this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
 
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY,1,[0,0,w,h],true,false);
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
-        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
+//        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY,1,[0,0,w,h],true,false);
+//        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
+//        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
 
         this._nameLabel.x = Math.round(20 * r);
         this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);

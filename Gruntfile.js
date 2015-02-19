@@ -46,6 +46,7 @@ module.exports = function(grunt)
         "js/src/view/ViewLocator.js",
         "js/src/view/ColorTheme.js",
         "js/src/view/FontStyle.js",
+        "js/src/view/Skin.js",
         "js/src/view/header/HeaderSegment.js",
         "js/src/view/header/HeaderIcon.js",
         "js/src/view/header/HeaderTitle.js",

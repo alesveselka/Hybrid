@@ -15,7 +15,7 @@ App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
     this._model = null;
     this._mode = null;
     this._pixelRatio = options.pixelRatio;
-    this._surface = new App.CategoryButtonSurface(options.nameLabelStyle);
+    this._surface = new App.CategoryButtonSurface(options.nameLabelStyle,options.skin);
     this._subCategoryList = new App.SubCategoryList(options.width,this._pixelRatio);
 
     this._setContent(this._subCategoryList);
@@ -45,13 +45,22 @@ App.CategoryButtonExpand.prototype.update = function update(model,mode)
     this._model = model;
     this._mode = mode;
 
-    this._subCategoryList.update(model,mode);
+    //this._subCategoryList.update(model,mode);
 
     this._contentHeight = this._subCategoryList.boundingBox.height;
 
     this._render();
 
     this.close(true);
+};
+
+App.CategoryButtonExpand.prototype.open = function open()
+{
+    this._subCategoryList.update(this._model,this._mode);
+
+    this._contentHeight = this._subCategoryList.boundingBox.height;
+
+    App.ExpandButton.prototype.open.call(this);
 };
 
 /**

@@ -108,8 +108,6 @@ App.Initialize.prototype._initController = function _initController()
  */
 App.Initialize.prototype._initView = function _initView()
 {
-    //TODO initialize textures, icons, patterns?
-
     var canvas = document.getElementsByTagName("canvas")[0],
         context = canvas.getContext("2d"),
         dpr = window.devicePixelRatio || 1,
@@ -119,10 +117,11 @@ App.Initialize.prototype._initView = function _initView()
             context.oBackingStorePixelRatio ||
             context.backingStorePixelRatio || 1,
         pixelRatio = dpr / bsr,
-        w = window.innerWidth,
-        h = window.innerHeight,
+        width = window.innerWidth,
+        height = window.innerHeight,
+        w = Math.round(width * pixelRatio),
         stage = new PIXI.Stage(0xffffff),
-        renderer = new PIXI.CanvasRenderer(w,h,{
+        renderer = new PIXI.CanvasRenderer(width,height,{
             view:canvas,
             resolution:1,
             transparent:false,
@@ -131,16 +130,23 @@ App.Initialize.prototype._initView = function _initView()
         }),
         ViewName = App.ViewName,
         ObjectPool = App.ObjectPool,
-        FontStyle = App.FontStyle,
+        FontStyle = App.FontStyle.init(pixelRatio),
+        skin = new App.Skin(w,pixelRatio),
         categoryButtonOptions = {
-            width:Math.round(w * pixelRatio),
+            width:w,
             height:Math.round(50 * pixelRatio),
-            pixelRatio:pixelRatio
+            pixelRatio:pixelRatio,
+            skin:skin.GREY_50,
+            nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
+            editLabelStyle:FontStyle.get(18,FontStyle.WHITE)
         },
         subCategoryButtonOptions = {
-            width:Math.round(w * pixelRatio),
+            width:w,
             height:Math.round(40 * pixelRatio),
             pixelRatio:pixelRatio,
+            skin:skin.GREY_40,
+            nameLabelStyle:FontStyle.get(14,FontStyle.BLUE),
+            deleteLabelStyle:FontStyle.get(14,FontStyle.WHITE),
             openOffset:Math.round(80 * pixelRatio)
         };
 
@@ -148,8 +154,8 @@ App.Initialize.prototype._initView = function _initView()
     {
         if (pixelRatio > 2) pixelRatio = 2;
 
-        canvas.style.width = w + "px";
-        canvas.style.height = h + "px";
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
         canvas.width = canvas.width * pixelRatio;
         canvas.height = canvas.height * pixelRatio;
         context.scale(pixelRatio,pixelRatio);
@@ -162,17 +168,12 @@ App.Initialize.prototype._initView = function _initView()
     //context.webkitImageSmoothingEnabled = context.mozImageSmoothingEnabled = true;
     context.lineCap = "square";
 
-    App.FontStyle.init(pixelRatio);
-    categoryButtonOptions.nameLabelStyle = FontStyle.get(18,FontStyle.BLUE);
-    categoryButtonOptions.editLabelStyle = FontStyle.get(18,FontStyle.WHITE);
-    subCategoryButtonOptions.nameLabelStyle = FontStyle.get(14,FontStyle.BLUE);
-    subCategoryButtonOptions.deleteLabelStyle = FontStyle.get(14,FontStyle.WHITE);
-
     App.ViewLocator.init([
+        ViewName.SKIN,skin,
         ViewName.CATEGORY_BUTTON_EXPAND_POOL,new ObjectPool(App.CategoryButtonExpand,5,categoryButtonOptions),
         ViewName.CATEGORY_BUTTON_EDIT_POOL,new ObjectPool(App.CategoryButtonEdit,5,categoryButtonOptions),
         ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions),
-        ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,w,h,pixelRatio))
+        ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,width,height,pixelRatio))
     ]);
 
     renderer.render(stage);

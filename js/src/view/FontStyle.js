@@ -15,6 +15,8 @@ App.FontStyle = {
     init:function init(pixelRatio)
     {
         this._pixelRatio = pixelRatio;
+
+        return this;
     },
 
     /**
