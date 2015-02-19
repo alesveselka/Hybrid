@@ -86,5 +86,19 @@ App.AccountScreen.prototype._onClick = function _onClick()
  */
 App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    console.log("AccountScreen _onHeaderClick ",action);
+    var HeaderAction = App.HeaderAction;
+
+    if (action === HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,{
+                screenName:App.ScreenName.ADD_TRANSACTION,
+                screenMode:App.ScreenMode.ADD,
+                updateData:App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
+                headerLeftAction:HeaderAction.CANCEL,
+                headerRightAction:HeaderAction.CONFIRM,
+                headerName:"Add Transaction"//TODO remove hard-coded value
+            }
+        );
+    }
 };

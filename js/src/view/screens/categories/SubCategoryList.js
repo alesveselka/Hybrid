@@ -57,25 +57,18 @@ App.SubCategoryList.prototype.update = function update(model,mode)
         buttonPool = App.ViewLocator.getViewSegment(App.ViewName.SUB_CATEGORY_BUTTON_POOL),
         i = 0,
         l = this._buttonList.length,
-        modelLength = subCategories.length,
         button = null;
 
-    if (l >= modelLength)
+    for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
+
+    i = 0;
+    l = subCategories.length;
+
+    for (;i<l;)
     {
-        for (;i<l;i++)
-        {
-            if (i < modelLength) this._buttonList.getItemAt(i).update(subCategories[i],mode);
-            else buttonPool.release(this._buttonList.removeItemAt(i));
-        }
-    }
-    else
-    {
-        for (;i<modelLength;)
-        {
-            button = buttonPool.allocate();
-            button.update(subCategories[i++],mode);
-            this._buttonList.add(button,false);
-        }
+        button = buttonPool.allocate();
+        button.update(subCategories[i++],mode);
+        this._buttonList.add(button,false);
     }
     this._buttonList.updateLayout();
 

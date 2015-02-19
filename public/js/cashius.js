@@ -7597,7 +7597,21 @@ App.AccountScreen.prototype._onClick = function _onClick()
  */
 App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    console.log("AccountScreen _onHeaderClick ",action);
+    var HeaderAction = App.HeaderAction;
+
+    if (action === HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,{
+                screenName:App.ScreenName.ADD_TRANSACTION,
+                screenMode:App.ScreenMode.ADD,
+                updateData:App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
+                headerLeftAction:HeaderAction.CANCEL,
+                headerRightAction:HeaderAction.CONFIRM,
+                headerName:"Add Transaction"//TODO remove hard-coded value
+            }
+        );
+    }
 };
 
 /**
@@ -7784,15 +7798,26 @@ App.SubCategoryList.prototype.update = function update(model,mode)
         buttonPool = App.ViewLocator.getViewSegment(App.ViewName.SUB_CATEGORY_BUTTON_POOL),
         i = 0,
         l = this._buttonList.length,
-        modelLength = subCategories.length,
         button = null;
 
-    if (l >= modelLength)
+    for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
+
+    i = 0;
+    l = subCategories.length;
+
+    for (;i<l;)
+    {
+        button = buttonPool.allocate();
+        button.update(subCategories[i++],mode);
+        this._buttonList.add(button,false);
+    }
+
+    /*if (l >= modelLength)
     {
         for (;i<l;i++)
         {
             if (i < modelLength) this._buttonList.getItemAt(i).update(subCategories[i],mode);
-            else buttonPool.release(this._buttonList.removeItemAt(i));
+            else buttonPool.release(this._buttonList.removeItemAt(modelLength));
         }
     }
     else
@@ -7803,7 +7828,7 @@ App.SubCategoryList.prototype.update = function update(model,mode)
             button.update(subCategories[i++],mode);
             this._buttonList.add(button,false);
         }
-    }
+    }*/
     this._buttonList.updateLayout();
 
     this._render();
@@ -8163,52 +8188,25 @@ App.CategoryScreen.prototype.update = function update(data,mode)
     var ScreenMode = App.ScreenMode,
         ViewLocator = App.ViewLocator,
         ViewName = App.ViewName,
-        buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EXPAND_POOL),
+        expandButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EXPAND_POOL),
+        editButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL),
+        buttonPool = this._mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool,
         i = 0,
         l = this._buttonList.length,
-        modelLength = this._model.length,
         button = null;
 
-    if (this._mode === mode)
+    for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
+
+    i = 0;
+    l = this._model.length;
+
+    buttonPool = mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool;
+
+    for (;i<l;)
     {
-        if (mode === ScreenMode.EDIT) buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL);
-
-        if (l >= modelLength)
-        {
-            for (;i<l;i++)
-            {
-                if (i < modelLength) this._buttonList.getItemAt(i).update(this._model[i],mode);
-                else buttonPool.release(this._buttonList.removeItemAt(i));
-            }
-        }
-        else
-        {
-            for (;i<modelLength;)
-            {
-                button = buttonPool.allocate();
-                button.update(this._model[i++],mode);
-                this._buttonList.add(button,false);
-            }
-        }
-    }
-    else
-    {
-        if (this._mode === ScreenMode.EDIT) buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL);
-
-        for (;i<l;) buttonPool.release(this._buttonList.removeItemAt(i++));
-
-        i = 0;
-        l = this._model.length;
-
-        if (mode === ScreenMode.SELECT) buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EXPAND_POOL);
-        else if (mode === ScreenMode.EDIT) buttonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL);
-
-        for (;i<l;)
-        {
-            button = buttonPool.allocate();
-            button.update(this._model[i++],mode);
-            this._buttonList.add(button,false);
-        }
+        button = buttonPool.allocate();
+        button.update(this._model[i++],mode);
+        this._buttonList.add(button,false);
     }
 
     this._updateLayout();
@@ -8332,6 +8330,30 @@ App.CategoryScreen.prototype._onClick = function _onClick()
     this._pane.cancelScroll();
 
     //if (!this._swipeEnabled) this._closeButtons(false);
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var HeaderAction = App.HeaderAction;
+
+    if (action === HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,{
+                screenName:App.ScreenName.ADD_TRANSACTION,
+                screenMode:App.ScreenMode.ADD,
+                updateData:App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
+                headerLeftAction:HeaderAction.CANCEL,
+                headerRightAction:HeaderAction.CONFIRM,
+                headerName:"Add Transaction"//TODO remove hard-coded value
+            }
+        );
+    }
 };
 
 /**
@@ -11102,7 +11124,7 @@ App.Initialize.prototype._initView = function _initView()
             context.msBackingStorePixelRatio ||
             context.oBackingStorePixelRatio ||
             context.backingStorePixelRatio || 1,
-        pixelRatio = dpr / bsr,
+        pixelRatio = dpr / bsr > 2 ? 2 : dpr / bsr,
         width = window.innerWidth,
         height = window.innerHeight,
         w = Math.round(width * pixelRatio),
@@ -11140,8 +11162,6 @@ App.Initialize.prototype._initView = function _initView()
 
     if (pixelRatio > 1)
     {
-        if (pixelRatio > 2) pixelRatio = 2;
-
         canvas.style.width = width + "px";
         canvas.style.height = height + "px";
         canvas.width = canvas.width * pixelRatio;

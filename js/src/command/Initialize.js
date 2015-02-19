@@ -116,7 +116,7 @@ App.Initialize.prototype._initView = function _initView()
             context.msBackingStorePixelRatio ||
             context.oBackingStorePixelRatio ||
             context.backingStorePixelRatio || 1,
-        pixelRatio = dpr / bsr,
+        pixelRatio = dpr / bsr > 2 ? 2 : dpr / bsr,
         width = window.innerWidth,
         height = window.innerHeight,
         w = Math.round(width * pixelRatio),
@@ -154,8 +154,6 @@ App.Initialize.prototype._initView = function _initView()
 
     if (pixelRatio > 1)
     {
-        if (pixelRatio > 2) pixelRatio = 2;
-
         canvas.style.width = width + "px";
         canvas.style.height = height + "px";
         canvas.width = canvas.width * pixelRatio;
