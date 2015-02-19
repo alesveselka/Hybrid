@@ -27,7 +27,8 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
             pixelRatio:r,
             width:w,
             height:Math.round(50*r),
-            nameStyle:FontStyle.get(18,"#999999"),
+            skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,
+            nameStyle:FontStyle.get(18,FontStyle.GREY_DARKER),
             valueStyle:FontStyle.get(18,FontStyle.BLUE,"right"),
             valueDetailStyle:FontStyle.get(14,FontStyle.BLUE)
         };

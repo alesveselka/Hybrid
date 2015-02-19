@@ -1971,40 +1971,57 @@ App.FontStyle = {
  */
 App.Skin = function Skin(width,pixelRatio)
 {
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
+    var ColorTheme = App.ColorTheme,
         defaultScaleMode = PIXI.scaleModes.DEFAULT,
         padding = Math.round(10 * pixelRatio),
         graphics = new PIXI.Graphics(),
         w = width - padding * 2,
-        h = Math.round(40 * pixelRatio);
+        h = Math.round(40 * pixelRatio),
+        draw = App.GraphicUtils.drawRects,
+        color = ColorTheme.GREY,
+        lightColor = ColorTheme.GREY_LIGHT,
+        darkColor = ColorTheme.GREY_DARK;
 
-    GraphicUtils.drawRects(graphics,ColorTheme.GREY,1,[0,0,width,h],true,false);
-    GraphicUtils.drawRects(graphics,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);
-    GraphicUtils.drawRects(graphics,ColorTheme.GREY_DARK,1,[padding,h-1,w,1],false,true);
+    draw(graphics,color,1,[0,0,width,h],true,false);
+    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
+    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
 
     this.GREY_40 = graphics.generateTexture(1,defaultScaleMode);
 
-    GraphicUtils.drawRects(graphics,ColorTheme.WHITE,1,[0,0,width,h],true,false);
-    GraphicUtils.drawRects(graphics,ColorTheme.GREY,1,[padding,h-1,w,1],false,true);
+    draw(graphics,ColorTheme.WHITE,1,[0,0,width,h],true,false);
+    draw(graphics,color,1,[padding,h-1,w,1],false,true);
 
     this.WHITE_40 = graphics.generateTexture(1,defaultScaleMode);
 
     h = Math.round(50 * pixelRatio);
 
-    GraphicUtils.drawRects(graphics,ColorTheme.GREY,1,[0,0,width,h],true,false);
-    GraphicUtils.drawRects(graphics,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);
-    GraphicUtils.drawRects(graphics,ColorTheme.GREY_DARK,1,[padding,h-1,w,1],false,true);
+    draw(graphics,color,1,[0,0,width,h],true,false);
+    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
+    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
 
     this.GREY_50 = graphics.generateTexture(1,defaultScaleMode);
 
+    h = Math.round(60 * pixelRatio);
+
+    draw(graphics,color,1,[0,0,width,h],true,false);
+    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
+    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
+
+    this.GREY_60 = graphics.generateTexture(1,defaultScaleMode);
+
     h = Math.round(70 * pixelRatio);
 
-    GraphicUtils.drawRects(graphics,ColorTheme.GREY,1,[0,0,width,h],true,false);
-    GraphicUtils.drawRects(graphics,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);
-    GraphicUtils.drawRects(graphics,ColorTheme.GREY_DARK,1,[padding,h-1,w,1],false,true);
+    draw(graphics,color,1,[0,0,width,h],true,false);
+    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
+    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
 
     this.GREY_70 = graphics.generateTexture(1,defaultScaleMode);
+
+    draw(graphics,ColorTheme.RED,1,[0,0,width,h],true,false);
+    draw(graphics,ColorTheme.RED_LIGHT,1,[padding,0,w,1],false,false);
+    draw(graphics,ColorTheme.RED_DARK,1,[padding,h-1,w,1],false,true);
+
+    this.RED_70 = graphics.generateTexture(1,defaultScaleMode);
 };
 
 /**
@@ -3610,6 +3627,71 @@ App.Calendar.prototype._changeDate = function _changeDate(direction,selectDate)
         i = 0;
 
     for (i = 0;i<weeksInMonth;i++) this._weekRows[i].change(month[i],selectedDate);
+};
+
+/**
+ * @class Radio
+ * @param {number} pixelRatio
+ * @param {boolean} selected
+ * @constructor
+ */
+App.Radio = function Radio(pixelRatio,selected)
+{
+    PIXI.Graphics.call(this);
+
+    this._selected = selected;
+    this._size = Math.round(20 * pixelRatio);
+    this._pixelRatio = pixelRatio;
+    this._check = new PIXI.Graphics();
+
+    this.boundingBox = new App.Rectangle(0,0,this._size,this._size);
+
+    this._render();
+
+    this._check.alpha = selected ? 1.0 : 0.0;
+
+    this.addChild(this._check);
+};
+
+App.Radio.prototype = Object.create(PIXI.Graphics.prototype);
+App.Radio.prototype.constructor = App.Radio;
+
+/**
+ * Render
+ * @private
+ */
+App.Radio.prototype._render = function _render()
+{
+    var drawArc = App.GraphicUtils.drawArc,
+        ColorTheme = App.ColorTheme,
+        size = this._size,
+        center = new PIXI.Point(Math.round(size/2),Math.round(size/2));
+
+    drawArc(this,center,size,size,Math.round(2*this._pixelRatio),0,360,20,0,0,0,ColorTheme.GREY,1);
+
+    size -= Math.round(8*this._pixelRatio);
+
+    drawArc(this._check,center,size,size,Math.round(6*this._pixelRatio),0,360,20,0,0,0,ColorTheme.BLUE,1);
+};
+
+/**
+ * Select
+ */
+App.Radio.prototype.select = function select()
+{
+    this._selected = true;
+
+    this._check.alpha = 1.0;
+};
+
+/**
+ * Select
+ */
+App.Radio.prototype.deselect = function deselect()
+{
+    this._selected = false;
+
+    this._check.alpha = 0.0;
 };
 
 /**
@@ -6797,7 +6879,7 @@ App.TransactionToggleButton.prototype.isSelected = function isSelected()
  */
 App.TransactionOptionButton = function TransactionOptionButton(iconName,name,targetScreenName,options)
 {
-    PIXI.Graphics.call(this);
+    PIXI.DisplayObjectContainer.call(this);
 
     var Text = PIXI.Text,
         Sprite = PIXI.Sprite;
@@ -6806,6 +6888,7 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,tar
 
     this._options = options;
     this._pixelRatio = options.pixelRatio;
+    this._skin = new Sprite(options.skin);
     this._icon = new Sprite.fromFrame(iconName);
     this._nameField = new Text(name,options.nameStyle);
     this._valueField = new Text("",options.valueStyle);
@@ -6818,13 +6901,14 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,tar
     this._render();
     this._update();
 
+    this.addChild(this._skin);
     this.addChild(this._icon);
     this.addChild(this._nameField);
     this.addChild(this._valueField);
     this.addChild(this._arrow);
 };
 
-App.TransactionOptionButton.prototype = Object.create(PIXI.Graphics.prototype);
+App.TransactionOptionButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.TransactionOptionButton.prototype.constructor = App.TransactionOptionButton;
 
 /**
@@ -6833,12 +6917,9 @@ App.TransactionOptionButton.prototype.constructor = App.TransactionOptionButton;
  */
 App.TransactionOptionButton.prototype._render = function _render()
 {
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
+    var ColorTheme = App.ColorTheme,
         r = this._pixelRatio,
-        w = this.boundingBox.width,
-        h = this.boundingBox.height,
-        padding = Math.round(10 * r);
+        h = this.boundingBox.height;
 
     this._icon.scale.x = this._iconResizeRatio;
     this._icon.scale.y = this._iconResizeRatio;
@@ -6851,13 +6932,9 @@ App.TransactionOptionButton.prototype._render = function _render()
 
     this._arrow.scale.x = this._arrowResizeRatio;
     this._arrow.scale.y = this._arrowResizeRatio;
-    this._arrow.x = Math.round(w - 15 * r - this._arrow.width);
+    this._arrow.x = Math.round(this.boundingBox.width - 15 * r - this._arrow.width);
     this._arrow.y = Math.round((h - this._arrow.height) / 2);
     this._arrow.tint = ColorTheme.GREY_DARK;
-
-    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
 };
 
 /**
@@ -6945,7 +7022,8 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
             pixelRatio:r,
             width:w,
             height:Math.round(50*r),
-            nameStyle:FontStyle.get(18,"#999999"),
+            skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,
+            nameStyle:FontStyle.get(18,FontStyle.GREY_DARKER),
             valueStyle:FontStyle.get(18,FontStyle.BLUE,"right"),
             valueDetailStyle:FontStyle.get(14,FontStyle.BLUE)
         };
@@ -7550,6 +7628,7 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this._skin = new PIXI.Sprite(options.skin);
     this._icon = PIXI.Sprite.fromFrame("subcategory-app");
     this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
+    this._radioCheck = new App.Radio(this._pixelRatio,false);
     this._background = new PIXI.Graphics();
     this._deleteLabel = new PIXI.Text("Delete",options.deleteLabelStyle);
     this._renderAll = true;
@@ -7559,6 +7638,7 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this._swipeSurface.addChild(this._skin);
     this._swipeSurface.addChild(this._icon);
     this._swipeSurface.addChild(this._nameLabel);
+    this._swipeSurface.addChild(this._radioCheck);
     this.addChild(this._swipeSurface);
 };
 
@@ -7581,6 +7661,7 @@ App.SubCategoryButton.prototype._render = function _render()
             r = this._pixelRatio,
             w = this.boundingBox.width,
             h = this.boundingBox.height,
+            offset = Math.round(25 * r),
             iconResizeRatio = Math.round(20 * r) / this._icon.height;
 
         App.GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
@@ -7590,12 +7671,15 @@ App.SubCategoryButton.prototype._render = function _render()
 
         this._icon.scale.x = iconResizeRatio;
         this._icon.scale.y = iconResizeRatio;
-        this._icon.x = Math.round(25 * r);
+        this._icon.x = offset;
         this._icon.y = Math.round((h - this._icon.height) / 2);
         this._icon.tint = ColorTheme.GREY;
 
         this._nameLabel.x = Math.round(64 * r);
         this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
+
+        this._radioCheck.x = w - offset - this._radioCheck.boundingBox.width;
+        this._radioCheck.y = Math.round((h - this._radioCheck.height) / 2);
     }
 };
 
@@ -7665,12 +7749,10 @@ App.SubCategoryList = function SubCategoryList(options)
     this._mode = null;
     this._width = options.width;
     this._pixelRatio = options.pixelRatio;
-    this._header = new App.ListHeader("Sub-Categories",options.width,options.pixelRatio);
     this._interactiveButton = null;
     this._buttonList = new App.List(App.Direction.Y);
     this._addNewButton = new App.AddNewButton("ADD SUB-CATEGORY",options.addLabelStyle,App.ViewLocator.getViewSegment(App.ViewName.SKIN).WHITE_40,this._pixelRatio);
 
-    this.addChild(this._header);
     this.addChild(this._buttonList);
     this.addChild(this._addNewButton);
 };
@@ -7684,9 +7766,7 @@ App.SubCategoryList.prototype.constructor = App.SubCategoryList;
  */
 App.SubCategoryList.prototype._render = function _render()
 {
-    this._buttonList.y = this._header.height;
-
-    this._addNewButton.y = this._buttonList.y + this._buttonList.boundingBox.height;
+    this._addNewButton.y = this._buttonList.boundingBox.height;
 
     this.boundingBox.height = this._addNewButton.y + this._addNewButton.boundingBox.height;
 };
@@ -8928,7 +9008,7 @@ App.TransactionButton.prototype._render = function _render(renderAll,pending)
 
         if (this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.removeChild(this._pendingFlag);
     }
-
+    //TODO use skin instead
     GraphicUtils.drawRects(this._swipeSurface,0xff3366,1,[0,0,colorStripeWidth,h],true,false);
     GraphicUtils.drawRects(this._swipeSurface,bgColor,1,[colorStripeWidth,0,w-colorStripeWidth,h],false,false);
     GraphicUtils.drawRects(this._swipeSurface,lightColor,1,[padding,0,w-padding*2,1],false,false);
@@ -9265,6 +9345,7 @@ App.ReportCategoryButton.prototype._render = function _render()
         w = this._width - padding * 2,
         h = this.boundingBox.height;
 
+    //TODO use skin instead
     GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,this._width,h],true,false);
     GraphicUtils.drawRects(this._background,0xff3300,1,[0,0,Math.round(4 * this._pixelRatio),h],false,false);
     GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);

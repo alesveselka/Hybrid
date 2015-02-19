@@ -9,7 +9,7 @@
  */
 App.TransactionOptionButton = function TransactionOptionButton(iconName,name,targetScreenName,options)
 {
-    PIXI.Graphics.call(this);
+    PIXI.DisplayObjectContainer.call(this);
 
     var Text = PIXI.Text,
         Sprite = PIXI.Sprite;
@@ -18,6 +18,7 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,tar
 
     this._options = options;
     this._pixelRatio = options.pixelRatio;
+    this._skin = new Sprite(options.skin);
     this._icon = new Sprite.fromFrame(iconName);
     this._nameField = new Text(name,options.nameStyle);
     this._valueField = new Text("",options.valueStyle);
@@ -30,13 +31,14 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,tar
     this._render();
     this._update();
 
+    this.addChild(this._skin);
     this.addChild(this._icon);
     this.addChild(this._nameField);
     this.addChild(this._valueField);
     this.addChild(this._arrow);
 };
 
-App.TransactionOptionButton.prototype = Object.create(PIXI.Graphics.prototype);
+App.TransactionOptionButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.TransactionOptionButton.prototype.constructor = App.TransactionOptionButton;
 
 /**
@@ -45,12 +47,9 @@ App.TransactionOptionButton.prototype.constructor = App.TransactionOptionButton;
  */
 App.TransactionOptionButton.prototype._render = function _render()
 {
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
+    var ColorTheme = App.ColorTheme,
         r = this._pixelRatio,
-        w = this.boundingBox.width,
-        h = this.boundingBox.height,
-        padding = Math.round(10 * r);
+        h = this.boundingBox.height;
 
     this._icon.scale.x = this._iconResizeRatio;
     this._icon.scale.y = this._iconResizeRatio;
@@ -63,13 +62,9 @@ App.TransactionOptionButton.prototype._render = function _render()
 
     this._arrow.scale.x = this._arrowResizeRatio;
     this._arrow.scale.y = this._arrowResizeRatio;
-    this._arrow.x = Math.round(w - 15 * r - this._arrow.width);
+    this._arrow.x = Math.round(this.boundingBox.width - 15 * r - this._arrow.width);
     this._arrow.y = Math.round((h - this._arrow.height) / 2);
     this._arrow.tint = ColorTheme.GREY_DARK;
-
-    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
 };
 
 /**

@@ -47,6 +47,7 @@ App.ReportCategoryButton.prototype._render = function _render()
         w = this._width - padding * 2,
         h = this.boundingBox.height;
 
+    //TODO use skin instead
     GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,this._width,h],true,false);
     GraphicUtils.drawRects(this._background,0xff3300,1,[0,0,Math.round(4 * this._pixelRatio),h],false,false);
     GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);

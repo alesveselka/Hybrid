@@ -22,12 +22,10 @@ App.SubCategoryList = function SubCategoryList(options)
     this._mode = null;
     this._width = options.width;
     this._pixelRatio = options.pixelRatio;
-    this._header = new App.ListHeader("Sub-Categories",options.width,options.pixelRatio);
     this._interactiveButton = null;
     this._buttonList = new App.List(App.Direction.Y);
     this._addNewButton = new App.AddNewButton("ADD SUB-CATEGORY",options.addLabelStyle,App.ViewLocator.getViewSegment(App.ViewName.SKIN).WHITE_40,this._pixelRatio);
 
-    this.addChild(this._header);
     this.addChild(this._buttonList);
     this.addChild(this._addNewButton);
 };
@@ -41,9 +39,7 @@ App.SubCategoryList.prototype.constructor = App.SubCategoryList;
  */
 App.SubCategoryList.prototype._render = function _render()
 {
-    this._buttonList.y = this._header.height;
-
-    this._addNewButton.y = this._buttonList.y + this._buttonList.boundingBox.height;
+    this._addNewButton.y = this._buttonList.boundingBox.height;
 
     this.boundingBox.height = this._addNewButton.y + this._addNewButton.boundingBox.height;
 };

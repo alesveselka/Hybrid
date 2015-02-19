@@ -57,6 +57,7 @@ module.exports = function(grunt)
         "js/src/view/ui/controls/Button.js",
         "js/src/view/ui/controls/CalendarWeekRow.js",
         "js/src/view/ui/controls/Calendar.js",
+        "js/src/view/ui/controls/Radio.js",
         "js/src/view/ui/containers/Pane.js",
         "js/src/view/ui/containers/InfiniteList.js",
         "js/src/view/ui/containers/VirtualList.js",

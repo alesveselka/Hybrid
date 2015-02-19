@@ -26,6 +26,7 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this._skin = new PIXI.Sprite(options.skin);
     this._icon = PIXI.Sprite.fromFrame("subcategory-app");
     this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
+    this._radioCheck = new App.Radio(this._pixelRatio,false);
     this._background = new PIXI.Graphics();
     this._deleteLabel = new PIXI.Text("Delete",options.deleteLabelStyle);
     this._renderAll = true;
@@ -35,6 +36,7 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this._swipeSurface.addChild(this._skin);
     this._swipeSurface.addChild(this._icon);
     this._swipeSurface.addChild(this._nameLabel);
+    this._swipeSurface.addChild(this._radioCheck);
     this.addChild(this._swipeSurface);
 };
 
@@ -57,6 +59,7 @@ App.SubCategoryButton.prototype._render = function _render()
             r = this._pixelRatio,
             w = this.boundingBox.width,
             h = this.boundingBox.height,
+            offset = Math.round(25 * r),
             iconResizeRatio = Math.round(20 * r) / this._icon.height;
 
         App.GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
@@ -66,12 +69,15 @@ App.SubCategoryButton.prototype._render = function _render()
 
         this._icon.scale.x = iconResizeRatio;
         this._icon.scale.y = iconResizeRatio;
-        this._icon.x = Math.round(25 * r);
+        this._icon.x = offset;
         this._icon.y = Math.round((h - this._icon.height) / 2);
         this._icon.tint = ColorTheme.GREY;
 
         this._nameLabel.x = Math.round(64 * r);
         this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
+
+        this._radioCheck.x = w - offset - this._radioCheck.boundingBox.width;
+        this._radioCheck.y = Math.round((h - this._radioCheck.height) / 2);
     }
 };
 
