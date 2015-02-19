@@ -1892,8 +1892,8 @@ App.ColorTheme = {
 };
 
 /**
- * FontStyle
- * @type {{init: Function, get: Function}}
+ * @class FontStyle
+ * @type {{init: Function, get: Function, WHITE: string, BLUE: string, BLUE_LIGHT: string, BLUE_DARK: string, GREY: string, GREY_DARK: string, GREY_DARKER: string, RED_DARK: string}}
  */
 App.FontStyle = {
     /**
@@ -1957,9 +1957,9 @@ App.FontStyle = {
     BLUE:"#394264",
     BLUE_LIGHT:"#50597B",
     BLUE_DARK:"#252B44",
-    SHADE:"#efefef",
-    SHADE_DARK:"#cccccc",
-    GREY:"#999999",
+    GREY:"#efefef",
+    GREY_DARK:"#cccccc",
+    GREY_DARKER:"#999999",
     RED_DARK:"#990000"
 };
 
@@ -1984,6 +1984,11 @@ App.Skin = function Skin(width,pixelRatio)
     GraphicUtils.drawRects(graphics,ColorTheme.GREY_DARK,1,[padding,h-1,w,1],false,true);
 
     this.GREY_40 = graphics.generateTexture(1,defaultScaleMode);
+
+    GraphicUtils.drawRects(graphics,ColorTheme.WHITE,1,[0,0,width,h],true,false);
+    GraphicUtils.drawRects(graphics,ColorTheme.GREY,1,[padding,h-1,w,1],false,true);
+
+    this.WHITE_40 = graphics.generateTexture(1,defaultScaleMode);
 
     h = Math.round(50 * pixelRatio);
 
@@ -2664,7 +2669,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
 
     this._eventDispatcher = new App.EventDispatcher(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._placeholder = placeholder;
-    this._placeholderStyle = FontStyle.get(fontSize,FontStyle.SHADE);
+    this._placeholderStyle = FontStyle.get(fontSize,FontStyle.GREY);
     this._currentStyle = this._placeholderStyle;
     this._textStyle = FontStyle.get(fontSize,FontStyle.BLUE);
     this._restrictPattern = null;
@@ -3170,7 +3175,7 @@ App.CalendarWeekRow = function CalendarWeekRow(week,currentDay,width,pixelRatio)
     this._width = width;
     this._pixelRatio = pixelRatio;
 
-    this._textStyle = FontStyle.get(14,FontStyle.SHADE_DARK);
+    this._textStyle = FontStyle.get(14,FontStyle.GREY_DARK);
     this._selectedStyle = FontStyle.get(14,FontStyle.WHITE);
     this._dateFields = new Array(7);
     this._selectedDayIndex = -1;
@@ -5597,25 +5602,36 @@ App.ListHeader.prototype._render = function _render()
     this._textField.y = Math.round((h - this._textField.height) / 2);
 };
 
-App.AddNewButton = function AddNewButton(label,fontStyle,width,height,pixelRatio)
+/**
+ * @class AddNewButton
+ * @extends DisplayObjectContainer
+ * @param {string} label
+ * @param {{font:string,fill:string}} fontStyle
+ * @param {Texture} skin
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.AddNewButton = function AddNewButton(label,fontStyle,skin,pixelRatio)
 {
-    PIXI.Graphics.call(this);
+    PIXI.DisplayObjectContainer.call(this);
 
-    this.boundingBox = new App.Rectangle(0,0,width,height);
+    this.boundingBox = new App.Rectangle(0,0,skin.width,skin.height);
 
     this._label = label;
     this._pixelRatio = pixelRatio;
+    this._skin = new PIXI.Sprite(skin);
     this._icon = PIXI.Sprite.fromFrame("plus-app");
     this._iconResizeRatio = Math.round(20 * pixelRatio) / this._icon.height;
     this._labelField = new PIXI.Text(label,fontStyle);
 
     this._render();
 
+    this.addChild(this._skin);
     this.addChild(this._icon);
     this.addChild(this._labelField);
 };
 
-App.AddNewButton.prototype = Object.create(PIXI.Graphics.prototype);
+App.AddNewButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.AddNewButton.prototype.constructor = App.AddNewButton;
 
 /**
@@ -5624,33 +5640,21 @@ App.AddNewButton.prototype.constructor = App.AddNewButton;
  */
 App.AddNewButton.prototype._render = function _render()
 {
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
-        w = this.boundingBox.width,
+    var gap = Math.round(10 * this._pixelRatio),
         h = this.boundingBox.height,
-        gap = Math.round(10 * this._pixelRatio),
-        height = this.boundingBox.height,
-        padding = Math.round(10 * this._pixelRatio),
         position = 0;
-
-    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
 
     this._icon.scale.x = this._iconResizeRatio;
     this._icon.scale.y = this._iconResizeRatio;
 
-    w = this._labelField.width;
-
-    w += this._icon.width + gap;
-    position = Math.round((this.boundingBox.width - w) / 2);
+    position = Math.round((this.boundingBox.width - (this._labelField.width + gap + this._icon.width)) / 2);
 
     this._icon.x = position;
-    this._icon.y = Math.round((height - this._icon.height) / 2);
-    this._icon.tint = ColorTheme.GREY_DARK;
+    this._icon.y = Math.round((h - this._icon.height) / 2);
+    this._icon.tint = App.ColorTheme.GREY_DARK;
 
     this._labelField.x = position + this._icon.width + gap;
-    this._labelField.y = Math.round((height - this._labelField.height) / 2);
+    this._labelField.y = Math.round((h - this._labelField.height) / 2);
 };
 
 /**
@@ -7441,7 +7445,7 @@ App.AccountScreen = function AccountScreen(model,layout)
     var AccountButton = App.AccountButton,
         FontStyle = App.FontStyle,
         nameStyle = FontStyle.get(24,FontStyle.BLUE),
-        detailStyle = FontStyle.get(12,FontStyle.GREY),
+        detailStyle = FontStyle.get(12,FontStyle.GREY_DARKER),
         r = layout.pixelRatio,
         w = layout.width,
         h = layout.contentHeight,
@@ -7542,7 +7546,9 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this._model = null;
     this._mode = null;
     this._pixelRatio = options.pixelRatio;
-    this._swipeSurface = new PIXI.Graphics();
+    this._swipeSurface = new PIXI.DisplayObjectContainer();
+    this._skin = new PIXI.Sprite(options.skin);
+    this._icon = PIXI.Sprite.fromFrame("subcategory-app");
     this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
     this._background = new PIXI.Graphics();
     this._deleteLabel = new PIXI.Text("Delete",options.deleteLabelStyle);
@@ -7550,7 +7556,8 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
 
     this.addChild(this._background);
     this.addChild(this._deleteLabel);
-    this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
+    this._swipeSurface.addChild(this._skin);
+    this._swipeSurface.addChild(this._icon);
     this._swipeSurface.addChild(this._nameLabel);
     this.addChild(this._swipeSurface);
 };
@@ -7571,22 +7578,23 @@ App.SubCategoryButton.prototype._render = function _render()
         this._renderAll = false;
 
         var ColorTheme = App.ColorTheme,
-            GraphicUtils = App.GraphicUtils,
             r = this._pixelRatio,
             w = this.boundingBox.width,
             h = this.boundingBox.height,
-            padding = Math.round(10 * r);
+            iconResizeRatio = Math.round(20 * r) / this._icon.height;
 
-        GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
+        App.GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
 
         this._deleteLabel.x = Math.round(w - 50 * r);
         this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
 
-//        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY,1,[0,0,w,h],true,false);
-//        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
-//        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
+        this._icon.scale.x = iconResizeRatio;
+        this._icon.scale.y = iconResizeRatio;
+        this._icon.x = Math.round(25 * r);
+        this._icon.y = Math.round((h - this._icon.height) / 2);
+        this._icon.tint = ColorTheme.GREY;
 
-        this._nameLabel.x = Math.round(20 * r);
+        this._nameLabel.x = Math.round(64 * r);
         this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
     }
 };
@@ -7636,30 +7644,31 @@ App.SubCategoryButton.prototype._getSwipePosition = function _getSwipePosition()
 /**
  * @class SubCategoryList
  * @extends Graphics
- * @param {number} width
- * @param {number} pixelRatio
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {Texture} options.skin
+ * @param {{font:string,fill:string}} options.nameLabelStyle
+ * @param {{font:string,fill:string}} options.deleteLabelStyle
+ * @param {{font:string,fill:string}} options.addLabelStyle
+ * @param {number} options.openOffset
  * @constructor
  */
-App.SubCategoryList = function SubCategoryList(width,pixelRatio)
+App.SubCategoryList = function SubCategoryList(options)
 {
     PIXI.Graphics.call(this);
 
-    this.boundingBox = new App.Rectangle(0,0,width,0);
+    this.boundingBox = new App.Rectangle(0,0,options.width,0);
 
     this._model = null;
     this._mode = null;
-    this._width = width;
-    this._pixelRatio = pixelRatio;
-    this._header = new App.ListHeader("Sub-Categories",width,pixelRatio);
+    this._width = options.width;
+    this._pixelRatio = options.pixelRatio;
+    this._header = new App.ListHeader("Sub-Categories",options.width,options.pixelRatio);
     this._interactiveButton = null;
     this._buttonList = new App.List(App.Direction.Y);
-    this._addNewButton = new App.AddNewButton(
-        "ADD SUB-CATEGORY",
-        App.FontStyle.get(14,App.FontStyle.SHADE_DARK),
-        width,
-        Math.round(40 * pixelRatio),
-        pixelRatio
-    );
+    this._addNewButton = new App.AddNewButton("ADD SUB-CATEGORY",options.addLabelStyle,App.ViewLocator.getViewSegment(App.ViewName.SKIN).WHITE_40,this._pixelRatio);
 
     this.addChild(this._header);
     this.addChild(this._buttonList);
@@ -7675,10 +7684,6 @@ App.SubCategoryList.prototype.constructor = App.SubCategoryList;
  */
 App.SubCategoryList.prototype._render = function _render()
 {
-//    var lastButton = this._subButtons[this._subButtons.length-1];
-
-//    App.LayoutUtils.update(this._subButtons,App.Direction.Y,this._header.height);
-
     this._buttonList.y = this._header.height;
 
     this._addNewButton.y = this._buttonList.y + this._buttonList.boundingBox.height;
@@ -7771,67 +7776,65 @@ App.SubCategoryList.prototype.closeButtons = function closeButtons(immediate)
 
 /**
  * @class CategoryButtonSurface
- * @extends Graphics
- * @param {{font:string,fill:string}} labelStyle
+ * @extends DisplayObjectContainer
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {Texture} options.skin
+ * @param {{font:string,fill:string}} options.nameLabelStyle
  * @constructor
  */
-App.CategoryButtonSurface = function CategoryButtonSurface(labelStyle,skin)
+App.CategoryButtonSurface = function CategoryButtonSurface(options)
 {
-    PIXI.Graphics.call(this);
+    PIXI.DisplayObjectContainer.call(this);
 
-    this._texture = new PIXI.Sprite(skin);
+    this._width = options.width;
+    this._height = options.height;
+    this._pixelRatio = options.pixelRatio;
+
+    this._skin = new PIXI.Sprite(options.skin);
     this._colorStripe = new PIXI.Graphics();
     this._icon = null;
-    this._nameLabel = new PIXI.Text("",labelStyle);
+    this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
     this._renderAll = true;
 
-    this.addChild(this._texture);
+    this.addChild(this._skin);
     this.addChild(this._colorStripe);
     this.addChild(this._nameLabel);
 };
 
-App.CategoryButtonSurface.prototype = Object.create(PIXI.Graphics.prototype);
+App.CategoryButtonSurface.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.CategoryButtonSurface.prototype.constructor = App.CategoryButtonSurface;
 
 /**
  * Render
  * @param {string} label
  * @param {string} iconName
- * @param {number} width
- * @param {number} height
- * @param {number} pixelRatio
  */
-App.CategoryButtonSurface.prototype.render = function render(label,iconName,width,height,pixelRatio)
+App.CategoryButtonSurface.prototype.render = function render(label,iconName)
 {
     this._nameLabel.setText(label);
 
     if (this._icon) this._icon.setTexture(PIXI.TextureCache[iconName]);
 
-    App.GraphicUtils.drawRect(this._colorStripe,0xffcc00,1,0,0,Math.round(4 * pixelRatio),height);
+    App.GraphicUtils.drawRect(this._colorStripe,0xffcc00,1,0,0,Math.round(4 * this._pixelRatio),this._height);
 
     if (this._renderAll)
     {
         this._renderAll = false;
 
-        var GraphicUtils = App.GraphicUtils,
-            ColorTheme = App.ColorTheme,
-            padding = Math.round(10 * pixelRatio);
-        //TODO use RenderTexture
-//        GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,width,height],true,false);
-//        GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,width-padding*2,1],false,false);
-//        GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,height-1,width-padding*2,1],false,true);
-
         this._icon = PIXI.Sprite.fromFrame(iconName);
         this.addChild(this._icon);
 
-        this._icon.width = Math.round(20 * pixelRatio);
-        this._icon.height = Math.round(20 * pixelRatio);
-        this._icon.x = Math.round(25 * pixelRatio);
-        this._icon.y = Math.round((height - this._icon.height) / 2);
-        this._icon.tint = ColorTheme.BLUE;
+        this._icon.width = Math.round(20 * this._pixelRatio);
+        this._icon.height = Math.round(20 * this._pixelRatio);
+        this._icon.x = Math.round(25 * this._pixelRatio);
+        this._icon.y = Math.round((this._height - this._icon.height) / 2);
+        this._icon.tint = App.ColorTheme.BLUE;
 
-        this._nameLabel.x = Math.round(64 * pixelRatio);
-        this._nameLabel.y = Math.round(18 * pixelRatio);
+        this._nameLabel.x = Math.round(64 * this._pixelRatio);
+        this._nameLabel.y = Math.round(18 * this._pixelRatio);
     }
 };
 
@@ -7853,7 +7856,7 @@ App.CategoryButtonEdit = function CategoryButtonEdit(poolIndex,options)
     this._model = null;
     this._mode = null;
     this._pixelRatio = options.pixelRatio;
-    this._swipeSurface = new App.CategoryButtonSurface(options.nameLabelStyle,options.texture);
+    this._swipeSurface = new App.CategoryButtonSurface(options);
     this._background = new PIXI.Graphics();
     this._editLabel = new PIXI.Text("Edit",options.editLabelStyle);
     this._renderAll = true;
@@ -7934,7 +7937,15 @@ App.CategoryButtonEdit.prototype._getSwipePosition = function _getSwipePosition(
  * @class CategoryButtonExpand
  * @extends ExpandButton
  * @param {number} poolIndex
- * @param {{width:number,height:number,pixelRatio:number,nameLabelStyle:{font:string,fill:string},editLabelStyle:{font:string,fill:string}}} options
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {Texture} options.skin
+ * @param {{font:string,fill:string}} options.nameLabelStyle
+ * @param {{font:string,fill:string}} options.deleteLabelStyle
+ * @param {{font:string,fill:string}} options.addLabelStyle
+ * @param {number} options.openOffset
  * @constructor
  */
 App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
@@ -7947,8 +7958,9 @@ App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
     this._model = null;
     this._mode = null;
     this._pixelRatio = options.pixelRatio;
-    this._surface = new App.CategoryButtonSurface(options.nameLabelStyle,options.skin);
-    this._subCategoryList = new App.SubCategoryList(options.width,this._pixelRatio);
+    this._surface = new App.CategoryButtonSurface(options);
+    this._subCategoryList = new App.SubCategoryList(options);
+    this._layoutDirty = true;
 
     this._setContent(this._subCategoryList);
     this.addChild(this._subCategoryList);
@@ -7964,7 +7976,7 @@ App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
  */
 App.CategoryButtonExpand.prototype._render = function _render()
 {
-    this._surface.render(this._model.name,this._model.icon,this.boundingBox.width,this.boundingBox.height,this._pixelRatio);//TODO do I have to pass width and height?
+    this._surface.render(this._model.name,this._model.icon);
 };
 
 /**
@@ -7977,20 +7989,26 @@ App.CategoryButtonExpand.prototype.update = function update(model,mode)
     this._model = model;
     this._mode = mode;
 
-    //this._subCategoryList.update(model,mode);
-
-    this._contentHeight = this._subCategoryList.boundingBox.height;
+    this._layoutDirty = true;
 
     this._render();
 
     this.close(true);
 };
 
+/**
+ * Open
+ */
 App.CategoryButtonExpand.prototype.open = function open()
 {
-    this._subCategoryList.update(this._model,this._mode);
+    if (this._layoutDirty)
+    {
+        this._subCategoryList.update(this._model,this._mode);
 
-    this._contentHeight = this._subCategoryList.boundingBox.height;
+        this._contentHeight = this._subCategoryList.boundingBox.height;
+
+        this._layoutDirty = false;
+    }
 
     App.ExpandButton.prototype.open.call(this);
 };
@@ -8233,7 +8251,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
     this._interactiveButton.onClick(data.getLocalPosition(this));
     this._pane.cancelScroll();
 
-    //this._closeButtons();
+    //if (!this._swipeEnabled) this._closeButtons(false);
 };
 
 /**
@@ -8479,7 +8497,14 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
         inputWidth = w - Math.round(20 * r),
         inputHeight = Math.round(40 * r),
         icons = App.ModelLocator.getProxy(App.ModelName.ICONS),
-        iconsHeight = Math.round(64 * r);
+        iconsHeight = Math.round(64 * r),
+        subCategoryButtonOptions = {
+            width:w,
+            height:inputHeight,
+            pixelRatio:r,
+            skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_40,
+            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK)
+        };
 
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
@@ -8491,7 +8516,7 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
     this._colorList = new InfiniteList(this._getColorSamples(),App.ColorSample,Direction.X,w,Math.round(50 * r),r);
     this._topIconList = new InfiniteList(icons.slice(0,Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._bottomIconList = new InfiniteList(icons.slice(Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
-    this._subCategoryList = new App.SubCategoryList(null,w,r);
+    this._subCategoryList = new App.SubCategoryList(subCategoryButtonOptions);
     this._budgetHeader = new App.ListHeader("Budget",w,r);
     this._budget = new Input("Enter Budget",20,inputWidth,inputHeight,r,true);
     this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
@@ -8502,6 +8527,7 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
     this._budget.restrict(/\D/g);
     this._render();
 
+    //TODO use list instead of DisplayObjectContainer for container?
     this._container.addChild(this._background);
     this._container.addChild(this._colorStripe);
     this._container.addChild(this._icon);
@@ -9006,7 +9032,7 @@ App.TransactionScreen = function TransactionScreen(layout)
                 edit:FontStyle.get(18,FontStyle.WHITE),
                 account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
                 amount:FontStyle.get(26,FontStyle.BLUE_DARK),
-                date:FontStyle.get(14,FontStyle.SHADE_DARK),
+                date:FontStyle.get(14,FontStyle.GREY_DARK),
                 pending:FontStyle.get(12,FontStyle.WHITE),
                 accountPending:FontStyle.get(14,FontStyle.RED_DARK),
                 amountPending:FontStyle.get(26,FontStyle.WHITE),
@@ -9670,10 +9696,10 @@ App.ReportScreen = function ReportScreen(layout)
             accountName:FontStyle.get(22,FontStyle.WHITE),
             accountAmount:FontStyle.get(16,FontStyle.WHITE),
             categoryName:FontStyle.get(18,FontStyle.BLUE),
-            categoryPercent:FontStyle.get(16,FontStyle.SHADE_DARK),
+            categoryPercent:FontStyle.get(16,FontStyle.GREY_DARK),
             categoryPrice:FontStyle.get(16,FontStyle.BLUE),
             subName:FontStyle.get(14,FontStyle.BLUE),
-            subPercent:FontStyle.get(14,FontStyle.SHADE_DARK),
+            subPercent:FontStyle.get(14,FontStyle.GREY_DARK),
             subPrice:FontStyle.get(14,FontStyle.BLUE)
         };
 
@@ -11007,6 +11033,7 @@ App.Initialize.prototype._initView = function _initView()
             autoResize:false,
             clearBeforeRender:false
         }),
+        ViewLocator = App.ViewLocator,
         ViewName = App.ViewName,
         ObjectPool = App.ObjectPool,
         FontStyle = App.FontStyle.init(pixelRatio),
@@ -11017,13 +11044,14 @@ App.Initialize.prototype._initView = function _initView()
             pixelRatio:pixelRatio,
             skin:skin.GREY_50,
             nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
-            editLabelStyle:FontStyle.get(18,FontStyle.WHITE)
+            editLabelStyle:FontStyle.get(18,FontStyle.WHITE),
+            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK)
         },
         subCategoryButtonOptions = {
             width:w,
             height:Math.round(40 * pixelRatio),
             pixelRatio:pixelRatio,
-            skin:skin.GREY_40,
+            skin:skin.WHITE_40,
             nameLabelStyle:FontStyle.get(14,FontStyle.BLUE),
             deleteLabelStyle:FontStyle.get(14,FontStyle.WHITE),
             openOffset:Math.round(80 * pixelRatio)
@@ -11047,15 +11075,13 @@ App.Initialize.prototype._initView = function _initView()
     //context.webkitImageSmoothingEnabled = context.mozImageSmoothingEnabled = true;
     context.lineCap = "square";
 
-    App.ViewLocator.init([
+    ViewLocator.init([
         ViewName.SKIN,skin,
         ViewName.CATEGORY_BUTTON_EXPAND_POOL,new ObjectPool(App.CategoryButtonExpand,5,categoryButtonOptions),
         ViewName.CATEGORY_BUTTON_EDIT_POOL,new ObjectPool(App.CategoryButtonEdit,5,categoryButtonOptions),
-        ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions),
-        ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,width,height,pixelRatio))
+        ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions)
     ]);
-
-    renderer.render(stage);
+    ViewLocator.addViewSegment(ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,width,height,pixelRatio)));
 };
 
 /**

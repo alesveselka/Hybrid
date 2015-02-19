@@ -23,7 +23,7 @@ App.CalendarWeekRow = function CalendarWeekRow(week,currentDay,width,pixelRatio)
     this._width = width;
     this._pixelRatio = pixelRatio;
 
-    this._textStyle = FontStyle.get(14,FontStyle.SHADE_DARK);
+    this._textStyle = FontStyle.get(14,FontStyle.GREY_DARK);
     this._selectedStyle = FontStyle.get(14,FontStyle.WHITE);
     this._dateFields = new Array(7);
     this._selectedDayIndex = -1;

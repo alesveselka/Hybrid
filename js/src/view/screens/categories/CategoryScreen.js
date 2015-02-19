@@ -228,7 +228,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
     this._interactiveButton.onClick(data.getLocalPosition(this));
     this._pane.cancelScroll();
 
-    //this._closeButtons();
+    //if (!this._swipeEnabled) this._closeButtons(false);
 };
 
 /**

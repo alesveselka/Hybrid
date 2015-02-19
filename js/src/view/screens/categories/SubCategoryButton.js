@@ -22,7 +22,9 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this._model = null;
     this._mode = null;
     this._pixelRatio = options.pixelRatio;
-    this._swipeSurface = new PIXI.Graphics();
+    this._swipeSurface = new PIXI.DisplayObjectContainer();
+    this._skin = new PIXI.Sprite(options.skin);
+    this._icon = PIXI.Sprite.fromFrame("subcategory-app");
     this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
     this._background = new PIXI.Graphics();
     this._deleteLabel = new PIXI.Text("Delete",options.deleteLabelStyle);
@@ -30,7 +32,8 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
 
     this.addChild(this._background);
     this.addChild(this._deleteLabel);
-    this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
+    this._swipeSurface.addChild(this._skin);
+    this._swipeSurface.addChild(this._icon);
     this._swipeSurface.addChild(this._nameLabel);
     this.addChild(this._swipeSurface);
 };
@@ -51,22 +54,23 @@ App.SubCategoryButton.prototype._render = function _render()
         this._renderAll = false;
 
         var ColorTheme = App.ColorTheme,
-            GraphicUtils = App.GraphicUtils,
             r = this._pixelRatio,
             w = this.boundingBox.width,
             h = this.boundingBox.height,
-            padding = Math.round(10 * r);
+            iconResizeRatio = Math.round(20 * r) / this._icon.height;
 
-        GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
+        App.GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
 
         this._deleteLabel.x = Math.round(w - 50 * r);
         this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
 
-//        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY,1,[0,0,w,h],true,false);
-//        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
-//        GraphicUtils.drawRects(this._swipeSurface,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
+        this._icon.scale.x = iconResizeRatio;
+        this._icon.scale.y = iconResizeRatio;
+        this._icon.x = Math.round(25 * r);
+        this._icon.y = Math.round((h - this._icon.height) / 2);
+        this._icon.tint = ColorTheme.GREY;
 
-        this._nameLabel.x = Math.round(20 * r);
+        this._nameLabel.x = Math.round(64 * r);
         this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
     }
 };

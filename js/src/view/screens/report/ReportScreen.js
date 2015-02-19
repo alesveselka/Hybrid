@@ -21,10 +21,10 @@ App.ReportScreen = function ReportScreen(layout)
             accountName:FontStyle.get(22,FontStyle.WHITE),
             accountAmount:FontStyle.get(16,FontStyle.WHITE),
             categoryName:FontStyle.get(18,FontStyle.BLUE),
-            categoryPercent:FontStyle.get(16,FontStyle.SHADE_DARK),
+            categoryPercent:FontStyle.get(16,FontStyle.GREY_DARK),
             categoryPrice:FontStyle.get(16,FontStyle.BLUE),
             subName:FontStyle.get(14,FontStyle.BLUE),
-            subPercent:FontStyle.get(14,FontStyle.SHADE_DARK),
+            subPercent:FontStyle.get(14,FontStyle.GREY_DARK),
             subPrice:FontStyle.get(14,FontStyle.BLUE)
         };
 

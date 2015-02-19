@@ -128,6 +128,7 @@ App.Initialize.prototype._initView = function _initView()
             autoResize:false,
             clearBeforeRender:false
         }),
+        ViewLocator = App.ViewLocator,
         ViewName = App.ViewName,
         ObjectPool = App.ObjectPool,
         FontStyle = App.FontStyle.init(pixelRatio),
@@ -138,13 +139,14 @@ App.Initialize.prototype._initView = function _initView()
             pixelRatio:pixelRatio,
             skin:skin.GREY_50,
             nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
-            editLabelStyle:FontStyle.get(18,FontStyle.WHITE)
+            editLabelStyle:FontStyle.get(18,FontStyle.WHITE),
+            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK)
         },
         subCategoryButtonOptions = {
             width:w,
             height:Math.round(40 * pixelRatio),
             pixelRatio:pixelRatio,
-            skin:skin.GREY_40,
+            skin:skin.WHITE_40,
             nameLabelStyle:FontStyle.get(14,FontStyle.BLUE),
             deleteLabelStyle:FontStyle.get(14,FontStyle.WHITE),
             openOffset:Math.round(80 * pixelRatio)
@@ -168,15 +170,13 @@ App.Initialize.prototype._initView = function _initView()
     //context.webkitImageSmoothingEnabled = context.mozImageSmoothingEnabled = true;
     context.lineCap = "square";
 
-    App.ViewLocator.init([
+    ViewLocator.init([
         ViewName.SKIN,skin,
         ViewName.CATEGORY_BUTTON_EXPAND_POOL,new ObjectPool(App.CategoryButtonExpand,5,categoryButtonOptions),
         ViewName.CATEGORY_BUTTON_EDIT_POOL,new ObjectPool(App.CategoryButtonEdit,5,categoryButtonOptions),
-        ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions),
-        ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,width,height,pixelRatio))
+        ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions)
     ]);
-
-    renderer.render(stage);
+    ViewLocator.addViewSegment(ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,width,height,pixelRatio)));
 };
 
 /**

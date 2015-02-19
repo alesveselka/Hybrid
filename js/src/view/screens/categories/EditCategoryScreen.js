@@ -19,7 +19,14 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
         inputWidth = w - Math.round(20 * r),
         inputHeight = Math.round(40 * r),
         icons = App.ModelLocator.getProxy(App.ModelName.ICONS),
-        iconsHeight = Math.round(64 * r);
+        iconsHeight = Math.round(64 * r),
+        subCategoryButtonOptions = {
+            width:w,
+            height:inputHeight,
+            pixelRatio:r,
+            skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_40,
+            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK)
+        };
 
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
@@ -31,7 +38,7 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
     this._colorList = new InfiniteList(this._getColorSamples(),App.ColorSample,Direction.X,w,Math.round(50 * r),r);
     this._topIconList = new InfiniteList(icons.slice(0,Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
     this._bottomIconList = new InfiniteList(icons.slice(Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
-    this._subCategoryList = new App.SubCategoryList(null,w,r);
+    this._subCategoryList = new App.SubCategoryList(subCategoryButtonOptions);
     this._budgetHeader = new App.ListHeader("Budget",w,r);
     this._budget = new Input("Enter Budget",20,inputWidth,inputHeight,r,true);
     this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
@@ -42,6 +49,7 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
     this._budget.restrict(/\D/g);
     this._render();
 
+    //TODO use list instead of DisplayObjectContainer for container?
     this._container.addChild(this._background);
     this._container.addChild(this._colorStripe);
     this._container.addChild(this._icon);

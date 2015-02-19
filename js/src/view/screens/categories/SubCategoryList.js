@@ -1,30 +1,31 @@
 /**
  * @class SubCategoryList
  * @extends Graphics
- * @param {number} width
- * @param {number} pixelRatio
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {Texture} options.skin
+ * @param {{font:string,fill:string}} options.nameLabelStyle
+ * @param {{font:string,fill:string}} options.deleteLabelStyle
+ * @param {{font:string,fill:string}} options.addLabelStyle
+ * @param {number} options.openOffset
  * @constructor
  */
-App.SubCategoryList = function SubCategoryList(width,pixelRatio)
+App.SubCategoryList = function SubCategoryList(options)
 {
     PIXI.Graphics.call(this);
 
-    this.boundingBox = new App.Rectangle(0,0,width,0);
+    this.boundingBox = new App.Rectangle(0,0,options.width,0);
 
     this._model = null;
     this._mode = null;
-    this._width = width;
-    this._pixelRatio = pixelRatio;
-    this._header = new App.ListHeader("Sub-Categories",width,pixelRatio);
+    this._width = options.width;
+    this._pixelRatio = options.pixelRatio;
+    this._header = new App.ListHeader("Sub-Categories",options.width,options.pixelRatio);
     this._interactiveButton = null;
     this._buttonList = new App.List(App.Direction.Y);
-    this._addNewButton = new App.AddNewButton(
-        "ADD SUB-CATEGORY",
-        App.FontStyle.get(14,App.FontStyle.SHADE_DARK),
-        width,
-        Math.round(40 * pixelRatio),
-        pixelRatio
-    );
+    this._addNewButton = new App.AddNewButton("ADD SUB-CATEGORY",options.addLabelStyle,App.ViewLocator.getViewSegment(App.ViewName.SKIN).WHITE_40,this._pixelRatio);
 
     this.addChild(this._header);
     this.addChild(this._buttonList);
@@ -40,10 +41,6 @@ App.SubCategoryList.prototype.constructor = App.SubCategoryList;
  */
 App.SubCategoryList.prototype._render = function _render()
 {
-//    var lastButton = this._subButtons[this._subButtons.length-1];
-
-//    App.LayoutUtils.update(this._subButtons,App.Direction.Y,this._header.height);
-
     this._buttonList.y = this._header.height;
 
     this._addNewButton.y = this._buttonList.y + this._buttonList.boundingBox.height;

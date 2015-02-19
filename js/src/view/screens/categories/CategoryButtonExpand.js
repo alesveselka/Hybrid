@@ -2,7 +2,15 @@
  * @class CategoryButtonExpand
  * @extends ExpandButton
  * @param {number} poolIndex
- * @param {{width:number,height:number,pixelRatio:number,nameLabelStyle:{font:string,fill:string},editLabelStyle:{font:string,fill:string}}} options
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {Texture} options.skin
+ * @param {{font:string,fill:string}} options.nameLabelStyle
+ * @param {{font:string,fill:string}} options.deleteLabelStyle
+ * @param {{font:string,fill:string}} options.addLabelStyle
+ * @param {number} options.openOffset
  * @constructor
  */
 App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
@@ -15,8 +23,9 @@ App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
     this._model = null;
     this._mode = null;
     this._pixelRatio = options.pixelRatio;
-    this._surface = new App.CategoryButtonSurface(options.nameLabelStyle,options.skin);
-    this._subCategoryList = new App.SubCategoryList(options.width,this._pixelRatio);
+    this._surface = new App.CategoryButtonSurface(options);
+    this._subCategoryList = new App.SubCategoryList(options);
+    this._layoutDirty = true;
 
     this._setContent(this._subCategoryList);
     this.addChild(this._subCategoryList);
@@ -32,7 +41,7 @@ App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
  */
 App.CategoryButtonExpand.prototype._render = function _render()
 {
-    this._surface.render(this._model.name,this._model.icon,this.boundingBox.width,this.boundingBox.height,this._pixelRatio);//TODO do I have to pass width and height?
+    this._surface.render(this._model.name,this._model.icon);
 };
 
 /**
@@ -45,20 +54,26 @@ App.CategoryButtonExpand.prototype.update = function update(model,mode)
     this._model = model;
     this._mode = mode;
 
-    //this._subCategoryList.update(model,mode);
-
-    this._contentHeight = this._subCategoryList.boundingBox.height;
+    this._layoutDirty = true;
 
     this._render();
 
     this.close(true);
 };
 
+/**
+ * Open
+ */
 App.CategoryButtonExpand.prototype.open = function open()
 {
-    this._subCategoryList.update(this._model,this._mode);
+    if (this._layoutDirty)
+    {
+        this._subCategoryList.update(this._model,this._mode);
 
-    this._contentHeight = this._subCategoryList.boundingBox.height;
+        this._contentHeight = this._subCategoryList.boundingBox.height;
+
+        this._layoutDirty = false;
+    }
 
     App.ExpandButton.prototype.open.call(this);
 };

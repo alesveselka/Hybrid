@@ -26,7 +26,7 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
 
     this._eventDispatcher = new App.EventDispatcher(App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
     this._placeholder = placeholder;
-    this._placeholderStyle = FontStyle.get(fontSize,FontStyle.SHADE);
+    this._placeholderStyle = FontStyle.get(fontSize,FontStyle.GREY);
     this._currentStyle = this._placeholderStyle;
     this._textStyle = FontStyle.get(fontSize,FontStyle.BLUE);
     this._restrictPattern = null;
