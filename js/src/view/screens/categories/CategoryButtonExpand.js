@@ -88,7 +88,7 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
                 var ModelLocator = App.ModelLocator,
                     ModelName = App.ModelName,
                     HeaderAction = App.HeaderAction,
-                    transaction = ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent();
+                    transaction = ModelLocator.getProxy(ModelName.TRANSACTIONS).getCurrent();
 
                 transaction.account = ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0];
                 transaction.category = this._model;
@@ -99,7 +99,7 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
                         screenName:App.ScreenName.ADD_TRANSACTION,
                         headerLeftAction:HeaderAction.CANCEL,
                         headerRightAction:HeaderAction.CONFIRM,
-                        headerName:"Add Transaction"//TODO remove hard-coded value
+                        headerName:App.ScreenTitle.ADD_TRANSACTION
                     }
                 );
             }

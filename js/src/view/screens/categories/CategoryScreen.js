@@ -51,6 +51,8 @@ App.CategoryScreen.prototype.disable = function disable()
 
 /**
  * Update
+ * @param {Array.<Category>} data
+ * @param {string} mode
  * @private
  */
 App.CategoryScreen.prototype.update = function update(data,mode)
@@ -222,7 +224,6 @@ App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
             App.EventType.CHANGE_SCREEN,{
                 screenName:App.ScreenName.ADD_TRANSACTION,
                 screenMode:App.ScreenMode.ADD,
-                updateData:App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
                 headerLeftAction:HeaderAction.CANCEL,
                 headerRightAction:HeaderAction.CONFIRM,
                 headerName:"Add Transaction"//TODO remove hard-coded value

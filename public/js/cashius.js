@@ -1564,7 +1564,7 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
         this._method = null;
         this._date = null;
         this._currency = null;
-        this.note = data[8] ? decodeURI(data[8]) : null;
+        this.note = data[8] ? decodeURI(data[8]) : "";
     }
     else
     {
@@ -3025,6 +3025,15 @@ App.Input.prototype.setValue = function setValue(value)
 };
 
 /**
+ * Set value
+ * @returns {string}
+ */
+App.Input.prototype.getValue = function getValue()
+{
+    return this._text;
+};
+
+/**
  * Test if position passed in falls within this input boundaries
  * @param {number} position
  * @returns {boolean}
@@ -3505,6 +3514,15 @@ App.Calendar.prototype._render = function _render()
     }
 
     this._separatorContainer.endFill();
+};
+
+/**
+ * Update
+ * @param {Date} date
+ */
+App.Calendar.prototype.update = function update(date)
+{
+    this._date = date;
 };
 
 /**
@@ -7260,6 +7278,19 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
                     );
                 }
             }
+            else if (button === this._timeOption)
+            {
+                App.Controller.dispatchEvent(
+                    App.EventType.CHANGE_SCREEN,{
+                        screenName:App.ScreenName.SELECT_TIME,
+                        screenMode:App.ScreenMode.SELECT,
+                        updateData:this._model.date,
+                        headerLeftAction:HeaderAction.CANCEL,
+                        headerRightAction:HeaderAction.CONFIRM,
+                        headerName:"Select Time & Date"//TODO remove hard-coded value
+                    }
+                );
+            }
         }
     }
     else if (this._noteInput.hitTest(position))
@@ -7291,6 +7322,20 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
 };
 
 /**
+ * On budget field blur
+ * @private
+ */
+App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
+{
+    App.InputScrollScreen.prototype._onInputBlur.call(this);
+
+    var transaction = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent();
+
+    if (this._scrollInput === this._transactionInput) transaction.amount = this._transactionInput.getValue();
+    else if (this._scrollInput === this._noteInput) transaction.note = this._noteInput.getValue();
+};
+
+/**
  * @class SelectTimeScreen
  * @extends InputScrollScreen
  * @param {Object} layout
@@ -7304,6 +7349,7 @@ App.SelectTimeScreen = function SelectTimeScreen(layout)
         w = layout.width,
         ScrollPolicy = App.ScrollPolicy;
 
+    this._date = null;
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._inputBackground = new PIXI.Graphics();//TODO do I need BG? I can use BG below whole screen ...
@@ -7373,6 +7419,19 @@ App.SelectTimeScreen.prototype.disable = function disable()
 };
 
 /**
+ * Update
+ * @param {Date} date
+ * @param {string} mode
+ * @private
+ */
+App.SelectTimeScreen.prototype.update = function update(date,mode)
+{
+    this._date = date;//TODO do I need the reference here if it's also in the Calendar itself?
+
+    this._calendar.update(date);
+};
+
+/**
  * Register event listeners
  * @private
  */
@@ -7423,6 +7482,42 @@ App.SelectTimeScreen.prototype._onClick = function _onClick()
     {
         if (inputFocused) this._scrollInput.blur();
         else this._calendar.onClick();
+    }
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var HeaderAction = App.HeaderAction;
+
+    if (action === HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,{
+                screenName:App.ScreenName.ADD_TRANSACTION,
+                screenMode:App.ScreenMode.ADD,
+                headerLeftAction:HeaderAction.CANCEL,
+                headerRightAction:HeaderAction.CONFIRM,
+                headerName:"Add Transaction"//TODO remove hard-coded value
+            }
+        );
+    }
+    else if (action === HeaderAction.CONFIRM)
+    {
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,{
+                screenName:App.ScreenName.ADD_TRANSACTION,
+                screenMode:App.ScreenMode.ADD,
+                //updateData:button.getModel().categories,
+                headerLeftAction:HeaderAction.CANCEL,
+                headerRightAction:HeaderAction.CONFIRM,
+                headerName:"Add Transaction"//TODO remove hard-coded value
+            }
+        );
     }
 };
 
@@ -8120,7 +8215,7 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
                 var ModelLocator = App.ModelLocator,
                     ModelName = App.ModelName,
                     HeaderAction = App.HeaderAction,
-                    transaction = ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent();
+                    transaction = ModelLocator.getProxy(ModelName.TRANSACTIONS).getCurrent();
 
                 transaction.account = ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0];
                 transaction.category = this._model;
@@ -8221,6 +8316,8 @@ App.CategoryScreen.prototype.disable = function disable()
 
 /**
  * Update
+ * @param {Array.<Category>} data
+ * @param {string} mode
  * @private
  */
 App.CategoryScreen.prototype.update = function update(data,mode)
@@ -8392,7 +8489,6 @@ App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
             App.EventType.CHANGE_SCREEN,{
                 screenName:App.ScreenName.ADD_TRANSACTION,
                 screenMode:App.ScreenMode.ADD,
-                updateData:App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
                 headerLeftAction:HeaderAction.CANCEL,
                 headerRightAction:HeaderAction.CONFIRM,
                 headerName:"Add Transaction"//TODO remove hard-coded value

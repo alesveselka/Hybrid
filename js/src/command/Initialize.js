@@ -46,7 +46,7 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
         screenName:App.ScreenName.MENU,
         headerLeftAction:App.HeaderAction.CANCEL,
         headerRightAction:App.HeaderAction.NONE,
-        headerName:"Menu"//TODO remove hard-coded value
+        headerName:App.ScreenTitle.MENU
     });
 
     this.dispatchEvent(App.EventType.COMPLETE);

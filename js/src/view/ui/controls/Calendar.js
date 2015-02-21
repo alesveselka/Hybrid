@@ -124,6 +124,15 @@ App.Calendar.prototype._render = function _render()
 };
 
 /**
+ * Update
+ * @param {Date} date
+ */
+App.Calendar.prototype.update = function update(date)
+{
+    this._date = date;
+};
+
+/**
  * Update month label
  * @private
  */

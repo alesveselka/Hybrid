@@ -256,8 +256,9 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
         }
         else
         {
-            var HeaderAction = App.HeaderAction;
-            var button = this._optionList.getItemUnderPoint(pointerData);
+            var HeaderAction = App.HeaderAction,
+                ScreenTitle = App.ScreenTitle,
+                button = this._optionList.getItemUnderPoint(pointerData);
 
             if (button === this._accountOption)
             {
@@ -268,7 +269,7 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
                         screenMode:App.ScreenMode.SELECT,
                         headerLeftAction:HeaderAction.CANCEL,
                         headerRightAction:HeaderAction.NONE,
-                        headerName:"Select Account"//TODO remove hard-coded value
+                        headerName:ScreenTitle.SELECT_ACCOUNT
                     }
                 );
             }
@@ -283,7 +284,7 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
                             updateData:this._model.account.categories,
                             headerLeftAction:HeaderAction.CANCEL,
                             headerRightAction:HeaderAction.NONE,
-                            headerName:"Select Category"//TODO remove hard-coded value
+                            headerName:ScreenTitle.SELECT_CATEGORY
                         }
                     );
                 }
@@ -295,10 +296,23 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
                             screenMode:App.ScreenMode.SELECT,
                             headerLeftAction:HeaderAction.CANCEL,
                             headerRightAction:HeaderAction.NONE,
-                            headerName:"Select Account"//TODO remove hard-coded value
+                            headerName:ScreenTitle.SELECT_ACCOUNT
                         }
                     );
                 }
+            }
+            else if (button === this._timeOption)
+            {
+                App.Controller.dispatchEvent(
+                    App.EventType.CHANGE_SCREEN,{
+                        screenName:App.ScreenName.SELECT_TIME,
+                        screenMode:App.ScreenMode.SELECT,
+                        updateData:this._model.date,
+                        headerLeftAction:HeaderAction.CANCEL,
+                        headerRightAction:HeaderAction.CONFIRM,
+                        headerName:ScreenTitle.SELECT_TIME
+                    }
+                );
             }
         }
     }
@@ -328,4 +342,18 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
     {
         //cancel
     }
+};
+
+/**
+ * On budget field blur
+ * @private
+ */
+App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
+{
+    App.InputScrollScreen.prototype._onInputBlur.call(this);
+
+    var transaction = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent();
+
+    if (this._scrollInput === this._transactionInput) transaction.amount = this._transactionInput.getValue();
+    else if (this._scrollInput === this._noteInput) transaction.note = this._noteInput.getValue();
 };

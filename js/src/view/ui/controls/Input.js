@@ -363,6 +363,15 @@ App.Input.prototype.setValue = function setValue(value)
 };
 
 /**
+ * Set value
+ * @returns {string}
+ */
+App.Input.prototype.getValue = function getValue()
+{
+    return this._text;
+};
+
+/**
  * Test if position passed in falls within this input boundaries
  * @param {number} position
  * @returns {boolean}

@@ -22,7 +22,7 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
         this._method = null;
         this._date = null;
         this._currency = null;
-        this.note = data[8] ? decodeURI(data[8]) : null;
+        this.note = data[8] ? decodeURI(data[8]) : "";
     }
     else
     {

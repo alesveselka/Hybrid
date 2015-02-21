@@ -12,6 +12,7 @@ App.SelectTimeScreen = function SelectTimeScreen(layout)
         w = layout.width,
         ScrollPolicy = App.ScrollPolicy;
 
+    this._date = null;
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._inputBackground = new PIXI.Graphics();//TODO do I need BG? I can use BG below whole screen ...
@@ -81,6 +82,19 @@ App.SelectTimeScreen.prototype.disable = function disable()
 };
 
 /**
+ * Update
+ * @param {Date} date
+ * @param {string} mode
+ * @private
+ */
+App.SelectTimeScreen.prototype.update = function update(date,mode)
+{
+    this._date = date;//TODO do I need the reference here if it's also in the Calendar itself?
+
+    this._calendar.update(date);
+};
+
+/**
  * Register event listeners
  * @private
  */
@@ -131,5 +145,41 @@ App.SelectTimeScreen.prototype._onClick = function _onClick()
     {
         if (inputFocused) this._scrollInput.blur();
         else this._calendar.onClick();
+    }
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var HeaderAction = App.HeaderAction;
+
+    if (action === HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,{
+                screenName:App.ScreenName.ADD_TRANSACTION,
+                screenMode:App.ScreenMode.ADD,
+                headerLeftAction:HeaderAction.CANCEL,
+                headerRightAction:HeaderAction.CONFIRM,
+                headerName:"Add Transaction"//TODO remove hard-coded value
+            }
+        );
+    }
+    else if (action === HeaderAction.CONFIRM)
+    {
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,{
+                screenName:App.ScreenName.ADD_TRANSACTION,
+                screenMode:App.ScreenMode.ADD,
+                //updateData:button.getModel().categories,
+                headerLeftAction:HeaderAction.CANCEL,
+                headerRightAction:HeaderAction.CONFIRM,
+                headerName:"Add Transaction"//TODO remove hard-coded value
+            }
+        );
     }
 };
