@@ -10,7 +10,7 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
 {
     this._data = data;
 
-    this._id = this._data[0];
+    this.id = this._data[0];
     this.name = this._data[1];
     this._categories = null;
 };

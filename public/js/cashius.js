@@ -1732,6 +1732,7 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
 {
     this.id = data[0];
     this.name = data[1];
+    this.category = data[2];
 };
 
 /**
@@ -1750,7 +1751,8 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
     this.name = data[1];
     this.color = data[2];
     this.icon = data[3];
-    this.budget = data[5];
+    this.account = data[4];
+    this.budget = data[6];
     this._subCategories = null;
 };
 
@@ -1761,7 +1763,7 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
 Object.defineProperty(App.Category.prototype,'subCategories',{
     get:function()
     {
-        if (!this._subCategories) this._subCategories = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).filter(this._data[4],"id");
+        if (!this._subCategories) this._subCategories = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).filter(this._data[5],"id");
         return this._subCategories;
     }
 });
@@ -1778,7 +1780,7 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
 {
     this._data = data;
 
-    this._id = this._data[0];
+    this.id = this._data[0];
     this.name = this._data[1];
     this._categories = null;
 };
@@ -6045,7 +6047,7 @@ App.ExpandButton.prototype._updateTransition = function _updateTransition()
     this._updateBounds(false);
     if (this._useMask) this._updateMask();
 
-    this._eventDispatcher.dispatchEvent(App.EventType.LAYOUT_UPDATE);
+//    this._eventDispatcher.dispatchEvent(App.EventType.LAYOUT_UPDATE);
 };
 
 /**
@@ -6224,34 +6226,6 @@ App.ExpandButton.prototype.addEventListener = function addEventListener(eventTyp
 App.ExpandButton.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
 {
     this._eventDispatcher.removeEventListener(eventType,scope,listener);
-};
-
-/**
- * Destroy
- */
-App.ExpandButton.prototype.destroy = function destroy()
-{
-    this._unRegisterEventListeners();
-
-    this._eventDispatcher.destroy();
-    this._eventDispatcher = null;
-
-    this._ticker = null;
-
-    this._expandTween.destroy();
-    this._expandTween = null;
-
-    if (this._useMask)
-    {
-        this.mask = null;
-        this.removeChild(this._mask);
-        this._mask.clear();
-        this._mask = null;
-    }
-
-    this.boundingBox = null;
-
-    //TODO remove and destroy content
 };
 
 /**
@@ -6960,22 +6934,13 @@ App.TransactionOptionButton.prototype._update = function _update()
 };
 
 /**
- * Return target screen name
- * @returns {number}
- */
-App.TransactionOptionButton.prototype.getTargetScreenName = function getTargetScreenName()
-{
-    return this._targetScreenName;
-};
-
-/**
  * Set value
  * @param {string} value
  * @param {string} [details=null]
  */
 App.TransactionOptionButton.prototype.setValue = function setValue(value,details)
 {
-    this._valueField.setText(value ? value : "?");
+    this._valueField.setText(value);
 
     if (details)
     {
@@ -7136,8 +7101,8 @@ App.AddTransactionScreen.prototype._render = function _render()
  */
 App.AddTransactionScreen.prototype.update = function update(data,mode)
 {
-    this._model = data;
-    this._mode = mode;
+    this._model = data || this._model;
+    this._mode = mode || this._mode;
 
     var date = this._model.date;
 
@@ -7147,8 +7112,8 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
     if (this._model.pending && !this._pendingToggle.isSelected()) this._pendingToggle.toggle();
     if (this._model.repeat && !this._repeatToggle.isSelected()) this._repeatToggle.toggle();
 
-    this._accountOption.setValue(this._model.account);
-    this._categoryOption.setValue(this._model.category,this._model.subCategory);
+    this._accountOption.setValue(this._model.account ? this._model.account.name : "?");
+    this._categoryOption.setValue(this._model.subCategory ? this._model.subCategory.name : "?",this._model.category ? this._model.category.name : null);
     this._timeOption.setValue(App.DateUtils.getMilitaryTime(date),date.toDateString());
     this._methodOption.setValue(this._model.method.name);
     this._currencyOption.setValue(this._model.currency.symbol);
@@ -7269,14 +7234,31 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
             }
             else if (button === this._categoryOption)
             {
-                App.Controller.dispatchEvent(
-                    App.EventType.CHANGE_SCREEN,
-                    App.ScreenName.CATEGORY/*,
-                     headerLeftAction:HeaderAction.CONFIRM,
-                     headerRightAction:HeaderAction.CANCEL,
-                     headerName:"Accounts"
-                     }*/
-                );
+                if (this._model.account)
+                {
+                    App.Controller.dispatchEvent(
+                        App.EventType.CHANGE_SCREEN,{
+                            screenName:App.ScreenName.CATEGORY,
+                            screenMode:App.ScreenMode.SELECT,
+                            updateData:this._model.account.categories,
+                            headerLeftAction:HeaderAction.CANCEL,
+                            headerRightAction:HeaderAction.NONE,
+                            headerName:"Select Category"//TODO remove hard-coded value
+                        }
+                    );
+                }
+                else
+                {
+                    App.Controller.dispatchEvent(
+                        App.EventType.CHANGE_SCREEN,{
+                            screenName:App.ScreenName.ACCOUNT,
+                            screenMode:App.ScreenMode.SELECT,
+                            headerLeftAction:HeaderAction.CANCEL,
+                            headerRightAction:HeaderAction.NONE,
+                            headerName:"Select Account"//TODO remove hard-coded value
+                        }
+                    );
+                }
             }
         }
     }
@@ -7642,7 +7624,7 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this._skin = new PIXI.Sprite(options.skin);
     this._icon = PIXI.Sprite.fromFrame("subcategory-app");
     this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
-    this._radioCheck = new App.Radio(this._pixelRatio,false);
+    this._radioCheck = new App.Radio(this._pixelRatio,false);//TODO do I need the Radio in Category select list?
     this._background = new PIXI.Graphics();
     this._deleteLabel = new PIXI.Text("Delete",options.deleteLabelStyle);
     this._renderAll = true;
@@ -7718,6 +7700,15 @@ App.SubCategoryButton.prototype.update = function update(model,mode)
     this._render();
 
     this.close(true);
+};
+
+/**
+ * Return model
+ * @returns {SubCategory}
+ */
+App.SubCategoryButton.prototype.getModel = function getModel()
+{
+    return this._model;
 };
 
 /**
@@ -7811,24 +7802,6 @@ App.SubCategoryList.prototype.update = function update(model,mode)
         button.update(subCategories[i++],mode);
         this._buttonList.add(button,false);
     }
-
-    /*if (l >= modelLength)
-    {
-        for (;i<l;i++)
-        {
-            if (i < modelLength) this._buttonList.getItemAt(i).update(subCategories[i],mode);
-            else buttonPool.release(this._buttonList.removeItemAt(modelLength));
-        }
-    }
-    else
-    {
-        for (;i<modelLength;)
-        {
-            button = buttonPool.allocate();
-            button.update(subCategories[i++],mode);
-            this._buttonList.add(button,false);
-        }
-    }*/
     this._buttonList.updateLayout();
 
     this._render();
@@ -7877,6 +7850,25 @@ App.SubCategoryList.prototype.closeButtons = function closeButtons(immediate)
         button = this._buttonList.getItemAt(i++);
         if (button !== this._interactiveButton) button.close(immediate);
     }
+};
+
+/**
+ * Find and return item under point passed in
+ * @param {InteractionData} data PointerData to get the position from
+ */
+App.SubCategoryList.prototype.getItemUnderPoint = function getItemUnderPoint(data)
+{
+    return this._buttonList.getItemUnderPoint(data);
+};
+
+/**
+ * Test if position passed in falls within this list boundaries
+ * @param {number} position
+ * @returns {boolean}
+ */
+App.SubCategoryList.prototype.hitTest = function hitTest(position)
+{
+    return position >= this.y && position < this.y + this.boundingBox.height;
 };
 
 /**
@@ -8102,6 +8094,56 @@ App.CategoryButtonExpand.prototype.update = function update(model,mode)
 };
 
 /**
+ * Click handler
+ * @param {InteractionData} data
+ */
+App.CategoryButtonExpand.prototype.onClick = function onClick(data)
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
+    {
+        this.open();
+    }
+    else
+    {
+        if (data.getLocalPosition(this).y <= this._buttonHeight)
+        {
+            this.close();
+        }
+        else
+        {
+            var button = this._subCategoryList.getItemUnderPoint(data);
+
+            if (button)
+            {
+                var ModelLocator = App.ModelLocator,
+                    ModelName = App.ModelName,
+                    HeaderAction = App.HeaderAction,
+                    transaction = ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent();
+
+                transaction.account = ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0];
+                transaction.category = this._model;
+                transaction.subCategory = button.getModel();
+
+                App.Controller.dispatchEvent(
+                    App.EventType.CHANGE_SCREEN,{
+                        screenName:App.ScreenName.ADD_TRANSACTION,
+                        headerLeftAction:HeaderAction.CANCEL,
+                        headerRightAction:HeaderAction.CONFIRM,
+                        headerName:"Add Transaction"//TODO remove hard-coded value
+                    }
+                );
+            }
+            else
+            {
+                //TODO add new SubCategory
+            }
+        }
+    }
+};
+
+/**
  * Open
  */
 App.CategoryButtonExpand.prototype.open = function open()
@@ -8288,9 +8330,9 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
                 if (this._buttonsInTransition.indexOf(button) === -1)
                 {
                     this._buttonsInTransition.push(button);
-
-                    button.addEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
                     button.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+
+                    this._layoutDirty = true;
                 }
 
                 button.close(immediate);
@@ -8313,23 +8355,26 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    var data = this.stage.getTouchData(),
-        EventType = App.EventType;
-
-    this._interactiveButton = this._buttonList.getItemUnderPoint(data);
-
-    if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
+    if (this._mode === App.ScreenMode.SELECT)
     {
-        this._buttonsInTransition.push(this._interactiveButton);
+        var data = this.stage.getTouchData(),
+            EventType = App.EventType;
 
-        this._interactiveButton.addEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
-        this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+        this._interactiveButton = this._buttonList.getItemUnderPoint(data);
+
+        if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
+        {
+            this._buttonsInTransition.push(this._interactiveButton);
+            this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+
+            this._layoutDirty = true;
+        }
+
+        this._interactiveButton.onClick(data);
+        this._pane.cancelScroll();
     }
 
-    this._interactiveButton.onClick(data.getLocalPosition(this));
-    this._pane.cancelScroll();
-
-    //if (!this._swipeEnabled) this._closeButtons(false);
+//    if (!this._swipeEnabled) this._closeButtons(false);
 };
 
 /**
@@ -8357,15 +8402,6 @@ App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 };
 
 /**
- * On button layout update
- * @private
- */
-App.CategoryScreen.prototype._onButtonLayoutUpdate = function _onButtonLayoutUpdate()
-{
-    this._layoutDirty = true;
-};
-
-/**
  * On button transition complete
  * @param {App.ExpandButton} button
  * @private
@@ -8376,7 +8412,6 @@ App.CategoryScreen.prototype._onButtonTransitionComplete = function _onButtonTra
         l = this._buttonsInTransition.length,
         EventType = App.EventType;
 
-    button.removeEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
     button.removeEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
 
     for (;i<l;i++)

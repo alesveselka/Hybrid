@@ -100,7 +100,7 @@ App.ExpandButton.prototype._updateTransition = function _updateTransition()
     this._updateBounds(false);
     if (this._useMask) this._updateMask();
 
-    this._eventDispatcher.dispatchEvent(App.EventType.LAYOUT_UPDATE);
+//    this._eventDispatcher.dispatchEvent(App.EventType.LAYOUT_UPDATE);
 };
 
 /**
@@ -279,32 +279,4 @@ App.ExpandButton.prototype.addEventListener = function addEventListener(eventTyp
 App.ExpandButton.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
 {
     this._eventDispatcher.removeEventListener(eventType,scope,listener);
-};
-
-/**
- * Destroy
- */
-App.ExpandButton.prototype.destroy = function destroy()
-{
-    this._unRegisterEventListeners();
-
-    this._eventDispatcher.destroy();
-    this._eventDispatcher = null;
-
-    this._ticker = null;
-
-    this._expandTween.destroy();
-    this._expandTween = null;
-
-    if (this._useMask)
-    {
-        this.mask = null;
-        this.removeChild(this._mask);
-        this._mask.clear();
-        this._mask = null;
-    }
-
-    this.boundingBox = null;
-
-    //TODO remove and destroy content
 };

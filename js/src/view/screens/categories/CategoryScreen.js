@@ -160,9 +160,9 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
                 if (this._buttonsInTransition.indexOf(button) === -1)
                 {
                     this._buttonsInTransition.push(button);
-
-                    button.addEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
                     button.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+
+                    this._layoutDirty = true;
                 }
 
                 button.close(immediate);
@@ -185,23 +185,26 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    var data = this.stage.getTouchData(),
-        EventType = App.EventType;
-
-    this._interactiveButton = this._buttonList.getItemUnderPoint(data);
-
-    if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
+    if (this._mode === App.ScreenMode.SELECT)
     {
-        this._buttonsInTransition.push(this._interactiveButton);
+        var data = this.stage.getTouchData(),
+            EventType = App.EventType;
 
-        this._interactiveButton.addEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
-        this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+        this._interactiveButton = this._buttonList.getItemUnderPoint(data);
+
+        if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
+        {
+            this._buttonsInTransition.push(this._interactiveButton);
+            this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+
+            this._layoutDirty = true;
+        }
+
+        this._interactiveButton.onClick(data);
+        this._pane.cancelScroll();
     }
 
-    this._interactiveButton.onClick(data.getLocalPosition(this));
-    this._pane.cancelScroll();
-
-    //if (!this._swipeEnabled) this._closeButtons(false);
+//    if (!this._swipeEnabled) this._closeButtons(false);
 };
 
 /**
@@ -229,15 +232,6 @@ App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 };
 
 /**
- * On button layout update
- * @private
- */
-App.CategoryScreen.prototype._onButtonLayoutUpdate = function _onButtonLayoutUpdate()
-{
-    this._layoutDirty = true;
-};
-
-/**
  * On button transition complete
  * @param {App.ExpandButton} button
  * @private
@@ -248,7 +242,6 @@ App.CategoryScreen.prototype._onButtonTransitionComplete = function _onButtonTra
         l = this._buttonsInTransition.length,
         EventType = App.EventType;
 
-    button.removeEventListener(EventType.LAYOUT_UPDATE,this,this._onButtonLayoutUpdate);
     button.removeEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
 
     for (;i<l;i++)

@@ -26,7 +26,7 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this._skin = new PIXI.Sprite(options.skin);
     this._icon = PIXI.Sprite.fromFrame("subcategory-app");
     this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
-    this._radioCheck = new App.Radio(this._pixelRatio,false);
+    this._radioCheck = new App.Radio(this._pixelRatio,false);//TODO do I need the Radio in Category select list?
     this._background = new PIXI.Graphics();
     this._deleteLabel = new PIXI.Text("Delete",options.deleteLabelStyle);
     this._renderAll = true;
@@ -102,6 +102,15 @@ App.SubCategoryButton.prototype.update = function update(model,mode)
     this._render();
 
     this.close(true);
+};
+
+/**
+ * Return model
+ * @returns {SubCategory}
+ */
+App.SubCategoryButton.prototype.getModel = function getModel()
+{
+    return this._model;
 };
 
 /**

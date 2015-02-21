@@ -141,8 +141,8 @@ App.AddTransactionScreen.prototype._render = function _render()
  */
 App.AddTransactionScreen.prototype.update = function update(data,mode)
 {
-    this._model = data;
-    this._mode = mode;
+    this._model = data || this._model;
+    this._mode = mode || this._mode;
 
     var date = this._model.date;
 
@@ -152,8 +152,8 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
     if (this._model.pending && !this._pendingToggle.isSelected()) this._pendingToggle.toggle();
     if (this._model.repeat && !this._repeatToggle.isSelected()) this._repeatToggle.toggle();
 
-    this._accountOption.setValue(this._model.account);
-    this._categoryOption.setValue(this._model.category,this._model.subCategory);
+    this._accountOption.setValue(this._model.account ? this._model.account.name : "?");
+    this._categoryOption.setValue(this._model.subCategory ? this._model.subCategory.name : "?",this._model.category ? this._model.category.name : null);
     this._timeOption.setValue(App.DateUtils.getMilitaryTime(date),date.toDateString());
     this._methodOption.setValue(this._model.method.name);
     this._currencyOption.setValue(this._model.currency.symbol);
@@ -274,14 +274,31 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
             }
             else if (button === this._categoryOption)
             {
-                App.Controller.dispatchEvent(
-                    App.EventType.CHANGE_SCREEN,
-                    App.ScreenName.CATEGORY/*,
-                     headerLeftAction:HeaderAction.CONFIRM,
-                     headerRightAction:HeaderAction.CANCEL,
-                     headerName:"Accounts"
-                     }*/
-                );
+                if (this._model.account)
+                {
+                    App.Controller.dispatchEvent(
+                        App.EventType.CHANGE_SCREEN,{
+                            screenName:App.ScreenName.CATEGORY,
+                            screenMode:App.ScreenMode.SELECT,
+                            updateData:this._model.account.categories,
+                            headerLeftAction:HeaderAction.CANCEL,
+                            headerRightAction:HeaderAction.NONE,
+                            headerName:"Select Category"//TODO remove hard-coded value
+                        }
+                    );
+                }
+                else
+                {
+                    App.Controller.dispatchEvent(
+                        App.EventType.CHANGE_SCREEN,{
+                            screenName:App.ScreenName.ACCOUNT,
+                            screenMode:App.ScreenMode.SELECT,
+                            headerLeftAction:HeaderAction.CANCEL,
+                            headerRightAction:HeaderAction.NONE,
+                            headerName:"Select Account"//TODO remove hard-coded value
+                        }
+                    );
+                }
             }
         }
     }

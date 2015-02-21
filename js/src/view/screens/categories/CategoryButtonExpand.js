@@ -62,6 +62,56 @@ App.CategoryButtonExpand.prototype.update = function update(model,mode)
 };
 
 /**
+ * Click handler
+ * @param {InteractionData} data
+ */
+App.CategoryButtonExpand.prototype.onClick = function onClick(data)
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
+    {
+        this.open();
+    }
+    else
+    {
+        if (data.getLocalPosition(this).y <= this._buttonHeight)
+        {
+            this.close();
+        }
+        else
+        {
+            var button = this._subCategoryList.getItemUnderPoint(data);
+
+            if (button)
+            {
+                var ModelLocator = App.ModelLocator,
+                    ModelName = App.ModelName,
+                    HeaderAction = App.HeaderAction,
+                    transaction = ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent();
+
+                transaction.account = ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0];
+                transaction.category = this._model;
+                transaction.subCategory = button.getModel();
+
+                App.Controller.dispatchEvent(
+                    App.EventType.CHANGE_SCREEN,{
+                        screenName:App.ScreenName.ADD_TRANSACTION,
+                        headerLeftAction:HeaderAction.CANCEL,
+                        headerRightAction:HeaderAction.CONFIRM,
+                        headerName:"Add Transaction"//TODO remove hard-coded value
+                    }
+                );
+            }
+            else
+            {
+                //TODO add new SubCategory
+            }
+        }
+    }
+};
+
+/**
  * Open
  */
 App.CategoryButtonExpand.prototype.open = function open()

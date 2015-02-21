@@ -90,22 +90,13 @@ App.TransactionOptionButton.prototype._update = function _update()
 };
 
 /**
- * Return target screen name
- * @returns {number}
- */
-App.TransactionOptionButton.prototype.getTargetScreenName = function getTargetScreenName()
-{
-    return this._targetScreenName;
-};
-
-/**
  * Set value
  * @param {string} value
  * @param {string} [details=null]
  */
 App.TransactionOptionButton.prototype.setValue = function setValue(value,details)
 {
-    this._valueField.setText(value ? value : "?");
+    this._valueField.setText(value);
 
     if (details)
     {

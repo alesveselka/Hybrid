@@ -14,7 +14,8 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
     this.name = data[1];
     this.color = data[2];
     this.icon = data[3];
-    this.budget = data[5];
+    this.account = data[4];
+    this.budget = data[6];
     this._subCategories = null;
 };
 
@@ -25,7 +26,7 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
 Object.defineProperty(App.Category.prototype,'subCategories',{
     get:function()
     {
-        if (!this._subCategories) this._subCategories = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).filter(this._data[4],"id");
+        if (!this._subCategories) this._subCategories = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).filter(this._data[5],"id");
         return this._subCategories;
     }
 });

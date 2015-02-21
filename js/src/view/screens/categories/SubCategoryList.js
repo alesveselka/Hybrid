@@ -119,3 +119,22 @@ App.SubCategoryList.prototype.closeButtons = function closeButtons(immediate)
         if (button !== this._interactiveButton) button.close(immediate);
     }
 };
+
+/**
+ * Find and return item under point passed in
+ * @param {InteractionData} data PointerData to get the position from
+ */
+App.SubCategoryList.prototype.getItemUnderPoint = function getItemUnderPoint(data)
+{
+    return this._buttonList.getItemUnderPoint(data);
+};
+
+/**
+ * Test if position passed in falls within this list boundaries
+ * @param {number} position
+ * @returns {boolean}
+ */
+App.SubCategoryList.prototype.hitTest = function hitTest(position)
+{
+    return position >= this.y && position < this.y + this.boundingBox.height;
+};

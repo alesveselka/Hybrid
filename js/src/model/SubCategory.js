@@ -10,4 +10,5 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
 {
     this.id = data[0];
     this.name = data[1];
+    this.category = data[2];
 };
