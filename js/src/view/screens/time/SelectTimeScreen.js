@@ -12,13 +12,12 @@ App.SelectTimeScreen = function SelectTimeScreen(layout)
         w = layout.width,
         ScrollPolicy = App.ScrollPolicy;
 
-    this._date = null;
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._inputBackground = new PIXI.Graphics();//TODO do I need BG? I can use BG below whole screen ...
     this._input = new App.TimeInput("00:00",30,w - Math.round(20 * r),Math.round(40 * r),r);
     this._header = new App.ListHeader("Select Date",w,r);
-    this._calendar = new App.Calendar(new Date(),w,r);
+    this._calendar = new App.Calendar(w,r);
 
     //TODO enable 'swiping' for interactively changing calendar's months
 
@@ -89,7 +88,7 @@ App.SelectTimeScreen.prototype.disable = function disable()
  */
 App.SelectTimeScreen.prototype.update = function update(date,mode)
 {
-    this._date = date;//TODO do I need the reference here if it's also in the Calendar itself?
+    this._input.setValue(App.DateUtils.getMilitaryTime(date));
 
     this._calendar.update(date);
 };
@@ -155,30 +154,43 @@ App.SelectTimeScreen.prototype._onClick = function _onClick()
  */
 App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    var HeaderAction = App.HeaderAction;
+    var HeaderAction = App.HeaderAction,
+        ScreenTitle = App.ScreenTitle,
+        inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput;
 
+    //TODO optimize duplicate code
     if (action === HeaderAction.CANCEL)
     {
+        if (inputFocused) this._scrollInput.blur();
+
         App.Controller.dispatchEvent(
             App.EventType.CHANGE_SCREEN,{
                 screenName:App.ScreenName.ADD_TRANSACTION,
                 screenMode:App.ScreenMode.ADD,
                 headerLeftAction:HeaderAction.CANCEL,
                 headerRightAction:HeaderAction.CONFIRM,
-                headerName:"Add Transaction"//TODO remove hard-coded value
+                headerName:ScreenTitle.ADD_TRANSACTION
             }
         );
     }
     else if (action === HeaderAction.CONFIRM)
     {
+        var transaction = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
+            selectedDate = this._calendar.getSelectedDate(),
+            time = this._input.getValue();
+
+        transaction.date.setFullYear(selectedDate.getFullYear(),selectedDate.getMonth(),selectedDate.getDate());
+        if (time.length > 0) transaction.date.setHours(parseInt(time.split(":")[0],10),parseInt(time.split(":")[1],10));
+
+        if (inputFocused) this._scrollInput.blur();
+
         App.Controller.dispatchEvent(
             App.EventType.CHANGE_SCREEN,{
                 screenName:App.ScreenName.ADD_TRANSACTION,
                 screenMode:App.ScreenMode.ADD,
-                //updateData:button.getModel().categories,
                 headerLeftAction:HeaderAction.CANCEL,
                 headerRightAction:HeaderAction.CONFIRM,
-                headerName:"Add Transaction"//TODO remove hard-coded value
+                headerName:ScreenTitle.ADD_TRANSACTION
             }
         );
     }

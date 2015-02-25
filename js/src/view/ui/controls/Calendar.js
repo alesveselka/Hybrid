@@ -1,12 +1,11 @@
 /**
  * @class Calendar
  * @extend Graphic
- * @param {Date} date
  * @param {number} width
  * @param {number} pixelRatio
  * @constructor
  */
-App.Calendar = function Calendar(date,width,pixelRatio)
+App.Calendar = function Calendar(width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
@@ -16,16 +15,17 @@ App.Calendar = function Calendar(date,width,pixelRatio)
         DateUtils = App.DateUtils,
         FontStyle = App.FontStyle,
         startOfWeek = App.ModelLocator.getProxy(App.ModelName.SETTINGS).startOfWeek,
-        month = DateUtils.getMonth(date,startOfWeek),
+        weekTextStyle = FontStyle.get(14,FontStyle.GREY_DARK),
+        weekSelectedStyle = FontStyle.get(14,FontStyle.WHITE),
         dayLabels = DateUtils.getDayLabels(startOfWeek),
         daysInWeek = dayLabels.length,
-        weeksInMonth = month.length,
+        weeksInMonth = 6,
         i = 0;
 
-    this.boundingBox = new App.Rectangle(0,0,width,Math.round(321*pixelRatio));
+    this.boundingBox = new App.Rectangle(0,0,width);
 
-    this._date = date;
-    this._selectedDate = date;//TODO use just one date?
+    this._date = null;
+    this._selectedDate = null;
     this._width = width;
     this._pixelRatio = pixelRatio;
     this._weekRowPosition = Math.round(81 * pixelRatio);
@@ -38,11 +38,9 @@ App.Calendar = function Calendar(date,width,pixelRatio)
     this._separatorContainer = new PIXI.Graphics();
 
     for (;i<daysInWeek;i++) this._dayLabelFields[i] = new Text(dayLabels[i],dayLabelStyle);
-
-    for (i = 0;i<weeksInMonth;i++) this._weekRows[i] = new CalendarWeekRow(month[i],this._selectedDate.getDate(),width,pixelRatio);
+    for (i = 0;i<weeksInMonth;i++) this._weekRows[i] = new CalendarWeekRow(weekTextStyle,weekSelectedStyle,width,pixelRatio);
 
     this._render();
-    this._updateMonthLabel();
 
     this.addChild(this._monthField);
     this.addChild(this._prevButton);
@@ -78,14 +76,8 @@ App.Calendar.prototype._render = function _render()
         l = this._dayLabelFields.length,
         i = 0;
 
-    //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
-    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
-
     this._monthField.y = Math.round((dayLabelOffset - this._monthField.height) / 2);
 
-    //TODO also implement double-arrows for navigating years directly? See TOS
     this._prevButton.scale.x = arrowResizeRatio;
     this._prevButton.scale.y = arrowResizeRatio;
     this._prevButton.x = Math.round(20 * r + this._prevButton.width);
@@ -121,6 +113,13 @@ App.Calendar.prototype._render = function _render()
     }
 
     this._separatorContainer.endFill();
+
+    this.boundingBox.height = weekRow.y + weekRowHeight;
+
+    //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
+    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,this.boundingBox.height],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
 };
 
 /**
@@ -130,6 +129,26 @@ App.Calendar.prototype._render = function _render()
 App.Calendar.prototype.update = function update(date)
 {
     this._date = date;
+    if (this._selectedDate) this._selectedDate.setTime(this._date.valueOf());
+    else this._selectedDate = new Date(this._date.valueOf());
+
+    var month = App.DateUtils.getMonth(this._date,App.ModelLocator.getProxy(App.ModelName.SETTINGS).startOfWeek),
+        selectedDate = this._selectedDate.getDate(),
+        weeksInMonth = month.length,
+        i = 0;
+
+    for (i = 0;i<weeksInMonth;i++) this._weekRows[i].change(month[i],selectedDate);
+
+    this._updateMonthLabel();
+};
+
+/**
+ * Return selected date
+ * @returns {Date}
+ */
+App.Calendar.prototype.getSelectedDate = function getSelectedDate()
+{
+    return this._selectedDate;
 };
 
 /**
@@ -217,8 +236,7 @@ App.Calendar.prototype._selectDay = function _selectDay(x,y)
     {
         for (;i<l;)this._weekRows[i++].updateSelection(date);
 
-        //TODO modify current object instead of setting new one?
-        this._selectedDate = new Date(this._date.getFullYear(),this._date.getMonth(),date);
+        this._selectedDate.setFullYear(this._date.getFullYear(),this._date.getMonth(),date);
     }
 };
 
@@ -241,9 +259,8 @@ App.Calendar.prototype._changeDate = function _changeDate(direction,selectDate)
         newYear = currentMonth ? currentYear : currentYear - 1;
     }
 
-    //TODO modify current object instead of setting new one?
-    this._date = new Date(newYear,newMonth);
-    if (selectDate > -1) this._selectedDate = new Date(newYear,newMonth,selectDate);
+    this._date.setFullYear(newYear,newMonth);
+    if (selectDate > -1) this._selectedDate.setFullYear(newYear,newMonth,selectDate);
 
     this._updateMonthLabel();
 

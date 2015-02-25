@@ -252,7 +252,7 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     {
         if (inputFocused)
         {
-            this._scrollInput.blur();
+            this._scrollInput.blur();//TODO I can blur input just before actual screen change, like in SelectTime screen
         }
         else
         {
@@ -262,7 +262,7 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
 
             if (button === this._accountOption)
             {
-                //TODO use pool for ChangeScreen data?
+                //TODO use pool for ChangeScreen data? / optimize repetitive data
                 App.Controller.dispatchEvent(
                     App.EventType.CHANGE_SCREEN,{
                         screenName:App.ScreenName.ACCOUNT,

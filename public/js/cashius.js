@@ -875,6 +875,18 @@ App.ScreenMode = {
 };
 
 /**
+ * ScreenTitle
+ * @type {{MENU: string, SELECT_ACCOUNT: string, SELECT_CATEGORY: string, SELECT_TIME: string, ADD_TRANSACTION: string}}
+ */
+App.ScreenTitle = {
+    MENU:"Menu",
+    SELECT_ACCOUNT:"Select Account",
+    SELECT_CATEGORY:"Select Category",
+    SELECT_TIME:"Select Time & Date",
+    ADD_TRANSACTION:"Add Transaction"
+};
+
+/**
  * @class EventListener
  * @param {number} index
  * @constructor
@@ -3181,40 +3193,35 @@ App.Button.prototype._render = function _render()
 /**
  * @class CalendarWeekRow
  * @extend Graphics
- * @param {Array.<number>} week
- * @param {number} currentDay
+ * @param {{font:string,fill:string}} weekTextStyle
+ * @param {{font:string,fill:string}} weekSelectedStyle
  * @param {number} width
  * @param {number} pixelRatio
  * @constructor
  */
-App.CalendarWeekRow = function CalendarWeekRow(week,currentDay,width,pixelRatio)
+App.CalendarWeekRow = function CalendarWeekRow(weekTextStyle,weekSelectedStyle,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
     var FontStyle = App.FontStyle,
-        daysInWeek = week.length / 2,
+        daysInWeek = 7,
         Text = PIXI.Text,
         index = 0,
         i = 0;
 
     this.boundingBox = new App.Rectangle(0,0,width,Math.round(40*pixelRatio));
 
-    this._week = week;
+    this._week = null;
     this._width = width;
     this._pixelRatio = pixelRatio;
 
-    this._textStyle = FontStyle.get(14,FontStyle.GREY_DARK);
-    this._selectedStyle = FontStyle.get(14,FontStyle.WHITE);
+    this._textStyle = weekTextStyle;
+    this._selectedStyle = weekSelectedStyle;
     this._dateFields = new Array(7);
     this._selectedDayIndex = -1;
     this._highlightBackground = new PIXI.Graphics();
 
-    for (;i<daysInWeek;i++,index+=2) this._dateFields[i] = new Text(week[index],this._textStyle);
-
-    this._render();
-
-    var dayToHighlight = this._getDayByDate(currentDay);
-    if (dayToHighlight && !dayToHighlight.otherMonth) this._selectDay(dayToHighlight);
+    for (;i<daysInWeek;i++,index+=2) this._dateFields[i] = new Text("",this._textStyle);
 
     this.addChild(this._highlightBackground);
     for (i = 0;i<daysInWeek;) this.addChild(this._dateFields[i++]);
@@ -3394,12 +3401,11 @@ App.CalendarWeekRow.prototype.change = function change(week,currentDay)
 /**
  * @class Calendar
  * @extend Graphic
- * @param {Date} date
  * @param {number} width
  * @param {number} pixelRatio
  * @constructor
  */
-App.Calendar = function Calendar(date,width,pixelRatio)
+App.Calendar = function Calendar(width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
@@ -3409,16 +3415,17 @@ App.Calendar = function Calendar(date,width,pixelRatio)
         DateUtils = App.DateUtils,
         FontStyle = App.FontStyle,
         startOfWeek = App.ModelLocator.getProxy(App.ModelName.SETTINGS).startOfWeek,
-        month = DateUtils.getMonth(date,startOfWeek),
+        weekTextStyle = FontStyle.get(14,FontStyle.GREY_DARK),
+        weekSelectedStyle = FontStyle.get(14,FontStyle.WHITE),
         dayLabels = DateUtils.getDayLabels(startOfWeek),
         daysInWeek = dayLabels.length,
-        weeksInMonth = month.length,
+        weeksInMonth = 6,
         i = 0;
 
-    this.boundingBox = new App.Rectangle(0,0,width,Math.round(321*pixelRatio));
+    this.boundingBox = new App.Rectangle(0,0,width);
 
-    this._date = date;
-    this._selectedDate = date;//TODO use just one date?
+    this._date = null;
+    this._selectedDate = null;
     this._width = width;
     this._pixelRatio = pixelRatio;
     this._weekRowPosition = Math.round(81 * pixelRatio);
@@ -3431,11 +3438,9 @@ App.Calendar = function Calendar(date,width,pixelRatio)
     this._separatorContainer = new PIXI.Graphics();
 
     for (;i<daysInWeek;i++) this._dayLabelFields[i] = new Text(dayLabels[i],dayLabelStyle);
-
-    for (i = 0;i<weeksInMonth;i++) this._weekRows[i] = new CalendarWeekRow(month[i],this._selectedDate.getDate(),width,pixelRatio);
+    for (i = 0;i<weeksInMonth;i++) this._weekRows[i] = new CalendarWeekRow(weekTextStyle,weekSelectedStyle,width,pixelRatio);
 
     this._render();
-    this._updateMonthLabel();
 
     this.addChild(this._monthField);
     this.addChild(this._prevButton);
@@ -3471,14 +3476,8 @@ App.Calendar.prototype._render = function _render()
         l = this._dayLabelFields.length,
         i = 0;
 
-    //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
-    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
-
     this._monthField.y = Math.round((dayLabelOffset - this._monthField.height) / 2);
 
-    //TODO also implement double-arrows for navigating years directly? See TOS
     this._prevButton.scale.x = arrowResizeRatio;
     this._prevButton.scale.y = arrowResizeRatio;
     this._prevButton.x = Math.round(20 * r + this._prevButton.width);
@@ -3514,6 +3513,13 @@ App.Calendar.prototype._render = function _render()
     }
 
     this._separatorContainer.endFill();
+
+    this.boundingBox.height = weekRow.y + weekRowHeight;
+
+    //TODO I dont need this (can use screen's bg) ... and can extend from DOContainer instead
+    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,this.boundingBox.height],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[0,Math.round(80 * r),w,1,separatorPadding,dayLabelOffset,separatorWidth,1],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[separatorPadding,dayLabelOffset+1,separatorWidth,1],false,true);
 };
 
 /**
@@ -3523,6 +3529,26 @@ App.Calendar.prototype._render = function _render()
 App.Calendar.prototype.update = function update(date)
 {
     this._date = date;
+    if (this._selectedDate) this._selectedDate.setTime(this._date.valueOf());
+    else this._selectedDate = new Date(this._date.valueOf());
+
+    var month = App.DateUtils.getMonth(this._date,App.ModelLocator.getProxy(App.ModelName.SETTINGS).startOfWeek),
+        selectedDate = this._selectedDate.getDate(),
+        weeksInMonth = month.length,
+        i = 0;
+
+    for (i = 0;i<weeksInMonth;i++) this._weekRows[i].change(month[i],selectedDate);
+
+    this._updateMonthLabel();
+};
+
+/**
+ * Return selected date
+ * @returns {Date}
+ */
+App.Calendar.prototype.getSelectedDate = function getSelectedDate()
+{
+    return this._selectedDate;
 };
 
 /**
@@ -3610,8 +3636,7 @@ App.Calendar.prototype._selectDay = function _selectDay(x,y)
     {
         for (;i<l;)this._weekRows[i++].updateSelection(date);
 
-        //TODO modify current object instead of setting new one?
-        this._selectedDate = new Date(this._date.getFullYear(),this._date.getMonth(),date);
+        this._selectedDate.setFullYear(this._date.getFullYear(),this._date.getMonth(),date);
     }
 };
 
@@ -3634,9 +3659,8 @@ App.Calendar.prototype._changeDate = function _changeDate(direction,selectDate)
         newYear = currentMonth ? currentYear : currentYear - 1;
     }
 
-    //TODO modify current object instead of setting new one?
-    this._date = new Date(newYear,newMonth);
-    if (selectDate > -1) this._selectedDate = new Date(newYear,newMonth,selectDate);
+    this._date.setFullYear(newYear,newMonth);
+    if (selectDate > -1) this._selectedDate.setFullYear(newYear,newMonth,selectDate);
 
     this._updateMonthLabel();
 
@@ -7230,23 +7254,24 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     {
         if (inputFocused)
         {
-            this._scrollInput.blur();
+            this._scrollInput.blur();//TODO I can blur input just before actual screen change, like in SelectTime screen
         }
         else
         {
-            var HeaderAction = App.HeaderAction;
-            var button = this._optionList.getItemUnderPoint(pointerData);
+            var HeaderAction = App.HeaderAction,
+                ScreenTitle = App.ScreenTitle,
+                button = this._optionList.getItemUnderPoint(pointerData);
 
             if (button === this._accountOption)
             {
-                //TODO use pool for ChangeScreen data?
+                //TODO use pool for ChangeScreen data? / optimize repetitive data
                 App.Controller.dispatchEvent(
                     App.EventType.CHANGE_SCREEN,{
                         screenName:App.ScreenName.ACCOUNT,
                         screenMode:App.ScreenMode.SELECT,
                         headerLeftAction:HeaderAction.CANCEL,
                         headerRightAction:HeaderAction.NONE,
-                        headerName:"Select Account"//TODO remove hard-coded value
+                        headerName:ScreenTitle.SELECT_ACCOUNT
                     }
                 );
             }
@@ -7261,7 +7286,7 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
                             updateData:this._model.account.categories,
                             headerLeftAction:HeaderAction.CANCEL,
                             headerRightAction:HeaderAction.NONE,
-                            headerName:"Select Category"//TODO remove hard-coded value
+                            headerName:ScreenTitle.SELECT_CATEGORY
                         }
                     );
                 }
@@ -7273,7 +7298,7 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
                             screenMode:App.ScreenMode.SELECT,
                             headerLeftAction:HeaderAction.CANCEL,
                             headerRightAction:HeaderAction.NONE,
-                            headerName:"Select Account"//TODO remove hard-coded value
+                            headerName:ScreenTitle.SELECT_ACCOUNT
                         }
                     );
                 }
@@ -7287,7 +7312,7 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
                         updateData:this._model.date,
                         headerLeftAction:HeaderAction.CANCEL,
                         headerRightAction:HeaderAction.CONFIRM,
-                        headerName:"Select Time & Date"//TODO remove hard-coded value
+                        headerName:ScreenTitle.SELECT_TIME
                     }
                 );
             }
@@ -7349,13 +7374,12 @@ App.SelectTimeScreen = function SelectTimeScreen(layout)
         w = layout.width,
         ScrollPolicy = App.ScrollPolicy;
 
-    this._date = null;
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
     this._inputBackground = new PIXI.Graphics();//TODO do I need BG? I can use BG below whole screen ...
     this._input = new App.TimeInput("00:00",30,w - Math.round(20 * r),Math.round(40 * r),r);
     this._header = new App.ListHeader("Select Date",w,r);
-    this._calendar = new App.Calendar(new Date(),w,r);
+    this._calendar = new App.Calendar(w,r);
 
     //TODO enable 'swiping' for interactively changing calendar's months
 
@@ -7426,7 +7450,7 @@ App.SelectTimeScreen.prototype.disable = function disable()
  */
 App.SelectTimeScreen.prototype.update = function update(date,mode)
 {
-    this._date = date;//TODO do I need the reference here if it's also in the Calendar itself?
+    this._input.setValue(App.DateUtils.getMilitaryTime(date));
 
     this._calendar.update(date);
 };
@@ -7492,30 +7516,43 @@ App.SelectTimeScreen.prototype._onClick = function _onClick()
  */
 App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    var HeaderAction = App.HeaderAction;
+    var HeaderAction = App.HeaderAction,
+        ScreenTitle = App.ScreenTitle,
+        inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput;
 
+    //TODO optimize duplicate code
     if (action === HeaderAction.CANCEL)
     {
+        if (inputFocused) this._scrollInput.blur();
+
         App.Controller.dispatchEvent(
             App.EventType.CHANGE_SCREEN,{
                 screenName:App.ScreenName.ADD_TRANSACTION,
                 screenMode:App.ScreenMode.ADD,
                 headerLeftAction:HeaderAction.CANCEL,
                 headerRightAction:HeaderAction.CONFIRM,
-                headerName:"Add Transaction"//TODO remove hard-coded value
+                headerName:ScreenTitle.ADD_TRANSACTION
             }
         );
     }
     else if (action === HeaderAction.CONFIRM)
     {
+        var transaction = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
+            selectedDate = this._calendar.getSelectedDate(),
+            time = this._input.getValue();
+
+        transaction.date.setFullYear(selectedDate.getFullYear(),selectedDate.getMonth(),selectedDate.getDate());
+        if (time.length > 0) transaction.date.setHours(parseInt(time.split(":")[0],10),parseInt(time.split(":")[1],10));
+
+        if (inputFocused) this._scrollInput.blur();
+
         App.Controller.dispatchEvent(
             App.EventType.CHANGE_SCREEN,{
                 screenName:App.ScreenName.ADD_TRANSACTION,
                 screenMode:App.ScreenMode.ADD,
-                //updateData:button.getModel().categories,
                 headerLeftAction:HeaderAction.CANCEL,
                 headerRightAction:HeaderAction.CONFIRM,
-                headerName:"Add Transaction"//TODO remove hard-coded value
+                headerName:ScreenTitle.ADD_TRANSACTION
             }
         );
     }
@@ -8226,7 +8263,7 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
                         screenName:App.ScreenName.ADD_TRANSACTION,
                         headerLeftAction:HeaderAction.CANCEL,
                         headerRightAction:HeaderAction.CONFIRM,
-                        headerName:"Add Transaction"//TODO remove hard-coded value
+                        headerName:App.ScreenTitle.ADD_TRANSACTION
                     }
                 );
             }
@@ -11185,7 +11222,7 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
         screenName:App.ScreenName.MENU,
         headerLeftAction:App.HeaderAction.CANCEL,
         headerRightAction:App.HeaderAction.NONE,
-        headerName:"Menu"//TODO remove hard-coded value
+        headerName:App.ScreenTitle.MENU
     });
 
     this.dispatchEvent(App.EventType.COMPLETE);

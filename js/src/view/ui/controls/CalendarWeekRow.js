@@ -1,40 +1,35 @@
 /**
  * @class CalendarWeekRow
  * @extend Graphics
- * @param {Array.<number>} week
- * @param {number} currentDay
+ * @param {{font:string,fill:string}} weekTextStyle
+ * @param {{font:string,fill:string}} weekSelectedStyle
  * @param {number} width
  * @param {number} pixelRatio
  * @constructor
  */
-App.CalendarWeekRow = function CalendarWeekRow(week,currentDay,width,pixelRatio)
+App.CalendarWeekRow = function CalendarWeekRow(weekTextStyle,weekSelectedStyle,width,pixelRatio)
 {
     PIXI.Graphics.call(this);
 
     var FontStyle = App.FontStyle,
-        daysInWeek = week.length / 2,
+        daysInWeek = 7,
         Text = PIXI.Text,
         index = 0,
         i = 0;
 
     this.boundingBox = new App.Rectangle(0,0,width,Math.round(40*pixelRatio));
 
-    this._week = week;
+    this._week = null;
     this._width = width;
     this._pixelRatio = pixelRatio;
 
-    this._textStyle = FontStyle.get(14,FontStyle.GREY_DARK);
-    this._selectedStyle = FontStyle.get(14,FontStyle.WHITE);
+    this._textStyle = weekTextStyle;
+    this._selectedStyle = weekSelectedStyle;
     this._dateFields = new Array(7);
     this._selectedDayIndex = -1;
     this._highlightBackground = new PIXI.Graphics();
 
-    for (;i<daysInWeek;i++,index+=2) this._dateFields[i] = new Text(week[index],this._textStyle);
-
-    this._render();
-
-    var dayToHighlight = this._getDayByDate(currentDay);
-    if (dayToHighlight && !dayToHighlight.otherMonth) this._selectDay(dayToHighlight);
+    for (;i<daysInWeek;i++,index+=2) this._dateFields[i] = new Text("",this._textStyle);
 
     this.addChild(this._highlightBackground);
     for (i = 0;i<daysInWeek;) this.addChild(this._dateFields[i++]);
