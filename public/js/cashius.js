@@ -1101,6 +1101,30 @@ App.Rectangle = function Rectangle(x,y,width,height)
     this.height = 0;
 };*/
 /**
+ * ChangeScreenData
+ * @type {{screenName: number, screenMode: number, updateData: null, headerLeftAction: number, headerRightAction: number, headerName: null, reset: Function}}
+ */
+App.ChangeScreenData = {
+    screenName:7,
+    screenMode:1,
+    updateData:null,
+    headerLeftAction:2,
+    headerRightAction:3,
+    headerName:null,
+    update:function update(screenName,screenMode,updateData,headerLeftAction,headerRightAction,headerName)
+    {
+        this.screenName = screenName || App.ScreenName.ADD_TRANSACTION;
+        this.screenMode = screenMode || App.ScreenMode.SELECT;
+        this.updateData = updateData;
+        this.headerLeftAction = headerLeftAction || App.HeaderAction.CANCEL;
+        this.headerRightAction = headerRightAction || App.HeaderAction.CONFIRM;
+        this.headerName = headerName || App.ScreenTitle.ADD_TRANSACTION;
+
+        return this;
+    }
+};
+
+/**
  * @class ModelLocator
  * @type {{_proxies:Object,addProxy:Function,hasProxy:Function,getProxy:Function}}
  */
@@ -7252,71 +7276,42 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     }
     else if (this._optionList.hitTest(position))
     {
-        if (inputFocused)
-        {
-            this._scrollInput.blur();//TODO I can blur input just before actual screen change, like in SelectTime screen
-        }
-        else
-        {
-            var HeaderAction = App.HeaderAction,
-                ScreenTitle = App.ScreenTitle,
-                button = this._optionList.getItemUnderPoint(pointerData);
+        if (inputFocused) this._scrollInput.blur();
 
-            if (button === this._accountOption)
+        var HeaderAction = App.HeaderAction,
+            ScreenTitle = App.ScreenTitle,
+            ScreenName = App.ScreenName,
+            changeScreenData = App.ChangeScreenData.update(0,0,null,null,HeaderAction.NONE),
+            button = this._optionList.getItemUnderPoint(pointerData);
+
+        if (button === this._accountOption)
+        {
+            changeScreenData.screenName = ScreenName.ACCOUNT;
+            changeScreenData.headerName = ScreenTitle.SELECT_ACCOUNT;
+        }
+        else if (button === this._categoryOption)
+        {
+            if (this._model.account)
             {
-                //TODO use pool for ChangeScreen data? / optimize repetitive data
-                App.Controller.dispatchEvent(
-                    App.EventType.CHANGE_SCREEN,{
-                        screenName:App.ScreenName.ACCOUNT,
-                        screenMode:App.ScreenMode.SELECT,
-                        headerLeftAction:HeaderAction.CANCEL,
-                        headerRightAction:HeaderAction.NONE,
-                        headerName:ScreenTitle.SELECT_ACCOUNT
-                    }
-                );
+                changeScreenData.screenName = ScreenName.CATEGORY;
+                changeScreenData.updateData = this._model.account.categories;
+                changeScreenData.headerName = ScreenTitle.SELECT_CATEGORY;
             }
-            else if (button === this._categoryOption)
+            else
             {
-                if (this._model.account)
-                {
-                    App.Controller.dispatchEvent(
-                        App.EventType.CHANGE_SCREEN,{
-                            screenName:App.ScreenName.CATEGORY,
-                            screenMode:App.ScreenMode.SELECT,
-                            updateData:this._model.account.categories,
-                            headerLeftAction:HeaderAction.CANCEL,
-                            headerRightAction:HeaderAction.NONE,
-                            headerName:ScreenTitle.SELECT_CATEGORY
-                        }
-                    );
-                }
-                else
-                {
-                    App.Controller.dispatchEvent(
-                        App.EventType.CHANGE_SCREEN,{
-                            screenName:App.ScreenName.ACCOUNT,
-                            screenMode:App.ScreenMode.SELECT,
-                            headerLeftAction:HeaderAction.CANCEL,
-                            headerRightAction:HeaderAction.NONE,
-                            headerName:ScreenTitle.SELECT_ACCOUNT
-                        }
-                    );
-                }
-            }
-            else if (button === this._timeOption)
-            {
-                App.Controller.dispatchEvent(
-                    App.EventType.CHANGE_SCREEN,{
-                        screenName:App.ScreenName.SELECT_TIME,
-                        screenMode:App.ScreenMode.SELECT,
-                        updateData:this._model.date,
-                        headerLeftAction:HeaderAction.CANCEL,
-                        headerRightAction:HeaderAction.CONFIRM,
-                        headerName:ScreenTitle.SELECT_TIME
-                    }
-                );
+                changeScreenData.screenName = ScreenName.ACCOUNT;
+                changeScreenData.headerName = ScreenTitle.SELECT_ACCOUNT;
             }
         }
+        else if (button === this._timeOption)
+        {
+            changeScreenData.screenName = ScreenName.SELECT_TIME;
+            changeScreenData.updateData = this._model.date;
+            changeScreenData.headerName = ScreenTitle.SELECT_TIME;
+            changeScreenData.headerRightAction = HeaderAction.CONFIRM;
+        }
+
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
     else if (this._noteInput.hitTest(position))
     {
@@ -7686,20 +7681,17 @@ App.AccountScreen.prototype.enable = function enable()
  */
 App.AccountScreen.prototype._onClick = function _onClick()
 {
-    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData()),
-        HeaderAction = App.HeaderAction;
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
 
     if (button)
     {
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,{
-                screenName:App.ScreenName.CATEGORY,
-                screenMode:App.ScreenMode.SELECT,
-                updateData:button.getModel().categories,
-                headerLeftAction:HeaderAction.CANCEL,
-                headerRightAction:HeaderAction.NONE,//TODO add back(arrow) button?
-                headerName:"Select Category"//TODO remove hard-coded value
-            }
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(
+            App.ScreenName.CATEGORY,
+            0,
+            button.getModel().categories,
+            null,
+            App.HeaderAction.NONE,
+            App.ScreenTitle.SELECT_CATEGORY)
         );
     }
 };
@@ -7711,19 +7703,15 @@ App.AccountScreen.prototype._onClick = function _onClick()
  */
 App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    var HeaderAction = App.HeaderAction;
-
-    if (action === HeaderAction.CANCEL)
+    if (action === App.HeaderAction.CANCEL)
     {
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,{
-                screenName:App.ScreenName.ADD_TRANSACTION,
-                screenMode:App.ScreenMode.ADD,
-                updateData:App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
-                headerLeftAction:HeaderAction.CANCEL,
-                headerRightAction:HeaderAction.CONFIRM,
-                headerName:"Add Transaction"//TODO remove hard-coded value
-            }
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(
+            0,
+            App.ScreenMode.ADD,
+            App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
+            0,
+            0,
+            App.ScreenTitle.ADD_TRANSACTION)
         );
     }
 };
@@ -7756,7 +7744,6 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this._skin = new PIXI.Sprite(options.skin);
     this._icon = PIXI.Sprite.fromFrame("subcategory-app");
     this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
-    this._radioCheck = new App.Radio(this._pixelRatio,false);//TODO do I need the Radio in Category select list?
     this._background = new PIXI.Graphics();
     this._deleteLabel = new PIXI.Text("Delete",options.deleteLabelStyle);
     this._renderAll = true;
@@ -7766,7 +7753,6 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this._swipeSurface.addChild(this._skin);
     this._swipeSurface.addChild(this._icon);
     this._swipeSurface.addChild(this._nameLabel);
-    this._swipeSurface.addChild(this._radioCheck);
     this.addChild(this._swipeSurface);
 };
 
@@ -7805,9 +7791,6 @@ App.SubCategoryButton.prototype._render = function _render()
 
         this._nameLabel.x = Math.round(64 * r);
         this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
-
-        this._radioCheck.x = w - offset - this._radioCheck.boundingBox.width;
-        this._radioCheck.y = Math.round((h - this._radioCheck.height) / 2);
     }
 };
 
@@ -8522,15 +8505,7 @@ App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 
     if (action === HeaderAction.CANCEL)
     {
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,{
-                screenName:App.ScreenName.ADD_TRANSACTION,
-                screenMode:App.ScreenMode.ADD,
-                headerLeftAction:HeaderAction.CANCEL,
-                headerRightAction:HeaderAction.CONFIRM,
-                headerName:"Add Transaction"//TODO remove hard-coded value
-            }
-        );
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(0,App.ScreenMode.ADD,null,0,0,App.ScreenTitle.ADD_TRANSACTION));
     }
 };
 
@@ -10305,13 +10280,7 @@ App.Menu.prototype._onClick = function _onClick()
         case ScreenName.ADD_TRANSACTION:
             App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
                 nextCommand:new App.ChangeScreen(),
-                nextCommandData:{
-                    screenName:ScreenName.ADD_TRANSACTION,
-                    screenMode:App.ScreenMode.ADD,
-                    headerLeftAction:HeaderAction.CANCEL,
-                    headerRightAction:HeaderAction.CONFIRM,
-                    headerName:"Add Transaction"//TODO remove hard-coded value
-                }
+                nextCommandData:App.ChangeScreenData.update(0,App.ScreenMode.ADD)
             });
             break;
 
@@ -11218,12 +11187,7 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
     this._initController();
     this._initView();
 
-    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,{
-        screenName:App.ScreenName.MENU,
-        headerLeftAction:App.HeaderAction.CANCEL,
-        headerRightAction:App.HeaderAction.NONE,
-        headerName:App.ScreenTitle.MENU
-    });
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(App.ScreenName.MENU,0,null,null,App.HeaderAction.NONE,App.ScreenTitle.MENU));
 
     this.dispatchEvent(App.EventType.COMPLETE);
 };

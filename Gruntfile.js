@@ -32,6 +32,7 @@ module.exports = function(grunt)
         "js/src/event/EventListener.js",
         "js/src/event/EventDispatcher.js",
         "js/src/geom/Rectangle.js",
+        "js/src/model/ChangeScreenData.js",
         "js/src/model/ModelLocator.js",
         "js/src/model/ObjectPool.js",
         "js/src/model/Collection.js",

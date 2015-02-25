@@ -105,13 +105,7 @@ App.Menu.prototype._onClick = function _onClick()
         case ScreenName.ADD_TRANSACTION:
             App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
                 nextCommand:new App.ChangeScreen(),
-                nextCommandData:{
-                    screenName:ScreenName.ADD_TRANSACTION,
-                    screenMode:App.ScreenMode.ADD,
-                    headerLeftAction:HeaderAction.CANCEL,
-                    headerRightAction:HeaderAction.CONFIRM,
-                    headerName:"Add Transaction"//TODO remove hard-coded value
-                }
+                nextCommandData:App.ChangeScreenData.update(0,App.ScreenMode.ADD)
             });
             break;
 

@@ -250,71 +250,42 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     }
     else if (this._optionList.hitTest(position))
     {
-        if (inputFocused)
-        {
-            this._scrollInput.blur();//TODO I can blur input just before actual screen change, like in SelectTime screen
-        }
-        else
-        {
-            var HeaderAction = App.HeaderAction,
-                ScreenTitle = App.ScreenTitle,
-                button = this._optionList.getItemUnderPoint(pointerData);
+        if (inputFocused) this._scrollInput.blur();
 
-            if (button === this._accountOption)
+        var HeaderAction = App.HeaderAction,
+            ScreenTitle = App.ScreenTitle,
+            ScreenName = App.ScreenName,
+            changeScreenData = App.ChangeScreenData.update(0,0,null,null,HeaderAction.NONE),
+            button = this._optionList.getItemUnderPoint(pointerData);
+
+        if (button === this._accountOption)
+        {
+            changeScreenData.screenName = ScreenName.ACCOUNT;
+            changeScreenData.headerName = ScreenTitle.SELECT_ACCOUNT;
+        }
+        else if (button === this._categoryOption)
+        {
+            if (this._model.account)
             {
-                //TODO use pool for ChangeScreen data? / optimize repetitive data
-                App.Controller.dispatchEvent(
-                    App.EventType.CHANGE_SCREEN,{
-                        screenName:App.ScreenName.ACCOUNT,
-                        screenMode:App.ScreenMode.SELECT,
-                        headerLeftAction:HeaderAction.CANCEL,
-                        headerRightAction:HeaderAction.NONE,
-                        headerName:ScreenTitle.SELECT_ACCOUNT
-                    }
-                );
+                changeScreenData.screenName = ScreenName.CATEGORY;
+                changeScreenData.updateData = this._model.account.categories;
+                changeScreenData.headerName = ScreenTitle.SELECT_CATEGORY;
             }
-            else if (button === this._categoryOption)
+            else
             {
-                if (this._model.account)
-                {
-                    App.Controller.dispatchEvent(
-                        App.EventType.CHANGE_SCREEN,{
-                            screenName:App.ScreenName.CATEGORY,
-                            screenMode:App.ScreenMode.SELECT,
-                            updateData:this._model.account.categories,
-                            headerLeftAction:HeaderAction.CANCEL,
-                            headerRightAction:HeaderAction.NONE,
-                            headerName:ScreenTitle.SELECT_CATEGORY
-                        }
-                    );
-                }
-                else
-                {
-                    App.Controller.dispatchEvent(
-                        App.EventType.CHANGE_SCREEN,{
-                            screenName:App.ScreenName.ACCOUNT,
-                            screenMode:App.ScreenMode.SELECT,
-                            headerLeftAction:HeaderAction.CANCEL,
-                            headerRightAction:HeaderAction.NONE,
-                            headerName:ScreenTitle.SELECT_ACCOUNT
-                        }
-                    );
-                }
-            }
-            else if (button === this._timeOption)
-            {
-                App.Controller.dispatchEvent(
-                    App.EventType.CHANGE_SCREEN,{
-                        screenName:App.ScreenName.SELECT_TIME,
-                        screenMode:App.ScreenMode.SELECT,
-                        updateData:this._model.date,
-                        headerLeftAction:HeaderAction.CANCEL,
-                        headerRightAction:HeaderAction.CONFIRM,
-                        headerName:ScreenTitle.SELECT_TIME
-                    }
-                );
+                changeScreenData.screenName = ScreenName.ACCOUNT;
+                changeScreenData.headerName = ScreenTitle.SELECT_ACCOUNT;
             }
         }
+        else if (button === this._timeOption)
+        {
+            changeScreenData.screenName = ScreenName.SELECT_TIME;
+            changeScreenData.updateData = this._model.date;
+            changeScreenData.headerName = ScreenTitle.SELECT_TIME;
+            changeScreenData.headerRightAction = HeaderAction.CONFIRM;
+        }
+
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
     else if (this._noteInput.hitTest(position))
     {

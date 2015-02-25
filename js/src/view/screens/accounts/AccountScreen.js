@@ -61,20 +61,17 @@ App.AccountScreen.prototype.enable = function enable()
  */
 App.AccountScreen.prototype._onClick = function _onClick()
 {
-    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData()),
-        HeaderAction = App.HeaderAction;
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
 
     if (button)
     {
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,{
-                screenName:App.ScreenName.CATEGORY,
-                screenMode:App.ScreenMode.SELECT,
-                updateData:button.getModel().categories,
-                headerLeftAction:HeaderAction.CANCEL,
-                headerRightAction:HeaderAction.NONE,//TODO add back(arrow) button?
-                headerName:"Select Category"//TODO remove hard-coded value
-            }
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(
+            App.ScreenName.CATEGORY,
+            0,
+            button.getModel().categories,
+            null,
+            App.HeaderAction.NONE,
+            App.ScreenTitle.SELECT_CATEGORY)
         );
     }
 };
@@ -86,19 +83,15 @@ App.AccountScreen.prototype._onClick = function _onClick()
  */
 App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    var HeaderAction = App.HeaderAction;
-
-    if (action === HeaderAction.CANCEL)
+    if (action === App.HeaderAction.CANCEL)
     {
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,{
-                screenName:App.ScreenName.ADD_TRANSACTION,
-                screenMode:App.ScreenMode.ADD,
-                updateData:App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
-                headerLeftAction:HeaderAction.CANCEL,
-                headerRightAction:HeaderAction.CONFIRM,
-                headerName:"Add Transaction"//TODO remove hard-coded value
-            }
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(
+            0,
+            App.ScreenMode.ADD,
+            App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
+            0,
+            0,
+            App.ScreenTitle.ADD_TRANSACTION)
         );
     }
 };

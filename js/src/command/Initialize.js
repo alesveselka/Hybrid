@@ -42,12 +42,7 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
     this._initController();
     this._initView();
 
-    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,{
-        screenName:App.ScreenName.MENU,
-        headerLeftAction:App.HeaderAction.CANCEL,
-        headerRightAction:App.HeaderAction.NONE,
-        headerName:App.ScreenTitle.MENU
-    });
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(App.ScreenName.MENU,0,null,null,App.HeaderAction.NONE,App.ScreenTitle.MENU));
 
     this.dispatchEvent(App.EventType.COMPLETE);
 };

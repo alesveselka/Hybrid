@@ -220,15 +220,7 @@ App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 
     if (action === HeaderAction.CANCEL)
     {
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,{
-                screenName:App.ScreenName.ADD_TRANSACTION,
-                screenMode:App.ScreenMode.ADD,
-                headerLeftAction:HeaderAction.CANCEL,
-                headerRightAction:HeaderAction.CONFIRM,
-                headerName:"Add Transaction"//TODO remove hard-coded value
-            }
-        );
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(0,App.ScreenMode.ADD,null,0,0,App.ScreenTitle.ADD_TRANSACTION));
     }
 };
 
