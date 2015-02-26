@@ -35,14 +35,17 @@ App.Initialize.prototype.execute = function execute()
  */
 App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data)
 {
+    var changeScreenDataPool = new App.ObjectPool(App.ChangeScreenData,5),
+        changeScreenData = changeScreenDataPool.allocate().update(App.ScreenName.MENU,0,null,null,App.HeaderAction.NONE,App.ScreenTitle.MENU);
+
     this._loadDataCommand.destroy();
     this._loadDataCommand = null;
     
-    this._initModel(data);
+    this._initModel(data,changeScreenDataPool);
     this._initController();
     this._initView();
 
-    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(App.ScreenName.MENU,0,null,null,App.HeaderAction.NONE,App.ScreenTitle.MENU));
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
 
     this.dispatchEvent(App.EventType.COMPLETE);
 };
@@ -52,9 +55,10 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  *
  * @method _initModel
  * @param {{userData:string,transactions:string,icons:Object}} data
+ * @param {ObjectPool} changeScreenDataPool
  * @private
  */
-App.Initialize.prototype._initModel = function _initModel(data)
+App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataPool)
 {
     var ModelName = App.ModelName,
         Collection = App.Collection,
@@ -75,7 +79,9 @@ App.Initialize.prototype._initModel = function _initModel(data)
         ModelName.SUB_CATEGORIES,new Collection(userData.subCategories,App.SubCategory,null,this._eventListenerPool),
         ModelName.CATEGORIES,new Collection(userData.categories,App.Category,null,this._eventListenerPool),
         ModelName.ACCOUNTS,new Collection(userData.accounts,App.Account,null,this._eventListenerPool),
-        ModelName.TRANSACTIONS,new Collection(userData.transactions,App.Transaction,null,this._eventListenerPool)
+        ModelName.TRANSACTIONS,new Collection(userData.transactions,App.Transaction,null,this._eventListenerPool),
+        ModelName.CHANGE_SCREEN_DATA_POOL,changeScreenDataPool,
+        ModelName.SCREEN_HISTORY,new App.Stack()//TODO use max limit?
     ]);
 };
 

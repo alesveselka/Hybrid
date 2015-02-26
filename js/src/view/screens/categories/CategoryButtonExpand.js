@@ -87,21 +87,17 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
             {
                 var ModelLocator = App.ModelLocator,
                     ModelName = App.ModelName,
-                    HeaderAction = App.HeaderAction,
-                    transaction = ModelLocator.getProxy(ModelName.TRANSACTIONS).getCurrent();
+                    transaction = ModelLocator.getProxy(ModelName.TRANSACTIONS).getCurrent(),
+                    changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
                 transaction.account = ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0];
                 transaction.category = this._model;
                 transaction.subCategory = button.getModel();
 
-                App.Controller.dispatchEvent(
-                    App.EventType.CHANGE_SCREEN,{
-                        screenName:App.ScreenName.ADD_TRANSACTION,
-                        headerLeftAction:HeaderAction.CANCEL,
-                        headerRightAction:HeaderAction.CONFIRM,
-                        headerName:App.ScreenTitle.ADD_TRANSACTION
-                    }
-                );
+                changeScreenData.backSteps = 2;
+                changeScreenData.updateBackScreen = true;
+
+                App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             }
             else
             {

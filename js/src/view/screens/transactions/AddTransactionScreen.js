@@ -255,26 +255,23 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
         var HeaderAction = App.HeaderAction,
             ScreenTitle = App.ScreenTitle,
             ScreenName = App.ScreenName,
-            changeScreenData = App.ChangeScreenData.update(0,0,null,null,HeaderAction.NONE),
-            button = this._optionList.getItemUnderPoint(pointerData);
+            button = this._optionList.getItemUnderPoint(pointerData),
+            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+                ScreenName.ACCOUNT,
+                App.ScreenMode.SELECT,
+                null,
+                null,
+                HeaderAction.NONE,
+                ScreenTitle.SELECT_ACCOUNT
+            );
 
-        if (button === this._accountOption)
-        {
-            changeScreenData.screenName = ScreenName.ACCOUNT;
-            changeScreenData.headerName = ScreenTitle.SELECT_ACCOUNT;
-        }
-        else if (button === this._categoryOption)
+        if (button === this._categoryOption)
         {
             if (this._model.account)
             {
                 changeScreenData.screenName = ScreenName.CATEGORY;
                 changeScreenData.updateData = this._model.account.categories;
                 changeScreenData.headerName = ScreenTitle.SELECT_CATEGORY;
-            }
-            else
-            {
-                changeScreenData.screenName = ScreenName.ACCOUNT;
-                changeScreenData.headerName = ScreenTitle.SELECT_ACCOUNT;
             }
         }
         else if (button === this._timeOption)
@@ -305,13 +302,30 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
  */
 App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+            App.ScreenName.TRANSACTIONS,
+            0,
+            null,
+            HeaderAction.MENU,
+            HeaderAction.ADD_TRANSACTION,
+            App.ScreenTitle.TRANSACTIONS
+        );
+
     if (action === App.HeaderAction.CONFIRM)
     {
-        // confirm
+        //TODO first check if all values are set!
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
     else
     {
-        //cancel
+        var collection = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS);
+
+        collection.removeItem(collection.getCurrent()).destroy();
+
+        changeScreenData.screenName = App.ScreenName.BACK;
+
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
 };
 

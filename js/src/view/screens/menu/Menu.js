@@ -96,8 +96,8 @@ App.Menu.prototype._onClick = function _onClick()
     this._pane.cancelScroll();
 
     var ScreenName = App.ScreenName,
-        HeaderAction = App.HeaderAction,
         item = this._getItemByPosition(this.stage.getTouchData().getLocalPosition(this._container).y),
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(),
         screenName = item ? item.getScreenName() : -1;
 
     switch (screenName)
@@ -105,12 +105,12 @@ App.Menu.prototype._onClick = function _onClick()
         case ScreenName.ADD_TRANSACTION:
             App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
                 nextCommand:new App.ChangeScreen(),
-                nextCommandData:App.ChangeScreenData.update(0,App.ScreenMode.ADD)
+                nextCommandData:changeScreenData
             });
             break;
 
         default:
-            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,{screenName:ScreenName.TRANSACTIONS});
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
 };
 

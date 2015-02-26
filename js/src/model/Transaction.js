@@ -47,7 +47,12 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
  */
 App.Transaction.prototype.destroy = function destroy()
 {
-    //TODO implement
+    this._account = null;
+    this._category = null;
+    this._subCategory = null;
+    this._method = null;
+    this._date = null;
+    this._currency = null;
 };
 
 /**
@@ -155,7 +160,7 @@ Object.defineProperty(App.Transaction.prototype,'date',{
             else this._date = new Date();
         }
         return this._date;
-    }//TODO set new date object, or modify the original?
+    }
 });
 
 /**

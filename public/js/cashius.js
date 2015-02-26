@@ -723,31 +723,35 @@ App.EventType = {
 
 /**
  * Model Proxy state
- * @enum {string}
+ * @enum {number}
  * @return {{
- *      TICKER:string,
- *      EVENT_LISTENER_POOL:string,
- *      PAYMENT_METHODS:string,
- *      CURRENCIES:string,
- *      SUB_CATEGORIES:string,
- *      CATEGORIES:string,
- *      ACCOUNTS:string,
- *      TRANSACTIONS:string,
- *      SETTINGS:string,
- *      ICONS:string
+ *      TICKER:number,
+ *      EVENT_LISTENER_POOL:number,
+ *      PAYMENT_METHODS:number,
+ *      CURRENCIES:number,
+ *      SUB_CATEGORIES:number,
+ *      CATEGORIES:number,
+ *      ACCOUNTS:number,
+ *      TRANSACTIONS:number,
+ *      SETTINGS:number,
+ *      ICONS:number,
+ *      CHANGE_SCREEN_DATA_POOL:number,
+ *      SCREEN_HISTORY:number
  * }}
  */
 App.ModelName = {
-    TICKER:"TICKER",
-    EVENT_LISTENER_POOL:"EVENT_LISTENER_POOL",
-    PAYMENT_METHODS:"PAYMENT_METHODS",
-    CURRENCIES:"CURRENCIES",
-    SUB_CATEGORIES:"SUB_CATEGORIES",
-    CATEGORIES:"CATEGORIES",
-    ACCOUNTS:"ACCOUNTS",
-    TRANSACTIONS:"TRANSACTIONS",
-    SETTINGS:"SETTINGS",
-    ICONS:"ICONS"
+    TICKER:0,
+    EVENT_LISTENER_POOL:1,
+    PAYMENT_METHODS:2,
+    CURRENCIES:3,
+    SUB_CATEGORIES:4,
+    CATEGORIES:5,
+    ACCOUNTS:6,
+    TRANSACTIONS:7,
+    SETTINGS:8,
+    ICONS:9,
+    CHANGE_SCREEN_DATA_POOL:10,
+    SCREEN_HISTORY:11
 };
 
 /**
@@ -876,13 +880,14 @@ App.ScreenMode = {
 
 /**
  * ScreenTitle
- * @type {{MENU: string, SELECT_ACCOUNT: string, SELECT_CATEGORY: string, SELECT_TIME: string, ADD_TRANSACTION: string}}
+ * @type {{MENU: string, SELECT_ACCOUNT: string, SELECT_CATEGORY: string, SELECT_TIME: string, TRANSACTIONS:string,ADD_TRANSACTION: string}}
  */
 App.ScreenTitle = {
     MENU:"Menu",
     SELECT_ACCOUNT:"Select Account",
     SELECT_CATEGORY:"Select Category",
     SELECT_TIME:"Select Time & Date",
+    TRANSACTIONS:"Transactions",
     ADD_TRANSACTION:"Add Transaction"
 };
 
@@ -1101,27 +1106,107 @@ App.Rectangle = function Rectangle(x,y,width,height)
     this.height = 0;
 };*/
 /**
- * ChangeScreenData
- * @type {{screenName: number, screenMode: number, updateData: null, headerLeftAction: number, headerRightAction: number, headerName: null, reset: Function}}
+ * @class Stack
+ * @constructor
  */
-App.ChangeScreenData = {
-    screenName:7,
-    screenMode:1,
-    updateData:null,
-    headerLeftAction:2,
-    headerRightAction:3,
-    headerName:null,
-    update:function update(screenName,screenMode,updateData,headerLeftAction,headerRightAction,headerName)
-    {
-        this.screenName = screenName || App.ScreenName.ADD_TRANSACTION;
-        this.screenMode = screenMode || App.ScreenMode.SELECT;
-        this.updateData = updateData;
-        this.headerLeftAction = headerLeftAction || App.HeaderAction.CANCEL;
-        this.headerRightAction = headerRightAction || App.HeaderAction.CONFIRM;
-        this.headerName = headerName || App.ScreenTitle.ADD_TRANSACTION;
+App.Stack = function Stack()
+{
+    this._source = [];
+    this._top = 0;
+};
 
-        return this;
-    }
+/**
+ * Push item into stack
+ * @param {*} item
+ */
+App.Stack.prototype.push = function push(item)
+{
+    this._source[this._top++] = item;//TODO add max limit
+};
+
+/**
+ * Remove item from top of the stack
+ * @returns {*}
+ */
+App.Stack.prototype.pop = function pop()
+{
+    var item = this._source[this._top-1];
+
+    this._source[--this._top] = null;
+
+    return item;
+};
+
+/**
+ * Peek what on top of the stack
+ * @returns {*}
+ */
+App.Stack.prototype.peek = function peek()
+{
+    return this._source[this._top-1];
+};
+
+/**
+ * Return size of the stack
+ * @returns {number}
+ */
+App.Stack.prototype.length = function length()
+{
+    return this._top;
+};
+
+/**
+ * Clear stack
+ */
+App.Stack.prototype.clear = function clear()
+{
+    this._top = 0;
+};
+
+/**
+ * ChangeScreenData
+ * @param {number} index
+ * @constructor
+ */
+App.ChangeScreenData = function ChangeScreenData(index)
+{
+    this.allocated = false;
+    this.poolIndex = index;
+
+    this.screenName = App.ScreenName.ADD_TRANSACTION;
+    this.screenMode = App.ScreenMode.ADD;
+    this.updateData = null;
+    this.headerLeftAction = App.HeaderAction.CANCEL;
+    this.headerRightAction = App.HeaderAction.CONFIRM;
+    this.headerName = App.ScreenTitle.ADD_TRANSACTION;
+    this.backSteps = 1;
+    this.updateBackScreen = false;
+};
+
+/**
+ * Update
+ * @param {number} screenName
+ * @param {number} screenMode
+ * @param {Object} updateData
+ * @param {number} headerLeftAction
+ * @param {number} headerRightAction
+ * @param {string} headerName
+ * @param {number} [backSteps=1]
+ * @param {boolean} [updateBackScreen=false]
+ * @returns {App.ChangeScreenData}
+ */
+App.ChangeScreenData.prototype.update = function update(screenName,screenMode,updateData,headerLeftAction,headerRightAction,headerName,backSteps,updateBackScreen)
+{
+    this.screenName = isNaN(screenName) ? App.ScreenName.ADD_TRANSACTION : screenName;
+    this.screenMode = screenMode || App.ScreenMode.ADD;
+    this.updateData = updateData;
+    this.headerLeftAction = headerLeftAction || App.HeaderAction.CANCEL;
+    this.headerRightAction = headerRightAction || App.HeaderAction.CONFIRM;
+    this.headerName = headerName || App.ScreenTitle.ADD_TRANSACTION;
+    this.backSteps = backSteps || 1;
+    this.updateBackScreen = updateBackScreen;
+
+    return this;
 };
 
 /**
@@ -1625,7 +1710,12 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
  */
 App.Transaction.prototype.destroy = function destroy()
 {
-    //TODO implement
+    this._account = null;
+    this._category = null;
+    this._subCategory = null;
+    this._method = null;
+    this._date = null;
+    this._currency = null;
 };
 
 /**
@@ -1733,7 +1823,7 @@ Object.defineProperty(App.Transaction.prototype,'date',{
             else this._date = new Date();
         }
         return this._date;
-    }//TODO set new date object, or modify the original?
+    }
 });
 
 /**
@@ -5563,6 +5653,7 @@ App.ViewStack.prototype.selectChild = function selectChild(child)
         {
             this._selectedChild = child;
             this._selectedIndex = i - 1;
+            break;
         }
     }
 
@@ -7281,26 +7372,23 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
         var HeaderAction = App.HeaderAction,
             ScreenTitle = App.ScreenTitle,
             ScreenName = App.ScreenName,
-            changeScreenData = App.ChangeScreenData.update(0,0,null,null,HeaderAction.NONE),
-            button = this._optionList.getItemUnderPoint(pointerData);
+            button = this._optionList.getItemUnderPoint(pointerData),
+            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+                ScreenName.ACCOUNT,
+                App.ScreenMode.SELECT,
+                null,
+                null,
+                HeaderAction.NONE,
+                ScreenTitle.SELECT_ACCOUNT
+            );
 
-        if (button === this._accountOption)
-        {
-            changeScreenData.screenName = ScreenName.ACCOUNT;
-            changeScreenData.headerName = ScreenTitle.SELECT_ACCOUNT;
-        }
-        else if (button === this._categoryOption)
+        if (button === this._categoryOption)
         {
             if (this._model.account)
             {
                 changeScreenData.screenName = ScreenName.CATEGORY;
                 changeScreenData.updateData = this._model.account.categories;
                 changeScreenData.headerName = ScreenTitle.SELECT_CATEGORY;
-            }
-            else
-            {
-                changeScreenData.screenName = ScreenName.ACCOUNT;
-                changeScreenData.headerName = ScreenTitle.SELECT_ACCOUNT;
             }
         }
         else if (button === this._timeOption)
@@ -7331,13 +7419,30 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
  */
 App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+            App.ScreenName.TRANSACTIONS,
+            0,
+            null,
+            HeaderAction.MENU,
+            HeaderAction.ADD_TRANSACTION,
+            App.ScreenTitle.TRANSACTIONS
+        );
+
     if (action === App.HeaderAction.CONFIRM)
     {
-        // confirm
+        //TODO first check if all values are set!
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
     else
     {
-        //cancel
+        var collection = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS);
+
+        collection.removeItem(collection.getCurrent()).destroy();
+
+        changeScreenData.screenName = App.ScreenName.BACK;
+
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
 };
 
@@ -7512,23 +7617,14 @@ App.SelectTimeScreen.prototype._onClick = function _onClick()
 App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     var HeaderAction = App.HeaderAction,
-        ScreenTitle = App.ScreenTitle,
-        inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput;
+        inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
-    //TODO optimize duplicate code
     if (action === HeaderAction.CANCEL)
     {
         if (inputFocused) this._scrollInput.blur();
 
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,{
-                screenName:App.ScreenName.ADD_TRANSACTION,
-                screenMode:App.ScreenMode.ADD,
-                headerLeftAction:HeaderAction.CANCEL,
-                headerRightAction:HeaderAction.CONFIRM,
-                headerName:ScreenTitle.ADD_TRANSACTION
-            }
-        );
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
     else if (action === HeaderAction.CONFIRM)
     {
@@ -7539,17 +7635,11 @@ App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
         transaction.date.setFullYear(selectedDate.getFullYear(),selectedDate.getMonth(),selectedDate.getDate());
         if (time.length > 0) transaction.date.setHours(parseInt(time.split(":")[0],10),parseInt(time.split(":")[1],10));
 
+        changeScreenData.updateBackScreen = true;
+
         if (inputFocused) this._scrollInput.blur();
 
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,{
-                screenName:App.ScreenName.ADD_TRANSACTION,
-                screenMode:App.ScreenMode.ADD,
-                headerLeftAction:HeaderAction.CANCEL,
-                headerRightAction:HeaderAction.CONFIRM,
-                headerName:ScreenTitle.ADD_TRANSACTION
-            }
-        );
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
 };
 
@@ -7685,14 +7775,14 @@ App.AccountScreen.prototype._onClick = function _onClick()
 
     if (button)
     {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
             App.ScreenName.CATEGORY,
-            0,
+            App.ScreenMode.SELECT,
             button.getModel().categories,
             null,
             App.HeaderAction.NONE,
-            App.ScreenTitle.SELECT_CATEGORY)
-        );
+            App.ScreenTitle.SELECT_CATEGORY
+        ));
     }
 };
 
@@ -7705,13 +7795,9 @@ App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     if (action === App.HeaderAction.CANCEL)
     {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(
-            0,
-            App.ScreenMode.ADD,
-            App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
-            0,
-            0,
-            App.ScreenTitle.ADD_TRANSACTION)
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,
+            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK)
         );
     }
 };
@@ -8234,21 +8320,17 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
             {
                 var ModelLocator = App.ModelLocator,
                     ModelName = App.ModelName,
-                    HeaderAction = App.HeaderAction,
-                    transaction = ModelLocator.getProxy(ModelName.TRANSACTIONS).getCurrent();
+                    transaction = ModelLocator.getProxy(ModelName.TRANSACTIONS).getCurrent(),
+                    changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
                 transaction.account = ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0];
                 transaction.category = this._model;
                 transaction.subCategory = button.getModel();
 
-                App.Controller.dispatchEvent(
-                    App.EventType.CHANGE_SCREEN,{
-                        screenName:App.ScreenName.ADD_TRANSACTION,
-                        headerLeftAction:HeaderAction.CANCEL,
-                        headerRightAction:HeaderAction.CONFIRM,
-                        headerName:App.ScreenTitle.ADD_TRANSACTION
-                    }
-                );
+                changeScreenData.backSteps = 2;
+                changeScreenData.updateBackScreen = true;
+
+                App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             }
             else
             {
@@ -8501,11 +8583,12 @@ App.CategoryScreen.prototype._onClick = function _onClick()
  */
 App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    var HeaderAction = App.HeaderAction;
-
-    if (action === HeaderAction.CANCEL)
+    if (action === App.HeaderAction.CANCEL)
     {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(0,App.ScreenMode.ADD,null,0,0,App.ScreenTitle.ADD_TRANSACTION));
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,
+            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK)
+        );
     }
 };
 
@@ -10271,8 +10354,8 @@ App.Menu.prototype._onClick = function _onClick()
     this._pane.cancelScroll();
 
     var ScreenName = App.ScreenName,
-        HeaderAction = App.HeaderAction,
         item = this._getItemByPosition(this.stage.getTouchData().getLocalPosition(this._container).y),
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(),
         screenName = item ? item.getScreenName() : -1;
 
     switch (screenName)
@@ -10280,12 +10363,12 @@ App.Menu.prototype._onClick = function _onClick()
         case ScreenName.ADD_TRANSACTION:
             App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
                 nextCommand:new App.ChangeScreen(),
-                nextCommandData:App.ChangeScreenData.update(0,App.ScreenMode.ADD)
+                nextCommandData:changeScreenData
             });
             break;
 
         default:
-            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,{screenName:ScreenName.TRANSACTIONS});
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
 };
 
@@ -11180,14 +11263,17 @@ App.Initialize.prototype.execute = function execute()
  */
 App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data)
 {
+    var changeScreenDataPool = new App.ObjectPool(App.ChangeScreenData,5),
+        changeScreenData = changeScreenDataPool.allocate().update(App.ScreenName.MENU,0,null,null,App.HeaderAction.NONE,App.ScreenTitle.MENU);
+
     this._loadDataCommand.destroy();
     this._loadDataCommand = null;
     
-    this._initModel(data);
+    this._initModel(data,changeScreenDataPool);
     this._initController();
     this._initView();
 
-    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(App.ScreenName.MENU,0,null,null,App.HeaderAction.NONE,App.ScreenTitle.MENU));
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
 
     this.dispatchEvent(App.EventType.COMPLETE);
 };
@@ -11197,9 +11283,10 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  *
  * @method _initModel
  * @param {{userData:string,transactions:string,icons:Object}} data
+ * @param {ObjectPool} changeScreenDataPool
  * @private
  */
-App.Initialize.prototype._initModel = function _initModel(data)
+App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataPool)
 {
     var ModelName = App.ModelName,
         Collection = App.Collection,
@@ -11220,7 +11307,9 @@ App.Initialize.prototype._initModel = function _initModel(data)
         ModelName.SUB_CATEGORIES,new Collection(userData.subCategories,App.SubCategory,null,this._eventListenerPool),
         ModelName.CATEGORIES,new Collection(userData.categories,App.Category,null,this._eventListenerPool),
         ModelName.ACCOUNTS,new Collection(userData.accounts,App.Account,null,this._eventListenerPool),
-        ModelName.TRANSACTIONS,new Collection(userData.transactions,App.Transaction,null,this._eventListenerPool)
+        ModelName.TRANSACTIONS,new Collection(userData.transactions,App.Transaction,null,this._eventListenerPool),
+        ModelName.CHANGE_SCREEN_DATA_POOL,changeScreenDataPool,
+        ModelName.SCREEN_HISTORY,new App.Stack()//TODO use max limit?
     ]);
 };
 
@@ -11352,16 +11441,42 @@ App.ChangeScreen.prototype.constructor = App.ChangeScreen;
  * Execute the command
  *
  * @method execute
+ * @param {App.ChangeScreenData} data
  */
 App.ChangeScreen.prototype.execute = function execute(data)
 {
     var ViewLocator = App.ViewLocator,
         ViewName = App.ViewName,
+        ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        changeScreenDataPool = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL),
+        screenHistory = ModelLocator.getProxy(ModelName.SCREEN_HISTORY),
         screenStack = ViewLocator.getViewSegment(ViewName.SCREEN_STACK),
+        screen = null;
+
+    if (data.screenName === App.ScreenName.BACK)
+    {
+        var updateBackScreen = data.updateBackScreen,
+            i = 0,
+            l = data.backSteps;
+
+        for (;i<l;i++) changeScreenDataPool.release(screenHistory.pop());
+        changeScreenDataPool.release(data);
+
+        data = screenHistory.peek();
+
         screen = screenStack.getChildByIndex(data.screenName);
+        if (updateBackScreen) screen.update();
+    }
+    else
+    {
+        screen = screenStack.getChildByIndex(data.screenName);
+        screen.update(data.updateData,data.screenMode);
 
-    screen.update(data.updateData,data.screenMode);
-
+        screenHistory.push(data);
+    }
+    console.log("Stack: ",screenHistory._source);
+    console.log("Pool: ",changeScreenDataPool._freeItems);
     ViewLocator.getViewSegment(ViewName.HEADER).change(data.headerLeftAction,data.headerRightAction,data.headerName);
 
     screenStack.selectChild(screen);

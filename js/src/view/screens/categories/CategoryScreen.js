@@ -216,11 +216,12 @@ App.CategoryScreen.prototype._onClick = function _onClick()
  */
 App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    var HeaderAction = App.HeaderAction;
-
-    if (action === HeaderAction.CANCEL)
+    if (action === App.HeaderAction.CANCEL)
     {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(0,App.ScreenMode.ADD,null,0,0,App.ScreenTitle.ADD_TRANSACTION));
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,
+            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK)
+        );
     }
 };
 

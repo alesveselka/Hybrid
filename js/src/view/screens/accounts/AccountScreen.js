@@ -65,14 +65,14 @@ App.AccountScreen.prototype._onClick = function _onClick()
 
     if (button)
     {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
             App.ScreenName.CATEGORY,
-            0,
+            App.ScreenMode.SELECT,
             button.getModel().categories,
             null,
             App.HeaderAction.NONE,
-            App.ScreenTitle.SELECT_CATEGORY)
-        );
+            App.ScreenTitle.SELECT_CATEGORY
+        ));
     }
 };
 
@@ -85,13 +85,9 @@ App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     if (action === App.HeaderAction.CANCEL)
     {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ChangeScreenData.update(
-            0,
-            App.ScreenMode.ADD,
-            App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
-            0,
-            0,
-            App.ScreenTitle.ADD_TRANSACTION)
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,
+            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK)
         );
     }
 };

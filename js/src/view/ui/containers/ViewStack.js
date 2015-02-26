@@ -60,6 +60,7 @@ App.ViewStack.prototype.selectChild = function selectChild(child)
         {
             this._selectedChild = child;
             this._selectedIndex = i - 1;
+            break;
         }
     }
 

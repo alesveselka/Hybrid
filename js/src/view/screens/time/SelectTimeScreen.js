@@ -155,23 +155,14 @@ App.SelectTimeScreen.prototype._onClick = function _onClick()
 App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     var HeaderAction = App.HeaderAction,
-        ScreenTitle = App.ScreenTitle,
-        inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput;
+        inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
-    //TODO optimize duplicate code
     if (action === HeaderAction.CANCEL)
     {
         if (inputFocused) this._scrollInput.blur();
 
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,{
-                screenName:App.ScreenName.ADD_TRANSACTION,
-                screenMode:App.ScreenMode.ADD,
-                headerLeftAction:HeaderAction.CANCEL,
-                headerRightAction:HeaderAction.CONFIRM,
-                headerName:ScreenTitle.ADD_TRANSACTION
-            }
-        );
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
     else if (action === HeaderAction.CONFIRM)
     {
@@ -182,16 +173,10 @@ App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
         transaction.date.setFullYear(selectedDate.getFullYear(),selectedDate.getMonth(),selectedDate.getDate());
         if (time.length > 0) transaction.date.setHours(parseInt(time.split(":")[0],10),parseInt(time.split(":")[1],10));
 
+        changeScreenData.updateBackScreen = true;
+
         if (inputFocused) this._scrollInput.blur();
 
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,{
-                screenName:App.ScreenName.ADD_TRANSACTION,
-                screenMode:App.ScreenMode.ADD,
-                headerLeftAction:HeaderAction.CANCEL,
-                headerRightAction:HeaderAction.CONFIRM,
-                headerName:ScreenTitle.ADD_TRANSACTION
-            }
-        );
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
 };
