@@ -98,6 +98,7 @@ App.TransactionOptionButton.prototype.setValue = function setValue(value,details
 {
     this._valueField.setText(value);
 
+    //TODO clear field from screen's previous use
     if (details)
     {
         if (this._valueDetailField)

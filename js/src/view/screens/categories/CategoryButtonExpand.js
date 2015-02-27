@@ -94,7 +94,7 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
                 transaction.category = this._model;
                 transaction.subCategory = button.getModel();
 
-                changeScreenData.backSteps = 2;
+                changeScreenData.backSteps = ModelLocator.getProxy(ModelName.SCREEN_HISTORY).peek(2).screenName === App.ScreenName.ACCOUNT ? 2 : 1;
                 changeScreenData.updateBackScreen = true;
 
                 App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);

@@ -1141,9 +1141,11 @@ App.Stack.prototype.pop = function pop()
  * Peek what on top of the stack
  * @returns {*}
  */
-App.Stack.prototype.peek = function peek()
+App.Stack.prototype.peek = function peek(index)
 {
-    return this._source[this._top-1];
+    if (!index) index = 1;
+
+    return this._source[this._top-index];
 };
 
 /**
@@ -7099,6 +7101,7 @@ App.TransactionOptionButton.prototype.setValue = function setValue(value,details
 {
     this._valueField.setText(value);
 
+    //TODO clear field from screen's previous use
     if (details)
     {
         if (this._valueDetailField)
@@ -8321,13 +8324,16 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
                 var ModelLocator = App.ModelLocator,
                     ModelName = App.ModelName,
                     transaction = ModelLocator.getProxy(ModelName.TRANSACTIONS).getCurrent(),
-                    changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
+                    changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK),
+                    screenHistory = ModelLocator.getProxy(ModelName.SCREEN_HISTORY);
 
                 transaction.account = ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0];
                 transaction.category = this._model;
                 transaction.subCategory = button.getModel();
 
-                changeScreenData.backSteps = 2;
+                console.log(screenHistory.peek(2).screenName);
+
+                changeScreenData.backSteps = screenHistory.peek(2).screenName === App.ScreenName.ACCOUNT ? 2 : 1;
                 changeScreenData.updateBackScreen = true;
 
                 App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
