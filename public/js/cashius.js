@@ -1121,7 +1121,7 @@ App.Stack = function Stack()
  */
 App.Stack.prototype.push = function push(item)
 {
-    this._source[this._top++] = item;//TODO add max limit
+    this._source[this._top++] = item;
 };
 
 /**
@@ -7080,7 +7080,7 @@ App.TransactionOptionButton.prototype._update = function _update()
         offset = this.boundingBox.width - 35 * r;
 
     this._valueField.x = Math.round(offset - this._valueField.width);
-    if (this._valueDetailField)
+    if (this._valueDetailField && this.contains(this._valueDetailField))
     {
         this._valueField.y = Math.round(9 * r);
         this._valueDetailField.y = Math.round(30 * r);
@@ -7101,18 +7101,16 @@ App.TransactionOptionButton.prototype.setValue = function setValue(value,details
 {
     this._valueField.setText(value);
 
-    //TODO clear field from screen's previous use
     if (details)
     {
-        if (this._valueDetailField)
-        {
-            this._valueDetailField.setText(details);
-        }
-        else
-        {
-            this._valueDetailField = new PIXI.Text(details,this._options.valueDetailStyle);
-            this.addChild(this._valueDetailField);
-        }
+        if (this._valueDetailField) this._valueDetailField.setText(details);
+        else this._valueDetailField = new PIXI.Text(details,this._options.valueDetailStyle);
+
+        if (!this.contains(this._valueDetailField)) this.addChild(this._valueDetailField);
+    }
+    else
+    {
+        if (this._valueDetailField && this.contains(this._valueDetailField)) this.removeChild(this._valueDetailField);
     }
 
     this._update();
@@ -8324,16 +8322,13 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
                 var ModelLocator = App.ModelLocator,
                     ModelName = App.ModelName,
                     transaction = ModelLocator.getProxy(ModelName.TRANSACTIONS).getCurrent(),
-                    changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK),
-                    screenHistory = ModelLocator.getProxy(ModelName.SCREEN_HISTORY);
+                    changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
                 transaction.account = ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0];
                 transaction.category = this._model;
                 transaction.subCategory = button.getModel();
 
-                console.log(screenHistory.peek(2).screenName);
-
-                changeScreenData.backSteps = screenHistory.peek(2).screenName === App.ScreenName.ACCOUNT ? 2 : 1;
+                changeScreenData.backSteps = ModelLocator.getProxy(ModelName.SCREEN_HISTORY).peek(2).screenName === App.ScreenName.ACCOUNT ? 2 : 1;
                 changeScreenData.updateBackScreen = true;
 
                 App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
@@ -10362,7 +10357,7 @@ App.Menu.prototype._onClick = function _onClick()
     var ScreenName = App.ScreenName,
         item = this._getItemByPosition(this.stage.getTouchData().getLocalPosition(this._container).y),
         changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(),
-        screenName = item ? item.getScreenName() : -1;
+        screenName = item ? item.getScreenName() : ScreenName.BACK;
 
     switch (screenName)
     {

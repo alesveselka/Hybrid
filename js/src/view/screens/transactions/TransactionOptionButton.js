@@ -77,7 +77,7 @@ App.TransactionOptionButton.prototype._update = function _update()
         offset = this.boundingBox.width - 35 * r;
 
     this._valueField.x = Math.round(offset - this._valueField.width);
-    if (this._valueDetailField)
+    if (this._valueDetailField && this.contains(this._valueDetailField))
     {
         this._valueField.y = Math.round(9 * r);
         this._valueDetailField.y = Math.round(30 * r);
@@ -98,18 +98,16 @@ App.TransactionOptionButton.prototype.setValue = function setValue(value,details
 {
     this._valueField.setText(value);
 
-    //TODO clear field from screen's previous use
     if (details)
     {
-        if (this._valueDetailField)
-        {
-            this._valueDetailField.setText(details);
-        }
-        else
-        {
-            this._valueDetailField = new PIXI.Text(details,this._options.valueDetailStyle);
-            this.addChild(this._valueDetailField);
-        }
+        if (this._valueDetailField) this._valueDetailField.setText(details);
+        else this._valueDetailField = new PIXI.Text(details,this._options.valueDetailStyle);
+
+        if (!this.contains(this._valueDetailField)) this.addChild(this._valueDetailField);
+    }
+    else
+    {
+        if (this._valueDetailField && this.contains(this._valueDetailField)) this.removeChild(this._valueDetailField);
     }
 
     this._update();

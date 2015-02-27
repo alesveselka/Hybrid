@@ -98,7 +98,7 @@ App.Menu.prototype._onClick = function _onClick()
     var ScreenName = App.ScreenName,
         item = this._getItemByPosition(this.stage.getTouchData().getLocalPosition(this._container).y),
         changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(),
-        screenName = item ? item.getScreenName() : -1;
+        screenName = item ? item.getScreenName() : ScreenName.BACK;
 
     switch (screenName)
     {
