@@ -7430,7 +7430,7 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
             App.ScreenTitle.TRANSACTIONS
         );
 
-    if (action === App.HeaderAction.CONFIRM)
+    if (action === HeaderAction.CONFIRM)
     {
         //TODO first check if all values are set!
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
@@ -9459,6 +9459,27 @@ App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate
 };
 
 /**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.TransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update();
+
+    if (action === HeaderAction.MENU)
+    {
+        changeScreenData.screenName = App.ScreenName.MENU;
+        changeScreenData.headerName = App.ScreenTitle.MENU;
+        changeScreenData.headerLeftAction = HeaderAction.NONE;
+        changeScreenData.headerRightAction = HeaderAction.CANCEL;
+    }
+
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+};
+
+/**
  * @class SubCategoryReportList
  * @extends Graphics
  * @param {Category} model
@@ -11264,8 +11285,8 @@ App.Initialize.prototype.execute = function execute()
  */
 App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data)
 {
-    var changeScreenDataPool = new App.ObjectPool(App.ChangeScreenData,5),
-        changeScreenData = changeScreenDataPool.allocate().update(App.ScreenName.MENU,0,null,null,App.HeaderAction.NONE,App.ScreenTitle.MENU);
+    var HeaderAction = App.HeaderAction,
+        changeScreenDataPool = new App.ObjectPool(App.ChangeScreenData,5);
 
     this._loadDataCommand.destroy();
     this._loadDataCommand = null;
@@ -11274,7 +11295,14 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
     this._initController();
     this._initView();
 
-    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenDataPool.allocate().update(
+        App.ScreenName.MENU,
+        0,
+        null,
+        HeaderAction.NONE,
+        HeaderAction.CANCEL,
+        App.ScreenTitle.MENU
+    ));
 
     this.dispatchEvent(App.EventType.COMPLETE);
 };

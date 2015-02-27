@@ -312,7 +312,7 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
             App.ScreenTitle.TRANSACTIONS
         );
 
-    if (action === App.HeaderAction.CONFIRM)
+    if (action === HeaderAction.CONFIRM)
     {
         //TODO first check if all values are set!
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);

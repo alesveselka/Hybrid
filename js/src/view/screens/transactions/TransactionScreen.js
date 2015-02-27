@@ -116,3 +116,24 @@ App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate
         if (button !== this._interactiveButton) button.close(immediate);
     }
 };
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.TransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update();
+
+    if (action === HeaderAction.MENU)
+    {
+        changeScreenData.screenName = App.ScreenName.MENU;
+        changeScreenData.headerName = App.ScreenTitle.MENU;
+        changeScreenData.headerLeftAction = HeaderAction.NONE;
+        changeScreenData.headerRightAction = HeaderAction.CANCEL;
+    }
+
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+};

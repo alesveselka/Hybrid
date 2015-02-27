@@ -35,8 +35,8 @@ App.Initialize.prototype.execute = function execute()
  */
 App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data)
 {
-    var changeScreenDataPool = new App.ObjectPool(App.ChangeScreenData,5),
-        changeScreenData = changeScreenDataPool.allocate().update(App.ScreenName.MENU,0,null,null,App.HeaderAction.NONE,App.ScreenTitle.MENU);
+    var HeaderAction = App.HeaderAction,
+        changeScreenDataPool = new App.ObjectPool(App.ChangeScreenData,5);
 
     this._loadDataCommand.destroy();
     this._loadDataCommand = null;
@@ -45,7 +45,14 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
     this._initController();
     this._initView();
 
-    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenDataPool.allocate().update(
+        App.ScreenName.MENU,
+        0,
+        null,
+        HeaderAction.NONE,
+        HeaderAction.CANCEL,
+        App.ScreenTitle.MENU
+    ));
 
     this.dispatchEvent(App.EventType.COMPLETE);
 };
