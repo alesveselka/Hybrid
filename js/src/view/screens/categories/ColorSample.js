@@ -14,7 +14,7 @@ App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
 
     this._modelIndex = modelIndex;
     this._pixelRatio = pixelRatio;
-    this._color = color;
+    this._color = color.toString();
     this._selected = false;
 
     this._render();
@@ -63,6 +63,15 @@ App.ColorSample.prototype.setModel = function setModel(index,color,selectedIndex
 App.ColorSample.prototype.getModelIndex = function getModelIndex()
 {
     return this._modelIndex;
+};
+
+/**
+ * Return sample value
+ * @returns {string}
+ */
+App.ColorSample.prototype.getValue = function getValue()
+{
+    return this._color;
 };
 
 /**

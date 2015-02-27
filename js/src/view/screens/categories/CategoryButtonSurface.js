@@ -35,14 +35,15 @@ App.CategoryButtonSurface.prototype.constructor = App.CategoryButtonSurface;
  * Render
  * @param {string} label
  * @param {string} iconName
+ * @param {string} color
  */
-App.CategoryButtonSurface.prototype.render = function render(label,iconName)
+App.CategoryButtonSurface.prototype.render = function render(label,iconName,color)
 {
     this._nameLabel.setText(label);
 
     if (this._icon) this._icon.setTexture(PIXI.TextureCache[iconName]);
 
-    App.GraphicUtils.drawRect(this._colorStripe,0xffcc00,1,0,0,Math.round(4 * this._pixelRatio),this._height);
+    App.GraphicUtils.drawRect(this._colorStripe,"0x"+color,1,0,0,Math.round(4 * this._pixelRatio),this._height);
 
     if (this._renderAll)
     {

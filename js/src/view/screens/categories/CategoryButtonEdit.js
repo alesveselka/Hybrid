@@ -38,7 +38,7 @@ App.CategoryButtonEdit.prototype._render = function _render()
     var w = this.boundingBox.width,
         h = this.boundingBox.height;
 
-    this._swipeSurface.render(this._model.name,this._model.icon,w,h,this._pixelRatio);
+    this._swipeSurface.render(this._model.name,this._model.icon,this._model.color);
 
     if (this._renderAll)
     {

@@ -6,6 +6,7 @@
  * @param {number} options.height
  * @param {number} options.pixelRatio
  * @param {Texture} options.skin
+ * @param {boolean} options.displayHeader
  * @param {{font:string,fill:string}} options.nameLabelStyle
  * @param {{font:string,fill:string}} options.deleteLabelStyle
  * @param {{font:string,fill:string}} options.addLabelStyle
@@ -23,9 +24,11 @@ App.SubCategoryList = function SubCategoryList(options)
     this._width = options.width;
     this._pixelRatio = options.pixelRatio;
     this._interactiveButton = null;
+    if (options.displayHeader) this._header = new App.ListHeader("Sub-Categories",this._width,this._pixelRatio);
     this._buttonList = new App.List(App.Direction.Y);
-    this._addNewButton = new App.AddNewButton("ADD SUB-CATEGORY",options.addLabelStyle,App.ViewLocator.getViewSegment(App.ViewName.SKIN).WHITE_40,this._pixelRatio);
+    this._addNewButton = new App.AddNewButton("ADD SUB-CATEGORY",options.addLabelStyle,options.addButtonSkin,this._pixelRatio);
 
+    if (this._header) this.addChild(this._header);
     this.addChild(this._buttonList);
     this.addChild(this._addNewButton);
 };
@@ -39,7 +42,9 @@ App.SubCategoryList.prototype.constructor = App.SubCategoryList;
  */
 App.SubCategoryList.prototype._render = function _render()
 {
-    this._addNewButton.y = this._buttonList.boundingBox.height;
+    if (this._header) this._buttonList.y = this._header.height;
+
+    this._addNewButton.y = this._buttonList.y + this._buttonList.boundingBox.height;
 
     this.boundingBox.height = this._addNewButton.y + this._addNewButton.boundingBox.height;
 };

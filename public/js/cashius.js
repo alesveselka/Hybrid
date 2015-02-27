@@ -2013,6 +2013,7 @@ App.ViewLocator = {
  *      BLUE_LIGHT:number,
  *      GREY: number,
  *      GREY_DARK: number,
+ *      GREY_DARKER: number,
  *      GREY_LIGHT: number,
  *      RED:number,
  *      RED_DARK:number,
@@ -2029,6 +2030,7 @@ App.ColorTheme = {
     BLUE_LIGHT:0x50597B,
     GREY:0xefefef,
     GREY_DARK:0xcccccc,
+    GREY_DARKER:0x999999,
     GREY_LIGHT:0xffffff,
     RED:0xE53013,
     RED_DARK:0x990000,
@@ -4678,6 +4680,31 @@ App.InfiniteList.prototype.selectItemByPosition = function selectItemByPosition(
 };
 
 /**
+ * Find and select item under position passed in
+ * @param {string} value
+ */
+App.InfiniteList.prototype.selectItemByValue = function selectItemByValue(value)
+{
+    var i = 0,
+        l = this._items.length,
+        item = null;
+
+    this._selectedModelIndex = -1;
+
+    for (;i<l;)
+    {
+        item = this._items[i++];
+        if (item.getValue() === value)
+        {
+            this._selectedModelIndex = item.getModelIndex();
+            break;
+        }
+    }
+
+    for (i=0;i<l;) this._items[i++].select(this._selectedModelIndex);
+};
+
+/**
  * Cancel scroll
  */
 App.InfiniteList.prototype.cancelScroll = function cancelScroll()
@@ -5834,7 +5861,7 @@ App.ListHeader = function ListHeader(label,width,pixelRatio)
 
     this._width = width;
     this._pixelRatio = pixelRatio;
-    this._textField = new PIXI.Text(label,App.FontStyle.get(12,App.FontStyle.WHITE));
+    this._textField = new PIXI.Text(label,App.FontStyle.get(12,App.FontStyle.GREY_DARKER));
 
     this._render();
 
@@ -5855,8 +5882,7 @@ App.ListHeader.prototype._render = function _render()
         r = this._pixelRatio,
         h = Math.round(30 * this._pixelRatio);
 
-    GraphicUtils.drawRects(this,ColorTheme.BLUE,1,[0,0,this._width,h],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.BLUE_DARK,1,[0,h-1,this._width,1],false,true);
+    GraphicUtils.drawRect(this,ColorTheme.GREY_DARK,1,0,0,this._width,h);
 
     this._textField.x = Math.round((this._width - this._textField.width) / 2);
     this._textField.y = Math.round((h - this._textField.height) / 2);
@@ -7206,7 +7232,6 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
     this._container.addChild(this._toggleButtonList);
     this._container.addChild(this._optionList);
     this._container.addChild(this._noteInput);
-    this._container.addChild(this._deleteButton);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
@@ -7279,8 +7304,6 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
     this._model = data || this._model;
     this._mode = mode || this._mode;
 
-    var date = this._model.date;
-
     this._transactionInput.setValue(this._model.amount);
 
     if (this._model.type === App.TransactionType.INCOME && !this._typeToggle.isSelected()) this._typeToggle.toggle();
@@ -7289,12 +7312,14 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
 
     this._accountOption.setValue(this._model.account ? this._model.account.name : "?");
     this._categoryOption.setValue(this._model.subCategory ? this._model.subCategory.name : "?",this._model.category ? this._model.category.name : null);
-    this._timeOption.setValue(App.DateUtils.getMilitaryTime(date),date.toDateString());
+    this._timeOption.setValue(App.DateUtils.getMilitaryTime(this._model.date),this._model.date.toDateString());
     this._methodOption.setValue(this._model.method.name);
     this._currencyOption.setValue(this._model.currency.symbol);
 
     this._noteInput.setValue(this._model.note);
 
+    //TODO i'll also need to re-render bg if the button is added/removed
+    //TODO move the '_render' method - I have to check it there anyway
     if (this._mode === App.ScreenMode.EDIT)
     {
         if (!this._container.contains(this._deleteButton)) this._container.addChild(this._deleteButton);
@@ -7458,7 +7483,7 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
 
         collection.removeItem(collection.getCurrent()).destroy();
 
-        changeScreenData.screenName = App.ScreenName.BACK;
+        changeScreenData.screenName = App.ScreenName.BACK;//TODO if I cancel from Category Edit list, I got Category Select because of AddTransaction mode
 
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
@@ -7849,6 +7874,8 @@ App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
  * @param {number} options.height
  * @param {number} options.pixelRatio
  * @param {number} options.openOffset
+ * @param {Texture} options.whiteSkin
+ * @param {Texture} options.greySkin
  * @param {{font:string,fill:string}} options.nameLabelStyle
  * @param {{font:string,fill:string}} options.deleteLabelStyle
  * @constructor
@@ -7863,9 +7890,10 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
 
     this._model = null;
     this._mode = null;
+    this._options = options;
     this._pixelRatio = options.pixelRatio;
     this._swipeSurface = new PIXI.DisplayObjectContainer();
-    this._skin = new PIXI.Sprite(options.skin);
+    this._skin = new PIXI.Sprite(options.whiteSkin);
     this._icon = PIXI.Sprite.fromFrame("subcategory-app");
     this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
     this._background = new PIXI.Graphics();
@@ -7875,7 +7903,6 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this.addChild(this._background);
     this.addChild(this._deleteLabel);
     this._swipeSurface.addChild(this._skin);
-    this._swipeSurface.addChild(this._icon);
     this._swipeSurface.addChild(this._nameLabel);
     this.addChild(this._swipeSurface);
 };
@@ -7913,8 +7940,24 @@ App.SubCategoryButton.prototype._render = function _render()
         this._icon.y = Math.round((h - this._icon.height) / 2);
         this._icon.tint = ColorTheme.GREY;
 
-        this._nameLabel.x = Math.round(64 * r);
         this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
+    }
+
+    if (this._mode === App.ScreenMode.SELECT)
+    {
+        this._skin.setTexture(this._options.whiteSkin);
+
+        this._nameLabel.x = Math.round(64 * this._pixelRatio);
+
+        if (!this._swipeSurface.contains(this._icon)) this._swipeSurface.addChild(this._icon);
+    }
+    else if (this._mode === App.ScreenMode.EDIT)
+    {
+        this._skin.setTexture(this._options.greySkin);
+
+        this._nameLabel.x = this._icon.x;
+
+        if (this._swipeSurface.contains(this._icon)) this._swipeSurface.removeChild(this._icon);
     }
 };
 
@@ -7977,6 +8020,7 @@ App.SubCategoryButton.prototype._getSwipePosition = function _getSwipePosition()
  * @param {number} options.height
  * @param {number} options.pixelRatio
  * @param {Texture} options.skin
+ * @param {boolean} options.displayHeader
  * @param {{font:string,fill:string}} options.nameLabelStyle
  * @param {{font:string,fill:string}} options.deleteLabelStyle
  * @param {{font:string,fill:string}} options.addLabelStyle
@@ -7994,9 +8038,11 @@ App.SubCategoryList = function SubCategoryList(options)
     this._width = options.width;
     this._pixelRatio = options.pixelRatio;
     this._interactiveButton = null;
+    if (options.displayHeader) this._header = new App.ListHeader("Sub-Categories",this._width,this._pixelRatio);
     this._buttonList = new App.List(App.Direction.Y);
-    this._addNewButton = new App.AddNewButton("ADD SUB-CATEGORY",options.addLabelStyle,App.ViewLocator.getViewSegment(App.ViewName.SKIN).WHITE_40,this._pixelRatio);
+    this._addNewButton = new App.AddNewButton("ADD SUB-CATEGORY",options.addLabelStyle,options.addButtonSkin,this._pixelRatio);
 
+    if (this._header) this.addChild(this._header);
     this.addChild(this._buttonList);
     this.addChild(this._addNewButton);
 };
@@ -8010,7 +8056,9 @@ App.SubCategoryList.prototype.constructor = App.SubCategoryList;
  */
 App.SubCategoryList.prototype._render = function _render()
 {
-    this._addNewButton.y = this._buttonList.boundingBox.height;
+    if (this._header) this._buttonList.y = this._header.height;
+
+    this._addNewButton.y = this._buttonList.y + this._buttonList.boundingBox.height;
 
     this.boundingBox.height = this._addNewButton.y + this._addNewButton.boundingBox.height;
 };
@@ -8147,14 +8195,15 @@ App.CategoryButtonSurface.prototype.constructor = App.CategoryButtonSurface;
  * Render
  * @param {string} label
  * @param {string} iconName
+ * @param {string} color
  */
-App.CategoryButtonSurface.prototype.render = function render(label,iconName)
+App.CategoryButtonSurface.prototype.render = function render(label,iconName,color)
 {
     this._nameLabel.setText(label);
 
     if (this._icon) this._icon.setTexture(PIXI.TextureCache[iconName]);
 
-    App.GraphicUtils.drawRect(this._colorStripe,0xffcc00,1,0,0,Math.round(4 * this._pixelRatio),this._height);
+    App.GraphicUtils.drawRect(this._colorStripe,"0x"+color,1,0,0,Math.round(4 * this._pixelRatio),this._height);
 
     if (this._renderAll)
     {
@@ -8214,7 +8263,7 @@ App.CategoryButtonEdit.prototype._render = function _render()
     var w = this.boundingBox.width,
         h = this.boundingBox.height;
 
-    this._swipeSurface.render(this._model.name,this._model.icon,w,h,this._pixelRatio);
+    this._swipeSurface.render(this._model.name,this._model.icon,this._model.color);
 
     if (this._renderAll)
     {
@@ -8331,7 +8380,7 @@ App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
  */
 App.CategoryButtonExpand.prototype._render = function _render()
 {
-    this._surface.render(this._model.name,this._model.icon);
+    this._surface.render(this._model.name,this._model.icon,this._model.color);
 };
 
 /**
@@ -8718,7 +8767,7 @@ App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
 
     this._modelIndex = modelIndex;
     this._pixelRatio = pixelRatio;
-    this._color = color;
+    this._color = color.toString();
     this._selected = false;
 
     this._render();
@@ -8767,6 +8816,15 @@ App.ColorSample.prototype.setModel = function setModel(index,color,selectedIndex
 App.ColorSample.prototype.getModelIndex = function getModelIndex()
 {
     return this._modelIndex;
+};
+
+/**
+ * Return sample value
+ * @returns {string}
+ */
+App.ColorSample.prototype.getValue = function getValue()
+{
+    return this._color;
 };
 
 /**
@@ -8859,6 +8917,15 @@ App.IconSample.prototype.getModelIndex = function getModelIndex()
 };
 
 /**
+ * Return sample value
+ * @returns {string}
+ */
+App.IconSample.prototype.getValue = function getValue()
+{
+    return this._model;
+};
+
+/**
  * Select
  * @param {number} selectedIndex Index of selected item in the collection
  */
@@ -8899,8 +8966,9 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
             width:w,
             height:inputHeight,
             pixelRatio:r,
-            skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_40,
-            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK)
+            addButtonSkin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_40,
+            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK),
+            displayHeader:true
         };
 
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
@@ -8908,6 +8976,7 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
     this._background = new PIXI.Graphics();
     this._colorStripe = new PIXI.Graphics();
     this._icon = PIXI.Sprite.fromFrame("currencies");
+    this._iconResizeRatio = Math.round(32 * r) / this._icon.height;
     this._input = new Input("Enter Category Name",20,w - Math.round(70 * r),Math.round(40 * r),r,true);
     this._separators = new PIXI.Graphics();
     this._colorList = new InfiniteList(this._getColorSamples(),App.ColorSample,Direction.X,w,Math.round(50 * r),r);
@@ -8917,17 +8986,16 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
     this._budgetHeader = new App.ListHeader("Budget",w,r);
     this._budget = new Input("Enter Budget",20,inputWidth,inputHeight,r,true);
     this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
+    this._renderAll = true;
 
     //TODO add modal window to confirm deleting sub-category. Also offer option 'Edit'?
     //TODO center selected color/icon when shown
 
     this._budget.restrict(/\D/g);
-    this._render();
 
     //TODO use list instead of DisplayObjectContainer for container?
     this._container.addChild(this._background);
     this._container.addChild(this._colorStripe);
-    this._container.addChild(this._icon);
     this._container.addChild(this._input);
     this._container.addChild(this._separators);
     this._container.addChild(this._colorList);
@@ -8936,7 +9004,6 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
     this._container.addChild(this._subCategoryList);
     this._container.addChild(this._budgetHeader);
     this._container.addChild(this._budget);
-    this._container.addChild(this._deleteButton);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
@@ -8958,38 +9025,57 @@ App.EditCategoryScreen.prototype._render = function _render()
         w = this._layout.width,
         inputFragmentHeight = Math.round(60 * r),
         colorListHeight = this._colorList.boundingBox.height,
-        iconResizeRatio = Math.round(32 * r) / this._icon.height,
         separatorWidth = w - this._inputPadding * 2,
         bottom = 0;
 
-    GraphicUtils.drawRect(this._colorStripe,0xff6600,1,0,0,Math.round(4*r),Math.round(59 * r));
+    GraphicUtils.drawRect(this._colorStripe,"0x"+this._model.color,1,0,0,Math.round(4*r),Math.round(59 * r));
 
-    this._icon.scale.x = iconResizeRatio;
-    this._icon.scale.y = iconResizeRatio;
-    this._icon.x = Math.round(15 * r);
-    this._icon.y = Math.round((inputFragmentHeight - this._icon.height) / 2);
-    this._icon.tint = ColorTheme.BLUE;
+    if (this._icon) this._icon.setTexture(PIXI.TextureCache[this._model.icon]);
 
-    this._input.x = Math.round(60 * r);
-    this._input.y = Math.round((inputFragmentHeight - this._input.height) / 2);
+    if (this._renderAll)
+    {
+        this._renderAll = false;
 
-    this._colorList.y = inputFragmentHeight;
-    this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
-    this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
+        this._icon = PIXI.Sprite.fromFrame(this._model.icon);
+        this._iconResizeRatio = Math.round(32 * r) / this._icon.height;
+        this._icon.scale.x = this._iconResizeRatio;
+        this._icon.scale.y = this._iconResizeRatio;
+        this._icon.x = Math.round(15 * r);
+        this._icon.y = Math.round((inputFragmentHeight - this._icon.height) / 2);
+        this._icon.tint = ColorTheme.BLUE;
+        this._container.addChild(this._icon);
 
-    this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
+        this._input.x = Math.round(60 * r);
+        this._input.y = Math.round((inputFragmentHeight - this._input.height) / 2);
+
+        this._colorList.y = inputFragmentHeight;
+        this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
+        this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
+        this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
+
+        this._budget.x = this._inputPadding;
+        this._deleteButton.x = this._inputPadding;
+        this._separators.x = this._inputPadding;
+    }
 
     this._budgetHeader.y = this._subCategoryList.y + this._subCategoryList.boundingBox.height;
 
     bottom = this._budgetHeader.y + this._budgetHeader.height;
 
-    this._budget.x = this._inputPadding;
     this._budget.y = bottom + this._inputPadding;
 
-    bottom = bottom + inputFragmentHeight;
+    if (this._mode === App.ScreenMode.EDIT)
+    {
+        bottom = bottom + inputFragmentHeight;
 
-    this._deleteButton.x = this._inputPadding;
-    this._deleteButton.y = bottom + this._inputPadding;
+        this._deleteButton.y = bottom + this._inputPadding;
+
+        if (!this._container.contains(this._deleteButton)) this._container.addChild(this._deleteButton);
+    }
+    else
+    {
+        if (this._container.contains(this._deleteButton)) this._container.removeChild(this._deleteButton);
+    }
 
     GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w,bottom+inputFragmentHeight);
     GraphicUtils.drawRects(this._separators,ColorTheme.GREY_DARK,1,[
@@ -9002,7 +9088,28 @@ App.EditCategoryScreen.prototype._render = function _render()
         0,inputFragmentHeight+colorListHeight+1,separatorWidth,1,
         0,bottom,separatorWidth,1
     ],false,true);
-    this._separators.x = this._inputPadding;
+};
+
+/**
+ * Update
+ * @param {Category} model
+ * @param {string} mode
+ */
+App.EditCategoryScreen.prototype.update = function update(model,mode)
+{
+    this._model = model;
+    this._mode = mode;
+
+    this._input.setValue(this._model.name);
+    this._colorList.selectItemByValue(this._model.color);
+    this._topIconList.selectItemByValue(this._model.icon);
+    this._bottomIconList.selectItemByValue(this._model.icon);
+    this._subCategoryList.update(this._model,this._mode);
+    this._budget.setValue(this._model.budget);
+
+    this._render();
+
+    this._pane.resize();
 };
 
 /**
@@ -11517,15 +11624,18 @@ App.Initialize.prototype._initView = function _initView()
             height:Math.round(50 * pixelRatio),
             pixelRatio:pixelRatio,
             skin:skin.GREY_50,
+            addButtonSkin:skin.WHITE_40,
             nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
             editLabelStyle:FontStyle.get(18,FontStyle.WHITE),
-            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK)
+            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK),
+            displayHeader:false
         },
         subCategoryButtonOptions = {
             width:w,
             height:Math.round(40 * pixelRatio),
             pixelRatio:pixelRatio,
-            skin:skin.WHITE_40,
+            whiteSkin:skin.WHITE_40,
+            greySkin:skin.GREY_40,
             nameLabelStyle:FontStyle.get(14,FontStyle.BLUE),
             deleteLabelStyle:FontStyle.get(14,FontStyle.WHITE),
             openOffset:Math.round(80 * pixelRatio)

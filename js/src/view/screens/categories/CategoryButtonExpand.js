@@ -41,7 +41,7 @@ App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
  */
 App.CategoryButtonExpand.prototype._render = function _render()
 {
-    this._surface.render(this._model.name,this._model.icon);
+    this._surface.render(this._model.name,this._model.icon,this._model.color);
 };
 
 /**

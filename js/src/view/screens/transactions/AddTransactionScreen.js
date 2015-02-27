@@ -71,7 +71,6 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
     this._container.addChild(this._toggleButtonList);
     this._container.addChild(this._optionList);
     this._container.addChild(this._noteInput);
-    this._container.addChild(this._deleteButton);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
@@ -144,8 +143,6 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
     this._model = data || this._model;
     this._mode = mode || this._mode;
 
-    var date = this._model.date;
-
     this._transactionInput.setValue(this._model.amount);
 
     if (this._model.type === App.TransactionType.INCOME && !this._typeToggle.isSelected()) this._typeToggle.toggle();
@@ -154,12 +151,14 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
 
     this._accountOption.setValue(this._model.account ? this._model.account.name : "?");
     this._categoryOption.setValue(this._model.subCategory ? this._model.subCategory.name : "?",this._model.category ? this._model.category.name : null);
-    this._timeOption.setValue(App.DateUtils.getMilitaryTime(date),date.toDateString());
+    this._timeOption.setValue(App.DateUtils.getMilitaryTime(this._model.date),this._model.date.toDateString());
     this._methodOption.setValue(this._model.method.name);
     this._currencyOption.setValue(this._model.currency.symbol);
 
     this._noteInput.setValue(this._model.note);
 
+    //TODO i'll also need to re-render bg if the button is added/removed
+    //TODO move the '_render' method - I have to check it there anyway
     if (this._mode === App.ScreenMode.EDIT)
     {
         if (!this._container.contains(this._deleteButton)) this._container.addChild(this._deleteButton);
@@ -323,7 +322,7 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
 
         collection.removeItem(collection.getCurrent()).destroy();
 
-        changeScreenData.screenName = App.ScreenName.BACK;
+        changeScreenData.screenName = App.ScreenName.BACK;//TODO if I cancel from Category Edit list, I got Category Select because of AddTransaction mode
 
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }

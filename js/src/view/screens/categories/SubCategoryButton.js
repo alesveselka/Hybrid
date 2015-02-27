@@ -7,6 +7,8 @@
  * @param {number} options.height
  * @param {number} options.pixelRatio
  * @param {number} options.openOffset
+ * @param {Texture} options.whiteSkin
+ * @param {Texture} options.greySkin
  * @param {{font:string,fill:string}} options.nameLabelStyle
  * @param {{font:string,fill:string}} options.deleteLabelStyle
  * @constructor
@@ -21,9 +23,10 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
 
     this._model = null;
     this._mode = null;
+    this._options = options;
     this._pixelRatio = options.pixelRatio;
     this._swipeSurface = new PIXI.DisplayObjectContainer();
-    this._skin = new PIXI.Sprite(options.skin);
+    this._skin = new PIXI.Sprite(options.whiteSkin);
     this._icon = PIXI.Sprite.fromFrame("subcategory-app");
     this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
     this._background = new PIXI.Graphics();
@@ -33,7 +36,6 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this.addChild(this._background);
     this.addChild(this._deleteLabel);
     this._swipeSurface.addChild(this._skin);
-    this._swipeSurface.addChild(this._icon);
     this._swipeSurface.addChild(this._nameLabel);
     this.addChild(this._swipeSurface);
 };
@@ -71,8 +73,24 @@ App.SubCategoryButton.prototype._render = function _render()
         this._icon.y = Math.round((h - this._icon.height) / 2);
         this._icon.tint = ColorTheme.GREY;
 
-        this._nameLabel.x = Math.round(64 * r);
         this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
+    }
+
+    if (this._mode === App.ScreenMode.SELECT)
+    {
+        this._skin.setTexture(this._options.whiteSkin);
+
+        this._nameLabel.x = Math.round(64 * this._pixelRatio);
+
+        if (!this._swipeSurface.contains(this._icon)) this._swipeSurface.addChild(this._icon);
+    }
+    else if (this._mode === App.ScreenMode.EDIT)
+    {
+        this._skin.setTexture(this._options.greySkin);
+
+        this._nameLabel.x = this._icon.x;
+
+        if (this._swipeSurface.contains(this._icon)) this._swipeSurface.removeChild(this._icon);
     }
 };
 

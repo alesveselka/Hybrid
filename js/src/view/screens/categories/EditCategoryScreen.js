@@ -24,8 +24,9 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
             width:w,
             height:inputHeight,
             pixelRatio:r,
-            skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_40,
-            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK)
+            addButtonSkin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_40,
+            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK),
+            displayHeader:true
         };
 
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
@@ -33,6 +34,7 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
     this._background = new PIXI.Graphics();
     this._colorStripe = new PIXI.Graphics();
     this._icon = PIXI.Sprite.fromFrame("currencies");
+    this._iconResizeRatio = Math.round(32 * r) / this._icon.height;
     this._input = new Input("Enter Category Name",20,w - Math.round(70 * r),Math.round(40 * r),r,true);
     this._separators = new PIXI.Graphics();
     this._colorList = new InfiniteList(this._getColorSamples(),App.ColorSample,Direction.X,w,Math.round(50 * r),r);
@@ -42,17 +44,16 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
     this._budgetHeader = new App.ListHeader("Budget",w,r);
     this._budget = new Input("Enter Budget",20,inputWidth,inputHeight,r,true);
     this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
+    this._renderAll = true;
 
     //TODO add modal window to confirm deleting sub-category. Also offer option 'Edit'?
     //TODO center selected color/icon when shown
 
     this._budget.restrict(/\D/g);
-    this._render();
 
     //TODO use list instead of DisplayObjectContainer for container?
     this._container.addChild(this._background);
     this._container.addChild(this._colorStripe);
-    this._container.addChild(this._icon);
     this._container.addChild(this._input);
     this._container.addChild(this._separators);
     this._container.addChild(this._colorList);
@@ -61,7 +62,6 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
     this._container.addChild(this._subCategoryList);
     this._container.addChild(this._budgetHeader);
     this._container.addChild(this._budget);
-    this._container.addChild(this._deleteButton);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
@@ -83,38 +83,57 @@ App.EditCategoryScreen.prototype._render = function _render()
         w = this._layout.width,
         inputFragmentHeight = Math.round(60 * r),
         colorListHeight = this._colorList.boundingBox.height,
-        iconResizeRatio = Math.round(32 * r) / this._icon.height,
         separatorWidth = w - this._inputPadding * 2,
         bottom = 0;
 
-    GraphicUtils.drawRect(this._colorStripe,0xff6600,1,0,0,Math.round(4*r),Math.round(59 * r));
+    GraphicUtils.drawRect(this._colorStripe,"0x"+this._model.color,1,0,0,Math.round(4*r),Math.round(59 * r));
 
-    this._icon.scale.x = iconResizeRatio;
-    this._icon.scale.y = iconResizeRatio;
-    this._icon.x = Math.round(15 * r);
-    this._icon.y = Math.round((inputFragmentHeight - this._icon.height) / 2);
-    this._icon.tint = ColorTheme.BLUE;
+    if (this._icon) this._icon.setTexture(PIXI.TextureCache[this._model.icon]);
 
-    this._input.x = Math.round(60 * r);
-    this._input.y = Math.round((inputFragmentHeight - this._input.height) / 2);
+    if (this._renderAll)
+    {
+        this._renderAll = false;
 
-    this._colorList.y = inputFragmentHeight;
-    this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
-    this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
+        this._icon = PIXI.Sprite.fromFrame(this._model.icon);
+        this._iconResizeRatio = Math.round(32 * r) / this._icon.height;
+        this._icon.scale.x = this._iconResizeRatio;
+        this._icon.scale.y = this._iconResizeRatio;
+        this._icon.x = Math.round(15 * r);
+        this._icon.y = Math.round((inputFragmentHeight - this._icon.height) / 2);
+        this._icon.tint = ColorTheme.BLUE;
+        this._container.addChild(this._icon);
 
-    this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
+        this._input.x = Math.round(60 * r);
+        this._input.y = Math.round((inputFragmentHeight - this._input.height) / 2);
+
+        this._colorList.y = inputFragmentHeight;
+        this._topIconList.y = inputFragmentHeight + this._colorList.boundingBox.height;
+        this._bottomIconList.y = this._topIconList.y + this._topIconList.boundingBox.height;
+        this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
+
+        this._budget.x = this._inputPadding;
+        this._deleteButton.x = this._inputPadding;
+        this._separators.x = this._inputPadding;
+    }
 
     this._budgetHeader.y = this._subCategoryList.y + this._subCategoryList.boundingBox.height;
 
     bottom = this._budgetHeader.y + this._budgetHeader.height;
 
-    this._budget.x = this._inputPadding;
     this._budget.y = bottom + this._inputPadding;
 
-    bottom = bottom + inputFragmentHeight;
+    if (this._mode === App.ScreenMode.EDIT)
+    {
+        bottom = bottom + inputFragmentHeight;
 
-    this._deleteButton.x = this._inputPadding;
-    this._deleteButton.y = bottom + this._inputPadding;
+        this._deleteButton.y = bottom + this._inputPadding;
+
+        if (!this._container.contains(this._deleteButton)) this._container.addChild(this._deleteButton);
+    }
+    else
+    {
+        if (this._container.contains(this._deleteButton)) this._container.removeChild(this._deleteButton);
+    }
 
     GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w,bottom+inputFragmentHeight);
     GraphicUtils.drawRects(this._separators,ColorTheme.GREY_DARK,1,[
@@ -127,7 +146,28 @@ App.EditCategoryScreen.prototype._render = function _render()
         0,inputFragmentHeight+colorListHeight+1,separatorWidth,1,
         0,bottom,separatorWidth,1
     ],false,true);
-    this._separators.x = this._inputPadding;
+};
+
+/**
+ * Update
+ * @param {Category} model
+ * @param {string} mode
+ */
+App.EditCategoryScreen.prototype.update = function update(model,mode)
+{
+    this._model = model;
+    this._mode = mode;
+
+    this._input.setValue(this._model.name);
+    this._colorList.selectItemByValue(this._model.color);
+    this._topIconList.selectItemByValue(this._model.icon);
+    this._bottomIconList.selectItemByValue(this._model.icon);
+    this._subCategoryList.update(this._model,this._mode);
+    this._budget.setValue(this._model.budget);
+
+    this._render();
+
+    this._pane.resize();
 };
 
 /**

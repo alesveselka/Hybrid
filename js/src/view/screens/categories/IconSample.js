@@ -73,6 +73,15 @@ App.IconSample.prototype.getModelIndex = function getModelIndex()
 };
 
 /**
+ * Return sample value
+ * @returns {string}
+ */
+App.IconSample.prototype.getValue = function getValue()
+{
+    return this._model;
+};
+
+/**
  * Select
  * @param {number} selectedIndex Index of selected item in the collection
  */

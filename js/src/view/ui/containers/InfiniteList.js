@@ -117,6 +117,31 @@ App.InfiniteList.prototype.selectItemByPosition = function selectItemByPosition(
 };
 
 /**
+ * Find and select item under position passed in
+ * @param {string} value
+ */
+App.InfiniteList.prototype.selectItemByValue = function selectItemByValue(value)
+{
+    var i = 0,
+        l = this._items.length,
+        item = null;
+
+    this._selectedModelIndex = -1;
+
+    for (;i<l;)
+    {
+        item = this._items[i++];
+        if (item.getValue() === value)
+        {
+            this._selectedModelIndex = item.getModelIndex();
+            break;
+        }
+    }
+
+    for (i=0;i<l;) this._items[i++].select(this._selectedModelIndex);
+};
+
+/**
  * Cancel scroll
  */
 App.InfiniteList.prototype.cancelScroll = function cancelScroll()

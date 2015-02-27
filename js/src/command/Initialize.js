@@ -146,15 +146,18 @@ App.Initialize.prototype._initView = function _initView()
             height:Math.round(50 * pixelRatio),
             pixelRatio:pixelRatio,
             skin:skin.GREY_50,
+            addButtonSkin:skin.WHITE_40,
             nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
             editLabelStyle:FontStyle.get(18,FontStyle.WHITE),
-            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK)
+            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK),
+            displayHeader:false
         },
         subCategoryButtonOptions = {
             width:w,
             height:Math.round(40 * pixelRatio),
             pixelRatio:pixelRatio,
-            skin:skin.WHITE_40,
+            whiteSkin:skin.WHITE_40,
+            greySkin:skin.GREY_40,
             nameLabelStyle:FontStyle.get(14,FontStyle.BLUE),
             deleteLabelStyle:FontStyle.get(14,FontStyle.WHITE),
             openOffset:Math.round(80 * pixelRatio)
