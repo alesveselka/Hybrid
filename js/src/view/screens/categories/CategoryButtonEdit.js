@@ -75,6 +75,25 @@ App.CategoryButtonEdit.prototype.update = function update(model,mode)
 };
 
 /**
+ * Click handler
+ * @param {InteractionData} data
+ */
+App.CategoryButtonEdit.prototype.onClick = function onClick(data)
+{
+    if (this._isOpen && data.getLocalPosition(this).x >= this._width - this._openOffset)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+            App.ScreenName.EDIT_CATEGORY,
+            App.ScreenMode.EDIT,
+            this._model,
+            0,
+            0,
+            App.ScreenTitle.EDIT_CATEGORY
+        ));
+    }
+};
+
+/**
  * Update swipe position
  * @param {number} position
  * @private

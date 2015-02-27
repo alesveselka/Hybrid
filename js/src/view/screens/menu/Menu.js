@@ -96,21 +96,36 @@ App.Menu.prototype._onClick = function _onClick()
     this._pane.cancelScroll();
 
     var ScreenName = App.ScreenName,
+        ScreenTitle = App.ScreenTitle,
+        HeaderAction = App.HeaderAction,
         item = this._getItemByPosition(this.stage.getTouchData().getLocalPosition(this._container).y),
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(),
-        screenName = item ? item.getScreenName() : ScreenName.BACK;
+        screenName = item ? item.getScreenName() : ScreenName.BACK,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(screenName,0,null,HeaderAction.MENU,HeaderAction.ADD_TRANSACTION);
 
     switch (screenName)
     {
         case ScreenName.ADD_TRANSACTION:
             App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
                 nextCommand:new App.ChangeScreen(),
-                nextCommandData:changeScreenData
+                nextCommandData:changeScreenData.update()
             });
             break;
 
-        default:
+        case ScreenName.ACCOUNT:
+            changeScreenData.screenMode = App.ScreenMode.EDIT;
+            changeScreenData.headerName = ScreenTitle.ACCOUNTS;
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+            break;
+
+        case ScreenName.REPORT:
+            changeScreenData.headerName = ScreenTitle.REPORT;
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+            break;
+
+        case ScreenName.TRANSACTIONS:
+            changeScreenData.headerName = ScreenTitle.TRANSACTIONS;
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+            break;
     }
 };
 

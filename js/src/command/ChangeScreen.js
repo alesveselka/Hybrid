@@ -27,7 +27,7 @@ App.ChangeScreen.prototype.execute = function execute(data)
         screenHistory = ModelLocator.getProxy(ModelName.SCREEN_HISTORY),
         screenStack = ViewLocator.getViewSegment(ViewName.SCREEN_STACK),
         screen = null;
-
+    //TODO if none of the header actions is 'Cancel' and it's not in 'Select' mode can I clear the history?
     if (data.screenName === App.ScreenName.BACK)
     {
         var updateBackScreen = data.updateBackScreen,

@@ -65,14 +65,23 @@ App.AccountScreen.prototype._onClick = function _onClick()
 
     if (button)
     {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
-            App.ScreenName.CATEGORY,
-            App.ScreenMode.SELECT,
-            button.getModel().categories,
-            null,
-            App.HeaderAction.NONE,
-            App.ScreenTitle.SELECT_CATEGORY
-        ));
+        var ScreenMode = App.ScreenMode,
+            HeaderAction = App.HeaderAction,
+            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.CATEGORY,this._mode,button.getModel().categories);
+
+        if (this._mode === ScreenMode.SELECT)
+        {
+            changeScreenData.headerRightAction = HeaderAction.NONE;
+            changeScreenData.headerName = App.ScreenTitle.SELECT_CATEGORY;
+        }
+        else
+        {
+            changeScreenData.headerLeftAction = HeaderAction.MENU;
+            changeScreenData.headerRightAction = HeaderAction.ADD_TRANSACTION;
+            changeScreenData.headerName = App.ScreenTitle.CATEGORIES;
+        }
+
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
 };
 
@@ -83,11 +92,22 @@ App.AccountScreen.prototype._onClick = function _onClick()
  */
 App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    if (action === App.HeaderAction.CANCEL)
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
+
+    if (action === HeaderAction.ADD_TRANSACTION)
     {
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,
-            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK)
-        );
+        App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
+    }
+    else if (action === HeaderAction.MENU)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.MENU,0,null,HeaderAction.NONE,HeaderAction.CANCEL,App.ScreenTitle.MENU));
+    }
+    else if (action === HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.BACK));
     }
 };

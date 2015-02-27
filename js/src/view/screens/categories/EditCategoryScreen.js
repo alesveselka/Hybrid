@@ -263,6 +263,21 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
 };
 
 /**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    if (action === App.HeaderAction.CONFIRM)
+    {
+        //TODO first check if all values are set and save changes!
+    }
+
+    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK));
+};
+
+/**
  * Called when swipe starts
  * @param {boolean} [preferScroll=false]
  * @param {string} direction

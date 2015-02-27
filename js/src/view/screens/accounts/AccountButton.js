@@ -14,7 +14,7 @@ App.AccountButton = function AccountButton(model,width,height,pixelRatio,nameSty
     PIXI.Graphics.call(this);
 
     this.boundingBox = new PIXI.Rectangle(0,0,width,height);
-
+    //TODO also make 'swipe-able' version as Category button have
     this._model = model;
     this._pixelRatio = pixelRatio;
     this._nameLabel = new PIXI.Text(this._model.name,nameStyle);

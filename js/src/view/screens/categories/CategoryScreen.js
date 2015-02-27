@@ -187,17 +187,16 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
+    var data = this.stage.getTouchData();
+
     if (this._mode === App.ScreenMode.SELECT)
     {
-        var data = this.stage.getTouchData(),
-            EventType = App.EventType;
-
         this._interactiveButton = this._buttonList.getItemUnderPoint(data);
 
         if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
         {
             this._buttonsInTransition.push(this._interactiveButton);
-            this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+            this._interactiveButton.addEventListener(App.EventType.COMPLETE,this,this._onButtonTransitionComplete);
 
             this._layoutDirty = true;
         }
@@ -205,8 +204,10 @@ App.CategoryScreen.prototype._onClick = function _onClick()
         this._interactiveButton.onClick(data);
         this._pane.cancelScroll();
     }
-
-//    if (!this._swipeEnabled) this._closeButtons(false);
+    else if (this._mode === App.ScreenMode.EDIT)
+    {
+        this._buttonList.getItemUnderPoint(data).onClick(data);
+    }
 };
 
 /**
@@ -216,12 +217,23 @@ App.CategoryScreen.prototype._onClick = function _onClick()
  */
 App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    if (action === App.HeaderAction.CANCEL)
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
+
+    if (action === HeaderAction.ADD_TRANSACTION)
     {
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,
-            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK)
-        );
+        App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
+    }
+    else if (action === HeaderAction.MENU)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.MENU,0,null,HeaderAction.NONE,HeaderAction.CANCEL,App.ScreenTitle.MENU));
+    }
+    else if (action === HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.BACK));
     }
 };
 

@@ -125,15 +125,15 @@ App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate
 App.TransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     var HeaderAction = App.HeaderAction,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update();
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
 
-    if (action === HeaderAction.MENU)
+    if (action === HeaderAction.ADD_TRANSACTION)
     {
-        changeScreenData.screenName = App.ScreenName.MENU;
-        changeScreenData.headerName = App.ScreenTitle.MENU;
-        changeScreenData.headerLeftAction = HeaderAction.NONE;
-        changeScreenData.headerRightAction = HeaderAction.CANCEL;
+        App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{nextCommand:new App.ChangeScreen(),nextCommandData:changeScreenData.update()});
     }
-
-    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+    else if (action === HeaderAction.MENU)
+    {
+        changeScreenData.update(App.ScreenName.MENU,0,null,HeaderAction.NONE,HeaderAction.CANCEL,App.ScreenTitle.MENU);
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+    }
 };

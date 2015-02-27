@@ -159,6 +159,29 @@ App.ReportScreen.prototype._onClick = function _onClick()
 };
 
 /**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.ReportScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
+
+    if (action === HeaderAction.ADD_TRANSACTION)
+    {
+        App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
+    }
+    else if (action === HeaderAction.MENU)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.MENU,0,null,HeaderAction.NONE,HeaderAction.CANCEL,App.ScreenTitle.MENU));
+    }
+};
+
+/**
  * Update list layout
  * @private
  */
