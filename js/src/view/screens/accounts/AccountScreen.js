@@ -99,7 +99,7 @@ App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
     {
         App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
             nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
+            nextCommandData:changeScreenData.update()
         });
     }
     else if (action === HeaderAction.MENU)

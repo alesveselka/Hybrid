@@ -27,7 +27,7 @@ App.ChangeScreen.prototype.execute = function execute(data)
         screenHistory = ModelLocator.getProxy(ModelName.SCREEN_HISTORY),
         screenStack = ViewLocator.getViewSegment(ViewName.SCREEN_STACK),
         screen = null;
-    //TODO if none of the header actions is 'Cancel' and it's not in 'Select' mode can I clear the history?
+
     if (data.screenName === App.ScreenName.BACK)
     {
         var updateBackScreen = data.updateBackScreen,
@@ -44,6 +44,11 @@ App.ChangeScreen.prototype.execute = function execute(data)
     }
     else
     {
+        if (data.headerLeftAction !== App.HeaderAction.CANCEL && data.headerRightAction !== App.HeaderAction.CANCEL && data.screenMode !== App.ScreenMode.SELECT)
+        {
+            this._clearHistory(screenHistory,changeScreenDataPool);
+        }
+
         screen = screenStack.getChildByIndex(data.screenName);
         screen.update(data.updateData,data.screenMode);
 
@@ -56,4 +61,30 @@ App.ChangeScreen.prototype.execute = function execute(data)
     screenStack.selectChild(screen);
 
     this.dispatchEvent(App.EventType.COMPLETE,this);
+};
+
+/**
+ * Clear history
+ * @param {App.Stack} screenHistory
+ * @param {App.ObjectPool} changeScreenDataPool
+ * @private
+ */
+App.ChangeScreen.prototype._clearHistory = function _clearHistory(screenHistory,changeScreenDataPool)
+{
+//    console.log("Before clear: ------------------");
+//    console.log("Stack: ",screenHistory._source);
+//    console.log("Pool: ",changeScreenDataPool._freeItems);
+    var item = screenHistory.pop();
+
+    while (item)
+    {
+        changeScreenDataPool.release(item);
+
+        item = screenHistory.pop();
+    }
+    screenHistory.clear();
+//    console.log("After clear: ------------------");
+//    console.log("Stack: ",screenHistory._source);
+//    console.log("Pool: ",changeScreenDataPool._freeItems);
+//    console.log("---------------------------------");
 };

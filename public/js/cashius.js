@@ -1149,7 +1149,7 @@ App.Stack.prototype.pop = function pop()
 {
     var item = this._source[this._top-1];
 
-    this._source[--this._top] = null;
+    if (item) this._source[--this._top] = null;
 
     return item;
 };
@@ -7827,7 +7827,7 @@ App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
     {
         App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
             nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
+            nextCommandData:changeScreenData.update()
         });
     }
     else if (action === HeaderAction.MENU)
@@ -8642,7 +8642,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
 App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     var HeaderAction = App.HeaderAction,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update();
 
     if (action === HeaderAction.ADD_TRANSACTION)
     {
@@ -9181,7 +9181,7 @@ App.EditCategoryScreen.prototype._swipeEnd = function _swipeEnd()
  */
 App.EditCategoryScreen.prototype._getColorSamples = function _getColorSamples()
 {
-    var MathUtils = App.MathUtils,
+    var convertFn = App.MathUtils.rgbToHex,
         i = 0,
         l = 30,
         frequency = 2 * Math.PI/l,
@@ -9191,7 +9191,7 @@ App.EditCategoryScreen.prototype._getColorSamples = function _getColorSamples()
 
     for (;i<l;i++)
     {
-        colorSamples[i] = MathUtils.rgbToHex(
+        colorSamples[i] = convertFn(
             Math.round(Math.sin(frequency * i + 0) * amplitude + center),
             Math.round(Math.sin(frequency * i + 2) * amplitude + center),
             Math.round(Math.sin(frequency * i + 4) * amplitude + center)
@@ -10281,7 +10281,7 @@ App.ReportScreen.prototype._onHeaderClick = function _onHeaderClick(action)
     {
         App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
             nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
+            nextCommandData:changeScreenData.update()
         });
     }
     else if (action === HeaderAction.MENU)
@@ -11603,7 +11603,7 @@ App.ChangeScreen.prototype.execute = function execute(data)
         screenHistory = ModelLocator.getProxy(ModelName.SCREEN_HISTORY),
         screenStack = ViewLocator.getViewSegment(ViewName.SCREEN_STACK),
         screen = null;
-    //TODO if none of the header actions is 'Cancel' and it's not in 'Select' mode can I clear the history?
+
     if (data.screenName === App.ScreenName.BACK)
     {
         var updateBackScreen = data.updateBackScreen,
@@ -11620,6 +11620,11 @@ App.ChangeScreen.prototype.execute = function execute(data)
     }
     else
     {
+        if (data.headerLeftAction !== App.HeaderAction.CANCEL && data.headerRightAction !== App.HeaderAction.CANCEL && data.screenMode !== App.ScreenMode.SELECT)
+        {
+            this._clearHistory(screenHistory,changeScreenDataPool);
+        }
+
         screen = screenStack.getChildByIndex(data.screenName);
         screen.update(data.updateData,data.screenMode);
 
@@ -11632,6 +11637,32 @@ App.ChangeScreen.prototype.execute = function execute(data)
     screenStack.selectChild(screen);
 
     this.dispatchEvent(App.EventType.COMPLETE,this);
+};
+
+/**
+ * Clear history
+ * @param {App.Stack} screenHistory
+ * @param {App.ObjectPool} changeScreenDataPool
+ * @private
+ */
+App.ChangeScreen.prototype._clearHistory = function _clearHistory(screenHistory,changeScreenDataPool)
+{
+//    console.log("Before clear: ------------------");
+//    console.log("Stack: ",screenHistory._source);
+//    console.log("Pool: ",changeScreenDataPool._freeItems);
+    var item = screenHistory.pop();
+
+    while (item)
+    {
+        changeScreenDataPool.release(item);
+
+        item = screenHistory.pop();
+    }
+    screenHistory.clear();
+//    console.log("After clear: ------------------");
+//    console.log("Stack: ",screenHistory._source);
+//    console.log("Pool: ",changeScreenDataPool._freeItems);
+//    console.log("---------------------------------");
 };
 
 /**

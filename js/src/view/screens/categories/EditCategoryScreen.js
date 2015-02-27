@@ -306,7 +306,7 @@ App.EditCategoryScreen.prototype._swipeEnd = function _swipeEnd()
  */
 App.EditCategoryScreen.prototype._getColorSamples = function _getColorSamples()
 {
-    var MathUtils = App.MathUtils,
+    var convertFn = App.MathUtils.rgbToHex,
         i = 0,
         l = 30,
         frequency = 2 * Math.PI/l,
@@ -316,7 +316,7 @@ App.EditCategoryScreen.prototype._getColorSamples = function _getColorSamples()
 
     for (;i<l;i++)
     {
-        colorSamples[i] = MathUtils.rgbToHex(
+        colorSamples[i] = convertFn(
             Math.round(Math.sin(frequency * i + 0) * amplitude + center),
             Math.round(Math.sin(frequency * i + 2) * amplitude + center),
             Math.round(Math.sin(frequency * i + 4) * amplitude + center)

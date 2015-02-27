@@ -218,7 +218,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
 App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     var HeaderAction = App.HeaderAction,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update();
 
     if (action === HeaderAction.ADD_TRANSACTION)
     {
