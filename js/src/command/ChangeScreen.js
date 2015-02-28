@@ -40,7 +40,7 @@ App.ChangeScreen.prototype.execute = function execute(data)
         data = screenHistory.peek();
 
         screen = screenStack.getChildByIndex(data.screenName);
-        if (updateBackScreen) screen.update();
+        if (updateBackScreen) screen.update(data.updateData,data.screenMode);
     }
     else
     {

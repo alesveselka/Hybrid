@@ -322,7 +322,8 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
 
         collection.removeItem(collection.getCurrent()).destroy();
 
-        changeScreenData.screenName = App.ScreenName.BACK;//TODO if I cancel from Category Edit list, I got Category Select because of AddTransaction mode
+        changeScreenData.screenName = App.ScreenName.BACK;
+        changeScreenData.updateBackScreen = true;
 
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }

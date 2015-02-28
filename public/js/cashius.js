@@ -7484,6 +7484,7 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
         collection.removeItem(collection.getCurrent()).destroy();
 
         changeScreenData.screenName = App.ScreenName.BACK;//TODO if I cancel from Category Edit list, I got Category Select because of AddTransaction mode
+        changeScreenData.updateBackScreen = true;
 
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
@@ -9101,7 +9102,7 @@ App.EditCategoryScreen.prototype.update = function update(model,mode)
     this._mode = mode;
 
     this._input.setValue(this._model.name);
-    this._colorList.selectItemByValue(this._model.color);
+    this._colorList.selectItemByValue(this._model.color);//TODO items don't select when they're off screen
     this._topIconList.selectItemByValue(this._model.icon);
     this._bottomIconList.selectItemByValue(this._model.icon);
     this._subCategoryList.update(this._model,this._mode);
@@ -11724,9 +11725,9 @@ App.ChangeScreen.prototype.execute = function execute(data)
         changeScreenDataPool.release(data);
 
         data = screenHistory.peek();
-
+        console.log("back data ",data);
         screen = screenStack.getChildByIndex(data.screenName);
-        if (updateBackScreen) screen.update();
+        if (updateBackScreen) screen.update(data.updateData,data.screenMode);
     }
     else
     {
