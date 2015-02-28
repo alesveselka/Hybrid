@@ -53,6 +53,7 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
     this._repeatToggle = new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true});
 
     //TODO automatically focus input when this screen is shown?
+    //TODO add repeat frequency when 'repeat' is on?
 
     this._toggleButtonList.add(this._typeToggle,false);
     this._toggleButtonList.add(this._pendingToggle,false);

@@ -66,15 +66,6 @@ App.ColorSample.prototype.getModelIndex = function getModelIndex()
 };
 
 /**
- * Return sample value
- * @returns {string}
- */
-App.ColorSample.prototype.getValue = function getValue()
-{
-    return this._color;
-};
-
-/**
  * Select
  * @param {number} selectedIndex Index of selected item in the collection
  */

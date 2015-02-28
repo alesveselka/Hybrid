@@ -159,7 +159,7 @@ App.EditCategoryScreen.prototype.update = function update(model,mode)
     this._mode = mode;
 
     this._input.setValue(this._model.name);
-    this._colorList.selectItemByValue(this._model.color);//TODO items don't select when they're off screen
+    this._colorList.selectItemByValue(this._model.color);
     this._topIconList.selectItemByValue(this._model.icon);
     this._bottomIconList.selectItemByValue(this._model.icon);
     this._subCategoryList.update(this._model,this._mode);

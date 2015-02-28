@@ -4686,21 +4686,20 @@ App.InfiniteList.prototype.selectItemByPosition = function selectItemByPosition(
 App.InfiniteList.prototype.selectItemByValue = function selectItemByValue(value)
 {
     var i = 0,
-        l = this._items.length,
-        item = null;
+        l = this._model.length;
 
     this._selectedModelIndex = -1;
 
-    for (;i<l;)
+    for (;i<l;i++)
     {
-        item = this._items[i++];
-        if (item.getValue() === value)
+        if (this._model[i] === value)
         {
-            this._selectedModelIndex = item.getModelIndex();
+            this._selectedModelIndex = i;
             break;
         }
     }
 
+    l = this._items.length;
     for (i=0;i<l;) this._items[i++].select(this._selectedModelIndex);
 };
 
@@ -7483,7 +7482,7 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
 
         collection.removeItem(collection.getCurrent()).destroy();
 
-        changeScreenData.screenName = App.ScreenName.BACK;//TODO if I cancel from Category Edit list, I got Category Select because of AddTransaction mode
+        changeScreenData.screenName = App.ScreenName.BACK;
         changeScreenData.updateBackScreen = true;
 
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
@@ -8820,15 +8819,6 @@ App.ColorSample.prototype.getModelIndex = function getModelIndex()
 };
 
 /**
- * Return sample value
- * @returns {string}
- */
-App.ColorSample.prototype.getValue = function getValue()
-{
-    return this._color;
-};
-
-/**
  * Select
  * @param {number} selectedIndex Index of selected item in the collection
  */
@@ -8915,15 +8905,6 @@ App.IconSample.prototype.setModel = function setModel(index,model,selectedIndex)
 App.IconSample.prototype.getModelIndex = function getModelIndex()
 {
     return this._modelIndex;
-};
-
-/**
- * Return sample value
- * @returns {string}
- */
-App.IconSample.prototype.getValue = function getValue()
-{
-    return this._model;
 };
 
 /**
@@ -9102,7 +9083,7 @@ App.EditCategoryScreen.prototype.update = function update(model,mode)
     this._mode = mode;
 
     this._input.setValue(this._model.name);
-    this._colorList.selectItemByValue(this._model.color);//TODO items don't select when they're off screen
+    this._colorList.selectItemByValue(this._model.color);
     this._topIconList.selectItemByValue(this._model.icon);
     this._bottomIconList.selectItemByValue(this._model.icon);
     this._subCategoryList.update(this._model,this._mode);
@@ -11725,7 +11706,7 @@ App.ChangeScreen.prototype.execute = function execute(data)
         changeScreenDataPool.release(data);
 
         data = screenHistory.peek();
-        console.log("back data ",data);
+
         screen = screenStack.getChildByIndex(data.screenName);
         if (updateBackScreen) screen.update(data.updateData,data.screenMode);
     }

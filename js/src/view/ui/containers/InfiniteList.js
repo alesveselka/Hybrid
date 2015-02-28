@@ -123,21 +123,20 @@ App.InfiniteList.prototype.selectItemByPosition = function selectItemByPosition(
 App.InfiniteList.prototype.selectItemByValue = function selectItemByValue(value)
 {
     var i = 0,
-        l = this._items.length,
-        item = null;
+        l = this._model.length;
 
     this._selectedModelIndex = -1;
 
-    for (;i<l;)
+    for (;i<l;i++)
     {
-        item = this._items[i++];
-        if (item.getValue() === value)
+        if (this._model[i] === value)
         {
-            this._selectedModelIndex = item.getModelIndex();
+            this._selectedModelIndex = i;
             break;
         }
     }
 
+    l = this._items.length;
     for (i=0;i<l;) this._items[i++].select(this._selectedModelIndex);
 };
 
