@@ -662,6 +662,7 @@ App.StringUtils = {
  * @return {{
  *      CHANGE_SCREEN:string,
  *      CREATE_TRANSACTION:string,
+ *      CREATE_CATEGORY:string,
  *      START:string,
  *      COMPLETE:string,
  *      UPDATE:string,
@@ -690,6 +691,7 @@ App.EventType = {
     // Commands
     CHANGE_SCREEN:"CHANGE_SCREEN",
     CREATE_TRANSACTION:"CREATE_TRANSACTION",
+    CREATE_CATEGORY:"CREATE_CATEGORY",
 
     // App
     START:"START",
@@ -4652,6 +4654,7 @@ App.InfiniteList.prototype.disable = function disable()
 /**
  * Find and select item under position passed in
  * @param {number} position
+ * @returns {*}
  */
 App.InfiniteList.prototype.selectItemByPosition = function selectItemByPosition(position)
 {
@@ -4677,6 +4680,8 @@ App.InfiniteList.prototype.selectItemByPosition = function selectItemByPosition(
     }
 
     for (i=0;i<l;) this._items[i++].select(this._selectedModelIndex);
+
+    return item;
 };
 
 /**
@@ -4701,6 +4706,15 @@ App.InfiniteList.prototype.selectItemByValue = function selectItemByValue(value)
 
     l = this._items.length;
     for (i=0;i<l;) this._items[i++].select(this._selectedModelIndex);
+};
+
+/**
+ * Return selected model
+ * @returns {*}
+ */
+App.InfiniteList.prototype.getSelectedValue = function getSelectedValue()
+{
+    return this._model[this._selectedModelIndex];
 };
 
 /**
@@ -6483,7 +6497,7 @@ App.Screen.prototype.show = function show()
 
     if (this._transitionState === TransitionState.HIDDEN || this._transitionState === TransitionState.HIDING)
     {
-        this.enable();
+        this.enable();//TODO enable only when show transition is complete
 
         this._transitionState = TransitionState.SHOWING;
 
@@ -7213,6 +7227,7 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
     this._repeatToggle = new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true});
 
     //TODO automatically focus input when this screen is shown?
+    //TODO add repeat frequency when 'repeat' is on?
 
     this._toggleButtonList.add(this._typeToggle,false);
     this._toggleButtonList.add(this._pendingToggle,false);
@@ -8819,6 +8834,15 @@ App.ColorSample.prototype.getModelIndex = function getModelIndex()
 };
 
 /**
+ * Return value
+ * @returns {string}
+ */
+App.ColorSample.prototype.getValue = function getValue()
+{
+    return this._color;
+};
+
+/**
  * Select
  * @param {number} selectedIndex Index of selected item in the collection
  */
@@ -8905,6 +8929,15 @@ App.IconSample.prototype.setModel = function setModel(index,model,selectedIndex)
 App.IconSample.prototype.getModelIndex = function getModelIndex()
 {
     return this._modelIndex;
+};
+
+/**
+ * Return value
+ * @returns {string}
+ */
+App.IconSample.prototype.getValue = function getValue()
+{
+    return this._model;
 };
 
 /**
@@ -9178,44 +9211,15 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
     }
     else if (this._colorList.hitTest(y))
     {
-        if (inputFocused)
-        {
-            this._scrollInput.blur();
-        }
-        else
-        {
-            list = this._colorList;
-            list.cancelScroll();
-            list.selectItemByPosition(position.x);
-        }
+        this._onSampleClick(this._colorList,position.x,inputFocused);
     }
     else if (this._topIconList.hitTest(y))
     {
-        if (inputFocused)
-        {
-            this._scrollInput.blur();
-        }
-        else
-        {
-            list = this._topIconList;
-            list.selectItemByPosition(position.x);
-            list.cancelScroll();
-            this._bottomIconList.selectItemByPosition(-1000);
-        }
+        this._onSampleClick(this._topIconList,position.x,inputFocused);
     }
     else if (this._bottomIconList.hitTest(y))
     {
-        if (inputFocused)
-        {
-            this._scrollInput.blur();
-        }
-        else
-        {
-            list = this._bottomIconList;
-            list.cancelScroll();
-            list.selectItemByPosition(position.x);
-            this._topIconList.selectItemByPosition(-1000);
-        }
+        this._onSampleClick(this._bottomIconList,position.x,inputFocused);
     }
     else if (this._budget.hitTest(y))
     {
@@ -9227,18 +9231,62 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
 };
 
 /**
+ * On sample click
+ * @param {App.InfiniteList} list
+ * @param {number} position
+ * @param {boolean} inputFocused
+ * @private
+ */
+App.EditCategoryScreen.prototype._onSampleClick = function _onSampleClick(list,position,inputFocused)
+{
+    if (inputFocused) this._scrollInput.blur();
+
+    list.cancelScroll();
+    var sample = list.selectItemByPosition(position);
+
+    if (sample instanceof App.ColorSample)
+    {
+        App.GraphicUtils.drawRect(this._colorStripe,"0x"+sample.getValue(),1,0,0,this._colorStripe.width,this._colorStripe.height);
+    }
+    else if (sample instanceof App.IconSample)
+    {
+        this._icon.setTexture(PIXI.TextureCache[sample.getValue()]);
+
+        (list === this._topIconList ? this._bottomIconList : this._topIconList).selectItemByPosition(-10000);
+    }
+};
+
+/**
  * On Header click
  * @param {number} action
  * @private
  */
 App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
+    var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
+
     if (action === App.HeaderAction.CONFIRM)
     {
-        //TODO first check if all values are set and save changes!
-    }
+        var selectedIcon = this._topIconList.getSelectedValue();
+        if (!selectedIcon) selectedIcon = this._bottomIconList.getSelectedValue();
 
-    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK));
+        changeScreenData.updateBackScreen = true;
+
+        //TODO first check if all values are set and save changes!
+        App.Controller.dispatchEvent(App.EventType.CREATE_CATEGORY,{
+            category:this._model,
+            name:this._input.getValue(),
+            color:this._colorList.getSelectedValue(),
+            icon:selectedIcon,
+            budget:this._budget.getValue(),
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
+    }
+    else if (action === App.HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+    }
 };
 
 /**
@@ -11564,7 +11612,8 @@ App.Initialize.prototype._initController = function _initController()
 
     App.Controller.init(this._eventListenerPool,[
         EventType.CHANGE_SCREEN,App.ChangeScreen,
-        EventType.CREATE_TRANSACTION,App.CreateTransaction
+        EventType.CREATE_TRANSACTION,App.CreateTransaction,
+        EventType.CREATE_CATEGORY,App.CreateCategory
     ]);
 };
 
@@ -11788,6 +11837,49 @@ App.CreateTransaction.prototype.execute = function execute(data)
     transactions.setCurrent(transaction);
 
     data.nextCommandData.updateData = transaction;
+
+    if (this._nextCommand) this._executeNextCommand(data.nextCommandData);
+    else this.dispatchEvent(App.EventType.COMPLETE,this);
+};
+
+/**
+ * @class CreateCategory
+ * @extends SequenceCommand
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.CreateCategory = function CreateCategory(eventListenerPool)
+{
+    App.SequenceCommand.call(this,false,eventListenerPool);
+};
+
+App.CreateCategory.prototype = Object.create(App.SequenceCommand.prototype);
+App.CreateCategory.prototype.constructor = App.CreateCategory;
+
+/**
+ * Execute the command
+ *
+ * @method execute
+ * @param {{nextCommand:Command,screenName:number}} data
+ */
+App.CreateCategory.prototype.execute = function execute(data)
+{
+    this._nextCommand = data.nextCommand;
+
+    var categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES),
+        category = data.category;
+
+    if (!category)
+    {
+        category = new App.Category();//TODO create ID;
+        categories.addItem(category);
+    }
+
+    //TODO also add Account
+    category.name = data.name;
+    category.icon = data.icon;
+    category.color = data.color;
+    category.budget = data.budget;
 
     if (this._nextCommand) this._executeNextCommand(data.nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);

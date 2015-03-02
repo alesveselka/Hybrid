@@ -52,7 +52,7 @@ App.Screen.prototype.show = function show()
 
     if (this._transitionState === TransitionState.HIDDEN || this._transitionState === TransitionState.HIDING)
     {
-        this.enable();
+        this.enable();//TODO enable only when show transition is complete
 
         this._transitionState = TransitionState.SHOWING;
 

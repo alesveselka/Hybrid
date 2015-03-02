@@ -254,44 +254,15 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
     }
     else if (this._colorList.hitTest(y))
     {
-        if (inputFocused)
-        {
-            this._scrollInput.blur();
-        }
-        else
-        {
-            list = this._colorList;
-            list.cancelScroll();
-            list.selectItemByPosition(position.x);
-        }
+        this._onSampleClick(this._colorList,position.x,inputFocused);
     }
     else if (this._topIconList.hitTest(y))
     {
-        if (inputFocused)
-        {
-            this._scrollInput.blur();
-        }
-        else
-        {
-            list = this._topIconList;
-            list.selectItemByPosition(position.x);
-            list.cancelScroll();
-            this._bottomIconList.selectItemByPosition(-1000);
-        }
+        this._onSampleClick(this._topIconList,position.x,inputFocused);
     }
     else if (this._bottomIconList.hitTest(y))
     {
-        if (inputFocused)
-        {
-            this._scrollInput.blur();
-        }
-        else
-        {
-            list = this._bottomIconList;
-            list.cancelScroll();
-            list.selectItemByPosition(position.x);
-            this._topIconList.selectItemByPosition(-1000);
-        }
+        this._onSampleClick(this._bottomIconList,position.x,inputFocused);
     }
     else if (this._budget.hitTest(y))
     {
@@ -303,18 +274,62 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
 };
 
 /**
+ * On sample click
+ * @param {App.InfiniteList} list
+ * @param {number} position
+ * @param {boolean} inputFocused
+ * @private
+ */
+App.EditCategoryScreen.prototype._onSampleClick = function _onSampleClick(list,position,inputFocused)
+{
+    if (inputFocused) this._scrollInput.blur();
+
+    list.cancelScroll();
+    var sample = list.selectItemByPosition(position);
+
+    if (sample instanceof App.ColorSample)
+    {
+        App.GraphicUtils.drawRect(this._colorStripe,"0x"+sample.getValue(),1,0,0,this._colorStripe.width,this._colorStripe.height);
+    }
+    else if (sample instanceof App.IconSample)
+    {
+        this._icon.setTexture(PIXI.TextureCache[sample.getValue()]);
+
+        (list === this._topIconList ? this._bottomIconList : this._topIconList).selectItemByPosition(-10000);
+    }
+};
+
+/**
  * On Header click
  * @param {number} action
  * @private
  */
 App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
+    var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
+
     if (action === App.HeaderAction.CONFIRM)
     {
-        //TODO first check if all values are set and save changes!
-    }
+        var selectedIcon = this._topIconList.getSelectedValue();
+        if (!selectedIcon) selectedIcon = this._bottomIconList.getSelectedValue();
 
-    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK));
+        changeScreenData.updateBackScreen = true;
+
+        //TODO first check if all values are set and save changes!
+        App.Controller.dispatchEvent(App.EventType.CREATE_CATEGORY,{
+            category:this._model,
+            name:this._input.getValue(),
+            color:this._colorList.getSelectedValue(),
+            icon:selectedIcon,
+            budget:this._budget.getValue(),
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
+    }
+    else if (action === App.HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+    }
 };
 
 /**

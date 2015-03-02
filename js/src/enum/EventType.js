@@ -4,6 +4,7 @@
  * @return {{
  *      CHANGE_SCREEN:string,
  *      CREATE_TRANSACTION:string,
+ *      CREATE_CATEGORY:string,
  *      START:string,
  *      COMPLETE:string,
  *      UPDATE:string,
@@ -32,6 +33,7 @@ App.EventType = {
     // Commands
     CHANGE_SCREEN:"CHANGE_SCREEN",
     CREATE_TRANSACTION:"CREATE_TRANSACTION",
+    CREATE_CATEGORY:"CREATE_CATEGORY",
 
     // App
     START:"START",

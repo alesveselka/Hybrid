@@ -89,6 +89,7 @@ App.InfiniteList.prototype.disable = function disable()
 /**
  * Find and select item under position passed in
  * @param {number} position
+ * @returns {*}
  */
 App.InfiniteList.prototype.selectItemByPosition = function selectItemByPosition(position)
 {
@@ -114,6 +115,8 @@ App.InfiniteList.prototype.selectItemByPosition = function selectItemByPosition(
     }
 
     for (i=0;i<l;) this._items[i++].select(this._selectedModelIndex);
+
+    return item;
 };
 
 /**
@@ -138,6 +141,15 @@ App.InfiniteList.prototype.selectItemByValue = function selectItemByValue(value)
 
     l = this._items.length;
     for (i=0;i<l;) this._items[i++].select(this._selectedModelIndex);
+};
+
+/**
+ * Return selected model
+ * @returns {*}
+ */
+App.InfiniteList.prototype.getSelectedValue = function getSelectedValue()
+{
+    return this._model[this._selectedModelIndex];
 };
 
 /**
