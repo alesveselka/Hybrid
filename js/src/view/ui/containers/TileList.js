@@ -26,16 +26,16 @@ App.TileList.prototype.updateX = function updateX(position)
     var i = 0,
         l = this._items.length,
         width = 0,
-        x = 0,
+        childX = 0,
         child = null;
 
     for (;i<l;)
     {
         child = this._items[i++];
         width = child.boundingBox.width;
-        x = this.x + child.x;
+        childX = this.x + child.x;
 
-        child.visible = x + width > 0 && x < this._windowSize;
+        child.visible = childX + width > 0 && childX < this._windowSize;
     }
 };
 
@@ -50,16 +50,16 @@ App.TileList.prototype.updateY = function updateY(position)
     var i = 0,
         l = this._items.length,
         height = 0,
-        y = 0,
+        childY = 0,
         child = null;
 
     for (;i<l;)
     {
         child = this._items[i++];
         height = child.boundingBox.height;
-        y = this.y + child.y;
+        childY = this.y + child.y;
 
-        child.visible = y + height > 0 && y < this._windowSize;
+        child.visible = childY + height > 0 && childY < this._windowSize;
     }
 };
 

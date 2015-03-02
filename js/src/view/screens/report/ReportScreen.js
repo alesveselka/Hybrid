@@ -69,6 +69,8 @@ App.ReportScreen.prototype.disable = function disable()
 {
     App.Screen.prototype.disable.call(this);
 
+    this._layoutDirty = false;
+
     this._pane.disable();
 };
 

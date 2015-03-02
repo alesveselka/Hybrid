@@ -5512,16 +5512,16 @@ App.TileList.prototype.updateX = function updateX(position)
     var i = 0,
         l = this._items.length,
         width = 0,
-        x = 0,
+        childX = 0,
         child = null;
 
     for (;i<l;)
     {
         child = this._items[i++];
         width = child.boundingBox.width;
-        x = this.x + child.x;
+        childX = this.x + child.x;
 
-        child.visible = x + width > 0 && x < this._windowSize;
+        child.visible = childX + width > 0 && childX < this._windowSize;
     }
 };
 
@@ -5536,16 +5536,16 @@ App.TileList.prototype.updateY = function updateY(position)
     var i = 0,
         l = this._items.length,
         height = 0,
-        y = 0,
+        childY = 0,
         child = null;
 
     for (;i<l;)
     {
         child = this._items[i++];
         height = child.boundingBox.height;
-        y = this.y + child.y;
+        childY = this.y + child.y;
 
-        child.visible = y + height > 0 && y < this._windowSize;
+        child.visible = childY + height > 0 && childY < this._windowSize;
     }
 };
 
@@ -8501,9 +8501,10 @@ App.CategoryScreen = function CategoryScreen(layout)
     this._layoutDirty = false;
 
     this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
+    this._addNewButton = new App.AddNewButton("ADD CATEGORY",App.FontStyle.get(14,App.FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,layout.pixelRatio);
     this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.contentHeight,layout.pixelRatio,false);
-    this._pane.setContent(this._buttonList);
 
+    this._pane.setContent(this._buttonList);
     this.addChild(this._pane);
 };
 
@@ -8528,6 +8529,8 @@ App.CategoryScreen.prototype.disable = function disable()
 {
     App.Screen.prototype.disable.call(this);
 
+    this._layoutDirty = false;
+
     this._pane.disable();
 
     //TODO do I need disable buttons? They'll be updated on show anyway
@@ -8546,6 +8549,8 @@ App.CategoryScreen.prototype.disable = function disable()
 App.CategoryScreen.prototype.update = function update(data,mode)
 {
     this._model = data;
+
+    this._buttonList.remove(this._addNewButton);
 
     var ScreenMode = App.ScreenMode,
         ViewLocator = App.ViewLocator,
@@ -8570,6 +8575,8 @@ App.CategoryScreen.prototype.update = function update(data,mode)
         button.update(this._model[i++],mode);
         this._buttonList.add(button,false);
     }
+
+    this._buttonList.add(this._addNewButton);
 
     this._updateLayout();
 
@@ -8635,7 +8642,7 @@ App.CategoryScreen.prototype._swipeEnd = function _swipeEnd()
 App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
 {
     var i = 0,
-        l = this._buttonList.length,
+        l = this._buttonList.length - 1,// last button is 'AddNewButton'
         button = null,
         ScreenMode = App.ScreenMode,
         EventType = App.EventType;
@@ -8763,6 +8770,7 @@ App.CategoryScreen.prototype._onButtonTransitionComplete = function _onButtonTra
 App.CategoryScreen.prototype._updateLayout = function _updateLayout()
 {
     this._buttonList.updateLayout(true);
+
     this._pane.resize();
 };
 
@@ -10314,6 +10322,8 @@ App.ReportScreen.prototype.enable = function enable()
 App.ReportScreen.prototype.disable = function disable()
 {
     App.Screen.prototype.disable.call(this);
+
+    this._layoutDirty = false;
 
     this._pane.disable();
 };
