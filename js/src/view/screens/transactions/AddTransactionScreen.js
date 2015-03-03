@@ -270,7 +270,7 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
             if (this._model.account)
             {
                 changeScreenData.screenName = ScreenName.CATEGORY;
-                changeScreenData.updateData = this._model.account.categories;
+                changeScreenData.updateData = this._model.account;
                 changeScreenData.headerName = ScreenTitle.SELECT_CATEGORY;
             }
         }
@@ -281,7 +281,7 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
             changeScreenData.headerName = ScreenTitle.SELECT_TIME;
             changeScreenData.headerRightAction = HeaderAction.CONFIRM;
         }
-
+        //TODO disable before changing screen?
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
     else if (this._noteInput.hitTest(position))

@@ -81,6 +81,8 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
         }
         else
         {
+            this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this); // To cancel any parent's processes
+
             var button = this._subCategoryList.getItemUnderPoint(data);
 
             if (button)

@@ -1451,6 +1451,24 @@ App.Collection.prototype.filter = function filter(value,property)
 };
 
 /**
+ * Find and return item by key and value passed in
+ * @param {string} key
+ * @param {*} value
+ */
+App.Collection.prototype.find = function find(key,value)
+{
+    var i = 0,
+        l = this._items.length;
+
+    for (;i<l;i++)
+    {
+        if (this._items[i][key] === value) return this._items[i];
+    }
+
+    return null;
+};
+
+/**
  * @method previous Return previous item
  * @returns {*}
  */
@@ -1877,10 +1895,23 @@ Object.defineProperty(App.Transaction.prototype,'currency',{
  */
 App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
 {
-    this.id = data[0];
-    this.name = data[1];
-    this.category = data[2];
+    if (data)
+    {
+        if (parseInt(data[0],10) >= App.SubCategory._UID) App.SubCategory._UID = parseInt(data[0],10);
+
+        this.id = data[0];
+        this.name = data[1];
+        this.category = data[2];
+    }
+    else
+    {
+        this.id = String(++App.SubCategory._UID);
+        this.name = "SubCategory" + this.id;
+        this.category = null;
+    }
 };
+
+App.SubCategory._UID = 0;
 
 /**
  * @class Category
@@ -1892,16 +1923,35 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
  */
 App.Category = function Category(data,collection,parent,eventListenerPool)
 {
-    this._data = data;
+    if (data)
+    {
+        this._data = data;
 
-    this.id = data[0];
-    this.name = data[1];
-    this.color = data[2];
-    this.icon = data[3];
-    this.account = data[4];
-    this.budget = data[6];
-    this._subCategories = null;
+        if (parseInt(data[0],10) >= App.Category._UID) App.Category._UID = parseInt(data[0],10);
+
+        this.id = data[0];
+        this.name = data[1];
+        this.color = data[2];
+        this.icon = data[3];
+        this.account = data[4];
+        this.budget = data[6];
+        this._subCategories = null;
+    }
+    else
+    {
+        this._data = null;
+
+        this.id = String(++App.Category._UID);
+        this.name = "Category" + this.id;
+        this.color = null;
+        this.icon = null;
+        this.account = null;
+        this.budget = null;
+        this._subCategories = null;
+    }
 };
+
+App.Category._UID = 0;
 
 /**
  * @property subCategories
@@ -1910,7 +1960,23 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
 Object.defineProperty(App.Category.prototype,'subCategories',{
     get:function()
     {
-        if (!this._subCategories) this._subCategories = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).filter(this._data[5],"id");
+        if (!this._subCategories)
+        {
+            var collection = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES);
+
+            if (this._data)
+            {
+                this._subCategories = collection.filter(this._data[5],"id");
+            }
+            else
+            {
+                var subCategory = new App.SubCategory();
+                subCategory.category = this.id;
+                collection.addItem(subCategory);
+
+                this._subCategories = [subCategory];
+            }
+        }
         return this._subCategories;
     }
 });
@@ -1925,11 +1991,58 @@ Object.defineProperty(App.Category.prototype,'subCategories',{
  */
 App.Account = function Account(data,collection,parent,eventListenerPool)
 {
-    this._data = data;
+    if (data)
+    {
+        this._data = data;
 
-    this.id = this._data[0];
-    this.name = this._data[1];
-    this._categories = null;
+        if (parseInt(data[0],10) >= App.Account._UID) App.Account._UID = parseInt(data[0],10);
+
+        this.id = this._data[0];
+        this.name = this._data[1];
+        this._categories = null;
+    }
+    else
+    {
+        this._data = null;
+
+        this.id = String(++App.Account._UID);
+        this.name = "Account" + this.id;
+        this._categories = null;
+    }
+};
+
+App.Account._UID = 0;
+
+/**
+ * Add category
+ * @param {App.Category} category
+ * @private
+ */
+App.Account.prototype.addCategory = function addCategory(category)
+{
+    console.log("addCategory ",category);
+    if (this._categories) this._categories.push(category);
+    else this._categories = [category];
+};
+
+/**
+ * Remove category
+ * @param {App.Category} category
+ * @private
+ */
+App.Account.prototype.removeCategory = function removeCategory(category)
+{
+    var i = 0,
+        l = this._categories.length;
+
+    for (;i<l;i++)
+    {
+        if (this._categories[i] === category)
+        {
+            this._categories.splice(i,1);
+            break;
+        }
+    }
 };
 
 /**
@@ -1939,7 +2052,7 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
 Object.defineProperty(App.Account.prototype,'categories',{
     get:function()
     {
-        if (!this._categories) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2].split(","),"id");
+        if (!this._categories && this._data) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2].split(","),"id");
         return this._categories;
     }
 });
@@ -7444,7 +7557,7 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
             if (this._model.account)
             {
                 changeScreenData.screenName = ScreenName.CATEGORY;
-                changeScreenData.updateData = this._model.account.categories;
+                changeScreenData.updateData = this._model.account;
                 changeScreenData.headerName = ScreenTitle.SELECT_CATEGORY;
             }
         }
@@ -7455,7 +7568,7 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
             changeScreenData.headerName = ScreenTitle.SELECT_TIME;
             changeScreenData.headerRightAction = HeaderAction.CONFIRM;
         }
-
+        //TODO disable before changing screen?
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
     else if (this._noteInput.hitTest(position))
@@ -7835,7 +7948,7 @@ App.AccountScreen.prototype._onClick = function _onClick()
     {
         var ScreenMode = App.ScreenMode,
             HeaderAction = App.HeaderAction,
-            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.CATEGORY,this._mode,button.getModel().categories);
+            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.CATEGORY,this._mode,button.getModel());
 
         if (this._mode === ScreenMode.SELECT)
         {
@@ -8435,6 +8548,8 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
         }
         else
         {
+            this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this); // To cancel any parent's processes
+
             var button = this._subCategoryList.getItemUnderPoint(data);
 
             if (button)
@@ -8542,7 +8657,7 @@ App.CategoryScreen.prototype.disable = function disable()
 
 /**
  * Update
- * @param {Array.<Category>} data
+ * @param {App.Account} data
  * @param {string} mode
  * @private
  */
@@ -8558,6 +8673,7 @@ App.CategoryScreen.prototype.update = function update(data,mode)
         expandButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EXPAND_POOL),
         editButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL),
         buttonPool = this._mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool,
+        categories = this._model.categories,
         i = 0,
         l = this._buttonList.length,
         button = null;
@@ -8565,14 +8681,14 @@ App.CategoryScreen.prototype.update = function update(data,mode)
     for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
 
     i = 0;
-    l = this._model.length;
+    l = categories.length;
 
     buttonPool = mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool;
 
     for (;i<l;)
     {
         button = buttonPool.allocate();
-        button.update(this._model[i++],mode);
+        button.update(categories[i++],mode);
         this._buttonList.add(button,false);
     }
 
@@ -8682,26 +8798,41 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    var data = this.stage.getTouchData();
+    var data = this.stage.getTouchData(),
+        button = this._buttonList.getItemUnderPoint(data);
 
-    if (this._mode === App.ScreenMode.SELECT)
+    if (button instanceof App.AddNewButton)
     {
-        this._interactiveButton = this._buttonList.getItemUnderPoint(data);
+        var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT_CATEGORY);
+        changeScreenData.headerName = App.ScreenTitle.ADD_CATEGORY;
 
-        if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
-        {
-            this._buttonsInTransition.push(this._interactiveButton);
-            this._interactiveButton.addEventListener(App.EventType.COMPLETE,this,this._onButtonTransitionComplete);
-
-            this._layoutDirty = true;
-        }
-
-        this._interactiveButton.onClick(data);
-        this._pane.cancelScroll();
+        App.Controller.dispatchEvent(App.EventType.CREATE_CATEGORY,{
+            account:this._model.id,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
     }
-    else if (this._mode === App.ScreenMode.EDIT)
+    else
     {
-        this._buttonList.getItemUnderPoint(data).onClick(data);
+        if (this._mode === App.ScreenMode.SELECT)
+        {
+            this._interactiveButton = button;
+
+            if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
+            {
+                this._buttonsInTransition.push(this._interactiveButton);
+                this._interactiveButton.addEventListener(App.EventType.COMPLETE,this,this._onButtonTransitionComplete);
+
+                this._layoutDirty = true;
+            }
+
+            this._interactiveButton.onClick(data);
+            this._pane.cancelScroll();
+        }
+        else if (this._mode === App.ScreenMode.EDIT)
+        {
+            button.onClick(data);
+        }
     }
 };
 
@@ -9049,17 +9180,18 @@ App.EditCategoryScreen.prototype._render = function _render()
         inputFragmentHeight = Math.round(60 * r),
         colorListHeight = this._colorList.boundingBox.height,
         separatorWidth = w - this._inputPadding * 2,
+        icon = this._getSelectedIcon(),
         bottom = 0;
 
-    GraphicUtils.drawRect(this._colorStripe,"0x"+this._model.color,1,0,0,Math.round(4*r),Math.round(59 * r));
+    GraphicUtils.drawRect(this._colorStripe,"0x"+this._colorList.getSelectedValue(),1,0,0,Math.round(4*r),Math.round(59 * r));
 
-    if (this._icon) this._icon.setTexture(PIXI.TextureCache[this._model.icon]);
+    if (this._icon) this._icon.setTexture(PIXI.TextureCache[icon]);
 
     if (this._renderAll)
     {
         this._renderAll = false;
 
-        this._icon = PIXI.Sprite.fromFrame(this._model.icon);
+        this._icon = PIXI.Sprite.fromFrame(icon);
         this._iconResizeRatio = Math.round(32 * r) / this._icon.height;
         this._icon.scale.x = this._iconResizeRatio;
         this._icon.scale.y = this._iconResizeRatio;
@@ -9124,10 +9256,22 @@ App.EditCategoryScreen.prototype.update = function update(model,mode)
     this._mode = mode;
 
     this._input.setValue(this._model.name);
-    this._colorList.selectItemByValue(this._model.color);
-    this._topIconList.selectItemByValue(this._model.icon);
-    this._bottomIconList.selectItemByValue(this._model.icon);
-    this._subCategoryList.update(this._model,this._mode);
+
+    if (this._model.color) this._colorList.selectItemByValue(this._model.color);
+    else this._colorList.selectItemByPosition(0);
+
+    if (this._model.icon)
+    {
+        this._topIconList.selectItemByValue(this._model.icon);
+        this._bottomIconList.selectItemByValue(this._model.icon);
+    }
+    else
+    {
+        this._topIconList.selectItemByPosition(0);
+        this._bottomIconList.selectItemByValue(-10000);
+    }
+
+    this._subCategoryList.update(this._model,App.ScreenMode.EDIT);
     this._budget.setValue(this._model.budget);
 
     this._render();
@@ -9275,9 +9419,6 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
 
     if (action === App.HeaderAction.CONFIRM)
     {
-        var selectedIcon = this._topIconList.getSelectedValue();
-        if (!selectedIcon) selectedIcon = this._bottomIconList.getSelectedValue();
-
         changeScreenData.updateBackScreen = true;
 
         //TODO first check if all values are set and save changes!
@@ -9285,7 +9426,7 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
             category:this._model,
             name:this._input.getValue(),
             color:this._colorList.getSelectedValue(),
-            icon:selectedIcon,
+            icon:this._getSelectedIcon(),
             budget:this._budget.getValue(),
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData
@@ -9295,6 +9436,19 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
     {
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
+};
+
+/**
+ * Return selected icon
+ * @returns {string}
+ * @private
+ */
+App.EditCategoryScreen.prototype._getSelectedIcon = function _getSelectedIcon()
+{
+    var selectedIcon = this._topIconList.getSelectedValue();
+    if (!selectedIcon) selectedIcon = this._bottomIconList.getSelectedValue();
+
+    return selectedIcon;
 };
 
 /**
@@ -11879,17 +12033,23 @@ App.CreateCategory.prototype.execute = function execute(data)
     var categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES),
         category = data.category;
 
-    if (!category)
+    if (!category) //If no category is passed in, create one
     {
-        category = new App.Category();//TODO create ID;
+        category = new App.Category();
+        category.account = data.account;
         categories.addItem(category);
-    }
 
-    //TODO also add Account
-    category.name = data.name;
-    category.icon = data.icon;
-    category.color = data.color;
-    category.budget = data.budget;
+        App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find("id",data.account).addCategory(category);
+
+        data.nextCommandData.updateData = category;
+    }
+    else //If category already exist, it will just update it
+    {
+        category.name = data.name;
+        category.icon = data.icon;
+        category.color = data.color;
+        category.budget = data.budget;
+    }
 
     if (this._nextCommand) this._executeNextCommand(data.nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);

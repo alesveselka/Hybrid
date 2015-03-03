@@ -54,7 +54,7 @@ App.CategoryScreen.prototype.disable = function disable()
 
 /**
  * Update
- * @param {Array.<Category>} data
+ * @param {App.Account} data
  * @param {string} mode
  * @private
  */
@@ -70,6 +70,7 @@ App.CategoryScreen.prototype.update = function update(data,mode)
         expandButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EXPAND_POOL),
         editButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL),
         buttonPool = this._mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool,
+        categories = this._model.categories,
         i = 0,
         l = this._buttonList.length,
         button = null;
@@ -77,14 +78,14 @@ App.CategoryScreen.prototype.update = function update(data,mode)
     for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
 
     i = 0;
-    l = this._model.length;
+    l = categories.length;
 
     buttonPool = mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool;
 
     for (;i<l;)
     {
         button = buttonPool.allocate();
-        button.update(this._model[i++],mode);
+        button.update(categories[i++],mode);
         this._buttonList.add(button,false);
     }
 
@@ -194,26 +195,41 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    var data = this.stage.getTouchData();
+    var data = this.stage.getTouchData(),
+        button = this._buttonList.getItemUnderPoint(data);
 
-    if (this._mode === App.ScreenMode.SELECT)
+    if (button instanceof App.AddNewButton)
     {
-        this._interactiveButton = this._buttonList.getItemUnderPoint(data);
+        var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT_CATEGORY);
+        changeScreenData.headerName = App.ScreenTitle.ADD_CATEGORY;
 
-        if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
-        {
-            this._buttonsInTransition.push(this._interactiveButton);
-            this._interactiveButton.addEventListener(App.EventType.COMPLETE,this,this._onButtonTransitionComplete);
-
-            this._layoutDirty = true;
-        }
-
-        this._interactiveButton.onClick(data);
-        this._pane.cancelScroll();
+        App.Controller.dispatchEvent(App.EventType.CREATE_CATEGORY,{
+            account:this._model.id,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
     }
-    else if (this._mode === App.ScreenMode.EDIT)
+    else
     {
-        this._buttonList.getItemUnderPoint(data).onClick(data);
+        if (this._mode === App.ScreenMode.SELECT)
+        {
+            this._interactiveButton = button;
+
+            if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
+            {
+                this._buttonsInTransition.push(this._interactiveButton);
+                this._interactiveButton.addEventListener(App.EventType.COMPLETE,this,this._onButtonTransitionComplete);
+
+                this._layoutDirty = true;
+            }
+
+            this._interactiveButton.onClick(data);
+            this._pane.cancelScroll();
+        }
+        else if (this._mode === App.ScreenMode.EDIT)
+        {
+            button.onClick(data);
+        }
     }
 };
 

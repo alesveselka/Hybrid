@@ -84,17 +84,18 @@ App.EditCategoryScreen.prototype._render = function _render()
         inputFragmentHeight = Math.round(60 * r),
         colorListHeight = this._colorList.boundingBox.height,
         separatorWidth = w - this._inputPadding * 2,
+        icon = this._getSelectedIcon(),
         bottom = 0;
 
-    GraphicUtils.drawRect(this._colorStripe,"0x"+this._model.color,1,0,0,Math.round(4*r),Math.round(59 * r));
+    GraphicUtils.drawRect(this._colorStripe,"0x"+this._colorList.getSelectedValue(),1,0,0,Math.round(4*r),Math.round(59 * r));
 
-    if (this._icon) this._icon.setTexture(PIXI.TextureCache[this._model.icon]);
+    if (this._icon) this._icon.setTexture(PIXI.TextureCache[icon]);
 
     if (this._renderAll)
     {
         this._renderAll = false;
 
-        this._icon = PIXI.Sprite.fromFrame(this._model.icon);
+        this._icon = PIXI.Sprite.fromFrame(icon);
         this._iconResizeRatio = Math.round(32 * r) / this._icon.height;
         this._icon.scale.x = this._iconResizeRatio;
         this._icon.scale.y = this._iconResizeRatio;
@@ -159,10 +160,22 @@ App.EditCategoryScreen.prototype.update = function update(model,mode)
     this._mode = mode;
 
     this._input.setValue(this._model.name);
-    this._colorList.selectItemByValue(this._model.color);
-    this._topIconList.selectItemByValue(this._model.icon);
-    this._bottomIconList.selectItemByValue(this._model.icon);
-    this._subCategoryList.update(this._model,this._mode);
+
+    if (this._model.color) this._colorList.selectItemByValue(this._model.color);
+    else this._colorList.selectItemByPosition(0);
+
+    if (this._model.icon)
+    {
+        this._topIconList.selectItemByValue(this._model.icon);
+        this._bottomIconList.selectItemByValue(this._model.icon);
+    }
+    else
+    {
+        this._topIconList.selectItemByPosition(0);
+        this._bottomIconList.selectItemByValue(-10000);
+    }
+
+    this._subCategoryList.update(this._model,App.ScreenMode.EDIT);
     this._budget.setValue(this._model.budget);
 
     this._render();
@@ -310,9 +323,6 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
 
     if (action === App.HeaderAction.CONFIRM)
     {
-        var selectedIcon = this._topIconList.getSelectedValue();
-        if (!selectedIcon) selectedIcon = this._bottomIconList.getSelectedValue();
-
         changeScreenData.updateBackScreen = true;
 
         //TODO first check if all values are set and save changes!
@@ -320,7 +330,7 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
             category:this._model,
             name:this._input.getValue(),
             color:this._colorList.getSelectedValue(),
-            icon:selectedIcon,
+            icon:this._getSelectedIcon(),
             budget:this._budget.getValue(),
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData
@@ -330,6 +340,19 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
     {
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
+};
+
+/**
+ * Return selected icon
+ * @returns {string}
+ * @private
+ */
+App.EditCategoryScreen.prototype._getSelectedIcon = function _getSelectedIcon()
+{
+    var selectedIcon = this._topIconList.getSelectedValue();
+    if (!selectedIcon) selectedIcon = this._bottomIconList.getSelectedValue();
+
+    return selectedIcon;
 };
 
 /**

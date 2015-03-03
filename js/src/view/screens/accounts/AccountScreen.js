@@ -67,7 +67,7 @@ App.AccountScreen.prototype._onClick = function _onClick()
     {
         var ScreenMode = App.ScreenMode,
             HeaderAction = App.HeaderAction,
-            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.CATEGORY,this._mode,button.getModel().categories);
+            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.CATEGORY,this._mode,button.getModel());
 
         if (this._mode === ScreenMode.SELECT)
         {

@@ -107,6 +107,24 @@ App.Collection.prototype.filter = function filter(value,property)
 };
 
 /**
+ * Find and return item by key and value passed in
+ * @param {string} key
+ * @param {*} value
+ */
+App.Collection.prototype.find = function find(key,value)
+{
+    var i = 0,
+        l = this._items.length;
+
+    for (;i<l;i++)
+    {
+        if (this._items[i][key] === value) return this._items[i];
+    }
+
+    return null;
+};
+
+/**
  * @method previous Return previous item
  * @returns {*}
  */
