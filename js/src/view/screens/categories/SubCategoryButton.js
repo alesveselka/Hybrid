@@ -98,7 +98,7 @@ App.SubCategoryButton.prototype.disable = function disable()
 
 /**
  * Update
- * @param {Category} model
+ * @param {App.SubCategory} model
  * @param {string} mode
  */
 App.SubCategoryButton.prototype.update = function update(model,mode)
@@ -113,7 +113,7 @@ App.SubCategoryButton.prototype.update = function update(model,mode)
 
 /**
  * Return model
- * @returns {SubCategory}
+ * @returns {App.SubCategory}
  */
 App.SubCategoryButton.prototype.getModel = function getModel()
 {

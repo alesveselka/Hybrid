@@ -377,6 +377,7 @@ App.Input.prototype.getValue = function getValue()
  */
 App.Input.prototype.setPlaceholder = function setPlaceholder(value)
 {
+    //TODO is this used?
     this._placeholder = value;
     this._updateText(false);
 };

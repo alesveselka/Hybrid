@@ -127,12 +127,17 @@ App.CategoryScreen.prototype._onTweenComplete = function _onTweenComplete()
  */
 App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
 {
-    if (!preferScroll) this._pane.cancelScroll();
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
 
-    this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
-    if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
+    if (button && !(button instanceof App.AddNewButton))
+    {
+        if (!preferScroll) this._pane.cancelScroll();
 
-    this._closeButtons(false);
+        this._interactiveButton = button;
+        this._interactiveButton.swipeStart(direction);
+
+        this._closeButtons(false);
+    }
 };
 
 /**

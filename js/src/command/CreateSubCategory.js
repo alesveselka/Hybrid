@@ -16,13 +16,13 @@ App.CreateSubCategory.prototype.constructor = App.CreateSubCategory;
  * Execute the command
  *
  * @method execute
- * @param {{model:App.SubCategory,name:string,nextCommand:Command,nextCommandData:App.ChangeScreenData}} data
+ * @param {{subCategory:App.SubCategory,name:string,category:App.Category,nextCommand:Command,nextCommandData:App.ChangeScreenData}} data
  */
 App.CreateSubCategory.prototype.execute = function execute(data)
 {
     this._nextCommand = data.nextCommand;
 
-    var subCategory = data.model;
+    var subCategory = data.subCategory;
 
     if (subCategory)  //If subCategory already exist, update it
     {
@@ -35,16 +35,17 @@ App.CreateSubCategory.prototype.execute = function execute(data)
         if (collection.indexOf(subCategory) === -1)
         {
             collection.addItem(subCategory);
-            ModelLocator.getProxy(ModelName.CATEGORIES).find("id",subCategory.category).addSubCategory(subCategory);
+            ModelLocator.getProxy(ModelName.CATEGORIES).find("id",subCategory.category).addSubCategory(subCategory);//TODO not working if in process of creating Category in the same time
         }
     }
-    /*else //If no subCategory is passed in, create one
+    else //If no subCategory is passed in, create one
     {
-        subCategory = new App.Category();
-        subCategory.account = data.account.id;
+        subCategory = new App.SubCategory();
+        subCategory.category = data.category.id;
 
+        data.nextCommandData.updateBackScreen = true;
         data.nextCommandData.updateData = subCategory;
-    }*/
+    }
 
     if (this._nextCommand) this._executeNextCommand(data.nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);

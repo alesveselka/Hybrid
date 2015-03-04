@@ -273,11 +273,27 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
 
         if (button)
         {
-            button.onClick(touchData);
-        }
-        else
-        {
-            //TODO add new SubCategory
+            if (inputFocused) this._scrollInput.blur();
+
+            if (button instanceof App.AddNewButton)
+            {
+                App.Controller.dispatchEvent(App.EventType.CREATE_SUB_CATEGORY,{
+                    category:this._model,
+                    nextCommand:new App.ChangeScreen(),
+                    nextCommandData:App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+                        App.ScreenName.EDIT,
+                        App.ScreenMode.ADD,
+                        null,
+                        0,
+                        0,
+                        App.ScreenTitle.ADD_SUB_CATEGORY
+                    )
+                });
+            }
+            else
+            {
+                button.onClick(touchData);
+            }
         }
 
         this._subCategoryList.closeButtons();

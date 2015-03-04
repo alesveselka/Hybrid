@@ -80,7 +80,7 @@ App.EditScreen.prototype.update = function update(model,mode)
     this._model = model;
     this._mode = mode;
 
-    this._input.setValue(this._model.name);
+    if (this._model) this._input.setValue(this._model.name);
     //this._input.setPlaceholder(data.placeholder);
 };
 
@@ -103,7 +103,7 @@ App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
         changeScreenData.updateBackScreen = true;
 
         App.Controller.dispatchEvent(App.EventType.CREATE_SUB_CATEGORY,{
-            model:this._model,
+            subCategory:this._model,
             name:this._input.getValue(),
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData
