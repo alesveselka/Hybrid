@@ -34,8 +34,8 @@ App.CreateSubCategory.prototype.execute = function execute(data)
 
         if (collection.indexOf(subCategory) === -1)
         {
-            collection.addItem(subCategory);
-            ModelLocator.getProxy(ModelName.CATEGORIES).find("id",subCategory.category).addSubCategory(subCategory);//TODO not working if in process of creating Category in the same time
+            collection.addItem(subCategory);//TODO should I add this only at Category creation level?
+            data.category.addSubCategory(subCategory);//TODO not working if in process of creating Category in the same time
         }
     }
     else //If no subCategory is passed in, create one
@@ -44,7 +44,7 @@ App.CreateSubCategory.prototype.execute = function execute(data)
         subCategory.category = data.category.id;
 
         data.nextCommandData.updateBackScreen = true;
-        data.nextCommandData.updateData = subCategory;
+        data.nextCommandData.updateData = {subCategory:subCategory,category:data.category};
     }
 
     if (this._nextCommand) this._executeNextCommand(data.nextCommandData);

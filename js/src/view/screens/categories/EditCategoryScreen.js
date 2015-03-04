@@ -292,7 +292,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
             }
             else
             {
-                button.onClick(touchData);
+                button.onClick(touchData,this._model);
             }
         }
 

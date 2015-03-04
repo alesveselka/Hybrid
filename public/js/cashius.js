@@ -7046,7 +7046,7 @@ App.EditScreen.prototype.disable = function disable()
 
 /**
  * Update
- * @param {*} model
+ * @param {{category:App.Category,subCategory:App.SubCategory}} model
  * @param {string} mode
  */
 App.EditScreen.prototype.update = function update(model,mode)
@@ -7054,7 +7054,7 @@ App.EditScreen.prototype.update = function update(model,mode)
     this._model = model;
     this._mode = mode;
 
-    if (this._model) this._input.setValue(this._model.name);
+    if (this._model.subCategory) this._input.setValue(this._model.subCategory.name);
     //this._input.setPlaceholder(data.placeholder);
 };
 
@@ -7077,7 +7077,8 @@ App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
         changeScreenData.updateBackScreen = true;
 
         App.Controller.dispatchEvent(App.EventType.CREATE_SUB_CATEGORY,{
-            subCategory:this._model,
+            subCategory:this._model.subCategory,
+            category:this._model.category,
             name:this._input.getValue(),
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData
@@ -8287,18 +8288,19 @@ App.SubCategoryButton.prototype.getModel = function getModel()
 
 /**
  * Click handler
- * @param {InteractionData} data
+ * @param {InteractionData} interactionData
+ * @param {App.Category} category
  */
-App.SubCategoryButton.prototype.onClick = function onClick(data)
+App.SubCategoryButton.prototype.onClick = function onClick(interactionData,category)
 {
     if (this._mode === App.ScreenMode.EDIT)
     {
-        if (this._isOpen && data.getLocalPosition(this).x >= this._width - this._openOffset)
+        if (this._isOpen && interactionData.getLocalPosition(this).x >= this._width - this._openOffset)
         {
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
                 App.ScreenName.EDIT,
                 App.ScreenMode.EDIT,
-                this._model,
+                {subCategory:this._model,category:category},
                 0,
                 0,
                 App.ScreenTitle.EDIT_SUB_CATEGORY
@@ -9594,7 +9596,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
             }
             else
             {
-                button.onClick(touchData);
+                button.onClick(touchData,this._model);
             }
         }
 
@@ -12330,8 +12332,8 @@ App.CreateSubCategory.prototype.execute = function execute(data)
 
         if (collection.indexOf(subCategory) === -1)
         {
-            collection.addItem(subCategory);
-            ModelLocator.getProxy(ModelName.CATEGORIES).find("id",subCategory.category).addSubCategory(subCategory);//TODO not working if in process of creating Category in the same time
+            collection.addItem(subCategory);//TODO should I add this only at Category creation level?
+            data.category.addSubCategory(subCategory);//TODO not working if in process of creating Category in the same time
         }
     }
     else //If no subCategory is passed in, create one
@@ -12340,7 +12342,7 @@ App.CreateSubCategory.prototype.execute = function execute(data)
         subCategory.category = data.category.id;
 
         data.nextCommandData.updateBackScreen = true;
-        data.nextCommandData.updateData = subCategory;
+        data.nextCommandData.updateData = {subCategory:subCategory,category:data.category};
     }
 
     if (this._nextCommand) this._executeNextCommand(data.nextCommandData);

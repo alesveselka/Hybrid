@@ -72,7 +72,7 @@ App.EditScreen.prototype.disable = function disable()
 
 /**
  * Update
- * @param {*} model
+ * @param {{category:App.Category,subCategory:App.SubCategory}} model
  * @param {string} mode
  */
 App.EditScreen.prototype.update = function update(model,mode)
@@ -80,7 +80,7 @@ App.EditScreen.prototype.update = function update(model,mode)
     this._model = model;
     this._mode = mode;
 
-    if (this._model) this._input.setValue(this._model.name);
+    if (this._model.subCategory) this._input.setValue(this._model.subCategory.name);
     //this._input.setPlaceholder(data.placeholder);
 };
 
@@ -103,7 +103,8 @@ App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
         changeScreenData.updateBackScreen = true;
 
         App.Controller.dispatchEvent(App.EventType.CREATE_SUB_CATEGORY,{
-            subCategory:this._model,
+            subCategory:this._model.subCategory,
+            category:this._model.category,
             name:this._input.getValue(),
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData

@@ -122,18 +122,19 @@ App.SubCategoryButton.prototype.getModel = function getModel()
 
 /**
  * Click handler
- * @param {InteractionData} data
+ * @param {InteractionData} interactionData
+ * @param {App.Category} category
  */
-App.SubCategoryButton.prototype.onClick = function onClick(data)
+App.SubCategoryButton.prototype.onClick = function onClick(interactionData,category)
 {
     if (this._mode === App.ScreenMode.EDIT)
     {
-        if (this._isOpen && data.getLocalPosition(this).x >= this._width - this._openOffset)
+        if (this._isOpen && interactionData.getLocalPosition(this).x >= this._width - this._openOffset)
         {
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
                 App.ScreenName.EDIT,
                 App.ScreenMode.EDIT,
-                this._model,
+                {subCategory:this._model,category:category},
                 0,
                 0,
                 App.ScreenTitle.EDIT_SUB_CATEGORY

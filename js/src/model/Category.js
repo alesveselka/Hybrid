@@ -86,9 +86,10 @@ Object.defineProperty(App.Category.prototype,'subCategories',{
             }
             else
             {
+                //TODO use CreateSubCategory command?
                 var subCategory = new App.SubCategory();
                 subCategory.category = this.id;
-                collection.addItem(subCategory);
+                collection.addItem(subCategory);//TODO add this to collection only when the Category is added to Categories collection first?
 
                 this.addSubCategory(subCategory);
             }
