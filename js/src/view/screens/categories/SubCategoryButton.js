@@ -25,19 +25,13 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this._mode = null;
     this._options = options;
     this._pixelRatio = options.pixelRatio;
-    this._swipeSurface = new PIXI.DisplayObjectContainer();
-    this._skin = new PIXI.Sprite(options.whiteSkin);
+    this._background = this.addChild(new PIXI.Graphics());
+    this._deleteLabel = this.addChild(new PIXI.Text("Edit",options.deleteLabelStyle));
+    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
+    this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.whiteSkin));
     this._icon = PIXI.Sprite.fromFrame("subcategory-app");
-    this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
-    this._background = new PIXI.Graphics();
-    this._deleteLabel = new PIXI.Text("Delete",options.deleteLabelStyle);
+    this._nameLabel = this._swipeSurface.addChild(new PIXI.Text("",options.nameLabelStyle));
     this._renderAll = true;
-
-    this.addChild(this._background);
-    this.addChild(this._deleteLabel);
-    this._swipeSurface.addChild(this._skin);
-    this._swipeSurface.addChild(this._nameLabel);
-    this.addChild(this._swipeSurface);
 };
 
 App.SubCategoryButton.prototype = Object.create(App.SwipeButton.prototype);
@@ -124,6 +118,28 @@ App.SubCategoryButton.prototype.update = function update(model,mode)
 App.SubCategoryButton.prototype.getModel = function getModel()
 {
     return this._model;
+};
+
+/**
+ * Click handler
+ * @param {InteractionData} data
+ */
+App.SubCategoryButton.prototype.onClick = function onClick(data)
+{
+    if (this._mode === App.ScreenMode.EDIT)
+    {
+        if (this._isOpen && data.getLocalPosition(this).x >= this._width - this._openOffset)
+        {
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+                App.ScreenName.EDIT,
+                App.ScreenMode.EDIT,
+                this._model,
+                0,
+                0,
+                App.ScreenTitle.EDIT_SUB_CATEGORY
+            ));
+        }
+    }
 };
 
 /**

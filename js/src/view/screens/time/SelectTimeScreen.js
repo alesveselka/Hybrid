@@ -155,13 +155,12 @@ App.SelectTimeScreen.prototype._onClick = function _onClick()
 App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     var HeaderAction = App.HeaderAction,
-        inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput,
         changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
+
+    if (this._scrollState === App.TransitionState.SHOWN && this._scrollInput) this._scrollInput.blur();
 
     if (action === HeaderAction.CANCEL)
     {
-        if (inputFocused) this._scrollInput.blur();
-
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
     else if (action === HeaderAction.CONFIRM)
@@ -174,8 +173,6 @@ App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
         if (time.length > 0) transaction.date.setHours(parseInt(time.split(":")[0],10),parseInt(time.split(":")[1],10));
 
         changeScreenData.updateBackScreen = true;
-
-        if (inputFocused) this._scrollInput.blur();
 
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }

@@ -72,6 +72,7 @@ module.exports = function(grunt)
         "js/src/view/screens/SwipeButton.js",
         "js/src/view/screens/ExpandButton.js",
         "js/src/view/screens/Screen.js",
+        "js/src/view/screens/EditScreen.js",
         "js/src/view/screens/InputScrollScreen.js",
         "js/src/view/screens/transactions/TransactionToggleButton.js",
         "js/src/view/screens/transactions/TransactionOptionButton.js",
@@ -110,6 +111,7 @@ module.exports = function(grunt)
         "js/src/command/ChangeScreen.js",
         "js/src/command/CreateTransaction.js",
         "js/src/command/CreateCategory.js",
+        "js/src/command/CreateSubCategory.js",
         "js/src/main.js"
     ];
 

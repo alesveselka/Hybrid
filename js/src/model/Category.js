@@ -39,6 +39,37 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
 App.Category._UID = 0;
 
 /**
+ * Add subCategory
+ * @param {App.SubCategory} subCategory
+ * @private
+ */
+App.Category.prototype.addSubCategory = function addSubCategory(subCategory)
+{
+    if (this._subCategories) this._subCategories.push(subCategory);
+    else this._subCategories = [subCategory];
+};
+
+/**
+ * Remove subCategory
+ * @param {App.SubCategory} subCategory
+ * @private
+ */
+App.Category.prototype.removeSubCategory = function removeSubCategory(subCategory)
+{
+    var i = 0,
+        l = this._subCategories.length;
+
+    for (;i<l;i++)
+    {
+        if (this._subCategories[i] === subCategory)
+        {
+            this._subCategories.splice(i,1);
+            break;
+        }
+    }
+};
+
+/**
  * @property subCategories
  * @type Array.<SubCategory>
  */
@@ -59,7 +90,7 @@ Object.defineProperty(App.Category.prototype,'subCategories',{
                 subCategory.category = this.id;
                 collection.addItem(subCategory);
 
-                this._subCategories = [subCategory];
+                this.addSubCategory(subCategory);
             }
         }
         return this._subCategories;

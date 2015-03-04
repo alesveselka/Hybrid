@@ -32,6 +32,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         pixelRatio:pixelRatio
     };
 
+    //TODO do I need event dispatcher here?
     this._eventDispatcher = new App.EventDispatcher(listenerPool);
     this._background = new PIXI.Graphics();
 
@@ -45,6 +46,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.TransactionScreen(this._layout),
         new App.ReportScreen(this._layout),
         new App.AddTransactionScreen(this._layout),
+        new App.EditScreen(this._layout),
         new App.Menu(this._layout)//TODO is Menu part of stack? And if it is, it should be at bottom
     ],false,listenerPool));
 

@@ -204,7 +204,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
         changeScreenData.headerName = App.ScreenTitle.ADD_CATEGORY;
 
         App.Controller.dispatchEvent(App.EventType.CREATE_CATEGORY,{
-            account:this._model.id,
+            account:this._model,
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData
         });

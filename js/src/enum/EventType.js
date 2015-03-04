@@ -5,6 +5,7 @@
  *      CHANGE_SCREEN:string,
  *      CREATE_TRANSACTION:string,
  *      CREATE_CATEGORY:string,
+ *      CREATE_SUB_CATEGORY:string,
  *      START:string,
  *      COMPLETE:string,
  *      UPDATE:string,
@@ -34,6 +35,7 @@ App.EventType = {
     CHANGE_SCREEN:"CHANGE_SCREEN",
     CREATE_TRANSACTION:"CREATE_TRANSACTION",
     CREATE_CATEGORY:"CREATE_CATEGORY",
+    CREATE_SUB_CATEGORY:"CREATE_SUB_CATEGORY",
 
     // App
     START:"START",

@@ -31,18 +31,18 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
 
     this._pane = new App.Pane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._container = new PIXI.DisplayObjectContainer();
-    this._background = new PIXI.Graphics();
-    this._colorStripe = new PIXI.Graphics();
+    this._background = this._container.addChild(new PIXI.Graphics());
+    this._colorStripe = this._container.addChild(new PIXI.Graphics());
     this._icon = PIXI.Sprite.fromFrame("currencies");
     this._iconResizeRatio = Math.round(32 * r) / this._icon.height;
-    this._input = new Input("Enter Category Name",20,w - Math.round(70 * r),Math.round(40 * r),r,true);
-    this._separators = new PIXI.Graphics();
-    this._colorList = new InfiniteList(this._getColorSamples(),App.ColorSample,Direction.X,w,Math.round(50 * r),r);
-    this._topIconList = new InfiniteList(icons.slice(0,Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
-    this._bottomIconList = new InfiniteList(icons.slice(Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r);
-    this._subCategoryList = new App.SubCategoryList(subCategoryButtonOptions);
-    this._budgetHeader = new App.ListHeader("Budget",w,r);
-    this._budget = new Input("Enter Budget",20,inputWidth,inputHeight,r,true);
+    this._input = this._container.addChild(new Input("Enter Category Name",20,w - Math.round(70 * r),Math.round(40 * r),r,true));
+    this._separators = this._container.addChild(new PIXI.Graphics());
+    this._colorList = this._container.addChild(new InfiniteList(this._getColorSamples(),App.ColorSample,Direction.X,w,Math.round(50 * r),r));
+    this._topIconList = this._container.addChild(new InfiniteList(icons.slice(0,Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r));
+    this._bottomIconList = this._container.addChild(new InfiniteList(icons.slice(Math.floor(icons.length/2)),IconSample,Direction.X,w,iconsHeight,r));
+    this._subCategoryList = this._container.addChild(new App.SubCategoryList(subCategoryButtonOptions));
+    this._budgetHeader = this._container.addChild(new App.ListHeader("Budget",w,r));
+    this._budget = this._container.addChild(new Input("Enter Budget",20,inputWidth,inputHeight,r,true));
     this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
     this._renderAll = true;
 
@@ -51,17 +51,6 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
 
     this._budget.restrict(/\D/g);
 
-    //TODO use list instead of DisplayObjectContainer for container?
-    this._container.addChild(this._background);
-    this._container.addChild(this._colorStripe);
-    this._container.addChild(this._input);
-    this._container.addChild(this._separators);
-    this._container.addChild(this._colorList);
-    this._container.addChild(this._topIconList);
-    this._container.addChild(this._bottomIconList);
-    this._container.addChild(this._subCategoryList);
-    this._container.addChild(this._budgetHeader);
-    this._container.addChild(this._budget);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
@@ -254,7 +243,8 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
     this._pane.cancelScroll();
 
     var inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput,
-        position = this.stage.getTouchData().getLocalPosition(this._container),
+        touchData = this.stage.getTouchData(),
+        position = touchData.getLocalPosition(this._container),
         y = position.y,
         list = null;
 
@@ -276,6 +266,21 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
     else if (this._bottomIconList.hitTest(y))
     {
         this._onSampleClick(this._bottomIconList,position.x,inputFocused);
+    }
+    else if (this._subCategoryList.hitTest(y))
+    {
+        var button = this._subCategoryList.getItemUnderPoint(touchData);
+
+        if (button)
+        {
+            button.onClick(touchData);
+        }
+        else
+        {
+            //TODO add new SubCategory
+        }
+
+        this._subCategoryList.closeButtons();
     }
     else if (this._budget.hitTest(y))
     {
@@ -321,11 +326,12 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
 {
     var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
+    if (this._scrollState === App.TransitionState.SHOWN && this._scrollInput) this._scrollInput.blur();
+
     if (action === App.HeaderAction.CONFIRM)
     {
         changeScreenData.updateBackScreen = true;
 
-        //TODO first check if all values are set and save changes!
         App.Controller.dispatchEvent(App.EventType.CREATE_CATEGORY,{
             category:this._model,
             name:this._input.getValue(),
@@ -338,6 +344,8 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
     }
     else if (action === App.HeaderAction.CANCEL)
     {
+        this._model = null;
+
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
 };

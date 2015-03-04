@@ -24,13 +24,9 @@ App.SubCategoryList = function SubCategoryList(options)
     this._width = options.width;
     this._pixelRatio = options.pixelRatio;
     this._interactiveButton = null;
-    if (options.displayHeader) this._header = new App.ListHeader("Sub-Categories",this._width,this._pixelRatio);
-    this._buttonList = new App.List(App.Direction.Y);
-    this._addNewButton = new App.AddNewButton("ADD SUB-CATEGORY",options.addLabelStyle,options.addButtonSkin,this._pixelRatio);
-
-    if (this._header) this.addChild(this._header);
-    this.addChild(this._buttonList);
-    this.addChild(this._addNewButton);
+    if (options.displayHeader) this._header = this.addChild(new App.ListHeader("Sub-Categories",this._width,this._pixelRatio));
+    this._buttonList = this.addChild(new App.List(App.Direction.Y));
+    this._addNewButton = this.addChild(new App.AddNewButton("ADD SUB-CATEGORY",options.addLabelStyle,options.addButtonSkin,this._pixelRatio));
 };
 
 App.SubCategoryList.prototype = Object.create(PIXI.Graphics.prototype);

@@ -372,6 +372,16 @@ App.Input.prototype.getValue = function getValue()
 };
 
 /**
+ * Set value
+ * @param {string} value
+ */
+App.Input.prototype.setPlaceholder = function setPlaceholder(value)
+{
+    this._placeholder = value;
+    this._updateText(false);
+};
+
+/**
  * Test if position passed in falls within this input boundaries
  * @param {number} position
  * @returns {boolean}

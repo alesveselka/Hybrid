@@ -312,6 +312,8 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
             App.ScreenTitle.TRANSACTIONS
         );
 
+    if (this._scrollState === App.TransitionState.SHOWN && this._scrollInput) this._scrollInput.blur();
+
     if (action === HeaderAction.CONFIRM)
     {
         //TODO first check if all values are set!

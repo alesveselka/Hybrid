@@ -105,7 +105,8 @@ App.Initialize.prototype._initController = function _initController()
     App.Controller.init(this._eventListenerPool,[
         EventType.CHANGE_SCREEN,App.ChangeScreen,
         EventType.CREATE_TRANSACTION,App.CreateTransaction,
-        EventType.CREATE_CATEGORY,App.CreateCategory
+        EventType.CREATE_CATEGORY,App.CreateCategory,
+        EventType.CREATE_SUB_CATEGORY,App.CreateSubCategory
     ]);
 };
 
