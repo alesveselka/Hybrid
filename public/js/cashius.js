@@ -8746,21 +8746,32 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
             {
                 var ModelLocator = App.ModelLocator,
                     ModelName = App.ModelName,
-                    transaction = ModelLocator.getProxy(ModelName.TRANSACTIONS).getCurrent(),
                     changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
-                transaction.account = ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0];
-                transaction.category = this._model;
-                transaction.subCategory = button.getModel();
+                if (button instanceof App.AddNewButton)
+                {
+                    changeScreenData.screenName = App.ScreenName.EDIT;
+                    changeScreenData.headerName = App.ScreenTitle.ADD_SUB_CATEGORY;
 
-                changeScreenData.backSteps = ModelLocator.getProxy(ModelName.SCREEN_HISTORY).peek(2).screenName === App.ScreenName.ACCOUNT ? 2 : 1;
-                changeScreenData.updateBackScreen = true;
+                    App.Controller.dispatchEvent(App.EventType.CREATE_SUB_CATEGORY,{
+                        category:this._model,
+                        nextCommand:new App.ChangeScreen(),
+                        nextCommandData:changeScreenData
+                    });
+                }
+                else
+                {
+                    var transaction = ModelLocator.getProxy(ModelName.TRANSACTIONS).getCurrent();
 
-                App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
-            }
-            else
-            {
-                //TODO add new SubCategory
+                    transaction.account = ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0];
+                    transaction.category = this._model;
+                    transaction.subCategory = button.getModel();
+
+                    changeScreenData.backSteps = ModelLocator.getProxy(ModelName.SCREEN_HISTORY).peek(2).screenName === App.ScreenName.ACCOUNT ? 2 : 1;
+                    changeScreenData.updateBackScreen = true;
+
+                    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+                }
             }
         }
     }
@@ -12268,7 +12279,7 @@ App.CreateCategory.prototype.execute = function execute(data)
         if (categories.indexOf(category) === -1)
         {
             categories.addItem(category);
-            ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).addCategory(category);
+            ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).addCategory(category);//TODO prob. not working if in process of creating new Account
         }
     }
     else //If no category is passed in, create one
@@ -12320,7 +12331,7 @@ App.CreateSubCategory.prototype.execute = function execute(data)
         if (collection.indexOf(subCategory) === -1)
         {
             collection.addItem(subCategory);
-            ModelLocator.getProxy(ModelName.CATEGORIES).find("id",subCategory.category).addSubCategory(subCategory);
+            ModelLocator.getProxy(ModelName.CATEGORIES).find("id",subCategory.category).addSubCategory(subCategory);//TODO not working if in process of creating Category in the same time
         }
     }
     else //If no subCategory is passed in, create one

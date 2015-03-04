@@ -38,7 +38,7 @@ App.CreateCategory.prototype.execute = function execute(data)
         if (categories.indexOf(category) === -1)
         {
             categories.addItem(category);
-            ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).addCategory(category);
+            ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).addCategory(category);//TODO prob. not working if in process of creating new Account
         }
     }
     else //If no category is passed in, create one
