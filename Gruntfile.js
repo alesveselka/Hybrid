@@ -110,8 +110,8 @@ module.exports = function(grunt)
         "js/src/command/Initialize.js",
         "js/src/command/ChangeScreen.js",
         "js/src/command/CreateTransaction.js",
-        "js/src/command/CreateCategory.js",
-        "js/src/command/CreateSubCategory.js",
+        "js/src/command/ChangeCategory.js",
+        "js/src/command/ChangeSubCategory.js",
         "js/src/main.js"
     ];
 

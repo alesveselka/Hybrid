@@ -34,6 +34,8 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
         this.budget = null;
         this._subCategories = null;
     }
+
+    this._states = null;
 };
 
 App.Category._UID = 0;
@@ -41,18 +43,30 @@ App.Category._UID = 0;
 /**
  * Add subCategory
  * @param {App.SubCategory} subCategory
- * @private
  */
 App.Category.prototype.addSubCategory = function addSubCategory(subCategory)
 {
-    if (this._subCategories) this._subCategories.push(subCategory);
-    else this._subCategories = [subCategory];
+    if (this._subCategories)
+    {
+        var i = 0,
+            l = this._subCategories.length;
+
+        for (;i<l;)
+        {
+            if (this._subCategories[i++] === subCategory) return;
+        }
+
+        this._subCategories.push(subCategory);
+    }
+    else
+    {
+        this._subCategories = [subCategory];
+    }
 };
 
 /**
  * Remove subCategory
  * @param {App.SubCategory} subCategory
- * @private
  */
 App.Category.prototype.removeSubCategory = function removeSubCategory(subCategory)
 {
@@ -70,29 +84,81 @@ App.Category.prototype.removeSubCategory = function removeSubCategory(subCategor
 };
 
 /**
+ * Serialize
+ * @returns {Array}
+ */
+App.Category.prototype.serialize = function serialize()
+{
+    var collection = this.subCategories,
+        subCategoryIds = "",
+        i = 0,
+        l = this._subCategories.length;
+
+    for (;i<l;) subCategoryIds += this._subCategories[i++].id + ",";
+
+    subCategoryIds = subCategoryIds.substring(0,subCategoryIds.length-1);
+
+    return [this.id,this.name,this.color,this.icon,this.account,subCategoryIds,this.budget]
+};
+
+/**
+ * Save current state
+ */
+App.Category.prototype.saveState = function saveState()
+{
+    if (!this._states) this._states = [];
+
+    this._states[this._states.length] = this.serialize();
+};
+
+/**
+ * Revoke last state
+ */
+App.Category.prototype.revokeState = function revokeState()
+{
+    if (this._states && this._states.length)
+    {
+        var state = this._states.pop();
+
+        this.name = state[1];
+        this.color = state[2];
+        this.icon = state[3];
+        this.account = state[4];
+        this.budget = state[6];
+
+        this._inflateSubCategories(state[5]);
+    }
+};
+
+/**
+ * Clear saved states
+ */
+App.Category.prototype.clearSavedStates = function clearSavedStates()
+{
+    if (this._states) this._states.length = 0;
+};
+
+/**
+ * Populate array of SubCategory object from their respective IDs
+ * @param {string} ids
+ * @private
+ */
+App.Category.prototype._inflateSubCategories = function _inflateSubCategories(ids)
+{
+    this._subCategories = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).filter(ids.split(","),"id");
+};
+
+/**
  * @property subCategories
- * @type Array.<SubCategory>
+ * @type Array.<App.SubCategory>
  */
 Object.defineProperty(App.Category.prototype,'subCategories',{
     get:function()
     {
         if (!this._subCategories)
         {
-            var collection = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES);
-
-            if (this._data)
-            {
-                this._subCategories = collection.filter(this._data[5],"id");
-            }
-            else
-            {
-                //TODO use CreateSubCategory command?
-                var subCategory = new App.SubCategory();
-                subCategory.category = this.id;
-                collection.addItem(subCategory);//TODO add this to collection only when the Category is added to Categories collection first?
-
-                this.addSubCategory(subCategory);
-            }
+            if (this._data) this._inflateSubCategories(this._data[5]);
+            else App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{category:this});
         }
         return this._subCategories;
     }

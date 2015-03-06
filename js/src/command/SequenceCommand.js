@@ -10,6 +10,7 @@ App.SequenceCommand = function SequenceCommand(allowMultipleInstances,eventListe
     App.Command.call(this,allowMultipleInstances,eventListenerPool);
 
     this._nextCommand = null;
+    this._nextCommandData = null;
 };
 
 App.SequenceCommand.prototype = Object.create(App.Command.prototype);
@@ -51,4 +52,6 @@ App.SequenceCommand.prototype.destroy = function destroy()
         this._nextCommand.destroy();
         this._nextCommand = null;
     }
+
+    this._nextCommandData = null;
 };

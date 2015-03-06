@@ -200,7 +200,8 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    var data = this.stage.getTouchData(),
+    var EventType = App.EventType,
+        data = this.stage.getTouchData(),
         button = this._buttonList.getItemUnderPoint(data);
 
     if (button instanceof App.AddNewButton)
@@ -208,7 +209,8 @@ App.CategoryScreen.prototype._onClick = function _onClick()
         var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT_CATEGORY);
         changeScreenData.headerName = App.ScreenTitle.ADD_CATEGORY;
 
-        App.Controller.dispatchEvent(App.EventType.CREATE_CATEGORY,{
+        App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,{
+            type:EventType.CREATE,
             account:this._model,
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData
@@ -223,7 +225,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
             if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
             {
                 this._buttonsInTransition.push(this._interactiveButton);
-                this._interactiveButton.addEventListener(App.EventType.COMPLETE,this,this._onButtonTransitionComplete);
+                this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
 
                 this._layoutDirty = true;
             }

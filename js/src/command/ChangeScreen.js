@@ -54,8 +54,8 @@ App.ChangeScreen.prototype.execute = function execute(data)
 
         screenHistory.push(data);
     }
-    console.log("Stack: ",screenHistory._source);
-    console.log("Pool: ",changeScreenDataPool._freeItems);
+//    console.log("Stack: ",screenHistory._source);
+//    console.log("Pool: ",changeScreenDataPool._freeItems);
     ViewLocator.getViewSegment(ViewName.HEADER).change(data.headerLeftAction,data.headerRightAction,data.headerName);
 
     screenStack.selectChild(screen);

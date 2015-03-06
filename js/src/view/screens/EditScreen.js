@@ -12,15 +12,10 @@ App.EditScreen = function EditScreen(layout)
         inputWidth = layout.width - Math.round(20 * r),
         inputHeight = Math.round(40 * r);
 
-    this._background = new PIXI.Graphics();
-    this._input = new App.Input("",20,inputWidth,inputHeight,r,true);
+    this._background = this.addChild(new PIXI.Graphics());
+    this._input = this.addChild(new App.Input("",20,inputWidth,inputHeight,r,true));
     this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
-
-    this._render();
-
-    this.addChild(this._background);
-    this.addChild(this._input);
-    this.addChild(this._deleteButton);
+    this._renderAll = true;
 };
 
 App.EditScreen.prototype = Object.create(App.Screen.prototype);
@@ -32,22 +27,39 @@ App.EditScreen.prototype.constructor = App.EditScreen;
  */
 App.EditScreen.prototype._render = function _render()
 {
-    var ColorTheme = App.ColorTheme,
-        draw = App.GraphicUtils.drawRects,
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        ScreenMode = App.ScreenMode,
         r = this._layout.pixelRatio,
         padding = Math.round(10 * r),
         inputHeight = Math.round(60 * r),
         w = this._layout.width - padding * 2;
 
-    this._input.x = padding;
-    this._input.y = padding;
+    if (this._renderAll)
+    {
+        this._renderAll = false;
 
-    this._deleteButton.x = padding;
-    this._deleteButton.y = inputHeight + padding;
+        this._input.x = padding;
+        this._input.y = padding;
 
-    draw(this._background,ColorTheme.GREY,1,[0,0,w+padding*2,inputHeight*2],true,false);
-    draw(this._background,ColorTheme.GREY_DARK,1,[padding,inputHeight-1,w,1],false,false);
-    draw(this._background,ColorTheme.GREY_LIGHT,1,[padding,inputHeight,w,1],false,true);
+        this._deleteButton.x = padding;
+        this._deleteButton.y = inputHeight + padding;
+    }
+
+    if (this._mode === ScreenMode.EDIT)
+    {
+        if (!this.contains(this._deleteButton)) this.addChild(this._deleteButton);
+
+        GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w+padding*2,inputHeight*2],true,false);
+        GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,inputHeight-1,w,1],false,false);
+        GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,inputHeight,w,1],false,true);
+    }
+    else if (this._mode === ScreenMode.ADD)
+    {
+        if (this.contains(this._deleteButton)) this.removeChild(this._deleteButton);
+
+        GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w+padding*2,inputHeight);
+    }
 };
 
 /**
@@ -82,6 +94,8 @@ App.EditScreen.prototype.update = function update(model,mode)
 
     if (this._model.subCategory) this._input.setValue(this._model.subCategory.name);
     //this._input.setPlaceholder(data.placeholder);
+
+    this._render();
 };
 
 /**
@@ -102,16 +116,24 @@ App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 
         changeScreenData.updateBackScreen = true;
 
-        App.Controller.dispatchEvent(App.EventType.CREATE_SUB_CATEGORY,{
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{
             subCategory:this._model.subCategory,
             category:this._model.category,
             name:this._input.getValue(),
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
+            nextCommand:new App.ChangeCategory(),
+            nextCommandData:{
+                type:App.EventType.CHANGE,
+                category:this._model.category,
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:changeScreenData
+            }
         });
     }
     else if (action === App.HeaderAction.CANCEL)
     {
+        //TODO this is specific to SubCategory only!
+
+//        this._model.category.removeSubCategory(this._model.subCategory);//TODO move to separate command?
         this._model = null;
 
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);

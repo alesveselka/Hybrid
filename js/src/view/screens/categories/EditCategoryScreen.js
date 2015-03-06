@@ -140,7 +140,7 @@ App.EditCategoryScreen.prototype._render = function _render()
 
 /**
  * Update
- * @param {Category} model
+ * @param {App.Category} model
  * @param {string} mode
  */
 App.EditCategoryScreen.prototype.update = function update(model,mode)
@@ -245,8 +245,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
     var inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput,
         touchData = this.stage.getTouchData(),
         position = touchData.getLocalPosition(this._container),
-        y = position.y,
-        list = null;
+        y = position.y;
 
     if (this._input.hitTest(y))
     {
@@ -277,7 +276,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
 
             if (button instanceof App.AddNewButton)
             {
-                App.Controller.dispatchEvent(App.EventType.CREATE_SUB_CATEGORY,{
+                App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{
                     category:this._model,
                     nextCommand:new App.ChangeScreen(),
                     nextCommandData:App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
@@ -292,6 +291,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
             }
             else
             {
+                //TODO save subCategory state?
                 button.onClick(touchData,this._model);
             }
         }
@@ -340,29 +340,29 @@ App.EditCategoryScreen.prototype._onSampleClick = function _onSampleClick(list,p
  */
 App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
+    var EventType = App.EventType,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK),
+        changeCategoryData = {type:EventType.CANCEL,category:this._model,nextCommand:new App.ChangeScreen(),nextCommandData:changeScreenData};
 
     if (this._scrollState === App.TransitionState.SHOWN && this._scrollInput) this._scrollInput.blur();
 
     if (action === App.HeaderAction.CONFIRM)
     {
+        this._model.clearSavedStates();
+
+        changeCategoryData.type = EventType.CHANGE;
+        changeCategoryData.name = this._input.getValue();
+        changeCategoryData.color = this._colorList.getSelectedValue();
+        changeCategoryData.icon = this._getSelectedIcon();
+        changeCategoryData.budget = this._budget.getValue();
+
         changeScreenData.updateBackScreen = true;
 
-        App.Controller.dispatchEvent(App.EventType.CREATE_CATEGORY,{
-            category:this._model,
-            name:this._input.getValue(),
-            color:this._colorList.getSelectedValue(),
-            icon:this._getSelectedIcon(),
-            budget:this._budget.getValue(),
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
-        });
+        App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,changeCategoryData);
     }
     else if (action === App.HeaderAction.CANCEL)
     {
-        this._model = null;
-
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+        App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,changeCategoryData);
     }
 };
 

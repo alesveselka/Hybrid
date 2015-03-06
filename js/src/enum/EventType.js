@@ -4,8 +4,10 @@
  * @return {{
  *      CHANGE_SCREEN:string,
  *      CREATE_TRANSACTION:string,
- *      CREATE_CATEGORY:string,
- *      CREATE_SUB_CATEGORY:string,
+ *      CHANGE_CATEGORY:string,
+ *      CHANGE_SUB_CATEGORY:string,
+ *      CREATE:string,
+ *      CANCEL:string,
  *      START:string,
  *      COMPLETE:string,
  *      UPDATE:string,
@@ -34,10 +36,12 @@ App.EventType = {
     // Commands
     CHANGE_SCREEN:"CHANGE_SCREEN",
     CREATE_TRANSACTION:"CREATE_TRANSACTION",
-    CREATE_CATEGORY:"CREATE_CATEGORY",
-    CREATE_SUB_CATEGORY:"CREATE_SUB_CATEGORY",
+    CHANGE_CATEGORY:"CHANGE_CATEGORY",
+    CHANGE_SUB_CATEGORY:"CHANGE_SUB_CATEGORY",
 
     // App
+    CREATE:"CREATE",
+    CANCEL:"CANCEL",
     START:"START",
     COMPLETE:"COMPLETE",
     UPDATE:"UPDATE",

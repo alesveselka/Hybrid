@@ -662,8 +662,10 @@ App.StringUtils = {
  * @return {{
  *      CHANGE_SCREEN:string,
  *      CREATE_TRANSACTION:string,
- *      CREATE_CATEGORY:string,
- *      CREATE_SUB_CATEGORY:string,
+ *      CHANGE_CATEGORY:string,
+ *      CHANGE_SUB_CATEGORY:string,
+ *      CREATE:string,
+ *      CANCEL:string,
  *      START:string,
  *      COMPLETE:string,
  *      UPDATE:string,
@@ -692,10 +694,12 @@ App.EventType = {
     // Commands
     CHANGE_SCREEN:"CHANGE_SCREEN",
     CREATE_TRANSACTION:"CREATE_TRANSACTION",
-    CREATE_CATEGORY:"CREATE_CATEGORY",
-    CREATE_SUB_CATEGORY:"CREATE_SUB_CATEGORY",
+    CHANGE_CATEGORY:"CHANGE_CATEGORY",
+    CHANGE_SUB_CATEGORY:"CHANGE_SUB_CATEGORY",
 
     // App
+    CREATE:"CREATE",
+    CANCEL:"CANCEL",
     START:"START",
     COMPLETE:"COMPLETE",
     UPDATE:"UPDATE",
@@ -1960,6 +1964,8 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
         this.budget = null;
         this._subCategories = null;
     }
+
+    this._states = null;
 };
 
 App.Category._UID = 0;
@@ -1967,18 +1973,30 @@ App.Category._UID = 0;
 /**
  * Add subCategory
  * @param {App.SubCategory} subCategory
- * @private
  */
 App.Category.prototype.addSubCategory = function addSubCategory(subCategory)
 {
-    if (this._subCategories) this._subCategories.push(subCategory);
-    else this._subCategories = [subCategory];
+    if (this._subCategories)
+    {
+        var i = 0,
+            l = this._subCategories.length;
+
+        for (;i<l;)
+        {
+            if (this._subCategories[i++] === subCategory) return;
+        }
+
+        this._subCategories.push(subCategory);
+    }
+    else
+    {
+        this._subCategories = [subCategory];
+    }
 };
 
 /**
  * Remove subCategory
  * @param {App.SubCategory} subCategory
- * @private
  */
 App.Category.prototype.removeSubCategory = function removeSubCategory(subCategory)
 {
@@ -1996,28 +2014,81 @@ App.Category.prototype.removeSubCategory = function removeSubCategory(subCategor
 };
 
 /**
+ * Serialize
+ * @returns {Array}
+ */
+App.Category.prototype.serialize = function serialize()
+{
+    var collection = this.subCategories,
+        subCategoryIds = "",
+        i = 0,
+        l = this._subCategories.length;
+
+    for (;i<l;) subCategoryIds += this._subCategories[i++].id + ",";
+
+    subCategoryIds = subCategoryIds.substring(0,subCategoryIds.length-1);
+
+    return [this.id,this.name,this.color,this.icon,this.account,subCategoryIds,this.budget]
+};
+
+/**
+ * Save current state
+ */
+App.Category.prototype.saveState = function saveState()
+{
+    if (!this._states) this._states = [];
+
+    this._states[this._states.length] = this.serialize();
+};
+
+/**
+ * Revoke last state
+ */
+App.Category.prototype.revokeState = function revokeState()
+{
+    if (this._states && this._states.length)
+    {
+        var state = this._states.pop();
+
+        this.name = state[1];
+        this.color = state[2];
+        this.icon = state[3];
+        this.account = state[4];
+        this.budget = state[6];
+
+        this._inflateSubCategories(state[5]);
+    }
+};
+
+/**
+ * Clear saved states
+ */
+App.Category.prototype.clearSavedStates = function clearSavedStates()
+{
+    if (this._states) this._states.length = 0;
+};
+
+/**
+ * Populate array of SubCategory object from their respective IDs
+ * @param {string} ids
+ * @private
+ */
+App.Category.prototype._inflateSubCategories = function _inflateSubCategories(ids)
+{
+    this._subCategories = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).filter(ids.split(","),"id");
+};
+
+/**
  * @property subCategories
- * @type Array.<SubCategory>
+ * @type Array.<App.SubCategory>
  */
 Object.defineProperty(App.Category.prototype,'subCategories',{
     get:function()
     {
         if (!this._subCategories)
         {
-            var collection = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES);
-
-            if (this._data)
-            {
-                this._subCategories = collection.filter(this._data[5],"id");
-            }
-            else
-            {
-                var subCategory = new App.SubCategory();
-                subCategory.category = this.id;
-                collection.addItem(subCategory);
-
-                this.addSubCategory(subCategory);
-            }
+            if (this._data) this._inflateSubCategories(this._data[5]);
+            else App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{category:this});
         }
         return this._subCategories;
     }
@@ -6986,15 +7057,10 @@ App.EditScreen = function EditScreen(layout)
         inputWidth = layout.width - Math.round(20 * r),
         inputHeight = Math.round(40 * r);
 
-    this._background = new PIXI.Graphics();
-    this._input = new App.Input("",20,inputWidth,inputHeight,r,true);
+    this._background = this.addChild(new PIXI.Graphics());
+    this._input = this.addChild(new App.Input("",20,inputWidth,inputHeight,r,true));
     this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
-
-    this._render();
-
-    this.addChild(this._background);
-    this.addChild(this._input);
-    this.addChild(this._deleteButton);
+    this._renderAll = true;
 };
 
 App.EditScreen.prototype = Object.create(App.Screen.prototype);
@@ -7006,22 +7072,39 @@ App.EditScreen.prototype.constructor = App.EditScreen;
  */
 App.EditScreen.prototype._render = function _render()
 {
-    var ColorTheme = App.ColorTheme,
-        draw = App.GraphicUtils.drawRects,
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        ScreenMode = App.ScreenMode,
         r = this._layout.pixelRatio,
         padding = Math.round(10 * r),
         inputHeight = Math.round(60 * r),
         w = this._layout.width - padding * 2;
 
-    this._input.x = padding;
-    this._input.y = padding;
+    if (this._renderAll)
+    {
+        this._renderAll = false;
 
-    this._deleteButton.x = padding;
-    this._deleteButton.y = inputHeight + padding;
+        this._input.x = padding;
+        this._input.y = padding;
 
-    draw(this._background,ColorTheme.GREY,1,[0,0,w+padding*2,inputHeight*2],true,false);
-    draw(this._background,ColorTheme.GREY_DARK,1,[padding,inputHeight-1,w,1],false,false);
-    draw(this._background,ColorTheme.GREY_LIGHT,1,[padding,inputHeight,w,1],false,true);
+        this._deleteButton.x = padding;
+        this._deleteButton.y = inputHeight + padding;
+    }
+
+    if (this._mode === ScreenMode.EDIT)
+    {
+        if (!this.contains(this._deleteButton)) this.addChild(this._deleteButton);
+
+        GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w+padding*2,inputHeight*2],true,false);
+        GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,inputHeight-1,w,1],false,false);
+        GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,inputHeight,w,1],false,true);
+    }
+    else if (this._mode === ScreenMode.ADD)
+    {
+        if (this.contains(this._deleteButton)) this.removeChild(this._deleteButton);
+
+        GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w+padding*2,inputHeight);
+    }
 };
 
 /**
@@ -7056,6 +7139,8 @@ App.EditScreen.prototype.update = function update(model,mode)
 
     if (this._model.subCategory) this._input.setValue(this._model.subCategory.name);
     //this._input.setPlaceholder(data.placeholder);
+
+    this._render();
 };
 
 /**
@@ -7076,16 +7161,24 @@ App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 
         changeScreenData.updateBackScreen = true;
 
-        App.Controller.dispatchEvent(App.EventType.CREATE_SUB_CATEGORY,{
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{
             subCategory:this._model.subCategory,
             category:this._model.category,
             name:this._input.getValue(),
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
+            nextCommand:new App.ChangeCategory(),
+            nextCommandData:{
+                type:App.EventType.CHANGE,
+                category:this._model.category,
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:changeScreenData
+            }
         });
     }
     else if (action === App.HeaderAction.CANCEL)
     {
+        //TODO this is specific to SubCategory only!
+
+//        this._model.category.removeSubCategory(this._model.subCategory);//TODO move to separate command?
         this._model = null;
 
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
@@ -8606,7 +8699,7 @@ App.CategoryButtonEdit.prototype.disable = function disable()
 
 /**
  * Update
- * @param {Category} model
+ * @param {App.Category} model
  * @param {string} mode
  */
 App.CategoryButtonEdit.prototype.update = function update(model,mode)
@@ -8627,14 +8720,19 @@ App.CategoryButtonEdit.prototype.onClick = function onClick(data)
 {
     if (this._isOpen && data.getLocalPosition(this).x >= this._width - this._openOffset)
     {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
-            App.ScreenName.EDIT_CATEGORY,
-            App.ScreenMode.EDIT,
-            this._model,
-            0,
-            0,
-            App.ScreenTitle.EDIT_CATEGORY
-        ));
+        this._model.saveState();
+
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,
+            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+                App.ScreenName.EDIT_CATEGORY,
+                App.ScreenMode.EDIT,
+                this._model,
+                0,
+                0,
+                App.ScreenTitle.EDIT_CATEGORY
+            )
+        );
     }
 };
 
@@ -8705,7 +8803,7 @@ App.CategoryButtonExpand.prototype._render = function _render()
 
 /**
  * Update
- * @param {Category} model
+ * @param {App.Category} model
  * @param {string} mode
  */
 App.CategoryButtonExpand.prototype.update = function update(model,mode)
@@ -8752,10 +8850,12 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
 
                 if (button instanceof App.AddNewButton)
                 {
+//                    this._model.saveState();
+
                     changeScreenData.screenName = App.ScreenName.EDIT;
                     changeScreenData.headerName = App.ScreenTitle.ADD_SUB_CATEGORY;
 
-                    App.Controller.dispatchEvent(App.EventType.CREATE_SUB_CATEGORY,{
+                    App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{
                         category:this._model,
                         nextCommand:new App.ChangeScreen(),
                         nextCommandData:changeScreenData
@@ -9006,7 +9106,8 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    var data = this.stage.getTouchData(),
+    var EventType = App.EventType,
+        data = this.stage.getTouchData(),
         button = this._buttonList.getItemUnderPoint(data);
 
     if (button instanceof App.AddNewButton)
@@ -9014,7 +9115,8 @@ App.CategoryScreen.prototype._onClick = function _onClick()
         var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT_CATEGORY);
         changeScreenData.headerName = App.ScreenTitle.ADD_CATEGORY;
 
-        App.Controller.dispatchEvent(App.EventType.CREATE_CATEGORY,{
+        App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,{
+            type:EventType.CREATE,
             account:this._model,
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData
@@ -9029,7 +9131,7 @@ App.CategoryScreen.prototype._onClick = function _onClick()
             if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
             {
                 this._buttonsInTransition.push(this._interactiveButton);
-                this._interactiveButton.addEventListener(App.EventType.COMPLETE,this,this._onButtonTransitionComplete);
+                this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
 
                 this._layoutDirty = true;
             }
@@ -9444,7 +9546,7 @@ App.EditCategoryScreen.prototype._render = function _render()
 
 /**
  * Update
- * @param {Category} model
+ * @param {App.Category} model
  * @param {string} mode
  */
 App.EditCategoryScreen.prototype.update = function update(model,mode)
@@ -9549,8 +9651,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
     var inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput,
         touchData = this.stage.getTouchData(),
         position = touchData.getLocalPosition(this._container),
-        y = position.y,
-        list = null;
+        y = position.y;
 
     if (this._input.hitTest(y))
     {
@@ -9581,7 +9682,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
 
             if (button instanceof App.AddNewButton)
             {
-                App.Controller.dispatchEvent(App.EventType.CREATE_SUB_CATEGORY,{
+                App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{
                     category:this._model,
                     nextCommand:new App.ChangeScreen(),
                     nextCommandData:App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
@@ -9596,6 +9697,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
             }
             else
             {
+                //TODO save subCategory state?
                 button.onClick(touchData,this._model);
             }
         }
@@ -9644,29 +9746,29 @@ App.EditCategoryScreen.prototype._onSampleClick = function _onSampleClick(list,p
  */
 App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
+    var EventType = App.EventType,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK),
+        changeCategoryData = {type:EventType.CANCEL,category:this._model,nextCommand:new App.ChangeScreen(),nextCommandData:changeScreenData};
 
     if (this._scrollState === App.TransitionState.SHOWN && this._scrollInput) this._scrollInput.blur();
 
     if (action === App.HeaderAction.CONFIRM)
     {
+        this._model.clearSavedStates();
+
+        changeCategoryData.type = EventType.CHANGE;
+        changeCategoryData.name = this._input.getValue();
+        changeCategoryData.color = this._colorList.getSelectedValue();
+        changeCategoryData.icon = this._getSelectedIcon();
+        changeCategoryData.budget = this._budget.getValue();
+
         changeScreenData.updateBackScreen = true;
 
-        App.Controller.dispatchEvent(App.EventType.CREATE_CATEGORY,{
-            category:this._model,
-            name:this._input.getValue(),
-            color:this._colorList.getSelectedValue(),
-            icon:this._getSelectedIcon(),
-            budget:this._budget.getValue(),
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
-        });
+        App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,changeCategoryData);
     }
     else if (action === App.HeaderAction.CANCEL)
     {
-        this._model = null;
-
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+        App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,changeCategoryData);
     }
 };
 
@@ -11737,6 +11839,7 @@ App.SequenceCommand = function SequenceCommand(allowMultipleInstances,eventListe
     App.Command.call(this,allowMultipleInstances,eventListenerPool);
 
     this._nextCommand = null;
+    this._nextCommandData = null;
 };
 
 App.SequenceCommand.prototype = Object.create(App.Command.prototype);
@@ -11778,6 +11881,8 @@ App.SequenceCommand.prototype.destroy = function destroy()
         this._nextCommand.destroy();
         this._nextCommand = null;
     }
+
+    this._nextCommandData = null;
 };
 
 /**
@@ -12011,8 +12116,8 @@ App.Initialize.prototype._initController = function _initController()
     App.Controller.init(this._eventListenerPool,[
         EventType.CHANGE_SCREEN,App.ChangeScreen,
         EventType.CREATE_TRANSACTION,App.CreateTransaction,
-        EventType.CREATE_CATEGORY,App.CreateCategory,
-        EventType.CREATE_SUB_CATEGORY,App.CreateSubCategory
+        EventType.CHANGE_CATEGORY,App.ChangeCategory,
+        EventType.CHANGE_SUB_CATEGORY,App.ChangeSubCategory
     ]);
 };
 
@@ -12170,8 +12275,8 @@ App.ChangeScreen.prototype.execute = function execute(data)
 
         screenHistory.push(data);
     }
-    console.log("Stack: ",screenHistory._source);
-    console.log("Pool: ",changeScreenDataPool._freeItems);
+//    console.log("Stack: ",screenHistory._source);
+//    console.log("Pool: ",changeScreenDataPool._freeItems);
     ViewLocator.getViewSegment(ViewName.HEADER).change(data.headerLeftAction,data.headerRightAction,data.headerName);
 
     screenStack.selectChild(screen);
@@ -12242,73 +12347,150 @@ App.CreateTransaction.prototype.execute = function execute(data)
 };
 
 /**
- * @class CreateCategory
+ * @class ChangeCategory
  * @extends SequenceCommand
  * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.CreateCategory = function CreateCategory(eventListenerPool)
+App.ChangeCategory = function ChangeCategory(eventListenerPool)
 {
-    App.SequenceCommand.call(this,false,eventListenerPool);
+    App.SequenceCommand.call(this,false,eventListenerPool || App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
 };
 
-App.CreateCategory.prototype = Object.create(App.SequenceCommand.prototype);
-App.CreateCategory.prototype.constructor = App.CreateCategory;
+App.ChangeCategory.prototype = Object.create(App.SequenceCommand.prototype);
+App.ChangeCategory.prototype.constructor = App.ChangeCategory;
 
 /**
  * Execute the command
  *
  * @method execute
- * @param {{category:App.Category,name:string,color:string,icon:string,budget:string,account:App.Account,nextCommand:Command,screenName:number}} data
+ * @param {Object} data
+ * @param {string} data.type
+ * @param {App.Category} data.category
+ * @param {string} data.name
+ * @param {string} data.color
+ * @param {string} data.icon
+ * @param {string} data.budget
+ * @param {App.Account} data.account
+ * @param {Command} data.nextCommand
+ * @param {Object} data.nextCommandData
  */
-App.CreateCategory.prototype.execute = function execute(data)
+App.ChangeCategory.prototype.execute = function execute(data)
 {
+    var EventType = App.EventType,
+        category = data.category,
+        type = data.type;
+
     this._nextCommand = data.nextCommand;
+    this._nextCommandData = data.nextCommandData;
 
-    var category = data.category;
-
-    if (category)  //If category already exist, update it
-    {
-        var ModelLocator = App.ModelLocator,
-            ModelName = App.ModelName,
-            categories = ModelLocator.getProxy(ModelName.CATEGORIES);
-
-        category.name = data.name;
-        category.icon = data.icon;
-        category.color = data.color;
-        category.budget = data.budget;
-
-        if (categories.indexOf(category) === -1)
-        {
-            categories.addItem(category);
-            ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).addCategory(category);//TODO prob. not working if in process of creating new Account
-        }
-    }
-    else //If no category is passed in, create one
+    if (type === EventType.CREATE)
     {
         category = new App.Category();
         category.account = data.account.id;
 
         data.nextCommandData.updateData = category;
+
+        this._complete();
+    }
+    else if (type === EventType.CHANGE)
+    {
+        category.name = data.name || category.name;
+        category.icon = data.icon || category.icon;
+        category.color = data.color || category.color;
+        category.budget = data.budget || category.budget;
+
+        this._addToCollection(category);
+    }
+    else if (type === EventType.CANCEL)
+    {
+        this._cancelChanges(category);
+    }
+};
+
+/**
+ * Add to collection
+ * @param category
+ * @private
+ */
+App.ChangeCategory.prototype._addToCollection = function _addToCollection(category)
+{
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        categories = ModelLocator.getProxy(ModelName.CATEGORIES),
+        subCategoryCollection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES),
+        subCategories = category.subCategories,
+        subCategory = null,
+        i = 0,
+        l = subCategories.length;
+
+    if (categories.indexOf(category) === -1)
+    {
+        categories.addItem(category);
+        ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).addCategory(category);
     }
 
-    if (this._nextCommand) this._executeNextCommand(data.nextCommandData);
+    for (;i<l;)
+    {
+        subCategory = subCategories[i++];
+        if (subCategoryCollection.indexOf(subCategory) === -1) subCategoryCollection.addItem(subCategory);
+    }
+    console.log("_addToCollection A: ",subCategoryCollection._items.length);
+
+    this._complete();
+};
+
+/**
+ * Cancel changes made to the category since last saved state
+ * @param {App.Category} category
+ * @private
+ */
+App.ChangeCategory.prototype._cancelChanges = function _cancelChanges(category)
+{
+    var subCategoryCollection = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES),
+        allSubCategories = category.subCategories,
+        i = 0,
+        l = allSubCategories.length;
+
+    category.revokeState();
+
+    var revokedSubCategories = category.subCategories;
+    console.log("_cancelChanges A: ",subCategoryCollection._items.length);
+    for (;i<l;i++)
+    {
+        if (revokedSubCategories.indexOf(allSubCategories[i]) === -1 && subCategoryCollection.indexOf(allSubCategories[i]) > -1)
+        {
+            subCategoryCollection.removeItem(allSubCategories[i]);
+        }
+    }
+    console.log("_cancelChanges B: ",subCategoryCollection._items.length);
+
+    this._complete();
+};
+
+/**
+ * Complete
+ * @private
+ */
+App.ChangeCategory.prototype._complete = function _complete()
+{
+    if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);
 };
 
 /**
- * @class CreateSubCategory
+ * @class ChangeSubCategory
  * @extends SequenceCommand
  * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.CreateSubCategory = function CreateSubCategory(eventListenerPool)
+App.ChangeSubCategory = function ChangeSubCategory(eventListenerPool)
 {
-    App.SequenceCommand.call(this,false,eventListenerPool);
+    App.SequenceCommand.call(this,false,eventListenerPool);//App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL)
 };
 
-App.CreateSubCategory.prototype = Object.create(App.SequenceCommand.prototype);
-App.CreateSubCategory.prototype.constructor = App.CreateSubCategory;
+App.ChangeSubCategory.prototype = Object.create(App.SequenceCommand.prototype);
+App.ChangeSubCategory.prototype.constructor = App.ChangeSubCategory;
 
 /**
  * Execute the command
@@ -12316,7 +12498,7 @@ App.CreateSubCategory.prototype.constructor = App.CreateSubCategory;
  * @method execute
  * @param {{subCategory:App.SubCategory,name:string,category:App.Category,nextCommand:Command,nextCommandData:App.ChangeScreenData}} data
  */
-App.CreateSubCategory.prototype.execute = function execute(data)
+App.ChangeSubCategory.prototype.execute = function execute(data)
 {
     this._nextCommand = data.nextCommand;
 
@@ -12324,25 +12506,21 @@ App.CreateSubCategory.prototype.execute = function execute(data)
 
     if (subCategory)  //If subCategory already exist, update it
     {
-        var ModelLocator = App.ModelLocator,
-            ModelName = App.ModelName,
-            collection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES);
-
         subCategory.name = data.name;
 
-        if (collection.indexOf(subCategory) === -1)
-        {
-            collection.addItem(subCategory);//TODO should I add this only at Category creation level?
-            data.category.addSubCategory(subCategory);//TODO not working if in process of creating Category in the same time
-        }
+        data.category.addSubCategory(subCategory);
     }
     else //If no subCategory is passed in, create one
     {
         subCategory = new App.SubCategory();
         subCategory.category = data.category.id;
 
-        data.nextCommandData.updateBackScreen = true;
-        data.nextCommandData.updateData = {subCategory:subCategory,category:data.category};
+        var nextCommandData = data.nextCommandData;
+        if (nextCommandData)
+        {
+            nextCommandData.updateBackScreen = true;
+            nextCommandData.updateData = {subCategory:subCategory,category:data.category};
+        }
     }
 
     if (this._nextCommand) this._executeNextCommand(data.nextCommandData);
