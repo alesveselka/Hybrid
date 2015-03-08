@@ -93,12 +93,11 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
 
                 if (button instanceof App.AddNewButton)
                 {
-//                    this._model.saveState();
-
                     changeScreenData.screenName = App.ScreenName.EDIT;
                     changeScreenData.headerName = App.ScreenTitle.ADD_SUB_CATEGORY;
 
                     App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{
+                        type:App.EventType.CREATE,
                         category:this._model,
                         nextCommand:new App.ChangeScreen(),
                         nextCommandData:changeScreenData

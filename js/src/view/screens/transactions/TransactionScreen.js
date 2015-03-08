@@ -8,8 +8,6 @@ App.TransactionScreen = function TransactionScreen(layout)
 {
     App.Screen.call(this,null,layout,0.4);
 
-    //TODO bottom items are not rendered when the screen is re-shown (due to scrolled position)
-
     var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
         r = layout.pixelRatio,
@@ -36,6 +34,7 @@ App.TransactionScreen = function TransactionScreen(layout)
 
     this._interactiveButton = null;
 
+    //TODO load real data later ...
     for (;i<l;i++) transactions[i] = {amount:100+i,account:"Personal",category:"Cinema / Entertainment",date:"10/21/2013",iconName:"transactions",pending:(i % 23) === 0};
 
     this._buttonList = new App.VirtualList(transactions,App.TransactionButton,buttonOptions,App.Direction.Y,w,h,r);

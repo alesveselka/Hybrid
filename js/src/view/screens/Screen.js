@@ -160,6 +160,7 @@ App.Screen.prototype._registerEventListeners = function _registerEventListeners(
             this.mouseupoutside = this._onPointerUp;
         }
 
+        //TODO register header click only after the screen is shown
         App.ViewLocator.getViewSegment(App.ViewName.HEADER).addEventListener(App.EventType.CLICK,this,this._onHeaderClick);
 
         this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);

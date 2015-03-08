@@ -105,24 +105,26 @@ App.EditScreen.prototype.update = function update(model,mode)
  */
 App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
+    var EventType = App.EventType,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
     this._input.blur();
 
+    //TODO check first if value is set
+    //TODO different action when editing different models
+
     if (action === App.HeaderAction.CONFIRM)
     {
-        //TODO check first if value is set
-        //TODO different action when editing different models
-
         changeScreenData.updateBackScreen = true;
 
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{
+        App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
+            type:EventType.CHANGE,
             subCategory:this._model.subCategory,
             category:this._model.category,
             name:this._input.getValue(),
             nextCommand:new App.ChangeCategory(),
             nextCommandData:{
-                type:App.EventType.CHANGE,
+                type:EventType.CHANGE,
                 category:this._model.category,
                 nextCommand:new App.ChangeScreen(),
                 nextCommandData:changeScreenData
@@ -131,11 +133,6 @@ App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
     }
     else if (action === App.HeaderAction.CANCEL)
     {
-        //TODO this is specific to SubCategory only!
-
-//        this._model.category.removeSubCategory(this._model.subCategory);//TODO move to separate command?
-        this._model = null;
-
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+        App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData);
     }
 };

@@ -22,6 +22,32 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
         this.name = "SubCategory" + this.id;
         this.category = null;
     }
+
+    this._state = null;
 };
 
 App.SubCategory._UID = 0;
+
+/**
+ * Save current state
+ */
+App.SubCategory.prototype.saveState = function saveState()
+{
+    if (!this._state) this._state = this.name;
+};
+
+/**
+ * Revoke last state
+ */
+App.SubCategory.prototype.revokeState = function revokeState()
+{
+    if (this._state) this.name = this._state;
+};
+
+/**
+ * Clear saved state
+ */
+App.SubCategory.prototype.clearSavedState = function clearSavedState()
+{
+    this._state = null;
+};

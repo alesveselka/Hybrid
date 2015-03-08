@@ -8,6 +8,7 @@
  *      CHANGE_SUB_CATEGORY:string,
  *      CREATE:string,
  *      CANCEL:string,
+ *      CONFIRM:string,
  *      START:string,
  *      COMPLETE:string,
  *      UPDATE:string,
@@ -42,6 +43,7 @@ App.EventType = {
     // App
     CREATE:"CREATE",
     CANCEL:"CANCEL",
+    CONFIRM:"CONFIRM",
     START:"START",
     COMPLETE:"COMPLETE",
     UPDATE:"UPDATE",

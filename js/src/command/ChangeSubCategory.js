@@ -20,27 +20,25 @@ App.ChangeSubCategory.prototype.constructor = App.ChangeSubCategory;
  */
 App.ChangeSubCategory.prototype.execute = function execute(data)
 {
+    var EventType = App.EventType,
+        subCategory = data.subCategory,
+        type = data.type;
+
     this._nextCommand = data.nextCommand;
+    this._nextCommandData = data.nextCommandData;
 
-    var subCategory = data.subCategory;
-
-    if (subCategory)  //If subCategory already exist, update it
-    {
-        subCategory.name = data.name;
-
-        data.category.addSubCategory(subCategory);
-    }
-    else //If no subCategory is passed in, create one
+    if (type === EventType.CREATE)
     {
         subCategory = new App.SubCategory();
         subCategory.category = data.category.id;
 
-        var nextCommandData = data.nextCommandData;
-        if (nextCommandData)
-        {
-            nextCommandData.updateBackScreen = true;
-            nextCommandData.updateData = {subCategory:subCategory,category:data.category};
-        }
+        this._nextCommandData.updateData = {subCategory:subCategory,category:data.category};
+    }
+    else if (type === EventType.CHANGE)
+    {
+        subCategory.name = data.name;
+
+        data.category.addSubCategory(subCategory);
     }
 
     if (this._nextCommand) this._executeNextCommand(data.nextCommandData);

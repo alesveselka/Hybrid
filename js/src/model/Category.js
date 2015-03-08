@@ -136,6 +136,11 @@ App.Category.prototype.revokeState = function revokeState()
 App.Category.prototype.clearSavedStates = function clearSavedStates()
 {
     if (this._states) this._states.length = 0;
+
+    var i = 0,
+        l = this._subCategories.length;
+
+    for (;i<l;) this._subCategories[i++].clearSavedState();
 };
 
 /**
@@ -157,8 +162,16 @@ Object.defineProperty(App.Category.prototype,'subCategories',{
     {
         if (!this._subCategories)
         {
-            if (this._data) this._inflateSubCategories(this._data[5]);
-            else App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{category:this});
+            if (this._data)
+            {
+                this._inflateSubCategories(this._data[5]);
+            }
+            else
+            {
+                var subCategory = new App.SubCategory();
+                subCategory.category = this.id;
+                this._subCategories = [subCategory];
+            }
         }
         return this._subCategories;
     }

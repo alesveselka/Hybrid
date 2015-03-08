@@ -277,6 +277,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
             if (button instanceof App.AddNewButton)
             {
                 App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{
+                    type:App.EventType.CREATE,
                     category:this._model,
                     nextCommand:new App.ChangeScreen(),
                     nextCommandData:App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
@@ -291,7 +292,6 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
             }
             else
             {
-                //TODO save subCategory state?
                 button.onClick(touchData,this._model);
             }
         }
@@ -350,7 +350,7 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
     {
         this._model.clearSavedStates();
 
-        changeCategoryData.type = EventType.CHANGE;
+        changeCategoryData.type = EventType.CONFIRM;
         changeCategoryData.name = this._input.getValue();
         changeCategoryData.color = this._colorList.getSelectedValue();
         changeCategoryData.icon = this._getSelectedIcon();

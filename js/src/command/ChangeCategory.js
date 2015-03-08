@@ -42,8 +42,6 @@ App.ChangeCategory.prototype.execute = function execute(data)
         category.account = data.account.id;
 
         data.nextCommandData.updateData = category;
-
-        this._complete();
     }
     else if (type === EventType.CHANGE)
     {
@@ -52,43 +50,65 @@ App.ChangeCategory.prototype.execute = function execute(data)
         category.color = data.color || category.color;
         category.budget = data.budget || category.budget;
 
-        this._addToCollection(category);
+        this._registerSubCategories(category);
+    }
+    else if (type === EventType.CONFIRM)
+    {
+        category.name = data.name;
+        category.icon = data.icon;
+        category.color = data.color;
+        category.budget = data.budget;
+
+        this._registerSubCategories(category);
+        this._registerCategory(category);
     }
     else if (type === EventType.CANCEL)
     {
         this._cancelChanges(category);
     }
+
+    if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
+    else this.dispatchEvent(App.EventType.COMPLETE,this);
 };
 
 /**
- * Add to collection
+ * Add category to collection
  * @param category
  * @private
  */
-App.ChangeCategory.prototype._addToCollection = function _addToCollection(category)
+App.ChangeCategory.prototype._registerCategory = function _registerCategory(category)
 {
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName,
-        categories = ModelLocator.getProxy(ModelName.CATEGORIES),
-        subCategoryCollection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES),
-        subCategories = category.subCategories,
-        subCategory = null,
-        i = 0,
-        l = subCategories.length;
+        categories = ModelLocator.getProxy(ModelName.CATEGORIES);
 
     if (categories.indexOf(category) === -1)
     {
         categories.addItem(category);
         ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).addCategory(category);
     }
+};
+
+/**
+ * Add subCategories to collection
+ * @param category
+ * @private
+ */
+App.ChangeCategory.prototype._registerSubCategories = function _registerSubCategories(category)
+{
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        subCategoryCollection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES),
+        subCategories = category.subCategories,
+        subCategory = null,
+        i = 0,
+        l = subCategories.length;
 
     for (;i<l;)
     {
         subCategory = subCategories[i++];
         if (subCategoryCollection.indexOf(subCategory) === -1) subCategoryCollection.addItem(subCategory);
     }
-
-    this._complete();
 };
 
 /**
@@ -115,15 +135,10 @@ App.ChangeCategory.prototype._cancelChanges = function _cancelChanges(category)
         }
     }
 
-    this._complete();
-};
+    i = 0;
+    l = revokedSubCategories.length;
 
-/**
- * Complete
- * @private
- */
-App.ChangeCategory.prototype._complete = function _complete()
-{
-    if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
-    else this.dispatchEvent(App.EventType.COMPLETE,this);
+    for (;i<l;) revokedSubCategories[i++].revokeState();
+
+    //TODO destroy category if it was newly created and eventually cancelled?
 };
