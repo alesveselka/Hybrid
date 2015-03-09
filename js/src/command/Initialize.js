@@ -88,7 +88,7 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         ModelName.ACCOUNTS,new Collection(userData.accounts,App.Account,null,this._eventListenerPool),
         ModelName.TRANSACTIONS,new Collection(userData.transactions,App.Transaction,null,this._eventListenerPool),
         ModelName.CHANGE_SCREEN_DATA_POOL,changeScreenDataPool,
-        ModelName.SCREEN_HISTORY,new App.Stack()//TODO use max limit?
+        ModelName.SCREEN_HISTORY,new App.Stack()
     ]);
 };
 

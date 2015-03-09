@@ -1,12 +1,10 @@
 /**
  * @class TransactionButton
  * @extends SwipeButton
- * @param {number} modelIndex
- * @param {Transaction} model
  * @param {{width:number,height:number,pixelRatio:number:labelStyles:Object}} options
  * @constructor
  */
-App.TransactionButton = function TransactionButton(modelIndex,model,options)
+App.TransactionButton = function TransactionButton(/*modelIndex,model,*/options)
 {
     App.SwipeButton.call(this,options.width,Math.round(120*options.pixelRatio));
 
@@ -17,37 +15,24 @@ App.TransactionButton = function TransactionButton(modelIndex,model,options)
 
     this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
-    this._model = model;
-    this._modelIndex = modelIndex;
+    this._model = null;
+    this._modelIndex = -1;
     this._pixelRatio = options.pixelRatio;
     this._labelStyles = options.labelStyles;
     this._isPending = void 0;
 
-    this._background = new Graphics();
-    this._copyLabel = new Text("Copy",editStyle);
-    this._editLabel = new Text("Edit",editStyle);
-    this._swipeSurface = new Graphics();
-    this._icon = PIXI.Sprite.fromFrame(model.iconName);
-    this._iconResizeRatio = Math.round(32 * this._pixelRatio) / this._icon.height;
-    this._accountField = new Text(placeholder,editStyle);
-    this._categoryField = new Text(placeholder,editStyle);
-    this._amountField = new Text(placeholder,editStyle);
-    this._dateField = new Text(placeholder,editStyle);
+    this._background = this.addChild(new Graphics());
+    this._copyLabel = this.addChild(new Text("Copy",editStyle));
+    this._editLabel = this.addChild(new Text("Edit",editStyle));
+    this._swipeSurface = this.addChild(new Graphics());
+    this._icon = null;
+    this._iconResizeRatio = -1;
+    this._accountField = this._swipeSurface.addChild(new Text(placeholder,editStyle));
+    this._categoryField = this._swipeSurface.addChild(new Text(placeholder,editStyle));
+    this._amountField = this._swipeSurface.addChild(new Text(placeholder,editStyle));
+    this._dateField = this._swipeSurface.addChild(new Text(placeholder,editStyle));
     this._pendingFlag = new Graphics();
-    this._pendingLabel = new Text("PENDING",this._labelStyles.pending);
-
-    this._update(true);
-
-    this._swipeSurface.addChild(this._icon);
-    this._swipeSurface.addChild(this._accountField);
-    this._swipeSurface.addChild(this._categoryField);
-    this._swipeSurface.addChild(this._amountField);
-    this._swipeSurface.addChild(this._dateField);
-    this._pendingFlag.addChild(this._pendingLabel);
-    this.addChild(this._background);
-    this.addChild(this._copyLabel);
-    this.addChild(this._editLabel);
-    this.addChild(this._swipeSurface);
+    this._pendingLabel = this._pendingFlag.addChild(new Text("PENDING",this._labelStyles.pending));
 };
 
 App.TransactionButton.prototype = Object.create(App.SwipeButton.prototype);
@@ -62,11 +47,13 @@ App.TransactionButton.prototype._update = function _update(updateAll)
 {
     var pending = this._model.pending;
 
-    this._accountField.setText(this._model.account);
+    this._accountField.setText(this._model.account.name);
     this._amountField.setText(this._model.amount);
-    this._categoryField.setText(this._model.category);
+    this._categoryField.setText(this._model.category.name);
     this._dateField.setText(pending ? "Due by\n"+this._model.date : this._model.date);
-    this._icon.setTexture(PIXI.TextureCache[this._model.iconName]);
+
+    if (this._icon) this._icon.setTexture(PIXI.TextureCache[this._model.category.icon]);
+    else this._icon = this._swipeSurface.addChild(PIXI.Sprite.fromFrame(this._model.category.icon));
 
     if (pending !== this._isPending)
     {
@@ -166,6 +153,7 @@ App.TransactionButton.prototype._updateLayout = function _updateLayout(updateAll
         this._editLabel.x = w - swipeOptionWidth + Math.round((swipeOptionWidth - this._editLabel.width) / 2);
         this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
 
+        if (this._iconResizeRatio === -1) this._iconResizeRatio = Math.round(32 * this._pixelRatio) / this._icon.height;
         this._icon.scale.x = this._iconResizeRatio;
         this._icon.scale.y = this._iconResizeRatio;
         this._icon.x = Math.round(20 * r);
@@ -198,7 +186,7 @@ App.TransactionButton.prototype.setModel = function setModel(modelIndex,model)
     this._modelIndex = modelIndex;
     this._model = model;
 
-    this._update(false);
+    this._update(this._icon === null);
 };
 
 /**

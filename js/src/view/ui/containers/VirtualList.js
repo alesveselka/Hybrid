@@ -4,7 +4,7 @@
  *
  * @class VirtualList
  * @extends DisplayObjectContainer
- * @param {Array} model
+ * @param {App.Collection} model
  * @param {Function} itemClass
  * @param {Object} itemOptions
  * @param {string} direction
@@ -20,8 +20,8 @@ App.VirtualList = function VirtualList(model,itemClass,itemOptions,direction,wid
     var Direction = App.Direction,
         itemSize = direction === Direction.X ? itemOptions.width : itemOptions.height,
         itemCount = Math.ceil(width / itemSize) + 1,
-        listSize = model.length * itemSize,
-        modelLength = model.length - 1,
+        listSize = model.length() * itemSize,
+        modelLength = model.length() - 1,
         item = null,
         index = 0,
         i = 0;
@@ -35,10 +35,9 @@ App.VirtualList = function VirtualList(model,itemClass,itemOptions,direction,wid
         this.boundingBox.height = listSize;
     }
 
-    if (itemCount > model.length) itemCount = model.length;
+    if (itemCount > model.length()) itemCount = model.length();
 
     this._model = model;
-    this._itemClass = itemClass;
     this._direction = direction;
     this._width = width;
     this._height = height;
@@ -51,10 +50,10 @@ App.VirtualList = function VirtualList(model,itemClass,itemOptions,direction,wid
     for (;i<itemCount;i++,index++)
     {
         if(index > modelLength) index = 0;
-        item = new itemClass(index,model[index],itemOptions);
+        item = new itemClass(/*index,model[index],*/itemOptions);
 
         this._items[i] = item;
-        this.addChild(item);
+//        this.addChild(item);
     }
 
     this._updateLayout(false);
@@ -125,7 +124,7 @@ App.VirtualList.prototype.updateX = function updateX(position)
         itemScreenIndex = 0,
         xIndex = 0,
         modelIndex = 0,
-        modelLength = this._model.length,
+        modelLength = this._model.length(),
         maxEnd = l - 2,
         maxBeginning = modelLength - l,
         moveToEnd = false,
@@ -155,7 +154,7 @@ App.VirtualList.prototype.updateX = function updateX(position)
 
             if ((moveToEnd && modelIndex > maxEnd) || (moveToBeginning && modelIndex < maxBeginning))
             {
-                item.setModel(modelIndex,this._model[modelIndex]);
+                item.setModel(modelIndex,this._model.getItemAt(modelIndex));
             }
             else
             {
@@ -183,7 +182,7 @@ App.VirtualList.prototype.updateY = function updateY(position)
         itemScreenIndex = 0,
         yIndex = 0,
         modelIndex = 0,
-        modelLength = this._model.length,
+        modelLength = this._model.length(),
         maxEnd = l - 2,
         maxBeginning = modelLength - l,
         moveToEnd = false,
@@ -213,7 +212,7 @@ App.VirtualList.prototype.updateY = function updateY(position)
 
             if ((moveToEnd && modelIndex > maxEnd) || (moveToBeginning && modelIndex < maxBeginning))
             {
-                item.setModel(modelIndex,this._model[modelIndex]);
+                item.setModel(modelIndex,this._model.getItemAt(modelIndex));
             }
             else
             {
@@ -230,11 +229,26 @@ App.VirtualList.prototype.updateY = function updateY(position)
  */
 App.VirtualList.prototype.reset = function reset()
 {
-    var i = 0,
-        l = this._items.length,
+    var Direction = App.Direction,
+        itemCount = Math.ceil(this._width / this._itemSize) + 1,
+        listSize = this._model.length() * this._itemSize,
+        modelLength = this._model.length() - 1,
         item = null,
         position = 0,
-        Direction = App.Direction;
+        index = 0,
+        l = this._items.length,//TODO based on model vs. avail. space
+        i = 0;
+
+    //this.boundingBox = new PIXI.Rectangle(0,0,listSize,height);
+
+    if (this._direction === Direction.Y)
+    {
+        itemCount = Math.ceil(this._height / this._itemSize) + 1;
+//        this.boundingBox.width = this._width;
+        this.boundingBox.height = listSize;
+    }
+
+    if (itemCount > this._model.length()) itemCount = this._model.length();
 
     if (this._direction === Direction.X)
     {
@@ -242,7 +256,7 @@ App.VirtualList.prototype.reset = function reset()
         {
             item = this._items[i];
             item.x = position;
-            item.setModel(i,this._model[i]);
+            item.setModel(i,this._model.getItemAt(i));
             position = Math.round(position + this._itemSize);
         }
     }
@@ -252,7 +266,7 @@ App.VirtualList.prototype.reset = function reset()
         {
             item = this._items[i];
             item.y = position;
-            item.setModel(i,this._model[i]);
+            item.setModel(i,this._model.getItemAt(i));
             position = Math.round(position + this._itemSize);
         }
     }

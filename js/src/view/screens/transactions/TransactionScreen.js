@@ -27,21 +27,19 @@ App.TransactionScreen = function TransactionScreen(layout)
             width:w,
             height:Math.round(70*r),
             pixelRatio:r
-        },
+        };/*,
         i = 0,
         l = 50,
-        transactions = new Array(l);
+        transactions = new Array(l);*/
 
     this._interactiveButton = null;
 
     //TODO load real data later ...
-    for (;i<l;i++) transactions[i] = {amount:100+i,account:"Personal",category:"Cinema / Entertainment",date:"10/21/2013",iconName:"transactions",pending:(i % 23) === 0};
+    //for (;i<l;i++) transactions[i] = {amount:100+i,account:"Personal",category:"Cinema / Entertainment",date:"10/21/2013",iconName:"transactions",pending:(i % 23) === 0};
 
-    this._buttonList = new App.VirtualList(transactions,App.TransactionButton,buttonOptions,App.Direction.Y,w,h,r);
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,false);
+    this._buttonList = new App.VirtualList(App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS),App.TransactionButton,buttonOptions,App.Direction.Y,w,h,r);
+    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,false));
     this._pane.setContent(this._buttonList);
-
-    this.addChild(this._pane);
 };
 
 App.TransactionScreen.prototype = Object.create(App.Screen.prototype);
@@ -54,8 +52,8 @@ App.TransactionScreen.prototype.enable = function enable()
 {
     App.Screen.prototype.enable.call(this);
 
-    this._pane.resetScroll();
-    this._buttonList.reset();
+//    this._pane.resetScroll();
+//    this._buttonList.reset();
     this._pane.enable();
 
     this._swipeEnabled = true;
@@ -67,9 +65,20 @@ App.TransactionScreen.prototype.enable = function enable()
 App.TransactionScreen.prototype.disable = function disable()
 {
     App.Screen.prototype.disable.call(this);
+
     this._pane.disable();
 
     this._swipeEnabled = false;
+};
+
+/**
+ * Update
+ * @private
+ */
+App.TransactionScreen.prototype.update = function update()
+{
+    this._pane.resetScroll();
+    this._buttonList.reset();
 };
 
 /**
