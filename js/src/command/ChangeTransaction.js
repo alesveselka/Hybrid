@@ -57,8 +57,8 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     {
         transaction.amount = data.amount || transaction.amount;
         transaction.type = data.transactionType || transaction.type;
-        transaction.pending = data.type === true;
-        transaction.repeat = data.type === true;
+        transaction.pending = data.pending === true;
+        transaction.repeat = data.repeat === true;
         transaction.note = data.note || transaction.note;
 
         transactions.setCurrent(null);

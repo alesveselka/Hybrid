@@ -207,6 +207,8 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
                 amountPending:FontStyle.get(26,FontStyle.WHITE),
                 datePending:FontStyle.get(14,FontStyle.WHITE,"right")
             },
+            greySkin:skin.GREY_70,
+            redSkin:skin.RED_70,
             width:width,
             height:Math.round(70 * pixelRatio),
             pixelRatio:pixelRatio

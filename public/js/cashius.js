@@ -9978,12 +9978,15 @@ App.TransactionButton = function TransactionButton(poolIndex,options)
     this._labelStyles = options.labelStyles;
     this._isPending = void 0;
 
+    this._redSkin = new PIXI.Sprite(options.redSkin);
+    this._greySkin = new PIXI.Sprite(options.greySkin);
     this._background = this.addChild(new Graphics());
     this._copyLabel = this.addChild(new Text("Copy",editStyle));
     this._editLabel = this.addChild(new Text("Edit",editStyle));
-    this._swipeSurface = this.addChild(new Graphics());
+    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
     this._icon = null;
     this._iconResizeRatio = -1;
+    this._colorStripe = this._swipeSurface.addChild(new Graphics());
     this._accountField = this._swipeSurface.addChild(new Text("",editStyle));
     this._categoryField = this._swipeSurface.addChild(new Text("",editStyle));
     this._amountField = this._swipeSurface.addChild(new Text("",editStyle));
@@ -10002,12 +10005,14 @@ App.TransactionButton.prototype.constructor = App.TransactionButton;
  */
 App.TransactionButton.prototype._update = function _update(updateAll)
 {
-    var pending = this._model.pending;
+    var pending = this._model.pending,
+        date = this._model.date,
+        dateText = (date.getMonth() + 1) + "/" + date.getDate() + "/" + date.getFullYear();
 
     this._accountField.setText(this._model.account.name);
     this._amountField.setText(this._model.amount);//TODO add symbol in smaller font
-    this._categoryField.setText(this._model.category.name);
-    this._dateField.setText(pending ? "Due by\n"+this._model.date : this._model.date);
+    this._categoryField.setText(this._model.subCategory.name+" / "+this._model.category.name);
+    this._dateField.setText(pending ? "Due by\n"+dateText : dateText);
 
     if (this._icon) this._icon.setTexture(PIXI.TextureCache[this._model.category.icon]);
     else this._icon = this._swipeSurface.addChild(PIXI.Sprite.fromFrame(this._model.category.icon));
@@ -10074,19 +10079,27 @@ App.TransactionButton.prototype._render = function _render(renderAll,pending)
 
         this._icon.tint = ColorTheme.RED_DARK;
 
+        if (this._swipeSurface.contains(this._greySkin)) this._swipeSurface.removeChild(this._greySkin);
+        if (!this._swipeSurface.contains(this._redSkin)) this._swipeSurface.addChildAt(this._redSkin,0);
+
         if (!this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.addChild(this._pendingFlag);
     }
     else
     {
         this._icon.tint = ColorTheme.BLUE;
 
+        if (this._swipeSurface.contains(this._redSkin)) this._swipeSurface.removeChild(this._redSkin);
+        if (!this._swipeSurface.contains(this._greySkin)) this._swipeSurface.addChildAt(this._greySkin,0);
+
         if (this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.removeChild(this._pendingFlag);
     }
+
+    GraphicUtils.drawRect(this._colorStripe,"0x"+this._model.category.color,1,0,0,colorStripeWidth,h);
+
     //TODO use skin instead
-    GraphicUtils.drawRects(this._swipeSurface,0xff3366,1,[0,0,colorStripeWidth,h],true,false);
-    GraphicUtils.drawRects(this._swipeSurface,bgColor,1,[colorStripeWidth,0,w-colorStripeWidth,h],false,false);
+    /*GraphicUtils.drawRects(this._swipeSurface,bgColor,1,[colorStripeWidth,0,w,h],true,false);
     GraphicUtils.drawRects(this._swipeSurface,lightColor,1,[padding,0,w-padding*2,1],false,false);
-    GraphicUtils.drawRects(this._swipeSurface,darkColor,1,[padding,h-1,w-padding*2,1],false,true);
+    GraphicUtils.drawRects(this._swipeSurface,darkColor,1,[padding,h-1,w-padding*2,1],false,true);*/
 };
 
 /**
@@ -12324,6 +12337,8 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
                 amountPending:FontStyle.get(26,FontStyle.WHITE),
                 datePending:FontStyle.get(14,FontStyle.WHITE,"right")
             },
+            greySkin:skin.GREY_70,
+            redSkin:skin.RED_70,
             width:width,
             height:Math.round(70 * pixelRatio),
             pixelRatio:pixelRatio
@@ -12506,8 +12521,8 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     {
         transaction.amount = data.amount || transaction.amount;
         transaction.type = data.transactionType || transaction.type;
-        transaction.pending = data.type === true;
-        transaction.repeat = data.type === true;
+        transaction.pending = data.pending === true;
+        transaction.repeat = data.repeat === true;
         transaction.note = data.note || transaction.note;
 
         transactions.setCurrent(null);
