@@ -305,10 +305,12 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
 App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     var HeaderAction = App.HeaderAction,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+        ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
             App.ScreenName.TRANSACTIONS,
             0,
-            null,
+            ModelLocator.getProxy(ModelName.TRANSACTIONS).filter(),
             HeaderAction.MENU,
             HeaderAction.ADD_TRANSACTION,
             App.ScreenTitle.TRANSACTIONS

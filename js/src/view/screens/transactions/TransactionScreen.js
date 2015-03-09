@@ -9,35 +9,12 @@ App.TransactionScreen = function TransactionScreen(layout)
     App.Screen.call(this,null,layout,0.4);
 
     var ScrollPolicy = App.ScrollPolicy,
-        FontStyle = App.FontStyle,
         r = layout.pixelRatio,
         w = layout.width,
-        h = layout.contentHeight,
-        buttonOptions = {
-            labelStyles:{
-                edit:FontStyle.get(18,FontStyle.WHITE),
-                account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
-                amount:FontStyle.get(26,FontStyle.BLUE_DARK),
-                date:FontStyle.get(14,FontStyle.GREY_DARK),
-                pending:FontStyle.get(12,FontStyle.WHITE),
-                accountPending:FontStyle.get(14,FontStyle.RED_DARK),
-                amountPending:FontStyle.get(26,FontStyle.WHITE),
-                datePending:FontStyle.get(14,FontStyle.WHITE,"right")
-            },
-            width:w,
-            height:Math.round(70*r),
-            pixelRatio:r
-        };/*,
-        i = 0,
-        l = 50,
-        transactions = new Array(l);*/
+        h = layout.contentHeight;
 
     this._interactiveButton = null;
-
-    //TODO load real data later ...
-    //for (;i<l;i++) transactions[i] = {amount:100+i,account:"Personal",category:"Cinema / Entertainment",date:"10/21/2013",iconName:"transactions",pending:(i % 23) === 0};
-
-    this._buttonList = new App.VirtualList(App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS),App.TransactionButton,buttonOptions,App.Direction.Y,w,h,r);
+    this._buttonList = new App.VirtualList(App.ViewLocator.getViewSegment(App.ViewName.TRANSACTION_BUTTON_POOL),App.Direction.Y,w,h,r);
     this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,false));
     this._pane.setContent(this._buttonList);
 };
@@ -52,8 +29,6 @@ App.TransactionScreen.prototype.enable = function enable()
 {
     App.Screen.prototype.enable.call(this);
 
-//    this._pane.resetScroll();
-//    this._buttonList.reset();
     this._pane.enable();
 
     this._swipeEnabled = true;
@@ -75,10 +50,13 @@ App.TransactionScreen.prototype.disable = function disable()
  * Update
  * @private
  */
-App.TransactionScreen.prototype.update = function update()
+App.TransactionScreen.prototype.update = function update(model)
 {
+    this._model = model;
+
+    this._buttonList.update(model);
+    this._pane.resize();
     this._pane.resetScroll();
-    this._buttonList.reset();
 };
 
 /**

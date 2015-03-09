@@ -1,22 +1,23 @@
 /**
  * @class TransactionButton
  * @extends SwipeButton
+ * @param {number} poolIndex
  * @param {{width:number,height:number,pixelRatio:number:labelStyles:Object}} options
  * @constructor
  */
-App.TransactionButton = function TransactionButton(/*modelIndex,model,*/options)
+App.TransactionButton = function TransactionButton(poolIndex,options)
 {
     App.SwipeButton.call(this,options.width,Math.round(120*options.pixelRatio));
 
     var Text = PIXI.Text,
         Graphics = PIXI.Graphics,
-        editStyle = options.labelStyles.edit,
-        placeholder = "";
+        editStyle = options.labelStyles.edit;
 
+    this.allocated = false;
+    this.poolIndex = poolIndex;
     this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
     this._model = null;
-    this._modelIndex = -1;
     this._pixelRatio = options.pixelRatio;
     this._labelStyles = options.labelStyles;
     this._isPending = void 0;
@@ -27,10 +28,10 @@ App.TransactionButton = function TransactionButton(/*modelIndex,model,*/options)
     this._swipeSurface = this.addChild(new Graphics());
     this._icon = null;
     this._iconResizeRatio = -1;
-    this._accountField = this._swipeSurface.addChild(new Text(placeholder,editStyle));
-    this._categoryField = this._swipeSurface.addChild(new Text(placeholder,editStyle));
-    this._amountField = this._swipeSurface.addChild(new Text(placeholder,editStyle));
-    this._dateField = this._swipeSurface.addChild(new Text(placeholder,editStyle));
+    this._accountField = this._swipeSurface.addChild(new Text("",editStyle));
+    this._categoryField = this._swipeSurface.addChild(new Text("",editStyle));
+    this._amountField = this._swipeSurface.addChild(new Text("",editStyle));
+    this._dateField = this._swipeSurface.addChild(new Text("",editStyle));
     this._pendingFlag = new Graphics();
     this._pendingLabel = this._pendingFlag.addChild(new Text("PENDING",this._labelStyles.pending));
 };
@@ -48,7 +49,7 @@ App.TransactionButton.prototype._update = function _update(updateAll)
     var pending = this._model.pending;
 
     this._accountField.setText(this._model.account.name);
-    this._amountField.setText(this._model.amount);
+    this._amountField.setText(this._model.amount);//TODO add symbol in smaller font
     this._categoryField.setText(this._model.category.name);
     this._dateField.setText(pending ? "Due by\n"+this._model.date : this._model.date);
 
@@ -178,12 +179,10 @@ App.TransactionButton.prototype._updateLayout = function _updateLayout(updateAll
 
 /**
  * Set model
- * @param {number} modelIndex
  * @param {Object} model
  */
-App.TransactionButton.prototype.setModel = function setModel(modelIndex,model)
+App.TransactionButton.prototype.setModel = function setModel(model)
 {
-    this._modelIndex = modelIndex;
     this._model = model;
 
     this._update(this._icon === null);

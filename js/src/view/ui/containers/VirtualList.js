@@ -4,59 +4,34 @@
  *
  * @class VirtualList
  * @extends DisplayObjectContainer
- * @param {App.Collection} model
- * @param {Function} itemClass
- * @param {Object} itemOptions
+ * @param {App.ObjectPool} itemPool
  * @param {string} direction
  * @param {number} width
  * @param {number} height
  * @param {number} pixelRatio
  * @constructor
  */
-App.VirtualList = function VirtualList(model,itemClass,itemOptions,direction,width,height,pixelRatio)
+App.VirtualList = function VirtualList(itemPool,direction,width,height,pixelRatio)
 {
     PIXI.DisplayObjectContainer.call(this);
 
-    var Direction = App.Direction,
-        itemSize = direction === Direction.X ? itemOptions.width : itemOptions.height,
-        itemCount = Math.ceil(width / itemSize) + 1,
-        listSize = model.length() * itemSize,
-        modelLength = model.length() - 1,
-        item = null,
-        index = 0,
-        i = 0;
+    var item = itemPool.allocate(),
+        itemSize = direction === App.Direction.X ? item.boundingBox.width : item.boundingBox.height;
 
-    this.boundingBox = new PIXI.Rectangle(0,0,listSize,height);
+    this.boundingBox = new PIXI.Rectangle(0,0,width,height);
 
-    if (direction === Direction.Y)
-    {
-        itemCount = Math.ceil(height / itemSize) + 1;
-        this.boundingBox.width = width;
-        this.boundingBox.height = listSize;
-    }
-
-    if (itemCount > model.length()) itemCount = model.length();
-
-    this._model = model;
+    this._model = null;
+    this._itemPool = itemPool;
     this._direction = direction;
     this._width = width;
     this._height = height;
     this._pixelRatio = pixelRatio;
-    this._items = new Array(itemCount);
+    this._items = [];
     this._itemSize = itemSize;
     this._virtualX = 0;
     this._virtualY = 0;
 
-    for (;i<itemCount;i++,index++)
-    {
-        if(index > modelLength) index = 0;
-        item = new itemClass(/*index,model[index],*/itemOptions);
-
-        this._items[i] = item;
-//        this.addChild(item);
-    }
-
-    this._updateLayout(false);
+    itemPool.release(item);
 };
 
 App.VirtualList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -124,7 +99,7 @@ App.VirtualList.prototype.updateX = function updateX(position)
         itemScreenIndex = 0,
         xIndex = 0,
         modelIndex = 0,
-        modelLength = this._model.length(),
+        modelLength = this._model.length,
         maxEnd = l - 2,
         maxBeginning = modelLength - l,
         moveToEnd = false,
@@ -154,7 +129,7 @@ App.VirtualList.prototype.updateX = function updateX(position)
 
             if ((moveToEnd && modelIndex > maxEnd) || (moveToBeginning && modelIndex < maxBeginning))
             {
-                item.setModel(modelIndex,this._model.getItemAt(modelIndex));
+                item.setModel(this._model[modelIndex]);
             }
             else
             {
@@ -182,7 +157,7 @@ App.VirtualList.prototype.updateY = function updateY(position)
         itemScreenIndex = 0,
         yIndex = 0,
         modelIndex = 0,
-        modelLength = this._model.length(),
+        modelLength = this._model.length,
         maxEnd = l - 2,
         maxBeginning = modelLength - l,
         moveToEnd = false,
@@ -212,7 +187,7 @@ App.VirtualList.prototype.updateY = function updateY(position)
 
             if ((moveToEnd && modelIndex > maxEnd) || (moveToBeginning && modelIndex < maxBeginning))
             {
-                item.setModel(modelIndex,this._model.getItemAt(modelIndex));
+                item.setModel(this._model[modelIndex]);
             }
             else
             {
@@ -230,25 +205,10 @@ App.VirtualList.prototype.updateY = function updateY(position)
 App.VirtualList.prototype.reset = function reset()
 {
     var Direction = App.Direction,
-        itemCount = Math.ceil(this._width / this._itemSize) + 1,
-        listSize = this._model.length() * this._itemSize,
-        modelLength = this._model.length() - 1,
-        item = null,
         position = 0,
-        index = 0,
-        l = this._items.length,//TODO based on model vs. avail. space
-        i = 0;
-
-    //this.boundingBox = new PIXI.Rectangle(0,0,listSize,height);
-
-    if (this._direction === Direction.Y)
-    {
-        itemCount = Math.ceil(this._height / this._itemSize) + 1;
-//        this.boundingBox.width = this._width;
-        this.boundingBox.height = listSize;
-    }
-
-    if (itemCount > this._model.length()) itemCount = this._model.length();
+        item = null,
+        i = 0,
+        l = this._items.length;
 
     if (this._direction === Direction.X)
     {
@@ -256,7 +216,7 @@ App.VirtualList.prototype.reset = function reset()
         {
             item = this._items[i];
             item.x = position;
-            item.setModel(i,this._model.getItemAt(i));
+            item.setModel(this._model[i]);
             position = Math.round(position + this._itemSize);
         }
     }
@@ -266,7 +226,68 @@ App.VirtualList.prototype.reset = function reset()
         {
             item = this._items[i];
             item.y = position;
-            item.setModel(i,this._model.getItemAt(i));
+            item.setModel(this._model[i]);
+            position = Math.round(position + this._itemSize);
+        }
+    }
+};
+
+/**
+ * Update
+ * @param {Array.<App.transaction>} model
+ */
+App.VirtualList.prototype.update = function update(model)
+{
+    this._model = model;
+
+    var Direction = App.Direction,
+        itemCount = Math.ceil(this._width / this._itemSize) + 1,
+        listSize = this._model.length * this._itemSize,
+        item = null,
+        position = 0,
+        l = this._items.length,
+        i = 0;
+
+    this.boundingBox.width = listSize;
+
+    // Remove items
+    for (;i<l;i++)
+    {
+        this._itemPool.release(this.removeChild(this._items[i]));
+        this._items[i] = null;
+    }
+    this._items.length = 0;
+
+    // And add items again, according to model
+    if (this._direction === Direction.X)
+    {
+        if (itemCount > this._model.length) itemCount = this._model.length;
+
+        for (i=0,l=itemCount;i<l;i++)
+        {
+            item = this._itemPool.allocate();
+            item.x = position;
+            item.setModel(this._model[i]);
+            this._items.push(item);
+            this.addChild(item);
+            position = Math.round(position + this._itemSize);
+        }
+    }
+    else if (this._direction === Direction.Y)
+    {
+        itemCount = Math.ceil(this._height / this._itemSize) + 1;
+        this.boundingBox.width = this._width;
+        this.boundingBox.height = listSize;
+
+        if (itemCount > this._model.length) itemCount = this._model.length;
+
+        for (i=0,l=itemCount;i<l;i++)
+        {
+            item = this._itemPool.allocate();
+            item.y = position;
+            item.setModel(this._model[i]);
+            this._items.push(item);
+            this.addChild(item);
             position = Math.round(position + this._itemSize);
         }
     }
@@ -294,7 +315,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
             position = Math.round(position + this._itemSize);
         }
 
-        if (updatePosition) this._updateX(this.x);
+        if (updatePosition) this.updateX(this.x);
     }
     else if (this._direction === Direction.Y)
     {
@@ -305,7 +326,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
             position = Math.round(position + this._itemSize);
         }
 
-        if (updatePosition) this._updateY(this.y);
+        if (updatePosition) this.updateY(this.y);
     }
 };
 

@@ -767,7 +767,15 @@ App.ModelName = {
 /**
  * View Segment state
  * @enum {number}
- * @return {{APPLICATION_VIEW:number,HEADER:number,SCREEN_STACK:number,CATEGORY_BUTTON_EXPAND_POOL:number,CATEGORY_BUTTON_EDIT_POOL:number,SUB_CATEGORY_BUTTON_POOL:number,SKIN:number}}
+ * @return {{
+ *      APPLICATION_VIEW:number,
+ *      HEADER:number,
+ *      SCREEN_STACK:number,
+ *      CATEGORY_BUTTON_EXPAND_POOL:number,
+ *      CATEGORY_BUTTON_EDIT_POOL:number,
+ *      SUB_CATEGORY_BUTTON_POOL:number,
+ *      TRANSACTION_BUTTON_POOL:number,
+ *      SKIN:number}}
  */
 App.ViewName = {
     APPLICATION_VIEW:0,
@@ -776,7 +784,8 @@ App.ViewName = {
     CATEGORY_BUTTON_EXPAND_POOL:3,
     CATEGORY_BUTTON_EDIT_POOL:4,
     SUB_CATEGORY_BUTTON_POOL:5,
-    SKIN:6
+    TRANSACTION_BUTTON_POOL:6,
+    SKIN:7
 };
 
 /**
@@ -1449,22 +1458,26 @@ App.Collection.prototype.filter = function filter(value,property)
         l = this._items.length,
         result = [];
 
-    if (property)
+    if (value)
     {
-        for (;i<l;i++)
+        if (property)
         {
-            if (value.indexOf(this._items[i][property]) > -1) result.push(this._items[i]);
+            for (;i<l;i++)
+            {
+                if (value.indexOf(this._items[i][property]) > -1) result.push(this._items[i]);
+            }
         }
-    }
-    else
-    {
-        for (;i<l;i++)
+        else
         {
-            if (value.indexOf(this._items[i]) > -1) result.push(this._items[i]);
+            for (;i<l;i++)
+            {
+                if (value.indexOf(this._items[i]) > -1) result.push(this._items[i]);
+            }
         }
+        return result;
     }
 
-    return result;
+    return this._items;
 };
 
 /**
@@ -5290,59 +5303,34 @@ App.InfiniteList.prototype.hitTest = function hitTest(position)
  *
  * @class VirtualList
  * @extends DisplayObjectContainer
- * @param {App.Collection} model
- * @param {Function} itemClass
- * @param {Object} itemOptions
+ * @param {App.ObjectPool} itemPool
  * @param {string} direction
  * @param {number} width
  * @param {number} height
  * @param {number} pixelRatio
  * @constructor
  */
-App.VirtualList = function VirtualList(model,itemClass,itemOptions,direction,width,height,pixelRatio)
+App.VirtualList = function VirtualList(itemPool,direction,width,height,pixelRatio)
 {
     PIXI.DisplayObjectContainer.call(this);
 
-    var Direction = App.Direction,
-        itemSize = direction === Direction.X ? itemOptions.width : itemOptions.height,
-        itemCount = Math.ceil(width / itemSize) + 1,
-        listSize = model.length * itemSize,
-        modelLength = model.length - 1,
-        item = null,
-        index = 0,
-        i = 0;
+    var item = itemPool.allocate(),
+        itemSize = direction === App.Direction.X ? item.boundingBox.width : item.boundingBox.height;
 
-    this.boundingBox = new PIXI.Rectangle(0,0,listSize,height);
+    this.boundingBox = new PIXI.Rectangle(0,0,width,height);
 
-    if (direction === Direction.Y)
-    {
-        itemCount = Math.ceil(height / itemSize) + 1;
-        this.boundingBox.width = width;
-        this.boundingBox.height = listSize;
-    }
-
-    if (itemCount > model.length) itemCount = model.length;
-
-    this._model = model;
+    this._model = null;
+    this._itemPool = itemPool;
     this._direction = direction;
     this._width = width;
     this._height = height;
     this._pixelRatio = pixelRatio;
-    this._items = new Array(itemCount);
+    this._items = [];
     this._itemSize = itemSize;
     this._virtualX = 0;
     this._virtualY = 0;
 
-    for (;i<itemCount;i++,index++)
-    {
-        if(index > modelLength) index = 0;
-        item = new itemClass(/*index,model[index],*/itemOptions);
-
-        this._items[i] = item;
-        this.addChild(item);
-    }
-
-    this._updateLayout(false);
+    itemPool.release(item);
 };
 
 App.VirtualList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -5410,7 +5398,7 @@ App.VirtualList.prototype.updateX = function updateX(position)
         itemScreenIndex = 0,
         xIndex = 0,
         modelIndex = 0,
-        modelLength = this._model.length(),
+        modelLength = this._model.length,
         maxEnd = l - 2,
         maxBeginning = modelLength - l,
         moveToEnd = false,
@@ -5440,7 +5428,7 @@ App.VirtualList.prototype.updateX = function updateX(position)
 
             if ((moveToEnd && modelIndex > maxEnd) || (moveToBeginning && modelIndex < maxBeginning))
             {
-                item.setModel(modelIndex,this._model.getItemAt(modelIndex));
+                item.setModel(this._model[modelIndex]);
             }
             else
             {
@@ -5468,7 +5456,7 @@ App.VirtualList.prototype.updateY = function updateY(position)
         itemScreenIndex = 0,
         yIndex = 0,
         modelIndex = 0,
-        modelLength = this._model.length(),
+        modelLength = this._model.length,
         maxEnd = l - 2,
         maxBeginning = modelLength - l,
         moveToEnd = false,
@@ -5498,7 +5486,7 @@ App.VirtualList.prototype.updateY = function updateY(position)
 
             if ((moveToEnd && modelIndex > maxEnd) || (moveToBeginning && modelIndex < maxBeginning))
             {
-                item.setModel(modelIndex,this._model.getItemAt(modelIndex));
+                item.setModel(this._model[modelIndex]);
             }
             else
             {
@@ -5515,11 +5503,11 @@ App.VirtualList.prototype.updateY = function updateY(position)
  */
 App.VirtualList.prototype.reset = function reset()
 {
-    var i = 0,
-        l = this._items.length,
-        item = null,
+    var Direction = App.Direction,
         position = 0,
-        Direction = App.Direction;
+        item = null,
+        i = 0,
+        l = this._items.length;
 
     if (this._direction === Direction.X)
     {
@@ -5527,7 +5515,7 @@ App.VirtualList.prototype.reset = function reset()
         {
             item = this._items[i];
             item.x = position;
-            item.setModel(i,this._model.getItemAt(i));
+            item.setModel(this._model[i]);
             position = Math.round(position + this._itemSize);
         }
     }
@@ -5537,7 +5525,68 @@ App.VirtualList.prototype.reset = function reset()
         {
             item = this._items[i];
             item.y = position;
-            item.setModel(i,this._model.getItemAt(i));
+            item.setModel(this._model[i]);
+            position = Math.round(position + this._itemSize);
+        }
+    }
+};
+
+/**
+ * Update
+ * @param {Array.<App.transaction>} model
+ */
+App.VirtualList.prototype.update = function update(model)
+{
+    this._model = model;
+
+    var Direction = App.Direction,
+        itemCount = Math.ceil(this._width / this._itemSize) + 1,
+        listSize = this._model.length * this._itemSize,
+        item = null,
+        position = 0,
+        l = this._items.length,
+        i = 0;
+
+    this.boundingBox.width = listSize;
+
+    // Remove items
+    for (;i<l;i++)
+    {
+        this._itemPool.release(this.removeChild(this._items[i]));
+        this._items[i] = null;
+    }
+    this._items.length = 0;
+
+    // And add items again, according to model
+    if (this._direction === Direction.X)
+    {
+        if (itemCount > this._model.length) itemCount = this._model.length;
+
+        for (i=0,l=itemCount;i<l;i++)
+        {
+            item = this._itemPool.allocate();
+            item.x = position;
+            item.setModel(this._model[i]);
+            this._items.push(item);
+            this.addChild(item);
+            position = Math.round(position + this._itemSize);
+        }
+    }
+    else if (this._direction === Direction.Y)
+    {
+        itemCount = Math.ceil(this._height / this._itemSize) + 1;
+        this.boundingBox.width = this._width;
+        this.boundingBox.height = listSize;
+
+        if (itemCount > this._model.length) itemCount = this._model.length;
+
+        for (i=0,l=itemCount;i<l;i++)
+        {
+            item = this._itemPool.allocate();
+            item.y = position;
+            item.setModel(this._model[i]);
+            this._items.push(item);
+            this.addChild(item);
             position = Math.round(position + this._itemSize);
         }
     }
@@ -5565,7 +5614,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
             position = Math.round(position + this._itemSize);
         }
 
-        if (updatePosition) this._updateX(this.x);
+        if (updatePosition) this.updateX(this.x);
     }
     else if (this._direction === Direction.Y)
     {
@@ -5576,7 +5625,7 @@ App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
             position = Math.round(position + this._itemSize);
         }
 
-        if (updatePosition) this._updateY(this.y);
+        if (updatePosition) this.updateY(this.y);
     }
 };
 
@@ -7896,10 +7945,12 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
 App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     var HeaderAction = App.HeaderAction,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+        ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
             App.ScreenName.TRANSACTIONS,
             0,
-            null,
+            ModelLocator.getProxy(ModelName.TRANSACTIONS).filter(),
             HeaderAction.MENU,
             HeaderAction.ADD_TRANSACTION,
             App.ScreenTitle.TRANSACTIONS
@@ -9906,22 +9957,23 @@ App.EditCategoryScreen.prototype._getColorSamples = function _getColorSamples()
 /**
  * @class TransactionButton
  * @extends SwipeButton
+ * @param {number} poolIndex
  * @param {{width:number,height:number,pixelRatio:number:labelStyles:Object}} options
  * @constructor
  */
-App.TransactionButton = function TransactionButton(/*modelIndex,model,*/options)
+App.TransactionButton = function TransactionButton(poolIndex,options)
 {
     App.SwipeButton.call(this,options.width,Math.round(120*options.pixelRatio));
 
     var Text = PIXI.Text,
         Graphics = PIXI.Graphics,
-        editStyle = options.labelStyles.edit,
-        placeholder = "";
+        editStyle = options.labelStyles.edit;
 
+    this.allocated = false;
+    this.poolIndex = poolIndex;
     this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
     this._model = null;
-    this._modelIndex = -1;
     this._pixelRatio = options.pixelRatio;
     this._labelStyles = options.labelStyles;
     this._isPending = void 0;
@@ -9932,10 +9984,10 @@ App.TransactionButton = function TransactionButton(/*modelIndex,model,*/options)
     this._swipeSurface = this.addChild(new Graphics());
     this._icon = null;
     this._iconResizeRatio = -1;
-    this._accountField = this._swipeSurface.addChild(new Text(placeholder,editStyle));
-    this._categoryField = this._swipeSurface.addChild(new Text(placeholder,editStyle));
-    this._amountField = this._swipeSurface.addChild(new Text(placeholder,editStyle));
-    this._dateField = this._swipeSurface.addChild(new Text(placeholder,editStyle));
+    this._accountField = this._swipeSurface.addChild(new Text("",editStyle));
+    this._categoryField = this._swipeSurface.addChild(new Text("",editStyle));
+    this._amountField = this._swipeSurface.addChild(new Text("",editStyle));
+    this._dateField = this._swipeSurface.addChild(new Text("",editStyle));
     this._pendingFlag = new Graphics();
     this._pendingLabel = this._pendingFlag.addChild(new Text("PENDING",this._labelStyles.pending));
 };
@@ -9953,7 +10005,7 @@ App.TransactionButton.prototype._update = function _update(updateAll)
     var pending = this._model.pending;
 
     this._accountField.setText(this._model.account.name);
-    this._amountField.setText(this._model.amount);
+    this._amountField.setText(this._model.amount);//TODO add symbol in smaller font
     this._categoryField.setText(this._model.category.name);
     this._dateField.setText(pending ? "Due by\n"+this._model.date : this._model.date);
 
@@ -10083,12 +10135,10 @@ App.TransactionButton.prototype._updateLayout = function _updateLayout(updateAll
 
 /**
  * Set model
- * @param {number} modelIndex
  * @param {Object} model
  */
-App.TransactionButton.prototype.setModel = function setModel(modelIndex,model)
+App.TransactionButton.prototype.setModel = function setModel(model)
 {
-    this._modelIndex = modelIndex;
     this._model = model;
 
     this._update(this._icon === null);
@@ -10124,35 +10174,12 @@ App.TransactionScreen = function TransactionScreen(layout)
     App.Screen.call(this,null,layout,0.4);
 
     var ScrollPolicy = App.ScrollPolicy,
-        FontStyle = App.FontStyle,
         r = layout.pixelRatio,
         w = layout.width,
-        h = layout.contentHeight,
-        buttonOptions = {
-            labelStyles:{
-                edit:FontStyle.get(18,FontStyle.WHITE),
-                account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
-                amount:FontStyle.get(26,FontStyle.BLUE_DARK),
-                date:FontStyle.get(14,FontStyle.GREY_DARK),
-                pending:FontStyle.get(12,FontStyle.WHITE),
-                accountPending:FontStyle.get(14,FontStyle.RED_DARK),
-                amountPending:FontStyle.get(26,FontStyle.WHITE),
-                datePending:FontStyle.get(14,FontStyle.WHITE,"right")
-            },
-            width:w,
-            height:Math.round(70*r),
-            pixelRatio:r
-        };/*,
-        i = 0,
-        l = 50,
-        transactions = new Array(l);*/
+        h = layout.contentHeight;
 
     this._interactiveButton = null;
-
-    //TODO load real data later ...
-    //for (;i<l;i++) transactions[i] = {amount:100+i,account:"Personal",category:"Cinema / Entertainment",date:"10/21/2013",iconName:"transactions",pending:(i % 23) === 0};
-
-    this._buttonList = new App.VirtualList(App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS),App.TransactionButton,buttonOptions,App.Direction.Y,w,h,r);
+    this._buttonList = new App.VirtualList(App.ViewLocator.getViewSegment(App.ViewName.TRANSACTION_BUTTON_POOL),App.Direction.Y,w,h,r);
     this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,false));
     this._pane.setContent(this._buttonList);
 };
@@ -10167,8 +10194,6 @@ App.TransactionScreen.prototype.enable = function enable()
 {
     App.Screen.prototype.enable.call(this);
 
-//    this._pane.resetScroll();
-//    this._buttonList.reset();
     this._pane.enable();
 
     this._swipeEnabled = true;
@@ -10190,10 +10215,13 @@ App.TransactionScreen.prototype.disable = function disable()
  * Update
  * @private
  */
-App.TransactionScreen.prototype.update = function update()
+App.TransactionScreen.prototype.update = function update(model)
 {
+    this._model = model;
+
+    this._buttonList.update(model);
+    this._pane.resize();
     this._pane.resetScroll();
-    this._buttonList.reset();
 };
 
 /**
@@ -11222,6 +11250,7 @@ App.Menu.prototype._onClick = function _onClick()
 
         case ScreenName.TRANSACTIONS:
             changeScreenData.headerName = ScreenTitle.TRANSACTIONS;
+            changeScreenData.updateData = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).filter();
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             break;
     }
@@ -12227,31 +12256,7 @@ App.Initialize.prototype._initView = function _initView()
             clearBeforeRender:false
         }),
         ViewLocator = App.ViewLocator,
-        ViewName = App.ViewName,
-        ObjectPool = App.ObjectPool,
-        FontStyle = App.FontStyle.init(pixelRatio),
-        skin = new App.Skin(w,pixelRatio),
-        categoryButtonOptions = {
-            width:w,
-            height:Math.round(50 * pixelRatio),
-            pixelRatio:pixelRatio,
-            skin:skin.GREY_50,
-            addButtonSkin:skin.WHITE_40,
-            nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
-            editLabelStyle:FontStyle.get(18,FontStyle.WHITE),
-            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK),
-            displayHeader:false
-        },
-        subCategoryButtonOptions = {
-            width:w,
-            height:Math.round(40 * pixelRatio),
-            pixelRatio:pixelRatio,
-            whiteSkin:skin.WHITE_40,
-            greySkin:skin.GREY_40,
-            nameLabelStyle:FontStyle.get(14,FontStyle.BLUE),
-            deleteLabelStyle:FontStyle.get(14,FontStyle.WHITE),
-            openOffset:Math.round(80 * pixelRatio)
-        };
+        ViewName = App.ViewName;
 
     if (pixelRatio > 1)
     {
@@ -12269,13 +12274,68 @@ App.Initialize.prototype._initView = function _initView()
     //context.webkitImageSmoothingEnabled = context.mozImageSmoothingEnabled = true;
     context.lineCap = "square";
 
+    this._initButtonPools(ViewLocator,ViewName,Math.round(width * pixelRatio),pixelRatio);
+
+    ViewLocator.addViewSegment(ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,width,height,pixelRatio)));
+};
+
+/**
+ * Initialize button pools
+ * @param {Object} ViewLocator
+ * @param {Object} ViewName
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @private
+ */
+App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocator,ViewName,width,pixelRatio)
+{
+    var ObjectPool = App.ObjectPool,
+        FontStyle = App.FontStyle.init(pixelRatio),
+        skin = new App.Skin(width,pixelRatio),
+        categoryButtonOptions = {
+            width:width,
+            height:Math.round(50 * pixelRatio),
+            pixelRatio:pixelRatio,
+            skin:skin.GREY_50,
+            addButtonSkin:skin.WHITE_40,
+            nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
+            editLabelStyle:FontStyle.get(18,FontStyle.WHITE),
+            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK),
+            displayHeader:false
+        },
+        subCategoryButtonOptions = {
+            width:width,
+            height:Math.round(40 * pixelRatio),
+            pixelRatio:pixelRatio,
+            whiteSkin:skin.WHITE_40,
+            greySkin:skin.GREY_40,
+            nameLabelStyle:FontStyle.get(14,FontStyle.BLUE),
+            deleteLabelStyle:FontStyle.get(14,FontStyle.WHITE),
+            openOffset:Math.round(80 * pixelRatio)
+        },
+        transactionButtonOptions = {
+            labelStyles:{
+                edit:FontStyle.get(18,FontStyle.WHITE),
+                account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
+                amount:FontStyle.get(26,FontStyle.BLUE_DARK),
+                date:FontStyle.get(14,FontStyle.GREY_DARK),
+                pending:FontStyle.get(12,FontStyle.WHITE),
+                accountPending:FontStyle.get(14,FontStyle.RED_DARK),
+                amountPending:FontStyle.get(26,FontStyle.WHITE),
+                datePending:FontStyle.get(14,FontStyle.WHITE,"right")
+            },
+            width:width,
+            height:Math.round(70 * pixelRatio),
+            pixelRatio:pixelRatio
+        };
+
     ViewLocator.init([
         ViewName.SKIN,skin,
         ViewName.CATEGORY_BUTTON_EXPAND_POOL,new ObjectPool(App.CategoryButtonExpand,5,categoryButtonOptions),
         ViewName.CATEGORY_BUTTON_EDIT_POOL,new ObjectPool(App.CategoryButtonEdit,5,categoryButtonOptions),
-        ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions)
+        ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions),
+        ViewName.TRANSACTION_BUTTON_POOL,new ObjectPool(App.TransactionButton,4,transactionButtonOptions)
     ]);
-    ViewLocator.addViewSegment(ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,width,height,pixelRatio)));
 };
 
 /**

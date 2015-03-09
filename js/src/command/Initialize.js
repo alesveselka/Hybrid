@@ -139,31 +139,7 @@ App.Initialize.prototype._initView = function _initView()
             clearBeforeRender:false
         }),
         ViewLocator = App.ViewLocator,
-        ViewName = App.ViewName,
-        ObjectPool = App.ObjectPool,
-        FontStyle = App.FontStyle.init(pixelRatio),
-        skin = new App.Skin(w,pixelRatio),
-        categoryButtonOptions = {
-            width:w,
-            height:Math.round(50 * pixelRatio),
-            pixelRatio:pixelRatio,
-            skin:skin.GREY_50,
-            addButtonSkin:skin.WHITE_40,
-            nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
-            editLabelStyle:FontStyle.get(18,FontStyle.WHITE),
-            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK),
-            displayHeader:false
-        },
-        subCategoryButtonOptions = {
-            width:w,
-            height:Math.round(40 * pixelRatio),
-            pixelRatio:pixelRatio,
-            whiteSkin:skin.WHITE_40,
-            greySkin:skin.GREY_40,
-            nameLabelStyle:FontStyle.get(14,FontStyle.BLUE),
-            deleteLabelStyle:FontStyle.get(14,FontStyle.WHITE),
-            openOffset:Math.round(80 * pixelRatio)
-        };
+        ViewName = App.ViewName;
 
     if (pixelRatio > 1)
     {
@@ -181,13 +157,68 @@ App.Initialize.prototype._initView = function _initView()
     //context.webkitImageSmoothingEnabled = context.mozImageSmoothingEnabled = true;
     context.lineCap = "square";
 
+    this._initButtonPools(ViewLocator,ViewName,Math.round(width * pixelRatio),pixelRatio);
+
+    ViewLocator.addViewSegment(ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,width,height,pixelRatio)));
+};
+
+/**
+ * Initialize button pools
+ * @param {Object} ViewLocator
+ * @param {Object} ViewName
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @private
+ */
+App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocator,ViewName,width,pixelRatio)
+{
+    var ObjectPool = App.ObjectPool,
+        FontStyle = App.FontStyle.init(pixelRatio),
+        skin = new App.Skin(width,pixelRatio),
+        categoryButtonOptions = {
+            width:width,
+            height:Math.round(50 * pixelRatio),
+            pixelRatio:pixelRatio,
+            skin:skin.GREY_50,
+            addButtonSkin:skin.WHITE_40,
+            nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
+            editLabelStyle:FontStyle.get(18,FontStyle.WHITE),
+            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK),
+            displayHeader:false
+        },
+        subCategoryButtonOptions = {
+            width:width,
+            height:Math.round(40 * pixelRatio),
+            pixelRatio:pixelRatio,
+            whiteSkin:skin.WHITE_40,
+            greySkin:skin.GREY_40,
+            nameLabelStyle:FontStyle.get(14,FontStyle.BLUE),
+            deleteLabelStyle:FontStyle.get(14,FontStyle.WHITE),
+            openOffset:Math.round(80 * pixelRatio)
+        },
+        transactionButtonOptions = {
+            labelStyles:{
+                edit:FontStyle.get(18,FontStyle.WHITE),
+                account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
+                amount:FontStyle.get(26,FontStyle.BLUE_DARK),
+                date:FontStyle.get(14,FontStyle.GREY_DARK),
+                pending:FontStyle.get(12,FontStyle.WHITE),
+                accountPending:FontStyle.get(14,FontStyle.RED_DARK),
+                amountPending:FontStyle.get(26,FontStyle.WHITE),
+                datePending:FontStyle.get(14,FontStyle.WHITE,"right")
+            },
+            width:width,
+            height:Math.round(70 * pixelRatio),
+            pixelRatio:pixelRatio
+        };
+
     ViewLocator.init([
         ViewName.SKIN,skin,
         ViewName.CATEGORY_BUTTON_EXPAND_POOL,new ObjectPool(App.CategoryButtonExpand,5,categoryButtonOptions),
         ViewName.CATEGORY_BUTTON_EDIT_POOL,new ObjectPool(App.CategoryButtonEdit,5,categoryButtonOptions),
-        ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions)
+        ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions),
+        ViewName.TRANSACTION_BUTTON_POOL,new ObjectPool(App.TransactionButton,4,transactionButtonOptions)
     ]);
-    ViewLocator.addViewSegment(ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,width,height,pixelRatio)));
 };
 
 /**

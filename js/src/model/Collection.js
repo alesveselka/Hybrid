@@ -88,22 +88,26 @@ App.Collection.prototype.filter = function filter(value,property)
         l = this._items.length,
         result = [];
 
-    if (property)
+    if (value)
     {
-        for (;i<l;i++)
+        if (property)
         {
-            if (value.indexOf(this._items[i][property]) > -1) result.push(this._items[i]);
+            for (;i<l;i++)
+            {
+                if (value.indexOf(this._items[i][property]) > -1) result.push(this._items[i]);
+            }
         }
-    }
-    else
-    {
-        for (;i<l;i++)
+        else
         {
-            if (value.indexOf(this._items[i]) > -1) result.push(this._items[i]);
+            for (;i<l;i++)
+            {
+                if (value.indexOf(this._items[i]) > -1) result.push(this._items[i]);
+            }
         }
+        return result;
     }
 
-    return result;
+    return this._items;
 };
 
 /**
