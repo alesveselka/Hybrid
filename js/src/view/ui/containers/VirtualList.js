@@ -249,6 +249,11 @@ App.VirtualList.prototype.update = function update(model)
         i = 0;
 
     this.boundingBox.width = listSize;
+    this.boundingBox.height = this._height;
+
+    // Reset scroll
+    this._virtualX = 0;
+    this._virtualY = 0;
 
     // Remove items
     for (;i<l;i++)

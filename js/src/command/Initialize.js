@@ -201,10 +201,12 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
                 edit:FontStyle.get(18,FontStyle.WHITE),
                 account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
                 amount:FontStyle.get(26,FontStyle.BLUE_DARK),
+                currency:FontStyle.get(16,FontStyle.BLUE_DARK),
                 date:FontStyle.get(14,FontStyle.GREY_DARK),
                 pending:FontStyle.get(12,FontStyle.WHITE),
                 accountPending:FontStyle.get(14,FontStyle.RED_DARK),
                 amountPending:FontStyle.get(26,FontStyle.WHITE),
+                currencyPending:FontStyle.get(16,FontStyle.WHITE),
                 datePending:FontStyle.get(14,FontStyle.WHITE,"right")
             },
             greySkin:skin.GREY_70,

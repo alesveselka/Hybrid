@@ -5548,6 +5548,10 @@ App.VirtualList.prototype.update = function update(model)
         i = 0;
 
     this.boundingBox.width = listSize;
+    this.boundingBox.height = this._height;
+
+    this._virtualX = 0;
+    this._virtualY = 0;
 
     // Remove items
     for (;i<l;i++)
@@ -9990,6 +9994,7 @@ App.TransactionButton = function TransactionButton(poolIndex,options)
     this._accountField = this._swipeSurface.addChild(new Text("",editStyle));
     this._categoryField = this._swipeSurface.addChild(new Text("",editStyle));
     this._amountField = this._swipeSurface.addChild(new Text("",editStyle));
+    this._currencyField = this._swipeSurface.addChild(new Text("",editStyle));
     this._dateField = this._swipeSurface.addChild(new Text("",editStyle));
     this._pendingFlag = new Graphics();
     this._pendingLabel = this._pendingFlag.addChild(new Text("PENDING",this._labelStyles.pending));
@@ -10010,7 +10015,8 @@ App.TransactionButton.prototype._update = function _update(updateAll)
         dateText = (date.getMonth() + 1) + "/" + date.getDate() + "/" + date.getFullYear();
 
     this._accountField.setText(this._model.account.name);
-    this._amountField.setText(this._model.amount);//TODO add symbol in smaller font
+    this._amountField.setText(this._model.amount);//TODO add decimal space
+    this._currencyField.setText(this._model.currency.symbol);
     this._categoryField.setText(this._model.subCategory.name+" / "+this._model.category.name);
     this._dateField.setText(pending ? "Due by\n"+dateText : dateText);
 
@@ -10023,6 +10029,7 @@ App.TransactionButton.prototype._update = function _update(updateAll)
         {
             this._accountField.setStyle(this._labelStyles.accountPending);
             this._amountField.setStyle(this._labelStyles.amountPending);
+            this._currencyField.setStyle(this._labelStyles.currencyPending);
             this._categoryField.setStyle(this._labelStyles.accountPending);
             this._dateField.setStyle(this._labelStyles.datePending);
         }
@@ -10030,13 +10037,15 @@ App.TransactionButton.prototype._update = function _update(updateAll)
         {
             this._accountField.setStyle(this._labelStyles.account);
             this._amountField.setStyle(this._labelStyles.amount);
+            this._currencyField.setStyle(this._labelStyles.currency);
             this._categoryField.setStyle(this._labelStyles.account);
             this._dateField.setStyle(this._labelStyles.date);
         }
 
         this._render(updateAll,pending);
-        this._updateLayout(updateAll,pending);
     }
+
+    this._updateLayout(updateAll,pending);
 
     this.close(true);
 
@@ -10056,12 +10065,7 @@ App.TransactionButton.prototype._render = function _render(renderAll,pending)
         r = this._pixelRatio,
         w = this.boundingBox.width,
         h = this.boundingBox.height,
-        swipeOptionWidth = Math.round(60 * r),
-        colorStripeWidth = Math.round(4 * r),
-        padding = Math.round(10 * r),
-        bgColor = ColorTheme.GREY,
-        lightColor = ColorTheme.GREY_LIGHT,
-        darkColor = ColorTheme.GREY_DARK;
+        swipeOptionWidth = Math.round(60 * r);
 
     if (renderAll)
     {
@@ -10071,12 +10075,10 @@ App.TransactionButton.prototype._render = function _render(renderAll,pending)
         GraphicUtils.drawRect(this._pendingFlag,0x000000,1,0,0,Math.round(this._pendingLabel.width+10*r),Math.round(this._pendingLabel.height+6*r));
     }
 
+    GraphicUtils.drawRect(this._colorStripe,"0x"+this._model.category.color,1,0,0,Math.round(4 * r),h);
+
     if (pending)
     {
-        bgColor = ColorTheme.RED;
-        lightColor = ColorTheme.RED_LIGHT;
-        darkColor = ColorTheme.RED_DARK;
-
         this._icon.tint = ColorTheme.RED_DARK;
 
         if (this._swipeSurface.contains(this._greySkin)) this._swipeSurface.removeChild(this._greySkin);
@@ -10093,13 +10095,6 @@ App.TransactionButton.prototype._render = function _render(renderAll,pending)
 
         if (this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.removeChild(this._pendingFlag);
     }
-
-    GraphicUtils.drawRect(this._colorStripe,"0x"+this._model.category.color,1,0,0,colorStripeWidth,h);
-
-    //TODO use skin instead
-    /*GraphicUtils.drawRects(this._swipeSurface,bgColor,1,[colorStripeWidth,0,w,h],true,false);
-    GraphicUtils.drawRects(this._swipeSurface,lightColor,1,[padding,0,w-padding*2,1],false,false);
-    GraphicUtils.drawRects(this._swipeSurface,darkColor,1,[padding,h-1,w-padding*2,1],false,true);*/
 };
 
 /**
@@ -10133,6 +10128,7 @@ App.TransactionButton.prototype._updateLayout = function _updateLayout(updateAll
         this._accountField.y = Math.round(7 * r);
         this._amountField.x = Math.round(70 * r);
         this._amountField.y = Math.round(26 * r);
+        this._currencyField.y = Math.round(33 * r);
         this._categoryField.x = Math.round(70 * r);
         this._categoryField.y = Math.round(52 * r);
 
@@ -10141,6 +10137,8 @@ App.TransactionButton.prototype._updateLayout = function _updateLayout(updateAll
         this._pendingFlag.x = Math.round(w - padding - this._pendingFlag.width);
         this._pendingFlag.y = Math.round(7 * r);
     }
+
+    this._currencyField.x = Math.round(this._amountField.x + this._amountField.width + padding);
 
     this._dateField.x = Math.round(w - padding - this._dateField.width);
     this._dateField.y = pending ? Math.round(38 * r) : Math.round(52 * r);
@@ -10234,7 +10232,7 @@ App.TransactionScreen.prototype.update = function update(model)
 
     this._buttonList.update(model);
     this._pane.resize();
-    this._pane.resetScroll();
+//    this._pane.resetScroll();
 };
 
 /**
@@ -12331,10 +12329,12 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
                 edit:FontStyle.get(18,FontStyle.WHITE),
                 account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
                 amount:FontStyle.get(26,FontStyle.BLUE_DARK),
+                currency:FontStyle.get(16,FontStyle.BLUE_DARK),
                 date:FontStyle.get(14,FontStyle.GREY_DARK),
                 pending:FontStyle.get(12,FontStyle.WHITE),
                 accountPending:FontStyle.get(14,FontStyle.RED_DARK),
                 amountPending:FontStyle.get(26,FontStyle.WHITE),
+                currencyPending:FontStyle.get(16,FontStyle.WHITE),
                 datePending:FontStyle.get(14,FontStyle.WHITE,"right")
             },
             greySkin:skin.GREY_70,

@@ -56,7 +56,6 @@ App.TransactionScreen.prototype.update = function update(model)
 
     this._buttonList.update(model);
     this._pane.resize();
-    this._pane.resetScroll();
 };
 
 /**

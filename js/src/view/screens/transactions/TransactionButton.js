@@ -34,6 +34,7 @@ App.TransactionButton = function TransactionButton(poolIndex,options)
     this._accountField = this._swipeSurface.addChild(new Text("",editStyle));
     this._categoryField = this._swipeSurface.addChild(new Text("",editStyle));
     this._amountField = this._swipeSurface.addChild(new Text("",editStyle));
+    this._currencyField = this._swipeSurface.addChild(new Text("",editStyle));
     this._dateField = this._swipeSurface.addChild(new Text("",editStyle));
     this._pendingFlag = new Graphics();
     this._pendingLabel = this._pendingFlag.addChild(new Text("PENDING",this._labelStyles.pending));
@@ -54,7 +55,8 @@ App.TransactionButton.prototype._update = function _update(updateAll)
         dateText = (date.getMonth() + 1) + "/" + date.getDate() + "/" + date.getFullYear();
 
     this._accountField.setText(this._model.account.name);
-    this._amountField.setText(this._model.amount);//TODO add symbol in smaller font
+    this._amountField.setText(this._model.amount);//TODO add decimal space
+    this._currencyField.setText(this._model.currency.symbol);
     this._categoryField.setText(this._model.subCategory.name+" / "+this._model.category.name);
     this._dateField.setText(pending ? "Due by\n"+dateText : dateText);
 
@@ -67,6 +69,7 @@ App.TransactionButton.prototype._update = function _update(updateAll)
         {
             this._accountField.setStyle(this._labelStyles.accountPending);
             this._amountField.setStyle(this._labelStyles.amountPending);
+            this._currencyField.setStyle(this._labelStyles.currencyPending);
             this._categoryField.setStyle(this._labelStyles.accountPending);
             this._dateField.setStyle(this._labelStyles.datePending);
         }
@@ -74,13 +77,15 @@ App.TransactionButton.prototype._update = function _update(updateAll)
         {
             this._accountField.setStyle(this._labelStyles.account);
             this._amountField.setStyle(this._labelStyles.amount);
+            this._currencyField.setStyle(this._labelStyles.currency);
             this._categoryField.setStyle(this._labelStyles.account);
             this._dateField.setStyle(this._labelStyles.date);
         }
 
         this._render(updateAll,pending);
-        this._updateLayout(updateAll,pending);
     }
+
+    this._updateLayout(updateAll,pending);
 
     this.close(true);
 
@@ -163,6 +168,7 @@ App.TransactionButton.prototype._updateLayout = function _updateLayout(updateAll
         this._accountField.y = Math.round(7 * r);
         this._amountField.x = Math.round(70 * r);
         this._amountField.y = Math.round(26 * r);
+        this._currencyField.y = Math.round(33 * r);
         this._categoryField.x = Math.round(70 * r);
         this._categoryField.y = Math.round(52 * r);
 
@@ -171,6 +177,8 @@ App.TransactionButton.prototype._updateLayout = function _updateLayout(updateAll
         this._pendingFlag.x = Math.round(w - padding - this._pendingFlag.width);
         this._pendingFlag.y = Math.round(7 * r);
     }
+
+    this._currencyField.x = Math.round(this._amountField.x + this._amountField.width + padding);
 
     this._dateField.x = Math.round(w - padding - this._dateField.width);
     this._dateField.y = pending ? Math.round(38 * r) : Math.round(52 * r);
