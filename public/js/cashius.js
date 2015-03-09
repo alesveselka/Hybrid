@@ -661,7 +661,7 @@ App.StringUtils = {
  * @enum {string}
  * @return {{
  *      CHANGE_SCREEN:string,
- *      CREATE_TRANSACTION:string,
+ *      CHANGE_TRANSACTION:string,
  *      CHANGE_CATEGORY:string,
  *      CHANGE_SUB_CATEGORY:string,
  *      CREATE:string,
@@ -694,7 +694,7 @@ App.StringUtils = {
 App.EventType = {
     // Commands
     CHANGE_SCREEN:"CHANGE_SCREEN",
-    CREATE_TRANSACTION:"CREATE_TRANSACTION",
+    CHANGE_TRANSACTION:"CHANGE_TRANSACTION",
     CHANGE_CATEGORY:"CHANGE_CATEGORY",
     CHANGE_SUB_CATEGORY:"CHANGE_SUB_CATEGORY",
 
@@ -1719,10 +1719,10 @@ App.Currency = function Currency(data,collection,parent,eventListenerPool)
 
 /**
  * @class Transaction
- * @param {Array} data
- * @param {Collection} collection
- * @param {*} parent
- * @param {ObjectPool} eventListenerPool
+ * @param {Array} [data=null]
+ * @param {Collection} [collection=null]
+ * @param {*} [parent=null]
+ * @param {ObjectPool} [eventListenerPool=null]
  * @constructor
  */
 App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
@@ -6835,6 +6835,7 @@ App.Screen.prototype.disable = function disable()
 App.Screen.prototype.update = function update(data,mode)
 {
     this._mode = mode;
+    //TODO mark layout/UI as 'dirty' and update/render on Tick event
 };
 
 /**
@@ -7193,20 +7194,7 @@ App.EditScreen.prototype.update = function update(model,mode)
 App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     var EventType = App.EventType,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK),
-        changeSubCategoryData = {
-            type:EventType.CHANGE,
-            subCategory:this._model.subCategory,
-            category:this._model.category,
-            name:this._input.getValue(),
-            nextCommand:new App.ChangeCategory(),
-            nextCommandData:{
-                type:EventType.CHANGE,
-                category:this._model.category,
-                nextCommand:new App.ChangeScreen(),
-                nextCommandData:changeScreenData
-            }
-        };
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
     this._input.blur();
 
@@ -7217,9 +7205,7 @@ App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
     {
         changeScreenData.updateBackScreen = true;
 
-        App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,changeSubCategoryData);
-
-        /*App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
+        App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
             type:EventType.CHANGE,
             subCategory:this._model.subCategory,
             category:this._model.category,
@@ -7231,27 +7217,11 @@ App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
                 nextCommand:new App.ChangeScreen(),
                 nextCommandData:changeScreenData
             }
-        });*/
+        });
     }
     else if (action === App.HeaderAction.CANCEL)
     {
-//        changeSubCategoryData.type = EventType.CANCEL;
-
-        //App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,changeSubCategoryData);
         App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData);
-
-        /*App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
-            type:EventType.CANCEL,
-            subCategory:this._model.subCategory,
-            category:this._model.category,
-            nextCommand:new App.ChangeCategory(),
-            nextCommandData:{
-                type:EventType.CHANGE,
-                category:this._model.category,
-                nextCommand:new App.ChangeScreen(),
-                nextCommandData:changeScreenData
-            }
-        });*/
     }
 };
 
@@ -7759,6 +7729,8 @@ App.AddTransactionScreen.prototype._render = function _render()
 
 /**
  * Update
+ * @param {App.Transaction} data
+ * @param {number} mode
  * @private
  */
 App.AddTransactionScreen.prototype.update = function update(data,mode)
@@ -7939,18 +7911,35 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
     if (action === HeaderAction.CONFIRM)
     {
         //TODO first check if all values are set!
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+//        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CONFIRM,
+            amount:this._transactionInput.getValue(),
+            transactionType:this._typeToggle.isSelected() ? App.TransactionType.INCOME : App.TransactionType.EXPENSE,
+            pending:this._pendingToggle.isSelected(),
+            repeat:this._repeatToggle.isSelected(),
+            note:this._noteInput.getValue(),
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
     }
     else
     {
-        var collection = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS);
+        /*var collection = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS);
 
-        collection.removeItem(collection.getCurrent()).destroy();
+        collection.removeItem(collection.getCurrent()).destroy();*/
 
         changeScreenData.screenName = App.ScreenName.BACK;
         changeScreenData.updateBackScreen = true;
 
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+        //App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CANCEL,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
     }
 };
 
@@ -8135,16 +8124,15 @@ App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
     }
     else if (action === HeaderAction.CONFIRM)
     {
-        var transaction = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
-            selectedDate = this._calendar.getSelectedDate(),
-            time = this._input.getValue();
-
-        transaction.date.setFullYear(selectedDate.getFullYear(),selectedDate.getMonth(),selectedDate.getDate());
-        if (time.length > 0) transaction.date.setHours(parseInt(time.split(":")[0],10),parseInt(time.split(":")[1],10));
-
         changeScreenData.updateBackScreen = true;
 
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CHANGE,
+            date:this._calendar.getSelectedDate(),
+            time:this._input.getValue(),
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
     }
 };
 
@@ -8312,7 +8300,8 @@ App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 
     if (action === HeaderAction.ADD_TRANSACTION)
     {
-        App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CREATE,
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData.update()
         });
@@ -8921,6 +8910,7 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
             {
                 var ModelLocator = App.ModelLocator,
                     ModelName = App.ModelName,
+                    EventType = App.EventType,
                     changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
                 if (button instanceof App.AddNewButton)
@@ -8928,8 +8918,8 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
                     changeScreenData.screenName = App.ScreenName.EDIT;
                     changeScreenData.headerName = App.ScreenTitle.ADD_SUB_CATEGORY;
 
-                    App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{
-                        type:App.EventType.CREATE,
+                    App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
+                        type:EventType.CREATE,
                         category:this._model,
                         nextCommand:new App.ChangeScreen(),
                         nextCommandData:changeScreenData
@@ -8937,16 +8927,17 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
                 }
                 else
                 {
-                    var transaction = ModelLocator.getProxy(ModelName.TRANSACTIONS).getCurrent();
-
-                    transaction.account = ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0];
-                    transaction.category = this._model;
-                    transaction.subCategory = button.getModel();
-
                     changeScreenData.backSteps = ModelLocator.getProxy(ModelName.SCREEN_HISTORY).peek(2).screenName === App.ScreenName.ACCOUNT ? 2 : 1;
                     changeScreenData.updateBackScreen = true;
 
-                    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+                    App.Controller.dispatchEvent(EventType.CHANGE_TRANSACTION,{
+                        type:EventType.CHANGE,
+                        account:ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0],
+                        category:this._model,
+                        subCategory:button.getModel(),
+                        nextCommand:new App.ChangeScreen(),
+                        nextCommandData:changeScreenData
+                    });
                 }
             }
         }
@@ -9228,18 +9219,26 @@ App.CategoryScreen.prototype._onClick = function _onClick()
 App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     var HeaderAction = App.HeaderAction,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update();
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+            App.ScreenName.MENU,
+            0,
+            null,
+            HeaderAction.NONE,
+            HeaderAction.CANCEL,
+            App.ScreenTitle.MENU
+        );
 
     if (action === HeaderAction.ADD_TRANSACTION)
     {
-        App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CREATE,
             nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
+            nextCommandData:changeScreenData.update()
         });
     }
     else if (action === HeaderAction.MENU)
     {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.MENU,0,null,HeaderAction.NONE,HeaderAction.CANCEL,App.ScreenTitle.MENU));
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
     else if (action === HeaderAction.CANCEL)
     {
@@ -9822,7 +9821,16 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
 {
     var EventType = App.EventType,
         changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK),
-        changeCategoryData = {type:EventType.CANCEL,category:this._model,nextCommand:new App.ChangeScreen(),nextCommandData:changeScreenData};
+        changeCategoryData = {
+            type:EventType.CONFIRM,
+            category:this._model,
+            name:this._input.getValue(),
+            color:this._colorList.getSelectedValue(),
+            icon:this._getSelectedIcon(),
+            budget:this._budget.getValue(),
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        };
 
     if (this._scrollState === App.TransitionState.SHOWN && this._scrollInput) this._scrollInput.blur();
 
@@ -9830,18 +9838,14 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
     {
         this._model.clearSavedStates();
 
-        changeCategoryData.type = EventType.CONFIRM;
-        changeCategoryData.name = this._input.getValue();
-        changeCategoryData.color = this._colorList.getSelectedValue();
-        changeCategoryData.icon = this._getSelectedIcon();
-        changeCategoryData.budget = this._budget.getValue();
-
         changeScreenData.updateBackScreen = true;
 
         App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,changeCategoryData);
     }
     else if (action === App.HeaderAction.CANCEL)
     {
+        changeCategoryData.type = EventType.CANCEL;
+
         App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,changeCategoryData);
     }
 };
@@ -10259,7 +10263,11 @@ App.TransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 
     if (action === HeaderAction.ADD_TRANSACTION)
     {
-        App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{nextCommand:new App.ChangeScreen(),nextCommandData:changeScreenData.update()});
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CREATE,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData.update()
+        });
     }
     else if (action === HeaderAction.MENU)
     {
@@ -10987,7 +10995,8 @@ App.ReportScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 
     if (action === HeaderAction.ADD_TRANSACTION)
     {
-        App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CREATE,
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData.update()
         });
@@ -11092,6 +11101,11 @@ App.MenuItem.prototype.getScreenName = function getScreenName()
     return this._screenName;
 };
 
+/**
+ * @class Menu
+ * @param {Object} layout
+ * @constructor
+ */
 App.Menu = function Menu(layout)
 {
     App.Screen.call(this,null,layout);
@@ -11199,7 +11213,8 @@ App.Menu.prototype._onClick = function _onClick()
     switch (screenName)
     {
         case ScreenName.ADD_TRANSACTION:
-            App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
+            App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+                type:App.EventType.CREATE,
                 nextCommand:new App.ChangeScreen(),
                 nextCommandData:changeScreenData.update()
             });
@@ -11293,7 +11308,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.ReportScreen(this._layout),
         new App.AddTransactionScreen(this._layout),
         new App.EditScreen(this._layout),
-        new App.Menu(this._layout)//TODO is Menu part of stack? And if it is, it should be at bottom
+        new App.Menu(this._layout)//TODO is Menu part of stack?
     ],false,listenerPool));
 
     this._header = ViewLocator.addViewSegment(ViewName.HEADER,new App.Header(this._layout));
@@ -12188,7 +12203,7 @@ App.Initialize.prototype._initController = function _initController()
 
     App.Controller.init(this._eventListenerPool,[
         EventType.CHANGE_SCREEN,App.ChangeScreen,
-        EventType.CREATE_TRANSACTION,App.CreateTransaction,
+        EventType.CHANGE_TRANSACTION,App.ChangeTransaction,
         EventType.CHANGE_CATEGORY,App.ChangeCategory,
         EventType.CHANGE_SUB_CATEGORY,App.ChangeSubCategory
     ]);
@@ -12384,18 +12399,18 @@ App.ChangeScreen.prototype._clearHistory = function _clearHistory(screenHistory,
 };
 
 /**
- * @class CreateTransaction
+ * @class ChangeTransaction
  * @extends SequenceCommand
  * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.CreateTransaction = function CreateTransaction(eventListenerPool)
+App.ChangeTransaction = function ChangeTransaction(eventListenerPool)
 {
     App.SequenceCommand.call(this,false,eventListenerPool);
 };
 
-App.CreateTransaction.prototype = Object.create(App.SequenceCommand.prototype);
-App.CreateTransaction.prototype.constructor = App.CreateTransaction;
+App.ChangeTransaction.prototype = Object.create(App.SequenceCommand.prototype);
+App.ChangeTransaction.prototype.constructor = App.ChangeTransaction;
 
 /**
  * Execute the command
@@ -12403,19 +12418,57 @@ App.CreateTransaction.prototype.constructor = App.CreateTransaction;
  * @method execute
  * @param {{nextCommand:Command,screenName:number}} data
  */
-App.CreateTransaction.prototype.execute = function execute(data)
+App.ChangeTransaction.prototype.execute = function execute(data)
 {
+    var EventType = App.EventType,
+        transactions = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS),
+        transaction = transactions.getCurrent(),
+        type = data.type;
+
     this._nextCommand = data.nextCommand;
+    this._nextCommandData = data.nextCommandData;
 
-    var transactions = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS),
+    if (type === EventType.CREATE)
+    {
         transaction = new App.Transaction();
+        transactions.addItem(transaction);
+        transactions.setCurrent(transaction);
 
-    transactions.addItem(transaction);
-    transactions.setCurrent(transaction);
+        data.nextCommandData.updateData = transaction;
+    }
+    else if (type === EventType.CHANGE)
+    {
+        var date = data.date,
+            time = data.time;
 
-    data.nextCommandData.updateData = transaction;
+        transaction.account = data.account || transaction.account;
+        transaction.category = data.category || transaction.category;
+        transaction.subCategory = data.subCategory || transaction.subCategory;
+        transaction.method = data.method || transaction.method;
+        transaction.currency = data.currency || transaction.currency;
 
-    if (this._nextCommand) this._executeNextCommand(data.nextCommandData);
+        if (date && time)
+        {
+            transaction.date.setFullYear(date.getFullYear(),date.getMonth(),date.getDate());
+            if (time.length > 0) transaction.date.setHours(parseInt(time.split(":")[0],10),parseInt(time.split(":")[1],10));
+        }
+    }
+    else if (type === EventType.CONFIRM)
+    {
+        transaction.amount = data.amount || transaction.amount;
+        transaction.type = data.transactionType || transaction.type;
+        transaction.pending = data.type === true;
+        transaction.repeat = data.type === true;
+        transaction.note = data.note || transaction.note;
+
+        transactions.setCurrent(null);
+    }
+    else if (type === EventType.CANCEL)
+    {
+        transactions.removeItem(transaction).destroy();
+    }
+
+    if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);
 };
 
@@ -12462,7 +12515,7 @@ App.ChangeCategory.prototype.execute = function execute(data)
         category = new App.Category();
         category.account = data.account.id;
 
-        data.nextCommandData.updateData = category;
+        this._nextCommandData.updateData = category;
     }
     else if (type === EventType.CHANGE)
     {
@@ -12560,6 +12613,8 @@ App.ChangeCategory.prototype._cancelChanges = function _cancelChanges(category)
     l = revokedSubCategories.length;
 
     for (;i<l;) revokedSubCategories[i++].revokeState();
+
+    //TODO destroy category if it was newly created and eventually cancelled?
 };
 
 /**
@@ -12604,14 +12659,8 @@ App.ChangeSubCategory.prototype.execute = function execute(data)
 
         data.category.addSubCategory(subCategory);
     }
-    /*else if (type === EventType.CANCEL)
-    {
-        subCategory.revokeState();//TODO do I need it here? I need revoke original state only when Category editing is cancelled
 
-        //data.category.removeSubCategory(subCategory);
-    }*/
-
-    if (this._nextCommand) this._executeNextCommand(data.nextCommandData);
+    if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);
 };
 

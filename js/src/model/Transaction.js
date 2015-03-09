@@ -1,9 +1,9 @@
 /**
  * @class Transaction
- * @param {Array} data
- * @param {Collection} collection
- * @param {*} parent
- * @param {ObjectPool} eventListenerPool
+ * @param {Array} [data=null]
+ * @param {Collection} [collection=null]
+ * @param {*} [parent=null]
+ * @param {ObjectPool} [eventListenerPool=null]
  * @constructor
  */
 App.Transaction = function Transaction(data,collection,parent,eventListenerPool)

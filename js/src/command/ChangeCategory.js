@@ -41,7 +41,7 @@ App.ChangeCategory.prototype.execute = function execute(data)
         category = new App.Category();
         category.account = data.account.id;
 
-        data.nextCommandData.updateData = category;
+        this._nextCommandData.updateData = category;
     }
     else if (type === EventType.CHANGE)
     {

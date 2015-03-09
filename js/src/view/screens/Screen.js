@@ -113,6 +113,7 @@ App.Screen.prototype.disable = function disable()
 App.Screen.prototype.update = function update(data,mode)
 {
     this._mode = mode;
+    //TODO mark layout/UI as 'dirty' and update/render on Tick event
 };
 
 /**

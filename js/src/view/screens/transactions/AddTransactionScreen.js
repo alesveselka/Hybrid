@@ -137,6 +137,8 @@ App.AddTransactionScreen.prototype._render = function _render()
 
 /**
  * Update
+ * @param {App.Transaction} data
+ * @param {number} mode
  * @private
  */
 App.AddTransactionScreen.prototype.update = function update(data,mode)
@@ -317,18 +319,28 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
     if (action === HeaderAction.CONFIRM)
     {
         //TODO first check if all values are set!
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CONFIRM,
+            amount:this._transactionInput.getValue(),
+            transactionType:this._typeToggle.isSelected() ? App.TransactionType.INCOME : App.TransactionType.EXPENSE,
+            pending:this._pendingToggle.isSelected(),
+            repeat:this._repeatToggle.isSelected(),
+            note:this._noteInput.getValue(),
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
     }
     else
     {
-        var collection = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS);
-
-        collection.removeItem(collection.getCurrent()).destroy();
-
         changeScreenData.screenName = App.ScreenName.BACK;
         changeScreenData.updateBackScreen = true;
 
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CANCEL,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
     }
 };
 

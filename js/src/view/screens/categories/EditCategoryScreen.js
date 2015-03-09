@@ -342,7 +342,16 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
 {
     var EventType = App.EventType,
         changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK),
-        changeCategoryData = {type:EventType.CANCEL,category:this._model,nextCommand:new App.ChangeScreen(),nextCommandData:changeScreenData};
+        changeCategoryData = {
+            type:EventType.CONFIRM,
+            category:this._model,
+            name:this._input.getValue(),
+            color:this._colorList.getSelectedValue(),
+            icon:this._getSelectedIcon(),
+            budget:this._budget.getValue(),
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        };
 
     if (this._scrollState === App.TransitionState.SHOWN && this._scrollInput) this._scrollInput.blur();
 
@@ -350,18 +359,14 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
     {
         this._model.clearSavedStates();
 
-        changeCategoryData.type = EventType.CONFIRM;
-        changeCategoryData.name = this._input.getValue();
-        changeCategoryData.color = this._colorList.getSelectedValue();
-        changeCategoryData.icon = this._getSelectedIcon();
-        changeCategoryData.budget = this._budget.getValue();
-
         changeScreenData.updateBackScreen = true;
 
         App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,changeCategoryData);
     }
     else if (action === App.HeaderAction.CANCEL)
     {
+        changeCategoryData.type = EventType.CANCEL;
+
         App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,changeCategoryData);
     }
 };

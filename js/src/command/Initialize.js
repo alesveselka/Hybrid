@@ -104,7 +104,7 @@ App.Initialize.prototype._initController = function _initController()
 
     App.Controller.init(this._eventListenerPool,[
         EventType.CHANGE_SCREEN,App.ChangeScreen,
-        EventType.CREATE_TRANSACTION,App.CreateTransaction,
+        EventType.CHANGE_TRANSACTION,App.ChangeTransaction,
         EventType.CHANGE_CATEGORY,App.ChangeCategory,
         EventType.CHANGE_SUB_CATEGORY,App.ChangeSubCategory
     ]);

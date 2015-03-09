@@ -1,3 +1,8 @@
+/**
+ * @class Menu
+ * @param {Object} layout
+ * @constructor
+ */
 App.Menu = function Menu(layout)
 {
     App.Screen.call(this,null,layout);
@@ -105,7 +110,8 @@ App.Menu.prototype._onClick = function _onClick()
     switch (screenName)
     {
         case ScreenName.ADD_TRANSACTION:
-            App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
+            App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+                type:App.EventType.CREATE,
                 nextCommand:new App.ChangeScreen(),
                 nextCommandData:changeScreenData.update()
             });

@@ -47,7 +47,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.ReportScreen(this._layout),
         new App.AddTransactionScreen(this._layout),
         new App.EditScreen(this._layout),
-        new App.Menu(this._layout)//TODO is Menu part of stack? And if it is, it should be at bottom
+        new App.Menu(this._layout)//TODO is Menu part of stack?
     ],false,listenerPool));
 
     this._header = ViewLocator.addViewSegment(ViewName.HEADER,new App.Header(this._layout));

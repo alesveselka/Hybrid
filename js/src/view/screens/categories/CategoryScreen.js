@@ -248,18 +248,26 @@ App.CategoryScreen.prototype._onClick = function _onClick()
 App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     var HeaderAction = App.HeaderAction,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update();
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+            App.ScreenName.MENU,
+            0,
+            null,
+            HeaderAction.NONE,
+            HeaderAction.CANCEL,
+            App.ScreenTitle.MENU
+        );
 
     if (action === HeaderAction.ADD_TRANSACTION)
     {
-        App.Controller.dispatchEvent(App.EventType.CREATE_TRANSACTION,{
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CREATE,
             nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
+            nextCommandData:changeScreenData.update()
         });
     }
     else if (action === HeaderAction.MENU)
     {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.MENU,0,null,HeaderAction.NONE,HeaderAction.CANCEL,App.ScreenTitle.MENU));
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }
     else if (action === HeaderAction.CANCEL)
     {

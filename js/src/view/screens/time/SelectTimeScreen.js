@@ -165,15 +165,14 @@ App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
     }
     else if (action === HeaderAction.CONFIRM)
     {
-        var transaction = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent(),
-            selectedDate = this._calendar.getSelectedDate(),
-            time = this._input.getValue();
-
-        transaction.date.setFullYear(selectedDate.getFullYear(),selectedDate.getMonth(),selectedDate.getDate());
-        if (time.length > 0) transaction.date.setHours(parseInt(time.split(":")[0],10),parseInt(time.split(":")[1],10));
-
         changeScreenData.updateBackScreen = true;
 
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CHANGE,
+            date:this._calendar.getSelectedDate(),
+            time:this._input.getValue(),
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
     }
 };

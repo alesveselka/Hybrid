@@ -89,6 +89,7 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
             {
                 var ModelLocator = App.ModelLocator,
                     ModelName = App.ModelName,
+                    EventType = App.EventType,
                     changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
                 if (button instanceof App.AddNewButton)
@@ -96,8 +97,8 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
                     changeScreenData.screenName = App.ScreenName.EDIT;
                     changeScreenData.headerName = App.ScreenTitle.ADD_SUB_CATEGORY;
 
-                    App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{
-                        type:App.EventType.CREATE,
+                    App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
+                        type:EventType.CREATE,
                         category:this._model,
                         nextCommand:new App.ChangeScreen(),
                         nextCommandData:changeScreenData
@@ -105,16 +106,17 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
                 }
                 else
                 {
-                    var transaction = ModelLocator.getProxy(ModelName.TRANSACTIONS).getCurrent();
-
-                    transaction.account = ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0];
-                    transaction.category = this._model;
-                    transaction.subCategory = button.getModel();
-
                     changeScreenData.backSteps = ModelLocator.getProxy(ModelName.SCREEN_HISTORY).peek(2).screenName === App.ScreenName.ACCOUNT ? 2 : 1;
                     changeScreenData.updateBackScreen = true;
 
-                    App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+                    App.Controller.dispatchEvent(EventType.CHANGE_TRANSACTION,{
+                        type:EventType.CHANGE,
+                        account:ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0],
+                        category:this._model,
+                        subCategory:button.getModel(),
+                        nextCommand:new App.ChangeScreen(),
+                        nextCommandData:changeScreenData
+                    });
                 }
             }
         }

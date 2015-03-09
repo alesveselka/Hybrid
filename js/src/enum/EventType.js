@@ -3,7 +3,7 @@
  * @enum {string}
  * @return {{
  *      CHANGE_SCREEN:string,
- *      CREATE_TRANSACTION:string,
+ *      CHANGE_TRANSACTION:string,
  *      CHANGE_CATEGORY:string,
  *      CHANGE_SUB_CATEGORY:string,
  *      CREATE:string,
@@ -36,7 +36,7 @@
 App.EventType = {
     // Commands
     CHANGE_SCREEN:"CHANGE_SCREEN",
-    CREATE_TRANSACTION:"CREATE_TRANSACTION",
+    CHANGE_TRANSACTION:"CHANGE_TRANSACTION",
     CHANGE_CATEGORY:"CHANGE_CATEGORY",
     CHANGE_SUB_CATEGORY:"CHANGE_SUB_CATEGORY",
 

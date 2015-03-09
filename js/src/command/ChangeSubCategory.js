@@ -41,6 +41,6 @@ App.ChangeSubCategory.prototype.execute = function execute(data)
         data.category.addSubCategory(subCategory);
     }
 
-    if (this._nextCommand) this._executeNextCommand(data.nextCommandData);
+    if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);
 };
