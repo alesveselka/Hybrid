@@ -130,7 +130,7 @@ App.Menu.prototype._onClick = function _onClick()
 
         case ScreenName.TRANSACTIONS:
             changeScreenData.headerName = ScreenTitle.TRANSACTIONS;
-            changeScreenData.updateData = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).filter();
+            changeScreenData.updateData = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).copySource().reverse();
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             break;
     }

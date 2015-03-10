@@ -77,6 +77,15 @@ App.Collection.prototype.getItemAt = function getItemAt(index)
 };
 
 /**
+ * Return copy of underlying array
+ * @returns {Array}
+ */
+App.Collection.prototype.copySource = function copySource()
+{
+    return this._items.concat();
+};
+
+/**
  * Filter collection against value passed in
  * @param {string|Array} value
  * @param {string} [property=null]
@@ -84,12 +93,12 @@ App.Collection.prototype.getItemAt = function getItemAt(index)
  */
 App.Collection.prototype.filter = function filter(value,property)
 {
-    var i = 0,
-        l = this._items.length,
-        result = [];
-
     if (value)
     {
+        var i = 0,
+            l = this._items.length,
+            result = [];
+
         if (property)
         {
             for (;i<l;i++)

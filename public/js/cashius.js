@@ -1447,6 +1447,15 @@ App.Collection.prototype.getItemAt = function getItemAt(index)
 };
 
 /**
+ * Return copy of underlying array
+ * @returns {Array}
+ */
+App.Collection.prototype.copySource = function copySource()
+{
+    return this._items.concat();
+};
+
+/**
  * Filter collection against value passed in
  * @param {string|Array} value
  * @param {string} [property=null]
@@ -1454,12 +1463,12 @@ App.Collection.prototype.getItemAt = function getItemAt(index)
  */
 App.Collection.prototype.filter = function filter(value,property)
 {
-    var i = 0,
-        l = this._items.length,
-        result = [];
-
     if (value)
     {
+        var i = 0,
+            l = this._items.length,
+            result = [];
+
         if (property)
         {
             for (;i<l;i++)
@@ -5550,6 +5559,7 @@ App.VirtualList.prototype.update = function update(model)
     this.boundingBox.width = listSize;
     this.boundingBox.height = this._height;
 
+    // Reset scroll
     this._virtualX = 0;
     this._virtualY = 0;
 
@@ -7954,7 +7964,7 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
         changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
             App.ScreenName.TRANSACTIONS,
             0,
-            ModelLocator.getProxy(ModelName.TRANSACTIONS).filter(),
+            ModelLocator.getProxy(ModelName.TRANSACTIONS).copySource().reverse(),
             HeaderAction.MENU,
             HeaderAction.ADD_TRANSACTION,
             App.ScreenTitle.TRANSACTIONS
@@ -10232,7 +10242,6 @@ App.TransactionScreen.prototype.update = function update(model)
 
     this._buttonList.update(model);
     this._pane.resize();
-//    this._pane.resetScroll();
 };
 
 /**
@@ -10646,7 +10655,7 @@ App.ReportChart = function ReportChart(model,width,height,pixelRatio)
     var ModelLocator = App.ModelLocator,
         ModelName = App.ModelName,
         Graphics = PIXI.Graphics,
-        colors = [0xff0000,0xc0ffee,0x0000ff],
+        colors = [0xff0000,0xc066cc,0x0000ff],
         i = 0,
         l = 3,//TODO number of segments calculated from accounts
         segment = null;
@@ -11261,7 +11270,7 @@ App.Menu.prototype._onClick = function _onClick()
 
         case ScreenName.TRANSACTIONS:
             changeScreenData.headerName = ScreenTitle.TRANSACTIONS;
-            changeScreenData.updateData = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).filter();
+            changeScreenData.updateData = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).copySource().reverse();
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             break;
     }

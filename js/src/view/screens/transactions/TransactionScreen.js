@@ -52,6 +52,8 @@ App.TransactionScreen.prototype.disable = function disable()
  */
 App.TransactionScreen.prototype.update = function update(model)
 {
+    if (this._model) this._model.length = 0;
+
     this._model = model;
 
     this._buttonList.update(model);

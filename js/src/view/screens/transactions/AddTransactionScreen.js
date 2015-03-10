@@ -310,7 +310,7 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
         changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
             App.ScreenName.TRANSACTIONS,
             0,
-            ModelLocator.getProxy(ModelName.TRANSACTIONS).filter(),
+            ModelLocator.getProxy(ModelName.TRANSACTIONS).copySource().reverse(),
             HeaderAction.MENU,
             HeaderAction.ADD_TRANSACTION,
             App.ScreenTitle.TRANSACTIONS
