@@ -915,6 +915,7 @@ App.ScreenMode = {
  *      SELECT_TIME: string,
  *      TRANSACTIONS:string,
  *      ADD_TRANSACTION: string,
+ *      EDIT_TRANSACTION: string,
  *      REPORT:string
  * }}
  */
@@ -933,6 +934,7 @@ App.ScreenTitle = {
     SELECT_TIME:"Select Time & Date",
     TRANSACTIONS:"Transactions",
     ADD_TRANSACTION:"Add Transaction",
+    EDIT_TRANSACTION:"Edit Transaction",
     REPORT:"Report"
 };
 
@@ -1797,6 +1799,42 @@ App.Transaction.prototype.destroy = function destroy()
 };
 
 /**
+ * Check if the transaction is saved, i.e. has data
+ * @returns {Array|null}
+ */
+App.Transaction.prototype.isSaved = function isSaved()
+{
+    return this._data;
+};
+
+/**
+ * Save
+ */
+App.Transaction.prototype.save = function save()
+{
+    this._data = this.serialize();
+};
+
+/**
+ * Serialize
+ * @returns {Array}
+ */
+App.Transaction.prototype.serialize = function serialize()
+{
+    return [
+        parseInt(this.amount,10),
+        this.type,
+        this.pending ? 1 : 0,
+        this.repeat ? 1 : 0,
+        this._account.id + "." + this._category.id + "." + this._subCategory.id,
+        this._method.id,
+        this._date.getTime(),
+        this._currency.id,
+        App.StringUtils.encode(this.note)
+    ];
+};
+
+/**
  * @property account
  * @type Account
  */
@@ -1877,7 +1915,7 @@ Object.defineProperty(App.Transaction.prototype,'method',{
     {
         if (!this._method)
         {
-            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).filter([this._data[4]],"id")[0];
+            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).filter([this._data[5]],"id")[0];
             else this._method = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultPaymentMethod;
         }
         return this._method;
@@ -9977,7 +10015,7 @@ App.EditCategoryScreen.prototype._getColorSamples = function _getColorSamples()
  */
 App.TransactionButton = function TransactionButton(poolIndex,options)
 {
-    App.SwipeButton.call(this,options.width,Math.round(120*options.pixelRatio));
+    App.SwipeButton.call(this,options.width,options.openOffset);
 
     var Text = PIXI.Text,
         Graphics = PIXI.Graphics,
@@ -10075,7 +10113,7 @@ App.TransactionButton.prototype._render = function _render(renderAll,pending)
         r = this._pixelRatio,
         w = this.boundingBox.width,
         h = this.boundingBox.height,
-        swipeOptionWidth = Math.round(60 * r);
+        swipeOptionWidth = Math.round(this._openOffset / 2);
 
     if (renderAll)
     {
@@ -10163,6 +10201,54 @@ App.TransactionButton.prototype.setModel = function setModel(model)
     this._model = model;
 
     this._update(this._icon === null);
+};
+
+/**
+ * Click handler
+ * @param {PIXI.InteractionData} data
+ */
+App.TransactionButton.prototype.onClick = function onClick(data)
+{
+    var position = data.getLocalPosition(this).x;
+
+    if (this._isOpen && position >= this._width - this._openOffset)
+    {
+        // Edit option
+        if (position >= this._width - this._openOffset / 2)
+        {
+            var ModelLocator = App.ModelLocator,
+                ModelName = App.ModelName,
+                transactions = ModelLocator.getProxy(ModelName.TRANSACTIONS),
+                changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update();
+
+            transactions.setCurrent(this._model);
+
+            changeScreenData.screenMode = App.ScreenMode.EDIT;
+            changeScreenData.updateData = this._model;
+            changeScreenData.headerName = App.ScreenTitle.EDIT_TRANSACTION;
+
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+        }
+        // Copy option
+        else
+        {
+            console.log("Copy");
+        }
+
+        /*this._model.saveState();
+
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,
+            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+                App.ScreenName.EDIT_CATEGORY,
+                App.ScreenMode.EDIT,
+                this._model,
+                0,
+                0,
+                App.ScreenTitle.EDIT_CATEGORY
+            )
+        );*/
+    }
 };
 
 /**
@@ -10286,6 +10372,18 @@ App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate
         button = this._buttonList.getChildAt(i++);
         if (button !== this._interactiveButton) button.close(immediate);
     }
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.TransactionScreen.prototype._onClick = function _onClick()
+{
+    var data = this.stage.getTouchData(),
+        button = this._buttonList.getItemUnderPoint(data);
+
+    if (button) button.onClick(data);
 };
 
 /**
@@ -12350,7 +12448,8 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
             redSkin:skin.RED_70,
             width:width,
             height:Math.round(70 * pixelRatio),
-            pixelRatio:pixelRatio
+            pixelRatio:pixelRatio,
+            openOffset:Math.round(120 * pixelRatio)
         };
 
     ViewLocator.init([
@@ -12534,11 +12633,13 @@ App.ChangeTransaction.prototype.execute = function execute(data)
         transaction.repeat = data.repeat === true;
         transaction.note = data.note || transaction.note;
 
+        transaction.save();
         transactions.setCurrent(null);
     }
     else if (type === EventType.CANCEL)
     {
-        transactions.removeItem(transaction).destroy();
+        if (transaction.isSaved()) transactions.setCurrent(null);
+        else transactions.removeItem(transaction).destroy();
     }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);

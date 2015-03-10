@@ -7,7 +7,7 @@
  */
 App.TransactionButton = function TransactionButton(poolIndex,options)
 {
-    App.SwipeButton.call(this,options.width,Math.round(120*options.pixelRatio));
+    App.SwipeButton.call(this,options.width,options.openOffset);
 
     var Text = PIXI.Text,
         Graphics = PIXI.Graphics,
@@ -105,7 +105,7 @@ App.TransactionButton.prototype._render = function _render(renderAll,pending)
         r = this._pixelRatio,
         w = this.boundingBox.width,
         h = this.boundingBox.height,
-        swipeOptionWidth = Math.round(60 * r);
+        swipeOptionWidth = Math.round(this._openOffset / 2);
 
     if (renderAll)
     {
@@ -193,6 +193,54 @@ App.TransactionButton.prototype.setModel = function setModel(model)
     this._model = model;
 
     this._update(this._icon === null);
+};
+
+/**
+ * Click handler
+ * @param {PIXI.InteractionData} data
+ */
+App.TransactionButton.prototype.onClick = function onClick(data)
+{
+    var position = data.getLocalPosition(this).x;
+
+    if (this._isOpen && position >= this._width - this._openOffset)
+    {
+        // Edit option
+        if (position >= this._width - this._openOffset / 2)
+        {
+            var ModelLocator = App.ModelLocator,
+                ModelName = App.ModelName,
+                transactions = ModelLocator.getProxy(ModelName.TRANSACTIONS),
+                changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update();
+
+            transactions.setCurrent(this._model);
+
+            changeScreenData.screenMode = App.ScreenMode.EDIT;
+            changeScreenData.updateData = this._model;
+            changeScreenData.headerName = App.ScreenTitle.EDIT_TRANSACTION;
+
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+        }
+        // Copy option
+        else
+        {
+            console.log("Copy");
+        }
+
+        /*this._model.saveState();
+
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,
+            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+                App.ScreenName.EDIT_CATEGORY,
+                App.ScreenMode.EDIT,
+                this._model,
+                0,
+                0,
+                App.ScreenTitle.EDIT_CATEGORY
+            )
+        );*/
+    }
 };
 
 /**

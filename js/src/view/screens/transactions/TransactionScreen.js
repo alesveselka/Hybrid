@@ -52,8 +52,6 @@ App.TransactionScreen.prototype.disable = function disable()
  */
 App.TransactionScreen.prototype.update = function update(model)
 {
-    if (this._model) this._model.length = 0;
-
     this._model = model;
 
     this._buttonList.update(model);
@@ -102,6 +100,18 @@ App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate
         button = this._buttonList.getChildAt(i++);
         if (button !== this._interactiveButton) button.close(immediate);
     }
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.TransactionScreen.prototype._onClick = function _onClick()
+{
+    var data = this.stage.getTouchData(),
+        button = this._buttonList.getItemUnderPoint(data);
+
+    if (button) button.onClick(data);
 };
 
 /**

@@ -56,6 +56,42 @@ App.Transaction.prototype.destroy = function destroy()
 };
 
 /**
+ * Check if the transaction is saved, i.e. has data
+ * @returns {Array|null}
+ */
+App.Transaction.prototype.isSaved = function isSaved()
+{
+    return this._data;
+};
+
+/**
+ * Save
+ */
+App.Transaction.prototype.save = function save()
+{
+    this._data = this.serialize();
+};
+
+/**
+ * Serialize
+ * @returns {Array}
+ */
+App.Transaction.prototype.serialize = function serialize()
+{
+    return [
+        parseInt(this.amount,10),
+        this.type,
+        this.pending ? 1 : 0,
+        this.repeat ? 1 : 0,
+        this._account.id + "." + this._category.id + "." + this._subCategory.id,
+        this._method.id,
+        this._date.getTime(),
+        this._currency.id,
+        App.StringUtils.encode(this.note)
+    ];
+};
+
+/**
  * @property account
  * @type Account
  */
@@ -136,7 +172,7 @@ Object.defineProperty(App.Transaction.prototype,'method',{
     {
         if (!this._method)
         {
-            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).filter([this._data[4]],"id")[0];
+            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).filter([this._data[5]],"id")[0];
             else this._method = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultPaymentMethod;
         }
         return this._method;

@@ -213,7 +213,8 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
             redSkin:skin.RED_70,
             width:width,
             height:Math.round(70 * pixelRatio),
-            pixelRatio:pixelRatio
+            pixelRatio:pixelRatio,
+            openOffset:Math.round(120 * pixelRatio)
         };
 
     ViewLocator.init([

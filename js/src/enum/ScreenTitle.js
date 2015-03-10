@@ -15,6 +15,7 @@
  *      SELECT_TIME: string,
  *      TRANSACTIONS:string,
  *      ADD_TRANSACTION: string,
+ *      EDIT_TRANSACTION: string,
  *      REPORT:string
  * }}
  */
@@ -33,5 +34,6 @@ App.ScreenTitle = {
     SELECT_TIME:"Select Time & Date",
     TRANSACTIONS:"Transactions",
     ADD_TRANSACTION:"Add Transaction",
+    EDIT_TRANSACTION:"Edit Transaction",
     REPORT:"Report"
 };

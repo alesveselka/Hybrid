@@ -61,11 +61,13 @@ App.ChangeTransaction.prototype.execute = function execute(data)
         transaction.repeat = data.repeat === true;
         transaction.note = data.note || transaction.note;
 
+        transaction.save();
         transactions.setCurrent(null);
     }
     else if (type === EventType.CANCEL)
     {
-        transactions.removeItem(transaction).destroy();
+        if (transaction.isSaved()) transactions.setCurrent(null);
+        else transactions.removeItem(transaction).destroy();
     }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
