@@ -204,27 +204,32 @@ App.AddTransactionScreen.prototype.disable = function disable()
 
 /**
  * Register event listeners
+ * @param {number} level
  * @private
  */
-App.AddTransactionScreen.prototype._registerEventListeners = function _registerEventListeners()
+App.AddTransactionScreen.prototype._registerEventListeners = function _registerEventListeners(level)
 {
-    App.InputScrollScreen.prototype._registerEventListeners.call(this);
+    App.Screen.prototype._registerEventListeners.call(this,level);
 
-    var EventType = App.EventType;
+    if (level === App.EventLevel.LEVEL_2)
+    {
+        var EventType = App.EventType;
 
-    this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
+        this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
 
-    this._transactionInput.addEventListener(EventType.BLUR,this,this._onInputBlur);
-    this._noteInput.addEventListener(EventType.BLUR,this,this._onInputBlur);
+        this._transactionInput.addEventListener(EventType.BLUR,this,this._onInputBlur);
+        this._noteInput.addEventListener(EventType.BLUR,this,this._onInputBlur);
+    }
 };
 
 /**
  * UnRegister event listeners
+ * @param {number} level
  * @private
  */
-App.AddTransactionScreen.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+App.AddTransactionScreen.prototype._unRegisterEventListeners = function _unRegisterEventListeners(level)
 {
-    App.InputScrollScreen.prototype._unRegisterEventListeners.call(this);
+    App.Screen.prototype._unRegisterEventListeners.call(this,level);
 
     var EventType = App.EventType;
 

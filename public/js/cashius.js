@@ -943,6 +943,16 @@ App.ScreenTitle = {
 };
 
 /**
+ * EventLevel
+ * @type {{NONE: number, LEVEL_1: number,LEVEL_2: number}}
+ */
+App.EventLevel = {
+    NONE:0,
+    LEVEL_1:1,
+    LEVEL_2:2
+};
+
+/**
  * @class EventListener
  * @param {number} index
  * @constructor
@@ -4268,7 +4278,7 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio,use
     this._contentWidth = 0;
     this._contentBoundingBox = new App.Rectangle();
     this._useMask = useMask;
-    this.hitArea = this.boundingBox;//TODO use bounding box?
+    this.hitArea = this.boundingBox;
 
     this._enabled = false;
     this._eventsRegistered = false;
@@ -4349,9 +4359,6 @@ App.Pane.prototype.resize = function resize(width,height)
 {
     this.boundingBox.width = width || this.boundingBox.width;
     this.boundingBox.height = height || this.boundingBox.height;
-
-//    this.hitArea.width = this.boundingBox.width;
-//    this.hitArea.height = this.boundingBox.height;
 
     if (this._content)
     {
@@ -6033,9 +6040,6 @@ App.TilePane.prototype.resize = function resize(width,height)
     this.boundingBox.width = width || this.boundingBox.width;
     this.boundingBox.height = height || this.boundingBox.height;
 
-//    this.hitArea.width = this.boundingBox.width;
-//    this.hitArea.height = this.boundingBox.height;
-
     if (this._content)
     {
         this._contentHeight = Math.round(this._content.boundingBox.height);
@@ -6884,7 +6888,7 @@ App.Screen = function Screen(model,layout,tweenDuration)
     this._model = model;
     this._layout = layout;
     this._enabled = false;
-    this._eventsRegistered = false;
+    this._eventsRegistered = App.EventLevel.NONE;
 
     this._transitionState = App.TransitionState.HIDDEN;
     this._interactiveState = null;
@@ -6917,7 +6921,7 @@ App.Screen.prototype.show = function show()
 
     if (this._transitionState === TransitionState.HIDDEN || this._transitionState === TransitionState.HIDING)
     {
-        this.enable();//TODO enable only when show transition is complete
+        this.enable();
 
         this._transitionState = TransitionState.SHOWING;
 
@@ -6936,6 +6940,8 @@ App.Screen.prototype.hide = function hide()
 
     if (this._transitionState === TransitionState.SHOWN || this._transitionState === TransitionState.SHOWING)
     {
+        this.disable();
+
         this._transitionState = TransitionState.HIDING;
 
         this._showHideTween.start(true);
@@ -6949,9 +6955,7 @@ App.Screen.prototype.enable = function enable()
 {
     if (!this._enabled)
     {
-        this.interactive = true;
-
-        this._registerEventListeners();
+        this._registerEventListeners(App.EventLevel.LEVEL_1);
 
         this._enabled = true;
     }
@@ -6962,9 +6966,7 @@ App.Screen.prototype.enable = function enable()
  */
 App.Screen.prototype.disable = function disable()
 {
-    this.interactive = false;
-
-    this._unRegisterEventListeners();
+    this._unRegisterEventListeners(App.EventLevel.LEVEL_2);
 
     this._enabled = false;
 
@@ -7005,14 +7007,22 @@ App.Screen.prototype.removeEventListener = function removeEventListener(eventTyp
 
 /**
  * Register event listeners
+ * @param {number} level
  * @private
  */
-App.Screen.prototype._registerEventListeners = function _registerEventListeners()
+App.Screen.prototype._registerEventListeners = function _registerEventListeners(level)
 {
-    if (!this._eventsRegistered)
-    {
-        this._eventsRegistered = true;
+    var EventLevel = App.EventLevel;
 
+    if (level === EventLevel.LEVEL_1 && this._eventsRegistered !== EventLevel.LEVEL_1)
+    {
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._showHideTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+    }
+
+    if (level === EventLevel.LEVEL_2 && this._eventsRegistered !== EventLevel.LEVEL_2)
+    {
         if (App.Device.TOUCH_SUPPORTED)
         {
             this.touchstart = this._onPointerDown;
@@ -7026,41 +7036,53 @@ App.Screen.prototype._registerEventListeners = function _registerEventListeners(
             this.mouseupoutside = this._onPointerUp;
         }
 
-        //TODO register header click only after the screen is shown
         App.ViewLocator.getViewSegment(App.ViewName.HEADER).addEventListener(App.EventType.CLICK,this,this._onHeaderClick);
 
-        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-
-        this._showHideTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+        this.interactive = true;
     }
+
+    this._eventsRegistered = level;
 };
 
 /**
  * UnRegister event listeners
+ * @param {number} level
  * @private
  */
-App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListeners(level)
 {
-    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+    var EventLevel = App.EventLevel;
 
-    this._showHideTween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
-
-    App.ViewLocator.getViewSegment(App.ViewName.HEADER).removeEventListener(App.EventType.CLICK,this,this._onHeaderClick);
-
-    if (App.Device.TOUCH_SUPPORTED)
+    if (level === EventLevel.LEVEL_1)
     {
-        this.touchstart = null;
-        this.touchend = null;
-        this.touchendoutside = null;
-    }
-    else
-    {
-        this.mousedown = null;
-        this.mouseup = null;
-        this.mouseupoutside = null;
+        this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._showHideTween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+
+        this._eventsRegistered = EventLevel.NONE;
     }
 
-    this._eventsRegistered = false;
+    if (level === EventLevel.LEVEL_2)
+    {
+        this.interactive = false;
+
+        App.ViewLocator.getViewSegment(App.ViewName.HEADER).removeEventListener(App.EventType.CLICK,this,this._onHeaderClick);
+
+        if (App.Device.TOUCH_SUPPORTED)
+        {
+            this.touchstart = null;
+            this.touchend = null;
+            this.touchendoutside = null;
+        }
+        else
+        {
+            this.mousedown = null;
+            this.mouseup = null;
+            this.mouseupoutside = null;
+        }
+
+        this._eventsRegistered = EventLevel.LEVEL_1;
+    }
 };
 
 /**
@@ -7093,12 +7115,14 @@ App.Screen.prototype._onTweenComplete = function _onTweenComplete()
         this._transitionState = TransitionState.SHOWN;
 
         this.alpha = 1.0;
+
+        this._registerEventListeners(App.EventLevel.LEVEL_2);
     }
     else if (this._transitionState === TransitionState.HIDING)
     {
         this._transitionState = TransitionState.HIDDEN;
 
-        this.disable();
+        this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
 
         this.alpha = 0.0;
 
@@ -7939,27 +7963,32 @@ App.AddTransactionScreen.prototype.disable = function disable()
 
 /**
  * Register event listeners
+ * @param {number} level
  * @private
  */
-App.AddTransactionScreen.prototype._registerEventListeners = function _registerEventListeners()
+App.AddTransactionScreen.prototype._registerEventListeners = function _registerEventListeners(level)
 {
-    App.InputScrollScreen.prototype._registerEventListeners.call(this);
+    App.Screen.prototype._registerEventListeners.call(this,level);
 
-    var EventType = App.EventType;
+    if (level === App.EventLevel.LEVEL_2)
+    {
+        var EventType = App.EventType;
 
-    this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
+        this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
 
-    this._transactionInput.addEventListener(EventType.BLUR,this,this._onInputBlur);
-    this._noteInput.addEventListener(EventType.BLUR,this,this._onInputBlur);
+        this._transactionInput.addEventListener(EventType.BLUR,this,this._onInputBlur);
+        this._noteInput.addEventListener(EventType.BLUR,this,this._onInputBlur);
+    }
 };
 
 /**
  * UnRegister event listeners
+ * @param {number} level
  * @private
  */
-App.AddTransactionScreen.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+App.AddTransactionScreen.prototype._unRegisterEventListeners = function _unRegisterEventListeners(level)
 {
-    App.InputScrollScreen.prototype._unRegisterEventListeners.call(this);
+    App.Screen.prototype._unRegisterEventListeners.call(this,level);
 
     var EventType = App.EventType;
 
@@ -8198,26 +8227,31 @@ App.SelectTimeScreen.prototype.update = function update(date,mode)
 
 /**
  * Register event listeners
+ * @param {number} level
  * @private
  */
-App.SelectTimeScreen.prototype._registerEventListeners = function _registerEventListener()
+App.SelectTimeScreen.prototype._registerEventListeners = function _registerEventListener(level)
 {
-    App.InputScrollScreen.prototype._registerEventListeners.call(this);
+    App.Screen.prototype._registerEventListeners.call(this,level);
 
-    var EventType = App.EventType;
+    if (level === App.EventLevel.LEVEL_2)
+    {
+        var EventType = App.EventType;
 
-    this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
+        this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
 
-    this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
+        this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
+    }
 };
 
 /**
  * UnRegister event listeners
+ * @param {number} level
  * @private
  */
-App.SelectTimeScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener()
+App.SelectTimeScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener(level)
 {
-    App.InputScrollScreen.prototype._unRegisterEventListeners.call(this);
+    App.Screen.prototype._unRegisterEventListeners.call(this,level);
 
     var EventType = App.EventType;
 
@@ -9833,27 +9867,32 @@ App.EditCategoryScreen.prototype.disable = function disable()
 
 /**
  * Register event listeners
+ * @param {number} level
  * @private
  */
-App.EditCategoryScreen.prototype._registerEventListeners = function _registerEventListeners()
+App.EditCategoryScreen.prototype._registerEventListeners = function _registerEventListeners(level)
 {
-    App.InputScrollScreen.prototype._registerEventListeners.call(this);
+    App.Screen.prototype._registerEventListeners.call(this,level);
 
-    var EventType = App.EventType;
+    if (level === App.EventLevel.LEVEL_2)
+    {
+        var EventType = App.EventType;
 
-    this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
+        this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
 
-    this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
-    this._budget.addEventListener(EventType.BLUR,this,this._onInputBlur);
+        this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
+        this._budget.addEventListener(EventType.BLUR,this,this._onInputBlur);
+    }
 };
 
 /**
  * UnRegister event listeners
+ * @param {number} level
  * @private
  */
-App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegisterEventListeners(level)
 {
-    App.InputScrollScreen.prototype._unRegisterEventListeners.call(this);
+    App.Screen.prototype._unRegisterEventListeners.call(this,level);
 
     var EventType = App.EventType;
 
@@ -11360,9 +11399,15 @@ App.Menu.prototype._render = function _render()
  */
 App.Menu.prototype.enable = function enable()
 {
-    App.Screen.prototype.enable.call(this);
+    if (!this._enabled)
+    {
+        this._registerEventListeners(App.EventLevel.LEVEL_1);
+        this._registerEventListeners(App.EventLevel.LEVEL_2);
 
-    this._pane.enable();
+        this._pane.enable();
+
+        this._enabled = true;
+    }
 };
 
 /**

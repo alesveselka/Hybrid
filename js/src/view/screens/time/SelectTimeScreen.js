@@ -95,26 +95,31 @@ App.SelectTimeScreen.prototype.update = function update(date,mode)
 
 /**
  * Register event listeners
+ * @param {number} level
  * @private
  */
-App.SelectTimeScreen.prototype._registerEventListeners = function _registerEventListener()
+App.SelectTimeScreen.prototype._registerEventListeners = function _registerEventListener(level)
 {
-    App.InputScrollScreen.prototype._registerEventListeners.call(this);
+    App.Screen.prototype._registerEventListeners.call(this,level);
 
-    var EventType = App.EventType;
+    if (level === App.EventLevel.LEVEL_2)
+    {
+        var EventType = App.EventType;
 
-    this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
+        this._scrollTween.addEventListener(EventType.COMPLETE,this,this._onScrollTweenComplete);
 
-    this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
+        this._input.addEventListener(EventType.BLUR,this,this._onInputBlur);
+    }
 };
 
 /**
  * UnRegister event listeners
+ * @param {number} level
  * @private
  */
-App.SelectTimeScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener()
+App.SelectTimeScreen.prototype._unRegisterEventListeners = function _unRegisterEventListener(level)
 {
-    App.InputScrollScreen.prototype._unRegisterEventListeners.call(this);
+    App.Screen.prototype._unRegisterEventListeners.call(this,level);
 
     var EventType = App.EventType;
 

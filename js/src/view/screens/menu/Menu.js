@@ -77,9 +77,15 @@ App.Menu.prototype._render = function _render()
  */
 App.Menu.prototype.enable = function enable()
 {
-    App.Screen.prototype.enable.call(this);
+    if (!this._enabled)
+    {
+        this._registerEventListeners(App.EventLevel.LEVEL_1);
+        this._registerEventListeners(App.EventLevel.LEVEL_2);
 
-    this._pane.enable();
+        this._pane.enable();
+
+        this._enabled = true;
+    }
 };
 
 /**
