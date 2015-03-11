@@ -81,10 +81,9 @@ App.TransactionButton.prototype._update = function _update(updateAll)
             this._categoryField.setStyle(this._labelStyles.account);
             this._dateField.setStyle(this._labelStyles.date);
         }
-
-        this._render(updateAll,pending);
     }
 
+    this._render(updateAll,pending);
     this._updateLayout(updateAll,pending);
 
     this.close(true);
@@ -117,23 +116,26 @@ App.TransactionButton.prototype._render = function _render(renderAll,pending)
 
     GraphicUtils.drawRect(this._colorStripe,"0x"+this._model.category.color,1,0,0,Math.round(4 * r),h);
 
-    if (pending)
+    if (pending !== this._isPending)
     {
-        this._icon.tint = ColorTheme.RED_DARK;
+        if (pending)
+        {
+            this._icon.tint = ColorTheme.RED_DARK;
 
-        if (this._swipeSurface.contains(this._greySkin)) this._swipeSurface.removeChild(this._greySkin);
-        if (!this._swipeSurface.contains(this._redSkin)) this._swipeSurface.addChildAt(this._redSkin,0);
+            if (this._swipeSurface.contains(this._greySkin)) this._swipeSurface.removeChild(this._greySkin);
+            if (!this._swipeSurface.contains(this._redSkin)) this._swipeSurface.addChildAt(this._redSkin,0);
 
-        if (!this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.addChild(this._pendingFlag);
-    }
-    else
-    {
-        this._icon.tint = ColorTheme.BLUE;
+            if (!this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.addChild(this._pendingFlag);
+        }
+        else
+        {
+            this._icon.tint = ColorTheme.BLUE;
 
-        if (this._swipeSurface.contains(this._redSkin)) this._swipeSurface.removeChild(this._redSkin);
-        if (!this._swipeSurface.contains(this._greySkin)) this._swipeSurface.addChildAt(this._greySkin,0);
+            if (this._swipeSurface.contains(this._redSkin)) this._swipeSurface.removeChild(this._redSkin);
+            if (!this._swipeSurface.contains(this._greySkin)) this._swipeSurface.addChildAt(this._greySkin,0);
 
-        if (this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.removeChild(this._pendingFlag);
+            if (this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.removeChild(this._pendingFlag);
+        }
     }
 };
 
