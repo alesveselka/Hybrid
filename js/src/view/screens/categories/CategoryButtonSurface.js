@@ -56,9 +56,10 @@ App.CategoryButtonSurface.prototype.render = function render(label,iconName,colo
         this._icon.height = Math.round(20 * this._pixelRatio);
         this._icon.x = Math.round(25 * this._pixelRatio);
         this._icon.y = Math.round((this._height - this._icon.height) / 2);
-        this._icon.tint = App.ColorTheme.BLUE;
 
         this._nameLabel.x = Math.round(64 * this._pixelRatio);
         this._nameLabel.y = Math.round(18 * this._pixelRatio);
     }
+
+    this._icon.tint = parseInt(color,16);
 };

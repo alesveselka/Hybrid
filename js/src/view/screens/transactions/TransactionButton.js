@@ -120,8 +120,6 @@ App.TransactionButton.prototype._render = function _render(renderAll,pending)
     {
         if (pending)
         {
-            this._icon.tint = ColorTheme.RED_DARK;
-
             if (this._swipeSurface.contains(this._greySkin)) this._swipeSurface.removeChild(this._greySkin);
             if (!this._swipeSurface.contains(this._redSkin)) this._swipeSurface.addChildAt(this._redSkin,0);
 
@@ -129,14 +127,14 @@ App.TransactionButton.prototype._render = function _render(renderAll,pending)
         }
         else
         {
-            this._icon.tint = ColorTheme.BLUE;
-
             if (this._swipeSurface.contains(this._redSkin)) this._swipeSurface.removeChild(this._redSkin);
             if (!this._swipeSurface.contains(this._greySkin)) this._swipeSurface.addChildAt(this._greySkin,0);
 
             if (this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.removeChild(this._pendingFlag);
         }
     }
+
+    this._icon.tint = pending ? ColorTheme.RED_DARK : parseInt(this._model.category.color,16);
 };
 
 /**

@@ -74,11 +74,16 @@ App.EditCategoryScreen.prototype._render = function _render()
         colorListHeight = this._colorList.boundingBox.height,
         separatorWidth = w - this._inputPadding * 2,
         icon = this._getSelectedIcon(),
+        color = this._colorList.getSelectedValue(),
         bottom = 0;
 
-    GraphicUtils.drawRect(this._colorStripe,"0x"+this._colorList.getSelectedValue(),1,0,0,Math.round(4*r),Math.round(59 * r));
+    GraphicUtils.drawRect(this._colorStripe,"0x"+color,1,0,0,Math.round(4*r),Math.round(59 * r));
 
-    if (this._icon) this._icon.setTexture(PIXI.TextureCache[icon]);
+    if (this._icon)
+    {
+        this._icon.setTexture(PIXI.TextureCache[icon]);
+        this._icon.tint = parseInt(color,16);
+    }
 
     if (this._renderAll)
     {
@@ -90,7 +95,7 @@ App.EditCategoryScreen.prototype._render = function _render()
         this._icon.scale.y = this._iconResizeRatio;
         this._icon.x = Math.round(15 * r);
         this._icon.y = Math.round((inputFragmentHeight - this._icon.height) / 2);
-        this._icon.tint = ColorTheme.BLUE;
+        this._icon.tint = parseInt(color,16);
         this._container.addChild(this._icon);
 
         this._input.x = Math.round(60 * r);
@@ -324,6 +329,8 @@ App.EditCategoryScreen.prototype._onSampleClick = function _onSampleClick(list,p
     if (sample instanceof App.ColorSample)
     {
         App.GraphicUtils.drawRect(this._colorStripe,"0x"+sample.getValue(),1,0,0,this._colorStripe.width,this._colorStripe.height);
+
+        this._icon.tint = parseInt(sample.getValue(),16);
     }
     else if (sample instanceof App.IconSample)
     {
