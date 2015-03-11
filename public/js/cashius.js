@@ -2433,12 +2433,12 @@ App.FontStyle = {
             l = this._styles.length,
             style = null;
 
-        font = font || "HelveticaNeueCond";
+        font = font || this.CONDENSED;
 
         for (;i<l;)
         {
             style = this._styles[i++];
-            if (style.fontSize === fontSize && style.fill === color)
+            if (style.fontSize === fontSize && style.fill === color && style.fontName === font)
             {
                 if (align)
                 {
@@ -2454,11 +2454,14 @@ App.FontStyle = {
             }
         }
 
-        style = {fontSize:fontSize,font:Math.round(fontSize * this._pixelRatio)+"px "+font,fill:color,align:align ? align : "left"};
+        style = {fontSize:fontSize,font:Math.round(fontSize * this._pixelRatio)+"px "+font,fill:color,align:align ? align : "left",fontName:font};
         this._styles.push(style);
 
         return style;
     },
+
+    CONDENSED:"HelveticaNeueCond",
+    LIGHT_CONDENSED:"HelveticaNeueLightCond",
 
     WHITE:"#ffffff",
     BLUE:"#394264",
@@ -7908,7 +7911,7 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
  */
 App.AddTransactionScreen.prototype.enable = function enable()
 {
-    App.InputScrollScreen.prototype.enable.call(this);
+    App.Screen.prototype.enable.call(this);
 
     this._pane.enable();
 };
@@ -7920,7 +7923,7 @@ App.AddTransactionScreen.prototype.disable = function disable()
 {
     this.resetScroll();
 
-    App.InputScrollScreen.prototype.disable.call(this);
+    App.Screen.prototype.disable.call(this);
 
     this._transactionInput.disable();
     this._noteInput.disable();
@@ -8349,7 +8352,7 @@ App.AccountScreen = function AccountScreen(model,layout)
     var AccountButton = App.AccountButton,
         FontStyle = App.FontStyle,
         nameStyle = FontStyle.get(24,FontStyle.BLUE),
-        detailStyle = FontStyle.get(12,FontStyle.GREY_DARKER),
+        detailStyle = FontStyle.get(12,FontStyle.GREY_DARKER,null,FontStyle.LIGHT_CONDENSED),
         r = layout.pixelRatio,
         w = layout.width,
         h = layout.contentHeight,
@@ -8462,7 +8465,7 @@ App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
  * @param {Texture} options.whiteSkin
  * @param {Texture} options.greySkin
  * @param {{font:string,fill:string}} options.nameLabelStyle
- * @param {{font:string,fill:string}} options.deleteLabelStyle
+ * @param {{font:string,fill:string}} options.editLabelStyle
  * @constructor
  */
 App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
@@ -8478,7 +8481,7 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this._options = options;
     this._pixelRatio = options.pixelRatio;
     this._background = this.addChild(new PIXI.Graphics());
-    this._deleteLabel = this.addChild(new PIXI.Text("Edit",options.deleteLabelStyle));
+    this._deleteLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));
     this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
     this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.whiteSkin));
     this._icon = PIXI.Sprite.fromFrame("subcategory-app");
@@ -11279,7 +11282,7 @@ App.Menu = function Menu(layout)
         FontStyle = App.FontStyle,
         r = layout.pixelRatio,
         w = layout.width,
-        itemLabelStyle = FontStyle.get(20,FontStyle.WHITE),
+        itemLabelStyle = FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
         itemOptions = {
             width:w,
             height:Math.round(40 * r),
@@ -12199,21 +12202,34 @@ App.LoadData.prototype._loadFont = function _loadFont()
 {
     this._fontInfoElement = document.getElementById("fontInfo");
 
-    var fontInfoWidth = this._fontInfoElement.offsetWidth;
+    var FontStyle = App.FontStyle,
+        fontInfoWidth = this._fontInfoElement.offsetWidth,
+        fontsLoaded = 0;
 
     this._fontLoadingInterval = setInterval(function()
     {
         if (this._fontInfoElement.offsetWidth !== fontInfoWidth)
         {
-            clearInterval(this._fontLoadingInterval);
+            fontsLoaded++;
 
-            //TODO remove font info element from DOM?
+            if (fontsLoaded === 1)
+            {
+                fontInfoWidth = this._fontInfoElement.offsetWidth;
 
-            this._loadData();
+                this._fontInfoElement.style.fontFamily = FontStyle.LIGHT_CONDENSED;
+            }
+            else if (fontsLoaded === 2)
+            {
+                clearInterval(this._fontLoadingInterval);
+
+                document.body.removeChild(this._fontInfoElement);
+
+                this._loadData();
+            }
         }
     }.bind(this),100);
 
-    this._fontInfoElement.style.fontFamily = "HelveticaNeueCond";
+    this._fontInfoElement.style.fontFamily = FontStyle.CONDENSED;
 };
 
 /**
@@ -12446,7 +12462,7 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
             skin:skin.GREY_50,
             addButtonSkin:skin.WHITE_40,
             nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
-            editLabelStyle:FontStyle.get(18,FontStyle.WHITE),
+            editLabelStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
             addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK),
             displayHeader:false
         },
@@ -12457,21 +12473,21 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
             whiteSkin:skin.WHITE_40,
             greySkin:skin.GREY_40,
             nameLabelStyle:FontStyle.get(14,FontStyle.BLUE),
-            deleteLabelStyle:FontStyle.get(14,FontStyle.WHITE),
+            editLabelStyle:FontStyle.get(16,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
             openOffset:Math.round(80 * pixelRatio)
         },
         transactionButtonOptions = {
             labelStyles:{
-                edit:FontStyle.get(18,FontStyle.WHITE),
-                account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
+                edit:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+                account:FontStyle.get(14,FontStyle.BLUE_LIGHT,null,FontStyle.LIGHT_CONDENSED),
                 amount:FontStyle.get(26,FontStyle.BLUE_DARK),
                 currency:FontStyle.get(16,FontStyle.BLUE_DARK),
                 date:FontStyle.get(14,FontStyle.GREY_DARK),
-                pending:FontStyle.get(12,FontStyle.WHITE),
+                pending:FontStyle.get(12,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
                 accountPending:FontStyle.get(14,FontStyle.RED_DARK),
                 amountPending:FontStyle.get(26,FontStyle.WHITE),
                 currencyPending:FontStyle.get(16,FontStyle.WHITE),
-                datePending:FontStyle.get(14,FontStyle.WHITE,"right")
+                datePending:FontStyle.get(14,FontStyle.WHITE,"right",FontStyle.LIGHT_CONDENSED)
             },
             greySkin:skin.GREY_70,
             redSkin:skin.RED_70,

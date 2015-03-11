@@ -33,12 +33,12 @@ App.FontStyle = {
             l = this._styles.length,
             style = null;
 
-        font = font || "HelveticaNeueCond";
+        font = font || this.CONDENSED;
 
         for (;i<l;)
         {
             style = this._styles[i++];
-            if (style.fontSize === fontSize && style.fill === color)
+            if (style.fontSize === fontSize && style.fill === color && style.fontName === font)
             {
                 if (align)
                 {
@@ -54,11 +54,14 @@ App.FontStyle = {
             }
         }
 
-        style = {fontSize:fontSize,font:Math.round(fontSize * this._pixelRatio)+"px "+font,fill:color,align:align ? align : "left"};
+        style = {fontSize:fontSize,font:Math.round(fontSize * this._pixelRatio)+"px "+font,fill:color,align:align ? align : "left",fontName:font};
         this._styles.push(style);
 
         return style;
     },
+
+    CONDENSED:"HelveticaNeueCond",
+    LIGHT_CONDENSED:"HelveticaNeueLightCond",
 
     WHITE:"#ffffff",
     BLUE:"#394264",

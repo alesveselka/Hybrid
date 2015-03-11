@@ -183,7 +183,7 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
  */
 App.AddTransactionScreen.prototype.enable = function enable()
 {
-    App.InputScrollScreen.prototype.enable.call(this);
+    App.Screen.prototype.enable.call(this);
 
     this._pane.enable();
 };
@@ -195,7 +195,7 @@ App.AddTransactionScreen.prototype.disable = function disable()
 {
     this.resetScroll();
 
-    App.InputScrollScreen.prototype.disable.call(this);
+    App.Screen.prototype.disable.call(this);
 
     this._transactionInput.disable();
     this._noteInput.disable();

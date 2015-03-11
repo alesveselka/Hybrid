@@ -10,7 +10,7 @@
  * @param {Texture} options.whiteSkin
  * @param {Texture} options.greySkin
  * @param {{font:string,fill:string}} options.nameLabelStyle
- * @param {{font:string,fill:string}} options.deleteLabelStyle
+ * @param {{font:string,fill:string}} options.editLabelStyle
  * @constructor
  */
 App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
@@ -26,7 +26,7 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
     this._options = options;
     this._pixelRatio = options.pixelRatio;
     this._background = this.addChild(new PIXI.Graphics());
-    this._deleteLabel = this.addChild(new PIXI.Text("Edit",options.deleteLabelStyle));
+    this._deleteLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));
     this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
     this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.whiteSkin));
     this._icon = PIXI.Sprite.fromFrame("subcategory-app");

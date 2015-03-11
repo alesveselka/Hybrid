@@ -12,7 +12,7 @@ App.Menu = function Menu(layout)
         FontStyle = App.FontStyle,
         r = layout.pixelRatio,
         w = layout.width,
-        itemLabelStyle = FontStyle.get(20,FontStyle.WHITE),
+        itemLabelStyle = FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
         itemOptions = {
             width:w,
             height:Math.round(40 * r),

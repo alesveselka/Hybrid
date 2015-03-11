@@ -182,7 +182,7 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
             skin:skin.GREY_50,
             addButtonSkin:skin.WHITE_40,
             nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
-            editLabelStyle:FontStyle.get(18,FontStyle.WHITE),
+            editLabelStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
             addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK),
             displayHeader:false
         },
@@ -193,21 +193,21 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
             whiteSkin:skin.WHITE_40,
             greySkin:skin.GREY_40,
             nameLabelStyle:FontStyle.get(14,FontStyle.BLUE),
-            deleteLabelStyle:FontStyle.get(14,FontStyle.WHITE),
+            editLabelStyle:FontStyle.get(16,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
             openOffset:Math.round(80 * pixelRatio)
         },
         transactionButtonOptions = {
             labelStyles:{
-                edit:FontStyle.get(18,FontStyle.WHITE),
-                account:FontStyle.get(14,FontStyle.BLUE_LIGHT),
+                edit:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+                account:FontStyle.get(14,FontStyle.BLUE_LIGHT,null,FontStyle.LIGHT_CONDENSED),
                 amount:FontStyle.get(26,FontStyle.BLUE_DARK),
                 currency:FontStyle.get(16,FontStyle.BLUE_DARK),
                 date:FontStyle.get(14,FontStyle.GREY_DARK),
-                pending:FontStyle.get(12,FontStyle.WHITE),
+                pending:FontStyle.get(12,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
                 accountPending:FontStyle.get(14,FontStyle.RED_DARK),
                 amountPending:FontStyle.get(26,FontStyle.WHITE),
                 currencyPending:FontStyle.get(16,FontStyle.WHITE),
-                datePending:FontStyle.get(14,FontStyle.WHITE,"right")
+                datePending:FontStyle.get(14,FontStyle.WHITE,"right",FontStyle.LIGHT_CONDENSED)
             },
             greySkin:skin.GREY_70,
             redSkin:skin.RED_70,

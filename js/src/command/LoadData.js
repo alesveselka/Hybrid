@@ -59,21 +59,34 @@ App.LoadData.prototype._loadFont = function _loadFont()
 {
     this._fontInfoElement = document.getElementById("fontInfo");
 
-    var fontInfoWidth = this._fontInfoElement.offsetWidth;
+    var FontStyle = App.FontStyle,
+        fontInfoWidth = this._fontInfoElement.offsetWidth,
+        fontsLoaded = 0;
 
     this._fontLoadingInterval = setInterval(function()
     {
         if (this._fontInfoElement.offsetWidth !== fontInfoWidth)
         {
-            clearInterval(this._fontLoadingInterval);
+            fontsLoaded++;
 
-            //TODO remove font info element from DOM?
+            if (fontsLoaded === 1)
+            {
+                fontInfoWidth = this._fontInfoElement.offsetWidth;
 
-            this._loadData();
+                this._fontInfoElement.style.fontFamily = FontStyle.LIGHT_CONDENSED;
+            }
+            else if (fontsLoaded === 2)
+            {
+                clearInterval(this._fontLoadingInterval);
+
+                document.body.removeChild(this._fontInfoElement);
+
+                this._loadData();
+            }
         }
     }.bind(this),100);
 
-    this._fontInfoElement.style.fontFamily = "HelveticaNeueCond";
+    this._fontInfoElement.style.fontFamily = FontStyle.CONDENSED;
 };
 
 /**
