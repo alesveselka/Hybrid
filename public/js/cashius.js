@@ -3082,7 +3082,7 @@ App.ScrollIndicator.prototype.resize = function resize(size,contentSize)
     if (this._direction === App.Direction.X)
     {
         this.boundingBox.width = this._size;
-        this.boundingBox.height = Math.round(8 * this._pixelRatio);
+        this.boundingBox.height = Math.round(7 * this._pixelRatio);
 
         this._indicatorThickness = this.boundingBox.height - this._padding;
         this._indicatorSize = Math.round(this._size * (this._size / contentSize));
@@ -3092,7 +3092,7 @@ App.ScrollIndicator.prototype.resize = function resize(size,contentSize)
     }
     else if (this._direction === App.Direction.Y)
     {
-        this.boundingBox.width = Math.round(8 * this._pixelRatio);
+        this.boundingBox.width = Math.round(7 * this._pixelRatio);
         this.boundingBox.height = this._size;
 
         this._indicatorThickness = this.boundingBox.width - this._padding;
