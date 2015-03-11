@@ -205,15 +205,12 @@ App.TransactionButton.prototype.onClick = function onClick(data)
 
     if (this._isOpen && position >= this._width - this._openOffset)
     {
-        // Edit option
+        var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update();
+
+        // Edit
         if (position >= this._width - this._openOffset / 2)
         {
-            var ModelLocator = App.ModelLocator,
-                ModelName = App.ModelName,
-                transactions = ModelLocator.getProxy(ModelName.TRANSACTIONS),
-                changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update();
-
-            transactions.setCurrent(this._model);
+            App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).setCurrent(this._model);
 
             changeScreenData.screenMode = App.ScreenMode.EDIT;
             changeScreenData.updateData = this._model;
@@ -221,25 +218,16 @@ App.TransactionButton.prototype.onClick = function onClick(data)
 
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
         }
-        // Copy option
+        // Copy
         else
         {
-            console.log("Copy");
+            App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+                type:App.EventType.COPY,
+                transaction:this._model,
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:changeScreenData.update()
+            });
         }
-
-        /*this._model.saveState();
-
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,
-            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
-                App.ScreenName.EDIT_CATEGORY,
-                App.ScreenMode.EDIT,
-                this._model,
-                0,
-                0,
-                App.ScreenTitle.EDIT_CATEGORY
-            )
-        );*/
     }
 };
 

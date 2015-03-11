@@ -21,6 +21,7 @@ App.List.prototype.constructor = App.List;
  * Add item
  * @param {DisplayObject} item
  * @param {boolean} [updateLayout=false]
+ * @returns {DisplayObject} returns item added
  */
 App.List.prototype.add = function add(item,updateLayout)
 {
@@ -29,6 +30,8 @@ App.List.prototype.add = function add(item,updateLayout)
     this.addChild(item);
 
     if (updateLayout) this.updateLayout();
+
+    return item;
 };
 
 /**

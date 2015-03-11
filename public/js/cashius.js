@@ -667,6 +667,8 @@ App.StringUtils = {
  *      CREATE:string,
  *      CANCEL:string,
  *      CONFIRM:string,
+ *      COPY:string,
+ *      DELETE:string,
  *      START:string,
  *      COMPLETE:string,
  *      UPDATE:string,
@@ -702,6 +704,8 @@ App.EventType = {
     CREATE:"CREATE",
     CANCEL:"CANCEL",
     CONFIRM:"CONFIRM",
+    COPY:"COPY",
+    DELETE:"DELETE",
     START:"START",
     COMPLETE:"COMPLETE",
     UPDATE:"UPDATE",
@@ -1826,12 +1830,21 @@ App.Transaction.prototype.serialize = function serialize()
         this.type,
         this.pending ? 1 : 0,
         this.repeat ? 1 : 0,
-        this._account.id + "." + this._category.id + "." + this._subCategory.id,
-        this._method.id,
-        this._date.getTime(),
-        this._currency.id,
-        App.StringUtils.encode(this.note)
+        this.account.id + "." + this.category.id + "." + this.subCategory.id,
+        this.method.id,
+        this.date.getTime(),
+        this.currency.id,
+        App.StringUtils.encode(this.note)//TODO check if note is set before even adding it
     ];
+};
+
+/**
+ * Create and return copy of itself
+ * @returns {App.Transaction}
+ */
+App.Transaction.prototype.copy = function copy()
+{
+    return new App.Transaction(this.serialize());
 };
 
 /**
@@ -5728,6 +5741,7 @@ App.List.prototype.constructor = App.List;
  * Add item
  * @param {DisplayObject} item
  * @param {boolean} [updateLayout=false]
+ * @returns {DisplayObject} returns item added
  */
 App.List.prototype.add = function add(item,updateLayout)
 {
@@ -5736,6 +5750,8 @@ App.List.prototype.add = function add(item,updateLayout)
     this.addChild(item);
 
     if (updateLayout) this.updateLayout();
+
+    return item;
 };
 
 /**
@@ -7704,6 +7720,7 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
         TransactionToggleButton = App.TransactionToggleButton,
         FontStyle = App.FontStyle,
         ScreenName = App.ScreenName,
+        skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
         r = layout.pixelRatio,
         w = layout.width,
         inputWidth = w - Math.round(10 * r) * 2,
@@ -7719,7 +7736,7 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
             pixelRatio:r,
             width:w,
             height:Math.round(50*r),
-            skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,
+            skin:skin.GREY_50,
             nameStyle:FontStyle.get(18,FontStyle.GREY_DARKER),
             valueStyle:FontStyle.get(18,FontStyle.BLUE,"right"),
             valueDetailStyle:FontStyle.get(14,FontStyle.BLUE)
@@ -7730,40 +7747,34 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
     this._background = new PIXI.Graphics();
     this._transactionInput = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
     this._noteInput = new App.Input("Add Note",20,inputWidth,inputHeight,r,true);
+    this._deleteBackground = new PIXI.Sprite(skin.GREY_60);
     this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
+    this._separators = new PIXI.Graphics();
 
     this._optionList = new App.List(App.Direction.Y);
-    this._accountOption = new TransactionOptionButton("account","Account",ScreenName.ACCOUNT,options);
-    this._categoryOption = new TransactionOptionButton("folder-app","Category",ScreenName.CATEGORY,options);
-    this._timeOption = new TransactionOptionButton("calendar","Time",ScreenName.SELECT_TIME,options);
-    this._methodOption = new TransactionOptionButton("credit-card","Method",ScreenName.CATEGORY,options);
-    this._currencyOption = new TransactionOptionButton("currencies","Currency",ScreenName.ACCOUNT,options);
+    this._accountOption = this._optionList.add(new TransactionOptionButton("account","Account",ScreenName.ACCOUNT,options));
+    this._categoryOption = this._optionList.add(new TransactionOptionButton("folder-app","Category",ScreenName.CATEGORY,options));
+    this._timeOption = this._optionList.add(new TransactionOptionButton("calendar","Time",ScreenName.SELECT_TIME,options));
+    this._methodOption = this._optionList.add(new TransactionOptionButton("credit-card","Method",ScreenName.CATEGORY,options));
+    this._currencyOption = this._optionList.add(new TransactionOptionButton("currencies","Currency",ScreenName.ACCOUNT,options),true);
 
     this._toggleButtonList = new App.List(App.Direction.X);
-    this._typeToggle = new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false});
-    this._pendingToggle = new TransactionToggleButton("pending-app","Pending",toggleOptions,{toggleColor:true});
-    this._repeatToggle = new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true});
+    this._typeToggle = this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false}));
+    this._pendingToggle = this._toggleButtonList.add(new TransactionToggleButton("pending-app","Pending",toggleOptions,{toggleColor:true}));
+    this._repeatToggle = this._toggleButtonList.add(new TransactionToggleButton("repeat-app","Repeat",toggleOptions,{toggleColor:true}),true);
+    this._renderAll = true;
 
     //TODO automatically focus input when this screen is shown?
     //TODO add repeat frequency when 'repeat' is on?
 
-    this._toggleButtonList.add(this._typeToggle,false);
-    this._toggleButtonList.add(this._pendingToggle,false);
-    this._toggleButtonList.add(this._repeatToggle,true);
-    this._optionList.add(this._accountOption,false);
-    this._optionList.add(this._categoryOption,false);
-    this._optionList.add(this._timeOption,false);
-    this._optionList.add(this._methodOption,false);
-    this._optionList.add(this._currencyOption,true);
-
     this._transactionInput.restrict(/\D/g);
-    this._render();
 
     this._container.addChild(this._background);
     this._container.addChild(this._transactionInput);
     this._container.addChild(this._toggleButtonList);
     this._container.addChild(this._optionList);
     this._container.addChild(this._noteInput);
+    this._container.addChild(this._separators);
     this._pane.setContent(this._container);
     this.addChild(this._pane);
 
@@ -7779,52 +7790,71 @@ App.AddTransactionScreen.prototype.constructor = App.AddTransactionScreen;
  */
 App.AddTransactionScreen.prototype._render = function _render()
 {
-    var ColorTheme = App.ColorTheme,
-        GraphicUtils = App.GraphicUtils,
-        w = this._layout.width,
+    var w = this._layout.width,
         r = this._layout.pixelRatio,
-        padding = Math.round(10 * r),
-        inputHeight = Math.round(60 * r),
-        toggleHeight = this._toggleButtonList.boundingBox.height,
-        toggleWidth = Math.round(w / 3),
-        separatorWidth = w - padding * 2,
-        bottom = 0;
+        padding = Math.round(10 * r);
 
-    this._transactionInput.x = padding;
-    this._transactionInput.y = padding;
+    if (this._renderAll)
+    {
+        var ColorTheme = App.ColorTheme,
+            GraphicUtils = App.GraphicUtils,
+            inputHeight = Math.round(60 * r),
+            toggleHeight = this._toggleButtonList.boundingBox.height,
+            toggleWidth = Math.round(w / 3),
+            separatorWidth = w - padding * 2,
+            bottom = 0;
 
-    this._toggleButtonList.y = inputHeight;
+        this._renderAll = false;
 
-    this._optionList.y = this._toggleButtonList.y + toggleHeight;
+        this._transactionInput.x = padding;
+        this._transactionInput.y = padding;
 
-    bottom = this._optionList.y + this._optionList.boundingBox.height;
+        this._toggleButtonList.y = inputHeight;
 
-    this._noteInput.x = padding;
-    this._noteInput.y = bottom + padding;
+        this._optionList.y = this._toggleButtonList.y + toggleHeight;
+
+        bottom = this._optionList.y + this._optionList.boundingBox.height;
+
+        this._noteInput.x = padding;
+        this._noteInput.y = bottom + padding;
+
+        GraphicUtils.drawRects(this._separators,ColorTheme.GREY_LIGHT,1,[
+            padding,inputHeight,separatorWidth,1,
+            toggleWidth,inputHeight+padding,1,toggleHeight-padding*2,
+            toggleWidth*2,inputHeight+padding,1,toggleHeight-padding*2,
+            padding,bottom,separatorWidth,1
+        ],true,false);
+
+        bottom = this._noteInput.y + this._noteInput.boundingBox.height + padding;
+
+        this._deleteBackground.y = bottom;
+        this._deleteButton.x = padding;
+        this._deleteButton.y = this._deleteBackground.y + padding;
+
+        GraphicUtils.drawRects(this._separators,ColorTheme.GREY_DARK,1,[
+            padding,inputHeight-1,separatorWidth,1,
+            toggleWidth-1,inputHeight+padding,1,toggleHeight-padding*2,
+            toggleWidth*2-1,inputHeight+padding,1,toggleHeight-padding*2,
+            padding,inputHeight+toggleHeight-1,separatorWidth,1,
+            padding,bottom-1,separatorWidth,1
+        ],false,true);
+
+    }
 
     if (this._mode === App.ScreenMode.EDIT)
     {
-        bottom = bottom + inputHeight;
+        App.GraphicUtils.drawRect(this._background,App.ColorTheme.GREY,1,0,0,w,this._deleteButton.y+this._deleteButton.boundingBox.height+padding);
 
-        this._deleteButton.x = padding;
-        this._deleteButton.y = bottom + padding;
+        if (!this._container.contains(this._deleteBackground)) this._container.addChild(this._deleteBackground);
+        if (!this._container.contains(this._deleteButton)) this._container.addChild(this._deleteButton);
     }
+    else
+    {
+        App.GraphicUtils.drawRect(this._background,App.ColorTheme.GREY,1,0,0,w,this._noteInput.y+this._noteInput.boundingBox.height+padding);
 
-    GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w,bottom+inputHeight],true,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[
-        padding,inputHeight-1,separatorWidth,1,
-        toggleWidth-1,inputHeight+padding,1,toggleHeight-padding*2,
-        toggleWidth*2-1,inputHeight+padding,1,toggleHeight-padding*2,
-        padding,inputHeight+toggleHeight-1,separatorWidth,1,
-        padding,bottom-1,separatorWidth,1
-    ],false,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[
-        padding,inputHeight,separatorWidth,1,
-        toggleWidth,inputHeight+padding,1,toggleHeight-padding*2,
-        toggleWidth*2,inputHeight+padding,1,toggleHeight-padding*2,
-        padding,bottom-inputHeight,separatorWidth,1,
-        padding,bottom,separatorWidth,1
-    ],false,true);
+        if (this._container.contains(this._deleteBackground)) this._container.removeChild(this._deleteBackground);
+        if (this._container.contains(this._deleteButton)) this._container.removeChild(this._deleteButton);
+    }
 };
 
 /**
@@ -7852,16 +7882,8 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
 
     this._noteInput.setValue(this._model.note);
 
-    //TODO i'll also need to re-render bg if the button is added/removed
-    //TODO move the '_render' method - I have to check it there anyway
-    if (this._mode === App.ScreenMode.EDIT)
-    {
-        if (!this._container.contains(this._deleteButton)) this._container.addChild(this._deleteButton);
-    }
-    else
-    {
-        if (this._container.contains(this._deleteButton)) this._container.removeChild(this._deleteButton);
-    }
+    this._render();
+    this._pane.resize();
 };
 
 /**
@@ -10213,15 +10235,12 @@ App.TransactionButton.prototype.onClick = function onClick(data)
 
     if (this._isOpen && position >= this._width - this._openOffset)
     {
-        // Edit option
+        var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update();
+
+        // Edit
         if (position >= this._width - this._openOffset / 2)
         {
-            var ModelLocator = App.ModelLocator,
-                ModelName = App.ModelName,
-                transactions = ModelLocator.getProxy(ModelName.TRANSACTIONS),
-                changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update();
-
-            transactions.setCurrent(this._model);
+            App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).setCurrent(this._model);
 
             changeScreenData.screenMode = App.ScreenMode.EDIT;
             changeScreenData.updateData = this._model;
@@ -10229,25 +10248,16 @@ App.TransactionButton.prototype.onClick = function onClick(data)
 
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
         }
-        // Copy option
+        // Copy
         else
         {
-            console.log("Copy");
+            App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+                type:App.EventType.COPY,
+                transaction:this._model,
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:changeScreenData.update()
+            });
         }
-
-        /*this._model.saveState();
-
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,
-            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
-                App.ScreenName.EDIT_CATEGORY,
-                App.ScreenMode.EDIT,
-                this._model,
-                0,
-                0,
-                App.ScreenTitle.EDIT_CATEGORY
-            )
-        );*/
     }
 };
 
@@ -12603,6 +12613,14 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     if (type === EventType.CREATE)
     {
         transaction = new App.Transaction();
+        transactions.addItem(transaction);
+        transactions.setCurrent(transaction);
+
+        data.nextCommandData.updateData = transaction;
+    }
+    if (type === EventType.COPY)
+    {
+        transaction = data.transaction.copy();
         transactions.addItem(transaction);
         transactions.setCurrent(transaction);
 

@@ -83,12 +83,21 @@ App.Transaction.prototype.serialize = function serialize()
         this.type,
         this.pending ? 1 : 0,
         this.repeat ? 1 : 0,
-        this._account.id + "." + this._category.id + "." + this._subCategory.id,
-        this._method.id,
-        this._date.getTime(),
-        this._currency.id,
-        App.StringUtils.encode(this.note)
+        this.account.id + "." + this.category.id + "." + this.subCategory.id,
+        this.method.id,
+        this.date.getTime(),
+        this.currency.id,
+        App.StringUtils.encode(this.note)//TODO check if note is set before even adding it
     ];
+};
+
+/**
+ * Create and return copy of itself
+ * @returns {App.Transaction}
+ */
+App.Transaction.prototype.copy = function copy()
+{
+    return new App.Transaction(this.serialize());
 };
 
 /**

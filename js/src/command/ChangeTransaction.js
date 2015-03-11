@@ -36,6 +36,14 @@ App.ChangeTransaction.prototype.execute = function execute(data)
 
         data.nextCommandData.updateData = transaction;
     }
+    if (type === EventType.COPY)
+    {
+        transaction = data.transaction.copy();
+        transactions.addItem(transaction);
+        transactions.setCurrent(transaction);
+
+        data.nextCommandData.updateData = transaction;
+    }
     else if (type === EventType.CHANGE)
     {
         var date = data.date,
