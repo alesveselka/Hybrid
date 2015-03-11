@@ -13,7 +13,7 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio,use
 {
     PIXI.DisplayObjectContainer.call(this);
 
-    this.boundingBox = new App.Rectangle(0,0,width,height);
+    this.boundingBox = new PIXI.Rectangle(0,0,width,height);
 
     this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
     this._content = null;
@@ -21,6 +21,7 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio,use
     this._contentWidth = 0;
     this._contentBoundingBox = new App.Rectangle();
     this._useMask = useMask;
+    this.hitArea = this.boundingBox;
 
     this._enabled = false;
     this._eventsRegistered = false;

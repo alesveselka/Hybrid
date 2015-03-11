@@ -4260,7 +4260,7 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio,use
 {
     PIXI.DisplayObjectContainer.call(this);
 
-    this.boundingBox = new App.Rectangle(0,0,width,height);
+    this.boundingBox = new PIXI.Rectangle(0,0,width,height);
 
     this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
     this._content = null;
@@ -4268,6 +4268,7 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio,use
     this._contentWidth = 0;
     this._contentBoundingBox = new App.Rectangle();
     this._useMask = useMask;
+    this.hitArea = this.boundingBox;//TODO use bounding box?
 
     this._enabled = false;
     this._eventsRegistered = false;
@@ -4348,6 +4349,9 @@ App.Pane.prototype.resize = function resize(width,height)
 {
     this.boundingBox.width = width || this.boundingBox.width;
     this.boundingBox.height = height || this.boundingBox.height;
+
+//    this.hitArea.width = this.boundingBox.width;
+//    this.hitArea.height = this.boundingBox.height;
 
     if (this._content)
     {
@@ -6028,6 +6032,9 @@ App.TilePane.prototype.resize = function resize(width,height)
 {
     this.boundingBox.width = width || this.boundingBox.width;
     this.boundingBox.height = height || this.boundingBox.height;
+
+//    this.hitArea.width = this.boundingBox.width;
+//    this.hitArea.height = this.boundingBox.height;
 
     if (this._content)
     {
@@ -10133,10 +10140,10 @@ App.TransactionButton.prototype._update = function _update(updateAll)
         }
         else
         {
-            this._accountField.setStyle(this._labelStyles.account);
-            this._amountField.setStyle(this._labelStyles.amount);
-            this._currencyField.setStyle(this._labelStyles.currency);
-            this._categoryField.setStyle(this._labelStyles.account);
+            this._accountField.setStyle(this._labelStyles.accountIncome);
+            this._amountField.setStyle(this._labelStyles.amountIncome);
+            this._currencyField.setStyle(this._labelStyles.currencyIncome);
+            this._categoryField.setStyle(this._labelStyles.accountIncome);
             this._dateField.setStyle(this._labelStyles.date);
         }
     }
@@ -12485,14 +12492,17 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
         transactionButtonOptions = {
             labelStyles:{
                 edit:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-                account:FontStyle.get(14,FontStyle.BLUE_LIGHT,null,FontStyle.LIGHT_CONDENSED),
-                amount:FontStyle.get(26,FontStyle.BLUE_DARK),
-                currency:FontStyle.get(16,FontStyle.BLUE_DARK),
+                //accountExpense:FontStyle.get(14,FontStyle.RED_DARK,null,FontStyle.LIGHT_CONDENSED),
+                accountIncome:FontStyle.get(14,FontStyle.BLUE_LIGHT,null,FontStyle.LIGHT_CONDENSED),
+                //amountExpense:FontStyle.get(26,FontStyle.RED_DARK),
+                amountIncome:FontStyle.get(26,FontStyle.BLUE),
+                //currencyExpense:FontStyle.get(16,FontStyle.RED_DARK,null,FontStyle.LIGHT_CONDENSED),
+                currencyIncome:FontStyle.get(16,FontStyle.BLUE_DARK,null,FontStyle.LIGHT_CONDENSED),
                 date:FontStyle.get(14,FontStyle.GREY_DARK),
                 pending:FontStyle.get(12,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
                 accountPending:FontStyle.get(14,FontStyle.RED_DARK),
                 amountPending:FontStyle.get(26,FontStyle.WHITE),
-                currencyPending:FontStyle.get(16,FontStyle.WHITE),
+                currencyPending:FontStyle.get(16,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
                 datePending:FontStyle.get(14,FontStyle.WHITE,"right",FontStyle.LIGHT_CONDENSED)
             },
             greySkin:skin.GREY_70,

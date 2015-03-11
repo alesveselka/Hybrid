@@ -75,10 +75,10 @@ App.TransactionButton.prototype._update = function _update(updateAll)
         }
         else
         {
-            this._accountField.setStyle(this._labelStyles.account);
-            this._amountField.setStyle(this._labelStyles.amount);
-            this._currencyField.setStyle(this._labelStyles.currency);
-            this._categoryField.setStyle(this._labelStyles.account);
+            this._accountField.setStyle(this._labelStyles.accountIncome);
+            this._amountField.setStyle(this._labelStyles.amountIncome);
+            this._currencyField.setStyle(this._labelStyles.currencyIncome);
+            this._categoryField.setStyle(this._labelStyles.accountIncome);
             this._dateField.setStyle(this._labelStyles.date);
         }
     }
