@@ -1844,7 +1844,20 @@ App.Transaction.prototype.serialize = function serialize()
  */
 App.Transaction.prototype.copy = function copy()
 {
-    return new App.Transaction(this.serialize());
+    var copy = new App.Transaction();
+    copy.amount = this.amount;
+    copy.type = this.type;
+    copy.pending = this.pending;
+    copy.repeat = this.repeat;
+    copy.account = this.account;
+    copy.category = this.category;
+    copy.subCategory = this.subCategory;
+    copy.method = this.method;
+    copy.date = this.date;
+    copy.currency = this.currency;
+    copy.note = this.note;
+
+    return copy;
 };
 
 /**
@@ -1952,6 +1965,10 @@ Object.defineProperty(App.Transaction.prototype,'date',{
             else this._date = new Date();
         }
         return this._date;
+    },
+    set:function(value)
+    {
+        this._date = value;
     }
 });
 
