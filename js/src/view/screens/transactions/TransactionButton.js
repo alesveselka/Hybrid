@@ -22,21 +22,21 @@ App.TransactionButton = function TransactionButton(poolIndex,options)
     this._labelStyles = options.labelStyles;
     this._isPending = void 0;
 
-    this._redSkin = new PIXI.Sprite(options.redSkin);
-    this._greySkin = new PIXI.Sprite(options.greySkin);
     this._background = this.addChild(new Graphics());
     this._copyLabel = this.addChild(new Text("Copy",editStyle));
     this._editLabel = this.addChild(new Text("Edit",editStyle));
-    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
     this._icon = null;
     this._iconResizeRatio = -1;
+    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
+    this._redSkin = this._swipeSurface.addChild(new PIXI.Sprite(options.redSkin));
+    this._greySkin = this._swipeSurface.addChild(new PIXI.Sprite(options.greySkin));
     this._colorStripe = this._swipeSurface.addChild(new Graphics());
     this._accountField = this._swipeSurface.addChild(new Text("",editStyle));
     this._categoryField = this._swipeSurface.addChild(new Text("",editStyle));
     this._amountField = this._swipeSurface.addChild(new Text("",editStyle));
     this._currencyField = this._swipeSurface.addChild(new Text("",editStyle));
     this._dateField = this._swipeSurface.addChild(new Text("",editStyle));
-    this._pendingFlag = new Graphics();
+    this._pendingFlag = this._swipeSurface.addChild(new Graphics());
     this._pendingLabel = this._pendingFlag.addChild(new Text("PENDING",this._labelStyles.pending));
 };
 
@@ -120,17 +120,15 @@ App.TransactionButton.prototype._render = function _render(renderAll,pending)
     {
         if (pending)
         {
-            if (this._swipeSurface.contains(this._greySkin)) this._swipeSurface.removeChild(this._greySkin);
-            if (!this._swipeSurface.contains(this._redSkin)) this._swipeSurface.addChildAt(this._redSkin,0);
-
-            if (!this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.addChild(this._pendingFlag);
+            this._greySkin.visible = false;
+            this._redSkin.visible = true;
+            this._pendingFlag.visible = true;
         }
         else
         {
-            if (this._swipeSurface.contains(this._redSkin)) this._swipeSurface.removeChild(this._redSkin);
-            if (!this._swipeSurface.contains(this._greySkin)) this._swipeSurface.addChildAt(this._greySkin,0);
-
-            if (this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.removeChild(this._pendingFlag);
+            this._greySkin.visible = true;
+            this._redSkin.visible = false;
+            this._pendingFlag.visible = false;
         }
     }
 
