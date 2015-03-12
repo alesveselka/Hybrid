@@ -18,7 +18,7 @@ App.ReportScreen = function ReportScreen(layout)
         listHeight = Math.round(h * 0.7),
         itemHeight = Math.round(40 * r),
         labelStyles = {
-            accountName:FontStyle.get(22,FontStyle.WHITE),
+            accountName:FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
             accountAmount:FontStyle.get(16,FontStyle.WHITE),
             categoryName:FontStyle.get(18,FontStyle.BLUE),
             categoryPercent:FontStyle.get(16,FontStyle.GREY_DARK),
@@ -180,7 +180,14 @@ App.ReportScreen.prototype._onHeaderClick = function _onHeaderClick(action)
     }
     else if (action === HeaderAction.MENU)
     {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.MENU,0,null,HeaderAction.NONE,HeaderAction.CANCEL,App.ScreenTitle.MENU));
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(
+            App.ScreenName.MENU,
+            0,
+            null,
+            HeaderAction.NONE,
+            HeaderAction.CANCEL,
+            App.ScreenTitle.MENU
+        ));
     }
 };
 

@@ -532,6 +532,26 @@ App.GraphicUtils = {
 
         if (end) graphics.endFill();
     },
+
+    /**
+     * Draw rounded rectangle into graphics passed in
+     * @param {PIXI.Graphics} graphics
+     * @param {number} color
+     * @param {number} alpha
+     * @param {number} x
+     * @param {number} y
+     * @param {number} width
+     * @param {number} height
+     * @param {number} radius
+     */
+    drawRoundedRect:function drawRect(graphics,color,alpha,x,y,width,height,radius)
+    {
+        graphics.clear();
+        graphics.beginFill(color,alpha);
+        graphics.drawRoundedRect(x,y,width,height,radius);
+        graphics.endFill();
+    },
+
     /**
      * Draw arc
      * @param {PIXI.Graphics} graphics
@@ -2410,7 +2430,7 @@ App.ColorTheme = {
 
 /**
  * @class FontStyle
- * @type {{init: Function, get: Function, WHITE: string, BLUE: string, BLUE_LIGHT: string, BLUE_DARK: string, GREY: string, GREY_DARK: string, GREY_DARKER: string, RED_DARK: string}}
+ * @type {{init: Function, get: Function, WHITE: string, BLUE: string, BLUE_LIGHT: string, BLUE_DARK: string, GREY: string, GREY_DARK: string, GREY_DARKER: string,BLACK_LIGHT:string, RED_DARK: string}}
  */
 App.FontStyle = {
     /**
@@ -2480,6 +2500,7 @@ App.FontStyle = {
     GREY:"#efefef",
     GREY_DARK:"#cccccc",
     GREY_DARKER:"#999999",
+    BLACK_LIGHT:"#333333",
     RED_DARK:"#990000"
 };
 
@@ -3310,6 +3331,15 @@ App.Input.prototype.restrict = function restrict(pattern)
 };
 
 /**
+ * Is input focused?
+ * @returns {boolean}
+ */
+App.Input.prototype.isFocused = function isFocused()
+{
+    return this._focused;
+};
+
+/**
  * Focus
  */
 App.Input.prototype.focus = function focus()
@@ -3698,13 +3728,23 @@ App.Button.prototype._render = function _render()
     var w = this.boundingBox.width,
         h = this.boundingBox.height;
 
-    this.clear();
-    this.beginFill(this._backgroundColor);
-    this.drawRoundedRect(0,0,w,h,Math.round(5 * this._pixelRatio));
-    this.endFill();
+    App.GraphicUtils.drawRoundedRect(this,this._backgroundColor,1,0,0,w,h,Math.round(5 * this._pixelRatio));
 
     this._labelField.x = Math.round((w - this._labelField.width) / 2);
     this._labelField.y = Math.round((h - this._labelField.height) / 2);
+};
+
+/**
+ * Resize
+ * @param {number} width
+ * @param {number} height
+ */
+App.Button.prototype.resize = function resize(width,height)
+{
+    this.boundingBox.width = width || this.boundingBox.width;
+    this.boundingBox.height = height || this.boundingBox.height;
+
+    this._render();
 };
 
 /**
@@ -6868,6 +6908,376 @@ App.ExpandButton.prototype.removeEventListener = function removeEventListener(ev
 };
 
 /**
+ * @class PopUpButton
+ * @extend Graphics
+ * @param {string} label
+ * @param {string} message
+ * @param {{width:number,height:number,pixelRatio:number,popUpLayout:{x:number,y:number,width:number,height:number,overlayWidth:number,overlayHeight:number}}} options
+ * @constructor
+ */
+App.PopUpButton = function PopUpButton(label,message,options)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        Button = App.Button,
+        Graphics = PIXI.Graphics,
+        FontStyle = App.FontStyle,
+        ColorTheme = App.ColorTheme,
+        r = options.pixelRatio,
+        w = options.width;
+
+    this.boundingBox = new App.Rectangle(0,0,w,options.height);
+
+    this._pixelRatio = r;
+//    this._label = label;
+//    this._message = message;
+//    this._style = FontStyle.get(18,FontStyle.WHITE);
+    this._popUpLayout = options.popUpLayout;
+    this._backgroundColor = ColorTheme.RED;
+    this._transitionState = App.TransitionState.HIDDEN;
+    this._eventsRegistered = App.EventLevel.NONE;
+
+    this._overlay = new Graphics();
+    this._buttonBackground = new Graphics();
+    this._popUpBackground = new Graphics();
+    this._labelField = new PIXI.Text(label,FontStyle.get(18,FontStyle.WHITE));
+    this._messageField = new PIXI.Text(message,FontStyle.get(18,FontStyle.BLUE,"center",FontStyle.LIGHT_CONDENSED));
+    this._cancelButton = new Button("Cancel",{
+        width:w,
+        height:Math.round(50*r),
+        pixelRatio:r,
+        style:FontStyle.get(18,FontStyle.BLACK_LIGHT,null,FontStyle.LIGHT_CONDENSED),
+        backgroundColor:ColorTheme.GREY_DARK
+    });
+    this._confirmButton = new Button("Delete",{
+        width:w,
+        height:Math.round(30*r),
+        pixelRatio:r,
+        style:FontStyle.get(16,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+        backgroundColor:ColorTheme.RED
+    });
+
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._tween = new App.TweenProxy(0.4,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+
+    this._render();
+
+    this.addChild(this._overlay);
+    this.addChild(this._buttonBackground);
+    this.addChild(this._popUpBackground);
+    this.addChild(this._labelField);
+    this.addChild(this._messageField);
+    this.addChild(this._cancelButton);
+    this.addChild(this._confirmButton);
+};
+
+App.PopUpButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.PopUpButton.prototype.constructor = App.PopUpButton;
+
+/**
+ * Render
+ * @private
+ */
+App.PopUpButton.prototype._render = function _render()
+{
+    var GraphicUtils = App.GraphicUtils,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height;
+
+    GraphicUtils.drawRoundedRect(this._buttonBackground,this._backgroundColor,1,0,0,w,h,Math.round(5 * this._pixelRatio));
+
+    this._labelField.x = Math.round((w - this._labelField.width) / 2);
+    this._labelField.y = Math.round((h - this._labelField.height) / 2);
+
+    this._overlay.visible = false;
+    this._messageField.visible = false;
+    this._messageField.alpha = 0.0;
+    this._cancelButton.visible = false;
+    this._cancelButton.alpha = 0.0;
+    this._confirmButton.visible = false;
+    this._confirmButton.alpha = 0.0;
+};
+
+/**
+ * Set message
+ * @param {string} message
+ * @param {{font:string,fill:string}} style
+ */
+/*App.PopUpButton.prototype.setMessage = function setMessage(message,style)
+{
+    this._messageField.setText(message);
+    if (style) this._messageField.setStyle(style);
+};*/
+
+/**
+ * Set position
+ * @param {number} x
+ * @param {number} y
+ */
+App.PopUpButton.prototype.setPosition = function setPosition(x,y)
+{
+    this.boundingBox.x = x;
+    this.boundingBox.y = y;
+
+    this.x = x;
+    this.y = y;
+};
+
+/**
+ * Set popUp layout
+ * @param {number} x
+ * @param {number} y
+ * @param {number} overlayWidth
+ * @param {number} overlayHeight
+ * @param {number} width
+ * @param {number} height
+ */
+App.PopUpButton.prototype.setPopUpLayout = function setPopUpLayout(x,y,overlayWidth,overlayHeight,width,height)
+{
+    this._popUpLayout.overlayWidth = overlayWidth || this._popUpLayout.overlayWidth;
+    this._popUpLayout.overlayHeight = overlayHeight || this._popUpLayout.overlayHeight;
+    this._popUpLayout.width = width || this._popUpLayout.width;
+    this._popUpLayout.height = height || this._popUpLayout.height;
+    this._popUpLayout.x = x || this._popUpLayout.x;
+    this._popUpLayout.y = this._popUpLayout.height / 2 - this.boundingBox.y - y;
+
+    //TODO move to render function?
+    App.GraphicUtils.drawRect(this._overlay,App.ColorTheme.BLUE,1,0,0,this._popUpLayout.overlayWidth,this._popUpLayout.overlayHeight);
+
+    this._overlay.x = -this.boundingBox.x;
+    this._overlay.y = -this.boundingBox.y;
+};
+
+/**
+ * Show popUp
+ */
+App.PopUpButton.prototype.showPopUp = function showPopUp()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.HIDDEN || this._transitionState === TransitionState.HIDING)
+    {
+        this._registerEventListeners(App.EventLevel.LEVEL_1);
+
+        this._transitionState = TransitionState.SHOWING;
+
+        this._tween.restart();
+    }
+};
+
+/**
+ * Hide popUp
+ */
+App.PopUpButton.prototype.hidePopUp = function hidePopUp()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.SHOWN || this._transitionState === TransitionState.SHOWING)
+    {
+//        this.enable();
+
+        this._transitionState = TransitionState.HIDING;
+
+        this._tween.start(true);
+
+//        this.visible = true;
+    }
+};
+
+/**
+ * Register event listeners
+ * @param {number} level
+ * @private
+ */
+App.PopUpButton.prototype._registerEventListeners = function _registerEventListeners(level)
+{
+    var EventLevel = App.EventLevel;
+
+    if (level === EventLevel.LEVEL_1 && this._eventsRegistered !== EventLevel.LEVEL_1)
+    {
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._tween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+    }
+
+    if (level === EventLevel.LEVEL_2 && this._eventsRegistered !== EventLevel.LEVEL_2)
+    {
+        /*if (App.Device.TOUCH_SUPPORTED)
+        {
+            this.touchstart = this._onPointerDown;
+            this.touchend = this._onPointerUp;
+            this.touchendoutside = this._onPointerUp;
+        }
+        else
+        {
+            this.mousedown = this._onPointerDown;
+            this.mouseup = this._onPointerUp;
+            this.mouseupoutside = this._onPointerUp;
+        }
+
+        this.interactive = true;*/
+    }
+
+    this._eventsRegistered = level;
+};
+
+/**
+ * UnRegister event listeners
+ * @param {number} level
+ * @private
+ */
+App.PopUpButton.prototype._unRegisterEventListeners = function _unRegisterEventListeners(level)
+{
+    var EventLevel = App.EventLevel;
+
+    if (level === EventLevel.LEVEL_1)
+    {
+        this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._tween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+
+        this._eventsRegistered = EventLevel.NONE;
+    }
+
+    if (level === EventLevel.LEVEL_2)
+    {
+        this.interactive = false;
+
+        /*if (App.Device.TOUCH_SUPPORTED)
+        {
+            this.touchstart = null;
+            this.touchend = null;
+            this.touchendoutside = null;
+        }
+        else
+        {
+            this.mousedown = null;
+            this.mouseup = null;
+            this.mouseupoutside = null;
+        }*/
+
+        this._eventsRegistered = EventLevel.LEVEL_1;
+    }
+};
+
+/**
+ * On tick
+ * @private
+ */
+App.PopUpButton.prototype._onTick = function _onTick()
+{
+    if (this._tween.isRunning())
+    {
+        var TransitionState = App.TransitionState;
+
+        if (this._transitionState === TransitionState.SHOWING) this._onTweenUpdate(this._tween.progress);
+        else if (this._transitionState === TransitionState.HIDING) this._onTweenUpdate(1.0 - this._tween.progress);
+    }
+};
+
+/**
+ * On tween update
+ * @param {number} progress
+ * @private
+ */
+App.PopUpButton.prototype._onTweenUpdate = function _onTweenUpdate(progress)
+{
+    var r = this._pixelRatio,
+        x = this.boundingBox.x,
+        y = this.boundingBox.y,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height,
+        pw = this._popUpLayout.width,
+        ph = this._popUpLayout.height,
+        padding = Math.round(10 * r),
+        buttonsHeight = this._cancelButton.boundingBox.height + this._confirmButton.boundingBox.height + padding;
+
+    /*App.GraphicUtils.drawRoundedRect(
+        this._buttonBackground,
+        this._backgroundColor,
+        1,
+        Math.round(this._popUpLayout.x * progress),
+        Math.round(this._popUpLayout.y * progress),
+        Math.round(w + this._popUpLayout.width * progress),
+        Math.round(h + this._popUpLayout.height * progress),
+        Math.round(5 * this._pixelRatio)
+    );*/
+    this._overlay.visible = true;
+    this._overlay.alpha = 0.8 * progress;
+
+    App.GraphicUtils.drawRoundedRect(this._buttonBackground,App.ColorTheme.RED,1,0,0,w+(pw-w)*progress,h+(ph-h)*progress,Math.round(5 * this._pixelRatio));
+    App.GraphicUtils.drawRoundedRect(this._popUpBackground,App.ColorTheme.GREY,1,0,0,w+(pw-w)*progress,h+(ph-h)*progress,Math.round(5 * this._pixelRatio));
+
+    this._popUpBackground.x = (this._popUpLayout.x) * progress;
+    this._popUpBackground.y = (this._popUpLayout.y) * progress;
+    this._buttonBackground.x = this._popUpBackground.x;
+    this._buttonBackground.y = this._popUpBackground.y;
+
+    this._cancelButton.resize(this._popUpBackground.width-padding*2);
+    this._cancelButton.x = this._popUpBackground.x + padding;
+    this._cancelButton.y = this._popUpBackground.y + this._popUpBackground.height - buttonsHeight - padding;
+    this._confirmButton.resize(this._popUpBackground.width-padding*2);
+    this._confirmButton.x = this._popUpBackground.x + padding;
+    this._confirmButton.y = this._cancelButton.y + this._cancelButton.boundingBox.height + padding;
+
+    this._messageField.x = this._popUpBackground.x + (this._popUpBackground.width - this._messageField.width) / 2;
+    this._messageField.y = this._popUpBackground.y + ((this._popUpBackground.height - buttonsHeight - padding - this._messageField.height) / 2);
+
+    this._messageField.visible = true;
+    this._cancelButton.visible = true;
+    this._confirmButton.visible = true;
+
+    this._popUpBackground.alpha = progress;
+    this._messageField.alpha = progress;
+    this._cancelButton.alpha = progress;
+    this._confirmButton.alpha = progress;
+    this._labelField.alpha = 1.0 - progress;
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.PopUpButton.prototype._onTweenComplete = function _onTweenComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.SHOWING)
+    {
+        this._transitionState = TransitionState.SHOWN;
+
+//        this.alpha = 1.0;
+
+        this._registerEventListeners(App.EventLevel.LEVEL_2);
+    }
+    else if (this._transitionState === TransitionState.HIDING)
+    {
+        this._transitionState = TransitionState.HIDDEN;
+
+        this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
+
+//        this.alpha = 0.0;
+
+//        this.visible = false;
+
+        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,{target:this,state:this._transitionState});
+    }
+};
+
+/**
+ * Test if position passed in falls within this input boundaries
+ * @param {number} position
+ * @returns {boolean}
+ */
+App.PopUpButton.prototype.hitTest = function hitTest(position)
+{
+    return position >= this.y && position < this.y + this.boundingBox.height;
+};
+
+/**
  * Abstract Screen
  *
  * @class Screen
@@ -7269,7 +7679,13 @@ App.EditScreen = function EditScreen(layout)
 
     this._background = this.addChild(new PIXI.Graphics());
     this._input = this.addChild(new App.Input("",20,inputWidth,inputHeight,r,true));
-    this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
+    //this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
+    this._deleteButton = new App.PopUpButton("Delete","Are you sure you want to\ndelete this sub-category?",{//TODO message will differ based on model to delete
+        width:inputWidth,
+        height:inputHeight,
+        pixelRatio:r,
+        popUpLayout:{x:Math.round(10*r),y:0,width:Math.round(inputWidth-20*r),height:Math.round(layout.height/2),overlayWidth:layout.width,overlayHeight:0}
+    });
     this._renderAll = true;
 };
 
@@ -7297,14 +7713,16 @@ App.EditScreen.prototype._render = function _render()
         this._input.x = padding;
         this._input.y = padding;
 
-        this._deleteButton.x = padding;
-        this._deleteButton.y = inputHeight + padding;
+        this._deleteButton.setPosition(padding,inputHeight+padding);
+//        this._deleteButton.x = padding;
+//        this._deleteButton.y = inputHeight + padding;
     }
 
     if (this._mode === ScreenMode.EDIT)
     {
         if (!this.contains(this._deleteButton)) this.addChild(this._deleteButton);
 
+        //TODO use skin
         GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w+padding*2,inputHeight*2],true,false);
         GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,inputHeight-1,w,1],false,false);
         GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,inputHeight,w,1],false,true);
@@ -7351,6 +7769,34 @@ App.EditScreen.prototype.update = function update(model,mode)
     //this._input.setPlaceholder(data.placeholder);
 
     this._render();
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.EditScreen.prototype._onClick = function _onClick()
+{
+    if (this._deleteButton.hitTest(this.stage.getTouchData().getLocalPosition(this).y))
+    {
+        if (this._input.isFocused())
+        {
+            this._input.blur();
+        }
+        else
+        {
+            //TODO also disable header actions
+            //this.disable();
+
+            this._deleteButton.setPopUpLayout(
+                0,
+                this._layout.headerHeight,
+                0,
+                this._layout.contentHeight > this._background.height ? this._layout.contentHeight : this._background.height
+            );
+            this._deleteButton.showPopUp();
+        }
+    }
 };
 
 /**
@@ -7798,9 +8244,14 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
     this._background = new PIXI.Graphics();
     this._transactionInput = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
     this._noteInput = new App.Input("Add Note",20,inputWidth,inputHeight,r,true);
-    this._deleteBackground = new PIXI.Sprite(skin.GREY_60);
-    this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
     this._separators = new PIXI.Graphics();
+    this._deleteBackground = new PIXI.Sprite(skin.GREY_60);
+    this._deleteButton = new App.PopUpButton("Delete","Are you sure you want to\ndelete this transaction?",{
+        width:inputWidth,
+        height:inputHeight,
+        pixelRatio:r,
+        popUpLayout:{x:Math.round(10*r),y:0,width:Math.round(inputWidth-20*r),height:Math.round(layout.height/2),overlayWidth:w,overlayHeight:0}
+    });
 
     this._optionList = new App.List(App.Direction.Y);
     this._accountOption = this._optionList.add(new TransactionOptionButton("account","Account",ScreenName.ACCOUNT,options));
@@ -7879,8 +8330,7 @@ App.AddTransactionScreen.prototype._render = function _render()
         bottom = this._noteInput.y + this._noteInput.boundingBox.height + padding;
 
         this._deleteBackground.y = bottom;
-        this._deleteButton.x = padding;
-        this._deleteButton.y = this._deleteBackground.y + padding;
+        this._deleteButton.setPosition(padding,this._deleteBackground.y + padding);
 
         GraphicUtils.drawRects(this._separators,ColorTheme.GREY_DARK,1,[
             padding,inputHeight-1,separatorWidth,1,
@@ -7889,7 +8339,6 @@ App.AddTransactionScreen.prototype._render = function _render()
             padding,inputHeight+toggleHeight-1,separatorWidth,1,
             padding,bottom-1,separatorWidth,1
         ],false,true);
-
     }
 
     if (this._mode === App.ScreenMode.EDIT)
@@ -8060,6 +8509,26 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     {
         this._scrollInput = this._noteInput;
         this._focusInput(false);
+    }
+    else if (this._deleteButton.hitTest(position))
+    {
+        if (inputFocused)
+        {
+            this._scrollInput.blur();
+        }
+        else
+        {
+            //TODO also disable header actions
+            //this.disable();
+
+            this._deleteButton.setPopUpLayout(
+                0,
+                this._container.y + this._layout.headerHeight,
+                0,
+                this._layout.contentHeight > this._container.height ? this._layout.contentHeight : this._container.height
+            );
+            this._deleteButton.showPopUp();
+        }
     }
     else
     {
@@ -10126,21 +10595,21 @@ App.TransactionButton = function TransactionButton(poolIndex,options)
     this._labelStyles = options.labelStyles;
     this._isPending = void 0;
 
-    this._redSkin = new PIXI.Sprite(options.redSkin);
-    this._greySkin = new PIXI.Sprite(options.greySkin);
     this._background = this.addChild(new Graphics());
     this._copyLabel = this.addChild(new Text("Copy",editStyle));
     this._editLabel = this.addChild(new Text("Edit",editStyle));
-    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
     this._icon = null;
     this._iconResizeRatio = -1;
+    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
+    this._redSkin = this._swipeSurface.addChild(new PIXI.Sprite(options.redSkin));
+    this._greySkin = this._swipeSurface.addChild(new PIXI.Sprite(options.greySkin));
     this._colorStripe = this._swipeSurface.addChild(new Graphics());
     this._accountField = this._swipeSurface.addChild(new Text("",editStyle));
     this._categoryField = this._swipeSurface.addChild(new Text("",editStyle));
     this._amountField = this._swipeSurface.addChild(new Text("",editStyle));
     this._currencyField = this._swipeSurface.addChild(new Text("",editStyle));
     this._dateField = this._swipeSurface.addChild(new Text("",editStyle));
-    this._pendingFlag = new Graphics();
+    this._pendingFlag = this._swipeSurface.addChild(new Graphics());
     this._pendingLabel = this._pendingFlag.addChild(new Text("PENDING",this._labelStyles.pending));
 };
 
@@ -10224,17 +10693,15 @@ App.TransactionButton.prototype._render = function _render(renderAll,pending)
     {
         if (pending)
         {
-            if (this._swipeSurface.contains(this._greySkin)) this._swipeSurface.removeChild(this._greySkin);
-            if (!this._swipeSurface.contains(this._redSkin)) this._swipeSurface.addChildAt(this._redSkin,0);
-
-            if (!this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.addChild(this._pendingFlag);
+            this._greySkin.visible = false;
+            this._redSkin.visible = true;
+            this._pendingFlag.visible = true;
         }
         else
         {
-            if (this._swipeSurface.contains(this._redSkin)) this._swipeSurface.removeChild(this._redSkin);
-            if (!this._swipeSurface.contains(this._greySkin)) this._swipeSurface.addChildAt(this._greySkin,0);
-
-            if (this._swipeSurface.contains(this._pendingFlag)) this._swipeSurface.removeChild(this._pendingFlag);
+            this._greySkin.visible = true;
+            this._redSkin.visible = false;
+            this._pendingFlag.visible = false;
         }
     }
 
@@ -11060,7 +11527,7 @@ App.ReportScreen = function ReportScreen(layout)
         listHeight = Math.round(h * 0.7),
         itemHeight = Math.round(40 * r),
         labelStyles = {
-            accountName:FontStyle.get(22,FontStyle.WHITE),
+            accountName:FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
             accountAmount:FontStyle.get(16,FontStyle.WHITE),
             categoryName:FontStyle.get(18,FontStyle.BLUE),
             categoryPercent:FontStyle.get(16,FontStyle.GREY_DARK),
@@ -11222,7 +11689,14 @@ App.ReportScreen.prototype._onHeaderClick = function _onHeaderClick(action)
     }
     else if (action === HeaderAction.MENU)
     {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.MENU,0,null,HeaderAction.NONE,HeaderAction.CANCEL,App.ScreenTitle.MENU));
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(
+            App.ScreenName.MENU,
+            0,
+            null,
+            HeaderAction.NONE,
+            HeaderAction.CANCEL,
+            App.ScreenTitle.MENU
+        ));
     }
 };
 

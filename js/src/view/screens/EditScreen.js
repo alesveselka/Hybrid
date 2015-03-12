@@ -14,7 +14,13 @@ App.EditScreen = function EditScreen(layout)
 
     this._background = this.addChild(new PIXI.Graphics());
     this._input = this.addChild(new App.Input("",20,inputWidth,inputHeight,r,true));
-    this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
+    //this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
+    this._deleteButton = new App.PopUpButton("Delete","Are you sure you want to\ndelete this sub-category?",{//TODO message will differ based on model to delete
+        width:inputWidth,
+        height:inputHeight,
+        pixelRatio:r,
+        popUpLayout:{x:Math.round(10*r),y:0,width:Math.round(inputWidth-20*r),height:Math.round(layout.height/2),overlayWidth:layout.width,overlayHeight:0}
+    });
     this._renderAll = true;
 };
 
@@ -42,14 +48,16 @@ App.EditScreen.prototype._render = function _render()
         this._input.x = padding;
         this._input.y = padding;
 
-        this._deleteButton.x = padding;
-        this._deleteButton.y = inputHeight + padding;
+        this._deleteButton.setPosition(padding,inputHeight+padding);
+//        this._deleteButton.x = padding;
+//        this._deleteButton.y = inputHeight + padding;
     }
 
     if (this._mode === ScreenMode.EDIT)
     {
         if (!this.contains(this._deleteButton)) this.addChild(this._deleteButton);
 
+        //TODO use skin
         GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w+padding*2,inputHeight*2],true,false);
         GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,inputHeight-1,w,1],false,false);
         GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,inputHeight,w,1],false,true);
@@ -96,6 +104,34 @@ App.EditScreen.prototype.update = function update(model,mode)
     //this._input.setPlaceholder(data.placeholder);
 
     this._render();
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.EditScreen.prototype._onClick = function _onClick()
+{
+    if (this._deleteButton.hitTest(this.stage.getTouchData().getLocalPosition(this).y))
+    {
+        if (this._input.isFocused())
+        {
+            this._input.blur();
+        }
+        else
+        {
+            //TODO also disable header actions
+            //this.disable();
+
+            this._deleteButton.setPopUpLayout(
+                0,
+                this._layout.headerHeight,
+                0,
+                this._layout.contentHeight > this._background.height ? this._layout.contentHeight : this._background.height
+            );
+            this._deleteButton.showPopUp();
+        }
+    }
 };
 
 /**

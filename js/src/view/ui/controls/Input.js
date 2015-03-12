@@ -130,6 +130,15 @@ App.Input.prototype.restrict = function restrict(pattern)
 };
 
 /**
+ * Is input focused?
+ * @returns {boolean}
+ */
+App.Input.prototype.isFocused = function isFocused()
+{
+    return this._focused;
+};
+
+/**
  * Focus
  */
 App.Input.prototype.focus = function focus()

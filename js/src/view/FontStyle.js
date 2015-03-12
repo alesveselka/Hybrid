@@ -1,6 +1,6 @@
 /**
  * @class FontStyle
- * @type {{init: Function, get: Function, WHITE: string, BLUE: string, BLUE_LIGHT: string, BLUE_DARK: string, GREY: string, GREY_DARK: string, GREY_DARKER: string, RED_DARK: string}}
+ * @type {{init: Function, get: Function, WHITE: string, BLUE: string, BLUE_LIGHT: string, BLUE_DARK: string, GREY: string, GREY_DARK: string, GREY_DARKER: string,BLACK_LIGHT:string, RED_DARK: string}}
  */
 App.FontStyle = {
     /**
@@ -70,5 +70,6 @@ App.FontStyle = {
     GREY:"#efefef",
     GREY_DARK:"#cccccc",
     GREY_DARKER:"#999999",
+    BLACK_LIGHT:"#333333",
     RED_DARK:"#990000"
 };

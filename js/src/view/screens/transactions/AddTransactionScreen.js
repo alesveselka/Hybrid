@@ -39,9 +39,14 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
     this._background = new PIXI.Graphics();
     this._transactionInput = new App.Input("00.00",24,inputWidth,inputHeight,r,true);
     this._noteInput = new App.Input("Add Note",20,inputWidth,inputHeight,r,true);
-    this._deleteBackground = new PIXI.Sprite(skin.GREY_60);
-    this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
     this._separators = new PIXI.Graphics();
+    this._deleteBackground = new PIXI.Sprite(skin.GREY_60);
+    this._deleteButton = new App.PopUpButton("Delete","Are you sure you want to\ndelete this transaction?",{
+        width:inputWidth,
+        height:inputHeight,
+        pixelRatio:r,
+        popUpLayout:{x:Math.round(10*r),y:0,width:Math.round(inputWidth-20*r),height:Math.round(layout.height/2),overlayWidth:w,overlayHeight:0}
+    });
 
     this._optionList = new App.List(App.Direction.Y);
     this._accountOption = this._optionList.add(new TransactionOptionButton("account","Account",ScreenName.ACCOUNT,options));
@@ -120,8 +125,7 @@ App.AddTransactionScreen.prototype._render = function _render()
         bottom = this._noteInput.y + this._noteInput.boundingBox.height + padding;
 
         this._deleteBackground.y = bottom;
-        this._deleteButton.x = padding;
-        this._deleteButton.y = this._deleteBackground.y + padding;
+        this._deleteButton.setPosition(padding,this._deleteBackground.y + padding);
 
         GraphicUtils.drawRects(this._separators,ColorTheme.GREY_DARK,1,[
             padding,inputHeight-1,separatorWidth,1,
@@ -130,7 +134,6 @@ App.AddTransactionScreen.prototype._render = function _render()
             padding,inputHeight+toggleHeight-1,separatorWidth,1,
             padding,bottom-1,separatorWidth,1
         ],false,true);
-
     }
 
     if (this._mode === App.ScreenMode.EDIT)
@@ -301,6 +304,26 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     {
         this._scrollInput = this._noteInput;
         this._focusInput(false);
+    }
+    else if (this._deleteButton.hitTest(position))
+    {
+        if (inputFocused)
+        {
+            this._scrollInput.blur();
+        }
+        else
+        {
+            //TODO also disable header actions
+            //this.disable();
+
+            this._deleteButton.setPopUpLayout(
+                0,
+                this._container.y + this._layout.headerHeight,
+                0,
+                this._layout.contentHeight > this._container.height ? this._layout.contentHeight : this._container.height
+            );
+            this._deleteButton.showPopUp();
+        }
     }
     else
     {

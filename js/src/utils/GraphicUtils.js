@@ -42,6 +42,26 @@ App.GraphicUtils = {
 
         if (end) graphics.endFill();
     },
+
+    /**
+     * Draw rounded rectangle into graphics passed in
+     * @param {PIXI.Graphics} graphics
+     * @param {number} color
+     * @param {number} alpha
+     * @param {number} x
+     * @param {number} y
+     * @param {number} width
+     * @param {number} height
+     * @param {number} radius
+     */
+    drawRoundedRect:function drawRect(graphics,color,alpha,x,y,width,height,radius)
+    {
+        graphics.clear();
+        graphics.beginFill(color,alpha);
+        graphics.drawRoundedRect(x,y,width,height,radius);
+        graphics.endFill();
+    },
+
     /**
      * Draw arc
      * @param {PIXI.Graphics} graphics

@@ -34,11 +34,21 @@ App.Button.prototype._render = function _render()
     var w = this.boundingBox.width,
         h = this.boundingBox.height;
 
-    this.clear();
-    this.beginFill(this._backgroundColor);
-    this.drawRoundedRect(0,0,w,h,Math.round(5 * this._pixelRatio));
-    this.endFill();
+    App.GraphicUtils.drawRoundedRect(this,this._backgroundColor,1,0,0,w,h,Math.round(5 * this._pixelRatio));
 
     this._labelField.x = Math.round((w - this._labelField.width) / 2);
     this._labelField.y = Math.round((h - this._labelField.height) / 2);
+};
+
+/**
+ * Resize
+ * @param {number} width
+ * @param {number} height
+ */
+App.Button.prototype.resize = function resize(width,height)
+{
+    this.boundingBox.width = width || this.boundingBox.width;
+    this.boundingBox.height = height || this.boundingBox.height;
+
+    this._render();
 };
