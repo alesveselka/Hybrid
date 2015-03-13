@@ -52,3 +52,13 @@ App.Button.prototype.resize = function resize(width,height)
 
     this._render();
 };
+
+/**
+ * Test if position passed in falls within this button bounds
+ * @param {Point} position
+ * @returns {boolean}
+ */
+App.Button.prototype.hitTest = function hitTest(position)
+{
+    return position.x >= this.x && position.x < this.x + this.boundingBox.width && position.y >= this.y && position.y < this.y + this.boundingBox.height;
+};

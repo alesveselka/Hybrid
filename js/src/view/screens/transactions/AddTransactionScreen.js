@@ -179,6 +179,17 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
 
     this._render();
     this._pane.resize();
+    this.resetScroll();
+};
+
+/**
+ * Hide
+ */
+App.AddTransactionScreen.prototype.hide = function hide()
+{
+    this._unRegisterDeleteButtonListeners();
+
+    App.Screen.prototype.hide.call(this);
 };
 
 /**
@@ -196,8 +207,6 @@ App.AddTransactionScreen.prototype.enable = function enable()
  */
 App.AddTransactionScreen.prototype.disable = function disable()
 {
-    this.resetScroll();
-
     App.Screen.prototype.disable.call(this);
 
     this._transactionInput.disable();
@@ -240,6 +249,62 @@ App.AddTransactionScreen.prototype._unRegisterEventListeners = function _unRegis
 
     this._transactionInput.removeEventListener(EventType.BLUR,this,this._onInputBlur);
     this._noteInput.removeEventListener(EventType.BLUR,this,this._onInputBlur);
+};
+
+/**
+ * Register delete button event listeners
+ * @private
+ */
+App.AddTransactionScreen.prototype._registerDeleteButtonListeners = function _registerDeleteButtonListeners()
+{
+    var EventType = App.EventType;
+
+    this._deleteButton.addEventListener(EventType.CANCEL,this,this._onDeleteCancel);
+    this._deleteButton.addEventListener(EventType.CONFIRM,this,this._onDeleteConfirm);
+    this._deleteButton.addEventListener(EventType.COMPLETE,this,this._onHidePopUpComplete);
+};
+
+/**
+ * UnRegister delete button event listeners
+ * @private
+ */
+App.AddTransactionScreen.prototype._unRegisterDeleteButtonListeners = function _unRegisterDeleteButtonListeners()
+{
+    var EventType = App.EventType;
+
+    this._deleteButton.removeEventListener(EventType.CANCEL,this,this._onDeleteCancel);
+    this._deleteButton.removeEventListener(EventType.CONFIRM,this,this._onDeleteConfirm);
+    this._deleteButton.removeEventListener(EventType.COMPLETE,this,this._onHidePopUpComplete);
+};
+
+/**
+ * On delete cancel
+ * @private
+ */
+App.AddTransactionScreen.prototype._onDeleteCancel = function _onDeleteCancel()
+{
+    this._deleteButton.hidePopUp();
+};
+
+/**
+ * On delete confirm
+ * @private
+ */
+App.AddTransactionScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
+{
+    this._deleteButton.hidePopUp(true);
+};
+
+/**
+ * On Delete PopUp hide complete
+ * @private
+ */
+App.AddTransactionScreen.prototype._onHidePopUpComplete = function _onHidePopUpComplete()
+{
+    this._unRegisterDeleteButtonListeners();
+
+    this.enable();
+    this._registerEventListeners(App.EventLevel.LEVEL_2);
 };
 
 /**
@@ -314,14 +379,10 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
         else
         {
             //TODO also disable header actions
-            //this.disable();
-
-            this._deleteButton.setPopUpLayout(
-                0,
-                this._container.y + this._layout.headerHeight,
-                0,
-                this._layout.contentHeight > this._container.height ? this._layout.contentHeight : this._container.height
-            );
+            this.disable();
+            this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
+            this._registerDeleteButtonListeners();
+            this._deleteButton.setPopUpLayout(0,this._container.y + this._layout.headerHeight,0,this._layout.contentHeight > this._container.height ? this._layout.contentHeight : this._container.height);
             this._deleteButton.showPopUp();
         }
     }
@@ -384,7 +445,7 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
  * On budget field blur
  * @private
  */
-App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
+/*App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
 {
     App.InputScrollScreen.prototype._onInputBlur.call(this);
 
@@ -392,4 +453,4 @@ App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
 
     if (this._scrollInput === this._transactionInput) transaction.amount = this._transactionInput.getValue();
     else if (this._scrollInput === this._noteInput) transaction.note = this._noteInput.getValue();
-};
+};*/

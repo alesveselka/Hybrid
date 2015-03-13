@@ -22,86 +22,42 @@ App.PopUpButton = function PopUpButton(label,message,options)
     this.boundingBox = new App.Rectangle(0,0,w,options.height);
 
     this._pixelRatio = r;
-//    this._label = label;
-//    this._message = message;
-//    this._style = FontStyle.get(18,FontStyle.WHITE);
     this._popUpLayout = options.popUpLayout;
     this._backgroundColor = ColorTheme.RED;
     this._transitionState = App.TransitionState.HIDDEN;
     this._eventsRegistered = App.EventLevel.NONE;
 
-    this._overlay = new Graphics();
-    this._buttonBackground = new Graphics();
-    this._popUpBackground = new Graphics();
-    this._labelField = new PIXI.Text(label,FontStyle.get(18,FontStyle.WHITE));
-    this._messageField = new PIXI.Text(message,FontStyle.get(18,FontStyle.BLUE,"center",FontStyle.LIGHT_CONDENSED));
-    this._cancelButton = new Button("Cancel",{
+    this._overlay = this.addChild(new Graphics());
+    this._container = this.addChild(new Graphics());
+    this._popUpBackground = this._container.addChild(new Graphics());
+    this._labelField = this._container.addChild(new PIXI.Text(label,FontStyle.get(18,FontStyle.WHITE)));
+    this._messageField = this._container.addChild(new PIXI.Text(message,FontStyle.get(18,FontStyle.BLUE,"center",FontStyle.LIGHT_CONDENSED)));
+    this._cancelButton = this._container.addChild(new Button("Cancel",{
         width:w,
         height:Math.round(50*r),
         pixelRatio:r,
         style:FontStyle.get(18,FontStyle.BLACK_LIGHT,null,FontStyle.LIGHT_CONDENSED),
         backgroundColor:ColorTheme.GREY_DARK
-    });
-    this._confirmButton = new Button("Delete",{
+    }));
+    this._confirmButton = this._container.addChild(new Button("Delete",{
         width:w,
         height:Math.round(30*r),
         pixelRatio:r,
         style:FontStyle.get(16,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
         backgroundColor:ColorTheme.RED
-    });
+    }));
+    this._containerMask = this._container.addChild(new Graphics());
+    this._container.mask = this._containerMask;
 
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
     this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
     this._tween = new App.TweenProxy(0.4,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
 
-    this._render();
-
-    this.addChild(this._overlay);
-    this.addChild(this._buttonBackground);
-    this.addChild(this._popUpBackground);
-    this.addChild(this._labelField);
-    this.addChild(this._messageField);
-    this.addChild(this._cancelButton);
-    this.addChild(this._confirmButton);
+    this._updateLayout(0);
 };
 
 App.PopUpButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 App.PopUpButton.prototype.constructor = App.PopUpButton;
-
-/**
- * Render
- * @private
- */
-App.PopUpButton.prototype._render = function _render()
-{
-    var GraphicUtils = App.GraphicUtils,
-        w = this.boundingBox.width,
-        h = this.boundingBox.height;
-
-    GraphicUtils.drawRoundedRect(this._buttonBackground,this._backgroundColor,1,0,0,w,h,Math.round(5 * this._pixelRatio));
-
-    this._labelField.x = Math.round((w - this._labelField.width) / 2);
-    this._labelField.y = Math.round((h - this._labelField.height) / 2);
-
-    this._overlay.visible = false;
-    this._messageField.visible = false;
-    this._messageField.alpha = 0.0;
-    this._cancelButton.visible = false;
-    this._cancelButton.alpha = 0.0;
-    this._confirmButton.visible = false;
-    this._confirmButton.alpha = 0.0;
-};
-
-/**
- * Set message
- * @param {string} message
- * @param {{font:string,fill:string}} style
- */
-/*App.PopUpButton.prototype.setMessage = function setMessage(message,style)
-{
-    this._messageField.setText(message);
-    if (style) this._messageField.setStyle(style);
-};*/
 
 /**
  * Set position
@@ -115,6 +71,9 @@ App.PopUpButton.prototype.setPosition = function setPosition(x,y)
 
     this.x = x;
     this.y = y;
+
+    this._overlay.x = -x;
+    this._overlay.y = -y;
 };
 
 /**
@@ -134,12 +93,6 @@ App.PopUpButton.prototype.setPopUpLayout = function setPopUpLayout(x,y,overlayWi
     this._popUpLayout.height = height || this._popUpLayout.height;
     this._popUpLayout.x = x || this._popUpLayout.x;
     this._popUpLayout.y = this._popUpLayout.height / 2 - this.boundingBox.y - y;
-
-    //TODO move to render function?
-    App.GraphicUtils.drawRect(this._overlay,App.ColorTheme.BLUE,1,0,0,this._popUpLayout.overlayWidth,this._popUpLayout.overlayHeight);
-
-    this._overlay.x = -this.boundingBox.x;
-    this._overlay.y = -this.boundingBox.y;
 };
 
 /**
@@ -153,6 +106,8 @@ App.PopUpButton.prototype.showPopUp = function showPopUp()
     {
         this._registerEventListeners(App.EventLevel.LEVEL_1);
 
+        this._onShowStart();
+
         this._transitionState = TransitionState.SHOWING;
 
         this._tween.restart();
@@ -161,20 +116,33 @@ App.PopUpButton.prototype.showPopUp = function showPopUp()
 
 /**
  * Hide popUp
+ * @param {boolean} immediate
  */
-App.PopUpButton.prototype.hidePopUp = function hidePopUp()
+App.PopUpButton.prototype.hidePopUp = function hidePopUp(immediate)
 {
     var TransitionState = App.TransitionState;
 
-    if (this._transitionState === TransitionState.SHOWN || this._transitionState === TransitionState.SHOWING)
+    if (immediate)
     {
-//        this.enable();
+        this._unRegisterEventListeners(App.EventLevel.LEVEL_2);
 
-        this._transitionState = TransitionState.HIDING;
+        this._transitionState = TransitionState.HIDDEN;
 
-        this._tween.start(true);
+        this._tween.stop();
 
-//        this.visible = true;
+        this._updateLayout(0);
+        this._onHideComplete();
+    }
+    else
+    {
+        if (this._transitionState === TransitionState.SHOWN || this._transitionState === TransitionState.SHOWING)
+        {
+            this._unRegisterEventListeners(App.EventLevel.LEVEL_2);
+
+            this._transitionState = TransitionState.HIDING;
+
+            this._tween.start(true);
+        }
     }
 };
 
@@ -196,20 +164,10 @@ App.PopUpButton.prototype._registerEventListeners = function _registerEventListe
 
     if (level === EventLevel.LEVEL_2 && this._eventsRegistered !== EventLevel.LEVEL_2)
     {
-        /*if (App.Device.TOUCH_SUPPORTED)
-        {
-            this.touchstart = this._onPointerDown;
-            this.touchend = this._onPointerUp;
-            this.touchendoutside = this._onPointerUp;
-        }
-        else
-        {
-            this.mousedown = this._onPointerDown;
-            this.mouseup = this._onPointerUp;
-            this.mouseupoutside = this._onPointerUp;
-        }
+        if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
+        else this.click = this._onClick;
 
-        this.interactive = true;*/
+        this.interactive = true;
     }
 
     this._eventsRegistered = level;
@@ -237,21 +195,24 @@ App.PopUpButton.prototype._unRegisterEventListeners = function _unRegisterEventL
     {
         this.interactive = false;
 
-        /*if (App.Device.TOUCH_SUPPORTED)
-        {
-            this.touchstart = null;
-            this.touchend = null;
-            this.touchendoutside = null;
-        }
-        else
-        {
-            this.mousedown = null;
-            this.mouseup = null;
-            this.mouseupoutside = null;
-        }*/
+        if (App.Device.TOUCH_SUPPORTED) this.tap = null;
+        else this.click = null;
 
         this._eventsRegistered = EventLevel.LEVEL_1;
     }
+};
+
+/**
+ * Click handler
+ * @param {PIXI.InteractionData} data
+ * @private
+ */
+App.PopUpButton.prototype._onClick = function _onClick(data)
+{
+    var position = this.stage.getTouchData().getLocalPosition(this._container);
+
+    if (this._cancelButton.hitTest(position)) this._eventDispatcher.dispatchEvent(App.EventType.CANCEL);
+    else if (this._confirmButton.hitTest(position)) this._eventDispatcher.dispatchEvent(App.EventType.CONFIRM);
 };
 
 /**
@@ -264,63 +225,76 @@ App.PopUpButton.prototype._onTick = function _onTick()
     {
         var TransitionState = App.TransitionState;
 
-        if (this._transitionState === TransitionState.SHOWING) this._onTweenUpdate(this._tween.progress);
-        else if (this._transitionState === TransitionState.HIDING) this._onTweenUpdate(1.0 - this._tween.progress);
+        if (this._transitionState === TransitionState.SHOWING) this._updateLayout(this._tween.progress);
+        else if (this._transitionState === TransitionState.HIDING) this._updateLayout(1.0 - this._tween.progress);
     }
 };
 
 /**
- * On tween update
+ * On show start
+ * @private
+ */
+App.PopUpButton.prototype._onShowStart = function _onShowStart()
+{
+    var padding = Math.round(10 * this._pixelRatio);
+
+    this._cancelButton.x = padding;
+    this._confirmButton.x = padding;
+
+    App.GraphicUtils.drawRect(this._overlay,App.ColorTheme.BLUE,1,0,0,this._popUpLayout.overlayWidth,this._popUpLayout.overlayHeight);
+    this._overlay.alpha = 0.0;
+    this._overlay.visible = true;
+
+    this._popUpBackground.alpha = 0.0;
+    this._popUpBackground.visible = true;
+
+    this._messageField.alpha = 0.0;
+    this._messageField.visible = true;
+
+    this._cancelButton.alpha = 0.0;
+    this._cancelButton.visible = true;
+
+    this._confirmButton.alpha = 0.0;
+    this._confirmButton.visible = true;
+};
+
+/**
+ * Update layout
  * @param {number} progress
  * @private
  */
-App.PopUpButton.prototype._onTweenUpdate = function _onTweenUpdate(progress)
+App.PopUpButton.prototype._updateLayout = function _updateLayout(progress)
 {
-    var r = this._pixelRatio,
-        x = this.boundingBox.x,
-        y = this.boundingBox.y,
-        w = this.boundingBox.width,
-        h = this.boundingBox.height,
-        pw = this._popUpLayout.width,
-        ph = this._popUpLayout.height,
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        r = this._pixelRatio,
+        bw = this.boundingBox.width,
+        bh = this.boundingBox.height,
+        w = Math.round(bw + (this._popUpLayout.width - bw) * progress),
+        h = Math.round(bh + (this._popUpLayout.height - bh) * progress),
         padding = Math.round(10 * r),
+        radius = Math.round(5 * r),
+        buttonWidth = Math.round(w - padding * 2),
         buttonsHeight = this._cancelButton.boundingBox.height + this._confirmButton.boundingBox.height + padding;
 
-    /*App.GraphicUtils.drawRoundedRect(
-        this._buttonBackground,
-        this._backgroundColor,
-        1,
-        Math.round(this._popUpLayout.x * progress),
-        Math.round(this._popUpLayout.y * progress),
-        Math.round(w + this._popUpLayout.width * progress),
-        Math.round(h + this._popUpLayout.height * progress),
-        Math.round(5 * this._pixelRatio)
-    );*/
-    this._overlay.visible = true;
-    this._overlay.alpha = 0.8 * progress;
+    GraphicUtils.drawRect(this._containerMask,ColorTheme.BLACK,1,0,0,w,h);
+    GraphicUtils.drawRoundedRect(this._container,ColorTheme.RED,1,0,0,w,h,radius);
+    GraphicUtils.drawRoundedRect(this._popUpBackground,ColorTheme.GREY,1,0,0,w,h,radius);
 
-    App.GraphicUtils.drawRoundedRect(this._buttonBackground,App.ColorTheme.RED,1,0,0,w+(pw-w)*progress,h+(ph-h)*progress,Math.round(5 * this._pixelRatio));
-    App.GraphicUtils.drawRoundedRect(this._popUpBackground,App.ColorTheme.GREY,1,0,0,w+(pw-w)*progress,h+(ph-h)*progress,Math.round(5 * this._pixelRatio));
+    this._container.x = Math.round(this._popUpLayout.x * progress);
+    this._container.y = Math.round(this._popUpLayout.y * progress);
 
-    this._popUpBackground.x = (this._popUpLayout.x) * progress;
-    this._popUpBackground.y = (this._popUpLayout.y) * progress;
-    this._buttonBackground.x = this._popUpBackground.x;
-    this._buttonBackground.y = this._popUpBackground.y;
-
-    this._cancelButton.resize(this._popUpBackground.width-padding*2);
-    this._cancelButton.x = this._popUpBackground.x + padding;
-    this._cancelButton.y = this._popUpBackground.y + this._popUpBackground.height - buttonsHeight - padding;
-    this._confirmButton.resize(this._popUpBackground.width-padding*2);
-    this._confirmButton.x = this._popUpBackground.x + padding;
+    this._cancelButton.resize(buttonWidth);
+    this._cancelButton.y = h - buttonsHeight - padding;
+    this._confirmButton.resize(buttonWidth);
     this._confirmButton.y = this._cancelButton.y + this._cancelButton.boundingBox.height + padding;
 
-    this._messageField.x = this._popUpBackground.x + (this._popUpBackground.width - this._messageField.width) / 2;
-    this._messageField.y = this._popUpBackground.y + ((this._popUpBackground.height - buttonsHeight - padding - this._messageField.height) / 2);
+    this._labelField.x = Math.round((w - this._labelField.width) / 2);
+    this._labelField.y = Math.round((h - this._labelField.height) / 2);
+    this._messageField.x = Math.round((w - this._messageField.width) / 2);
+    this._messageField.y = Math.round((h - buttonsHeight - padding - this._messageField.height) / 2);
 
-    this._messageField.visible = true;
-    this._cancelButton.visible = true;
-    this._confirmButton.visible = true;
-
+    this._overlay.alpha = 0.8 * progress;
     this._popUpBackground.alpha = progress;
     this._messageField.alpha = progress;
     this._cancelButton.alpha = progress;
@@ -340,22 +314,31 @@ App.PopUpButton.prototype._onTweenComplete = function _onTweenComplete()
     {
         this._transitionState = TransitionState.SHOWN;
 
-//        this.alpha = 1.0;
-
         this._registerEventListeners(App.EventLevel.LEVEL_2);
     }
     else if (this._transitionState === TransitionState.HIDING)
     {
         this._transitionState = TransitionState.HIDDEN;
 
-        this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
-
-//        this.alpha = 0.0;
-
-//        this.visible = false;
-
-        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,{target:this,state:this._transitionState});
+        this._onHideComplete();
     }
+};
+
+/**
+ * On hide complete
+ * @private
+ */
+App.PopUpButton.prototype._onHideComplete = function _onHideComplete()
+{
+    this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
+
+    this._overlay.visible = false;
+    this._popUpBackground.visible = false;
+    this._messageField.visible = false;
+    this._cancelButton.visible = false;
+    this._confirmButton.visible = false;
+
+    this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,{target:this,state:this._transitionState});
 };
 
 /**
@@ -366,4 +349,26 @@ App.PopUpButton.prototype._onTweenComplete = function _onTweenComplete()
 App.PopUpButton.prototype.hitTest = function hitTest(position)
 {
     return position >= this.y && position < this.y + this.boundingBox.height;
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.PopUpButton.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.PopUpButton.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };
