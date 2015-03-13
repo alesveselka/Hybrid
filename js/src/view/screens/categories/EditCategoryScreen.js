@@ -43,10 +43,14 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
     this._subCategoryList = this._container.addChild(new App.SubCategoryList(subCategoryButtonOptions));
     this._budgetHeader = this._container.addChild(new App.ListHeader("Budget",w,r));
     this._budget = this._container.addChild(new Input("Enter Budget",20,inputWidth,inputHeight,r,true));
-    this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
+    this._deleteButton = new App.PopUpButton("Delete","Are you sure you want to\ndelete this category with all its\ndata and sub-categories?",{
+        width:inputWidth,
+        height:inputHeight,
+        pixelRatio:r,
+        popUpLayout:{x:Math.round(10*r),y:0,width:Math.round(inputWidth-20*r),height:Math.round(layout.height/2),overlayWidth:w,overlayHeight:0}
+    });
     this._renderAll = true;
 
-    //TODO add modal window to confirm deleting sub-category. Also offer option 'Edit'?
     //TODO center selected color/icon when shown
 
     this._budget.restrict(/\D/g);
@@ -107,7 +111,6 @@ App.EditCategoryScreen.prototype._render = function _render()
         this._subCategoryList.y = this._bottomIconList.y + this._bottomIconList.boundingBox.height;
 
         this._budget.x = this._inputPadding;
-        this._deleteButton.x = this._inputPadding;
         this._separators.x = this._inputPadding;
     }
 
@@ -121,7 +124,7 @@ App.EditCategoryScreen.prototype._render = function _render()
     {
         bottom = bottom + inputFragmentHeight;
 
-        this._deleteButton.y = bottom + this._inputPadding;
+        this._deleteButton.setPosition(this._inputPadding,bottom+this._inputPadding);
 
         if (!this._container.contains(this._deleteButton)) this._container.addChild(this._deleteButton);
     }
@@ -141,6 +144,16 @@ App.EditCategoryScreen.prototype._render = function _render()
         0,inputFragmentHeight+colorListHeight+1,separatorWidth,1,
         0,bottom,separatorWidth,1
     ],false,true);
+};
+
+/**
+ * Hide
+ */
+App.EditCategoryScreen.prototype.hide = function hide()
+{
+    this._unRegisterDeleteButtonListeners();
+
+    App.Screen.prototype.hide.call(this);
 };
 
 /**
@@ -175,6 +188,7 @@ App.EditCategoryScreen.prototype.update = function update(model,mode)
     this._render();
 
     this._pane.resize();
+    this.resetScroll();
 };
 
 /**
@@ -182,7 +196,7 @@ App.EditCategoryScreen.prototype.update = function update(model,mode)
  */
 App.EditCategoryScreen.prototype.enable = function enable()
 {
-    App.InputScrollScreen.prototype.enable.call(this);
+    App.Screen.prototype.enable.call(this);
 
     this._colorList.enable();
     this._topIconList.enable();
@@ -195,9 +209,7 @@ App.EditCategoryScreen.prototype.enable = function enable()
  */
 App.EditCategoryScreen.prototype.disable = function disable()
 {
-    this.resetScroll();//TODO reset before the screen start hiding
-
-    App.InputScrollScreen.prototype.disable.call(this);
+    App.Screen.prototype.disable.call(this);
 
     this._input.disable();
     this._colorList.disable();
@@ -242,6 +254,66 @@ App.EditCategoryScreen.prototype._unRegisterEventListeners = function _unRegiste
 
     this._budget.removeEventListener(EventType.BLUR,this,this._onInputBlur);
     this._input.removeEventListener(EventType.BLUR,this,this._onInputBlur);
+};
+
+/**
+ * Register delete button event listeners
+ * @private
+ */
+App.EditCategoryScreen.prototype._registerDeleteButtonListeners = function _registerDeleteButtonListeners()
+{
+    var EventType = App.EventType;
+
+    this._deleteButton.addEventListener(EventType.CANCEL,this,this._onDeleteCancel);
+    this._deleteButton.addEventListener(EventType.CONFIRM,this,this._onDeleteConfirm);
+    this._deleteButton.addEventListener(EventType.COMPLETE,this,this._onHidePopUpComplete);
+};
+
+/**
+ * UnRegister delete button event listeners
+ * @private
+ */
+App.EditCategoryScreen.prototype._unRegisterDeleteButtonListeners = function _unRegisterDeleteButtonListeners()
+{
+    var EventType = App.EventType;
+
+    this._deleteButton.removeEventListener(EventType.CANCEL,this,this._onDeleteCancel);
+    this._deleteButton.removeEventListener(EventType.CONFIRM,this,this._onDeleteConfirm);
+    this._deleteButton.removeEventListener(EventType.COMPLETE,this,this._onHidePopUpComplete);
+};
+
+/**
+ * On delete cancel
+ * @private
+ */
+App.EditCategoryScreen.prototype._onDeleteCancel = function _onDeleteCancel()
+{
+    this._deleteButton.hidePopUp();
+
+    App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
+};
+
+/**
+ * On delete confirm
+ * @private
+ */
+App.EditCategoryScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
+{
+    this._deleteButton.hidePopUp(true);
+
+    App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
+};
+
+/**
+ * On Delete PopUp hide complete
+ * @private
+ */
+App.EditCategoryScreen.prototype._onHidePopUpComplete = function _onHidePopUpComplete()
+{
+    this._unRegisterDeleteButtonListeners();
+
+    this.enable();
+    this._registerEventListeners(App.EventLevel.LEVEL_2);
 };
 
 /**
@@ -315,6 +387,26 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
 
         this._subCategoryList.closeButtons();
     }
+    else if (this._deleteButton.hitTest(y))
+    {
+        if (inputFocused)
+        {
+            this._scrollInput.blur();
+        }
+        else
+        {
+            this.disable();
+            this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
+            App.ViewLocator.getViewSegment(App.ViewName.HEADER).disableActions();
+            this._registerDeleteButtonListeners();
+            this._deleteButton.setPopUpLayout(0,this._container.y + this._layout.headerHeight,0,this._layout.contentHeight > this._container.height ? this._layout.contentHeight : this._container.height);
+            this._deleteButton.showPopUp();
+        }
+    }
+    else
+    {
+        if (inputFocused) this._scrollInput.blur();
+    }
 };
 
 /**
@@ -372,7 +464,7 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
         this._model.clearSavedStates();
 
         changeScreenData.updateBackScreen = true;
-
+        //TODO when i create new Category, or edit current one, user can delete all subCategories!!!
         App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,changeCategoryData);
     }
     else if (action === App.HeaderAction.CANCEL)

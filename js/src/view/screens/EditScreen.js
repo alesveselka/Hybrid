@@ -14,7 +14,6 @@ App.EditScreen = function EditScreen(layout)
 
     this._background = this.addChild(new PIXI.Graphics());
     this._input = this.addChild(new App.Input("",20,inputWidth,inputHeight,r,true));
-    //this._deleteButton = new App.Button("Delete",{width:inputWidth,height:inputHeight,pixelRatio:r,style:FontStyle.get(18,FontStyle.WHITE),backgroundColor:App.ColorTheme.RED});
     this._deleteButton = new App.PopUpButton("Delete","Are you sure you want to\ndelete this sub-category?",{//TODO message will differ based on model to delete
         width:inputWidth,
         height:inputHeight,
@@ -49,8 +48,6 @@ App.EditScreen.prototype._render = function _render()
         this._input.y = padding;
 
         this._deleteButton.setPosition(padding,inputHeight+padding);
-//        this._deleteButton.x = padding;
-//        this._deleteButton.y = inputHeight + padding;
     }
 
     if (this._mode === ScreenMode.EDIT)
@@ -68,6 +65,16 @@ App.EditScreen.prototype._render = function _render()
 
         GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w+padding*2,inputHeight);
     }
+};
+
+/**
+ * Hide
+ */
+App.EditScreen.prototype.hide = function hide()
+{
+    this._unRegisterDeleteButtonListeners();
+
+    App.Screen.prototype.hide.call(this);
 };
 
 /**
@@ -107,6 +114,66 @@ App.EditScreen.prototype.update = function update(model,mode)
 };
 
 /**
+ * Register delete button event listeners
+ * @private
+ */
+App.EditScreen.prototype._registerDeleteButtonListeners = function _registerDeleteButtonListeners()
+{
+    var EventType = App.EventType;
+
+    this._deleteButton.addEventListener(EventType.CANCEL,this,this._onDeleteCancel);
+    this._deleteButton.addEventListener(EventType.CONFIRM,this,this._onDeleteConfirm);
+    this._deleteButton.addEventListener(EventType.COMPLETE,this,this._onHidePopUpComplete);
+};
+
+/**
+ * UnRegister delete button event listeners
+ * @private
+ */
+App.EditScreen.prototype._unRegisterDeleteButtonListeners = function _unRegisterDeleteButtonListeners()
+{
+    var EventType = App.EventType;
+
+    this._deleteButton.removeEventListener(EventType.CANCEL,this,this._onDeleteCancel);
+    this._deleteButton.removeEventListener(EventType.CONFIRM,this,this._onDeleteConfirm);
+    this._deleteButton.removeEventListener(EventType.COMPLETE,this,this._onHidePopUpComplete);
+};
+
+/**
+ * On delete cancel
+ * @private
+ */
+App.EditScreen.prototype._onDeleteCancel = function _onDeleteCancel()
+{
+    this._deleteButton.hidePopUp();
+
+    App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
+};
+
+/**
+ * On delete confirm
+ * @private
+ */
+App.EditScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
+{
+    this._deleteButton.hidePopUp(true);
+
+    App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
+};
+
+/**
+ * On Delete PopUp hide complete
+ * @private
+ */
+App.EditScreen.prototype._onHidePopUpComplete = function _onHidePopUpComplete()
+{
+    this._unRegisterDeleteButtonListeners();
+
+    this.enable();
+    this._registerEventListeners(App.EventLevel.LEVEL_2);
+};
+
+/**
  * Click handler
  * @private
  */
@@ -120,15 +187,11 @@ App.EditScreen.prototype._onClick = function _onClick()
         }
         else
         {
-            //TODO also disable header actions
-            //this.disable();
-
-            this._deleteButton.setPopUpLayout(
-                0,
-                this._layout.headerHeight,
-                0,
-                this._layout.contentHeight > this._background.height ? this._layout.contentHeight : this._background.height
-            );
+            this.disable();
+            this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
+            App.ViewLocator.getViewSegment(App.ViewName.HEADER).disableActions();
+            this._registerDeleteButtonListeners();
+            this._deleteButton.setPopUpLayout(0,this._layout.headerHeight,0,this._layout.contentHeight > this._background.height ? this._layout.contentHeight : this._background.height);
             this._deleteButton.showPopUp();
         }
     }

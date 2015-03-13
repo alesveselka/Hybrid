@@ -51,7 +51,7 @@ App.PopUpButton = function PopUpButton(label,message,options)
 
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
     this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
-    this._tween = new App.TweenProxy(0.4,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._tween = new App.TweenProxy(0.3,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
 
     this._updateLayout(0);
 };

@@ -24,6 +24,7 @@ App.Header = function Header(layout)
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
     this._tween = new App.TweenProxy(0.7,App.Easing.outExpo,0,listenerPool);
     this._eventDispatcher = new App.EventDispatcher(listenerPool);
+    this._actionEnabled = true;
 
     this._render();
 
@@ -82,6 +83,22 @@ App.Header.prototype._registerEventListeners = function _registerEventListeners(
     this._tween.addEventListener(EventType.COMPLETE,this,this._onTweenComplete);
 
     this.interactive = true;
+};
+
+/**
+ * Enable actions
+ */
+App.Header.prototype.enableActions = function enableActions()
+{
+    this._actionEnabled = true;
+};
+
+/**
+ * Disable actions
+ */
+App.Header.prototype.disableActions = function disableActions()
+{
+    this._actionEnabled = false;
 };
 
 /**
@@ -149,14 +166,17 @@ App.Header.prototype._onTweenComplete = function _onTweenComplete()
  */
 App.Header.prototype._onClick = function _onClick(data)
 {
-    var position = data.getLocalPosition(this).x,
-        HeaderAction = App.HeaderAction,
-        action = HeaderAction.NONE;
+    if (this._actionEnabled)
+    {
+        var position = data.getLocalPosition(this).x,
+            HeaderAction = App.HeaderAction,
+            action = HeaderAction.NONE;
 
-    if (position <= this._iconSize) action = this._leftIcon.getAction();
-    else if (position >= this._layout.width - this._iconSize) action = this._rightIcon.getAction();
+        if (position <= this._iconSize) action = this._leftIcon.getAction();
+        else if (position >= this._layout.width - this._iconSize) action = this._rightIcon.getAction();
 
-    if (action !== HeaderAction.NONE) this._eventDispatcher.dispatchEvent(App.EventType.CLICK,action);
+        if (action !== HeaderAction.NONE) this._eventDispatcher.dispatchEvent(App.EventType.CLICK,action);
+    }
 };
 
 /**

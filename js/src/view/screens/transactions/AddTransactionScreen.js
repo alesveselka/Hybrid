@@ -284,6 +284,8 @@ App.AddTransactionScreen.prototype._unRegisterDeleteButtonListeners = function _
 App.AddTransactionScreen.prototype._onDeleteCancel = function _onDeleteCancel()
 {
     this._deleteButton.hidePopUp();
+
+    App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
 };
 
 /**
@@ -293,6 +295,8 @@ App.AddTransactionScreen.prototype._onDeleteCancel = function _onDeleteCancel()
 App.AddTransactionScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
 {
     this._deleteButton.hidePopUp(true);
+
+    App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
 };
 
 /**
@@ -378,9 +382,9 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
         }
         else
         {
-            //TODO also disable header actions
             this.disable();
             this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
+            App.ViewLocator.getViewSegment(App.ViewName.HEADER).disableActions();
             this._registerDeleteButtonListeners();
             this._deleteButton.setPopUpLayout(0,this._container.y + this._layout.headerHeight,0,this._layout.contentHeight > this._container.height ? this._layout.contentHeight : this._container.height);
             this._deleteButton.showPopUp();
