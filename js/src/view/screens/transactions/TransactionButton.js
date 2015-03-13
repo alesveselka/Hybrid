@@ -223,7 +223,7 @@ App.TransactionButton.prototype.onClick = function onClick(data)
                 type:App.EventType.COPY,
                 transaction:this._model,
                 nextCommand:new App.ChangeScreen(),
-                nextCommandData:changeScreenData.update()
+                nextCommandData:changeScreenData
             });
         }
     }

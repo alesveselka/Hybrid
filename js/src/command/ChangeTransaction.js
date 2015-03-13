@@ -79,6 +79,12 @@ App.ChangeTransaction.prototype.execute = function execute(data)
         if (transaction.isSaved()) transactions.setCurrent(null);
         else transactions.removeItem(transaction).destroy();
     }
+    else if (type === EventType.DELETE)
+    {
+        transactions.removeItem(transaction).destroy();
+
+        data.nextCommandData.updateData = transactions.copySource().reverse();
+    }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);

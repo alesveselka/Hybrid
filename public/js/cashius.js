@@ -8482,6 +8482,8 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
     this._methodOption.setValue(this._model.method.name);
     this._currencyOption.setValue(this._model.currency.symbol);
 
+    this._deleteButton.hidePopUp(true);
+
     this._noteInput.setValue(this._model.note);
 
     this._render();
@@ -8601,9 +8603,27 @@ App.AddTransactionScreen.prototype._onDeleteCancel = function _onDeleteCancel()
  */
 App.AddTransactionScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
 {
-    this._deleteButton.hidePopUp(true);
+    var HeaderAction = App.HeaderAction,
+        ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName;
 
+    this._onHidePopUpComplete();
     App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
+
+    ModelLocator.getProxy(ModelName.TRANSACTIONS).setCurrent(this._model);
+
+    App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+        type:App.EventType.DELETE,
+        nextCommand:new App.ChangeScreen(),
+        nextCommandData:ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+            App.ScreenName.TRANSACTIONS,
+            0,
+            null,
+            HeaderAction.MENU,
+            HeaderAction.ADD_TRANSACTION,
+            App.ScreenTitle.TRANSACTIONS
+        )
+    });
 };
 
 /**
@@ -11058,7 +11078,7 @@ App.TransactionButton.prototype.onClick = function onClick(data)
                 type:App.EventType.COPY,
                 transaction:this._model,
                 nextCommand:new App.ChangeScreen(),
-                nextCommandData:changeScreenData.update()
+                nextCommandData:changeScreenData
             });
         }
     }
@@ -13492,6 +13512,12 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     {
         if (transaction.isSaved()) transactions.setCurrent(null);
         else transactions.removeItem(transaction).destroy();
+    }
+    else if (type === EventType.DELETE)
+    {
+        transactions.removeItem(transaction).destroy();
+
+        data.nextCommandData.updateData = transactions.copySource().reverse();
     }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
