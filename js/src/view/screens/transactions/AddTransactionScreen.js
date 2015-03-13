@@ -449,12 +449,15 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
  * On budget field blur
  * @private
  */
-/*App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
+App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
 {
     App.InputScrollScreen.prototype._onInputBlur.call(this);
 
-    var transaction = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent();
+    var EventType = App.EventType;
 
-    if (this._scrollInput === this._transactionInput) transaction.amount = this._transactionInput.getValue();
-    else if (this._scrollInput === this._noteInput) transaction.note = this._noteInput.getValue();
-};*/
+    App.Controller.dispatchEvent(EventType.CHANGE_TRANSACTION,{
+        type:EventType.CHANGE,
+        amount:this._transactionInput.getValue(),
+        note:this._noteInput.getValue()
+    });
+};

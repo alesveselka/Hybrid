@@ -7254,10 +7254,14 @@ App.PopUpButton.prototype._onTweenComplete = function _onTweenComplete()
         this._transitionState = TransitionState.SHOWN;
 
         this._registerEventListeners(App.EventLevel.LEVEL_2);
+
+        this._updateLayout(1);
     }
     else if (this._transitionState === TransitionState.HIDING)
     {
         this._transitionState = TransitionState.HIDDEN;
+
+        this._updateLayout(0);
 
         this._onHideComplete();
     }
@@ -8752,15 +8756,18 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
  * On budget field blur
  * @private
  */
-/*App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
+App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
 {
     App.InputScrollScreen.prototype._onInputBlur.call(this);
 
-    var transaction = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).getCurrent();
+    var EventType = App.EventType;
 
-    if (this._scrollInput === this._transactionInput) transaction.amount = this._transactionInput.getValue();
-    else if (this._scrollInput === this._noteInput) transaction.note = this._noteInput.getValue();
-};*/
+    App.Controller.dispatchEvent(EventType.CHANGE_TRANSACTION,{
+        type:EventType.CHANGE,
+        amount:this._transactionInput.getValue(),
+        note:this._noteInput.getValue()
+    });
+};
 
 /**
  * @class SelectTimeScreen
@@ -13456,11 +13463,13 @@ App.ChangeTransaction.prototype.execute = function execute(data)
         var date = data.date,
             time = data.time;
 
+        transaction.amount = data.amount || transaction.amount;
         transaction.account = data.account || transaction.account;
         transaction.category = data.category || transaction.category;
         transaction.subCategory = data.subCategory || transaction.subCategory;
         transaction.method = data.method || transaction.method;
         transaction.currency = data.currency || transaction.currency;
+        transaction.note = data.note || transaction.note;
 
         if (date && time)
         {

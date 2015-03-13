@@ -315,10 +315,14 @@ App.PopUpButton.prototype._onTweenComplete = function _onTweenComplete()
         this._transitionState = TransitionState.SHOWN;
 
         this._registerEventListeners(App.EventLevel.LEVEL_2);
+
+        this._updateLayout(1);
     }
     else if (this._transitionState === TransitionState.HIDING)
     {
         this._transitionState = TransitionState.HIDDEN;
+
+        this._updateLayout(0);
 
         this._onHideComplete();
     }

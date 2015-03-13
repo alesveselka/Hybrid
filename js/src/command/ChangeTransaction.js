@@ -49,11 +49,13 @@ App.ChangeTransaction.prototype.execute = function execute(data)
         var date = data.date,
             time = data.time;
 
+        transaction.amount = data.amount || transaction.amount;
         transaction.account = data.account || transaction.account;
         transaction.category = data.category || transaction.category;
         transaction.subCategory = data.subCategory || transaction.subCategory;
         transaction.method = data.method || transaction.method;
         transaction.currency = data.currency || transaction.currency;
+        transaction.note = data.note || transaction.note;
 
         if (date && time)
         {
