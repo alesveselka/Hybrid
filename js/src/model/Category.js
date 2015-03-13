@@ -41,6 +41,28 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
 App.Category._UID = 0;
 
 /**
+ * Destroy
+ */
+App.Category.prototype.destroy = function destroy()
+{
+    var i = 0,
+        l = this._subCategories.length;
+
+    for (;i<l;) this._subCategories[i++] = null;
+    this._subCategories.length = 0;
+    this._subCategories = null;
+
+    if (this._states && this._states.length)
+    {
+        for (i=0,l=this._states.length;i<l;) this._states[i++] = null;
+        this._states.length = 0;
+        this._states = null;
+    }
+
+    this._data = null;
+};
+
+/**
  * Add subCategory
  * @param {App.SubCategory} subCategory
  */

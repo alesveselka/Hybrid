@@ -185,6 +185,8 @@ App.EditCategoryScreen.prototype.update = function update(model,mode)
     this._subCategoryList.update(this._model,App.ScreenMode.EDIT);
     this._budget.setValue(this._model.budget);
 
+    this._deleteButton.hidePopUp(true);
+
     this._render();
 
     this._pane.resize();
@@ -299,9 +301,20 @@ App.EditCategoryScreen.prototype._onDeleteCancel = function _onDeleteCancel()
  */
 App.EditCategoryScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
 {
-    this._deleteButton.hidePopUp(true);
+    var EventType = App.EventType,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
+    this._onHidePopUpComplete();
     App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
+
+    changeScreenData.updateBackScreen = true;
+
+    App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,{
+        type:EventType.DELETE,
+        category:this._model,
+        nextCommand:new App.ChangeScreen(),
+        nextCommandData:changeScreenData
+    });
 };
 
 /**
@@ -374,6 +387,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
             }
             else
             {
+                //TODO check how many sub-categories the category have and allow to delete sub-category if there is more than one
                 button.onClick(touchData,this._model);
             }
         }

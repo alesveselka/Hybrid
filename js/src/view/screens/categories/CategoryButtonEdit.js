@@ -84,6 +84,7 @@ App.CategoryButtonEdit.prototype.onClick = function onClick(data)
     {
         this._model.saveState();
 
+        //TODO set 'Edit' mode only if there are more than one categories in the account
         App.Controller.dispatchEvent(
             App.EventType.CHANGE_SCREEN,
             App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(

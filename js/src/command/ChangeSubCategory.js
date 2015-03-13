@@ -44,6 +44,7 @@ App.ChangeSubCategory.prototype.execute = function execute(data)
     {
         data.category.removeSubCategory(subCategory);
 
+        //TODO keep the sub-category in collection, but them completely remove if it's not referenced anywhere?
         App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).removeItem(subCategory);
     }
 

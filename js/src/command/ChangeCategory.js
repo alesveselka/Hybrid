@@ -66,6 +66,10 @@ App.ChangeCategory.prototype.execute = function execute(data)
     {
         this._cancelChanges(category);
     }
+    else if (type === EventType.DELETE)
+    {
+        this._deleteCategory(category);
+    }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);
@@ -141,4 +145,28 @@ App.ChangeCategory.prototype._cancelChanges = function _cancelChanges(category)
     for (;i<l;) revokedSubCategories[i++].revokeState();
 
     //TODO destroy category if it was newly created and eventually cancelled?
+};
+
+/**
+ * Delete category
+ * @param {App.Category} category
+ * @private
+ */
+App.ChangeCategory.prototype._deleteCategory = function _deleteCategory(category)
+{
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        subCategoryCollection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES),
+        subCategories = category.subCategories,
+        i = 0,
+        l = subCategories.length;
+
+    for (;i<l;) subCategoryCollection.removeItem(subCategories[i++]);
+
+    ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).removeCategory(category);
+
+    //TODO keep the category in collection, but them completely remove if it's not referenced anywhere?
+    //ModelLocator.getProxy(ModelName.CATEGORIES).removeItem(category);
+
+    category.destroy();//TODO category is still referenced in transactions
 };

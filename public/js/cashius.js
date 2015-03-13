@@ -2119,6 +2119,28 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
 App.Category._UID = 0;
 
 /**
+ * Destroy
+ */
+App.Category.prototype.destroy = function destroy()
+{
+    var i = 0,
+        l = this._subCategories.length;
+
+    for (;i<l;) this._subCategories[i++] = null;
+    this._subCategories.length = 0;
+    this._subCategories = null;
+
+    if (this._states && this._states.length)
+    {
+        for (i=0,l=this._states.length;i<l;) this._states[i++] = null;
+        this._states.length = 0;
+        this._states = null;
+    }
+
+    this._data = null;
+};
+
+/**
  * Add subCategory
  * @param {App.SubCategory} subCategory
  */
@@ -7868,7 +7890,7 @@ App.EditScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
     this._onHidePopUpComplete();
     App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
 
-    //changeScreenData.updateBackScreen = true;
+    changeScreenData.updateBackScreen = true;
 
     App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
         type:EventType.DELETE,
@@ -9643,6 +9665,7 @@ App.CategoryButtonEdit.prototype.onClick = function onClick(data)
     {
         this._model.saveState();
 
+        //TODO set 'Edit' mode only if there are more than one categories in the account
         App.Controller.dispatchEvent(
             App.EventType.CHANGE_SCREEN,
             App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
@@ -10521,6 +10544,8 @@ App.EditCategoryScreen.prototype.update = function update(model,mode)
     this._subCategoryList.update(this._model,App.ScreenMode.EDIT);
     this._budget.setValue(this._model.budget);
 
+    this._deleteButton.hidePopUp(true);
+
     this._render();
 
     this._pane.resize();
@@ -10635,9 +10660,20 @@ App.EditCategoryScreen.prototype._onDeleteCancel = function _onDeleteCancel()
  */
 App.EditCategoryScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
 {
-    this._deleteButton.hidePopUp(true);
+    var EventType = App.EventType,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
+    this._onHidePopUpComplete();
     App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
+
+    changeScreenData.updateBackScreen = true;
+
+    App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,{
+        type:EventType.DELETE,
+        category:this._model,
+        nextCommand:new App.ChangeScreen(),
+        nextCommandData:changeScreenData
+    });
 };
 
 /**
@@ -10710,6 +10746,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
             }
             else
             {
+                //TODO check how many sub-categories the category have and allow to delete sub-category if there is more than one
                 button.onClick(touchData,this._model);
             }
         }
@@ -13611,6 +13648,10 @@ App.ChangeCategory.prototype.execute = function execute(data)
     {
         this._cancelChanges(category);
     }
+    else if (type === EventType.DELETE)
+    {
+        this._deleteCategory(category);
+    }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);
@@ -13686,6 +13727,29 @@ App.ChangeCategory.prototype._cancelChanges = function _cancelChanges(category)
     for (;i<l;) revokedSubCategories[i++].revokeState();
 
     //TODO destroy category if it was newly created and eventually cancelled?
+};
+
+/**
+ * Delete category
+ * @param {App.Category} category
+ * @private
+ */
+App.ChangeCategory.prototype._deleteCategory = function _deleteCategory(category)
+{
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        subCategoryCollection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES),
+        subCategories = category.subCategories,
+        i = 0,
+        l = subCategories.length;
+
+    for (;i<l;) subCategoryCollection.removeItem(subCategories[i++]);
+
+    ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).removeCategory(category);
+
+    //ModelLocator.getProxy(ModelName.CATEGORIES).removeItem(category);
+
+    category.destroy();//TODO category is still referenced in transactions
 };
 
 /**
