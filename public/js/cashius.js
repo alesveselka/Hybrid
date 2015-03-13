@@ -7814,6 +7814,8 @@ App.EditScreen.prototype.update = function update(model,mode)
     if (this._model.subCategory) this._input.setValue(this._model.subCategory.name);
     //this._input.setPlaceholder(data.placeholder);
 
+    this._deleteButton.hidePopUp(true);
+
     this._render();
 };
 
@@ -7860,9 +7862,26 @@ App.EditScreen.prototype._onDeleteCancel = function _onDeleteCancel()
  */
 App.EditScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
 {
-    this._deleteButton.hidePopUp(true);
+    var EventType = App.EventType,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
 
+    this._onHidePopUpComplete();
     App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
+
+    //changeScreenData.updateBackScreen = true;
+
+    App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
+        type:EventType.DELETE,
+        subCategory:this._model.subCategory,
+        category:this._model.category,
+        nextCommand:new App.ChangeCategory(),
+        nextCommandData:{
+            type:EventType.CHANGE,
+            category:this._model.category,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        }
+    });
 };
 
 /**
@@ -13710,6 +13729,12 @@ App.ChangeSubCategory.prototype.execute = function execute(data)
         subCategory.name = data.name;
 
         data.category.addSubCategory(subCategory);
+    }
+    else if (type === EventType.DELETE)
+    {
+        data.category.removeSubCategory(subCategory);
+
+        App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).removeItem(subCategory);
     }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);

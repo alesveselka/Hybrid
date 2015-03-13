@@ -40,6 +40,12 @@ App.ChangeSubCategory.prototype.execute = function execute(data)
 
         data.category.addSubCategory(subCategory);
     }
+    else if (type === EventType.DELETE)
+    {
+        data.category.removeSubCategory(subCategory);
+
+        App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).removeItem(subCategory);
+    }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);
