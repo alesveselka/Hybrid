@@ -199,11 +199,8 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
         transactionButtonOptions = {
             labelStyles:{
                 edit:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-                //accountExpense:FontStyle.get(14,FontStyle.RED_DARK,null,FontStyle.LIGHT_CONDENSED),
                 accountIncome:FontStyle.get(14,FontStyle.BLUE_LIGHT,null,FontStyle.LIGHT_CONDENSED),
-                //amountExpense:FontStyle.get(26,FontStyle.RED_DARK),
                 amountIncome:FontStyle.get(26,FontStyle.BLUE),
-                //currencyExpense:FontStyle.get(16,FontStyle.RED_DARK,null,FontStyle.LIGHT_CONDENSED),
                 currencyIncome:FontStyle.get(16,FontStyle.BLUE_DARK,null,FontStyle.LIGHT_CONDENSED),
                 date:FontStyle.get(14,FontStyle.GREY_DARK),
                 pending:FontStyle.get(12,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),

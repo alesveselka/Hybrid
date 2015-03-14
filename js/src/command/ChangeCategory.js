@@ -161,12 +161,13 @@ App.ChangeCategory.prototype._deleteCategory = function _deleteCategory(category
         i = 0,
         l = subCategories.length;
 
-    for (;i<l;) subCategoryCollection.removeItem(subCategories[i++]);
+    //TODO may still be referenced in transaction(s)
+    //TODO keep the (sub)category in collection, but them completely remove if it's not referenced anywhere?
+    //for (;i<l;) subCategoryCollection.removeItem(subCategories[i++]);
 
     ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).removeCategory(category);
 
-    //TODO keep the category in collection, but them completely remove if it's not referenced anywhere?
     //ModelLocator.getProxy(ModelName.CATEGORIES).removeItem(category);
 
-    category.destroy();//TODO category is still referenced in transactions
+    category.destroy();
 };

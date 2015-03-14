@@ -8144,7 +8144,7 @@ App.TransactionToggleButton = function TransactionToggleButton(iconName,label,op
     this._toggleStyle = options.toggleStyle;
     this._toggleOptions = toggleOptions;
     this._icon = PIXI.Sprite.fromFrame(iconName);
-    this._toggle = false;
+    this._selected = false;
     this._iconResizeRatio = Math.round(20 * options.pixelRatio) / this._icon.height;
 
     App.Button.call(this,label,options);
@@ -8170,7 +8170,7 @@ App.TransactionToggleButton.prototype._render = function _render(updateAll)
         gap = Math.round(10 * r),
         padding = Math.round(5 * r);
 
-    if (this._toggle)
+    if (this._selected)
     {
         if (this._toggleOptions.icon) this._icon.setTexture(PIXI.TextureCache[this._toggleOptions.icon]);
         if (this._toggleOptions.label) this._labelField.setText(this._toggleOptions.label);
@@ -8217,7 +8217,18 @@ App.TransactionToggleButton.prototype._render = function _render(updateAll)
  */
 App.TransactionToggleButton.prototype.toggle = function toggle()
 {
-    this._toggle = !this._toggle;
+    this._selected = !this._selected;
+
+    this._render(false);
+};
+
+/**
+ * Set selection state
+ * @param {boolean} value
+ */
+App.TransactionToggleButton.prototype.setState = function setState(value)
+{
+    this._selected = value;
 
     this._render(false);
 };
@@ -8228,7 +8239,7 @@ App.TransactionToggleButton.prototype.toggle = function toggle()
  */
 App.TransactionToggleButton.prototype.isSelected = function isSelected()
 {
-    return this._toggle;
+    return this._selected;
 };
 
 /**
@@ -8513,9 +8524,9 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
 
     this._transactionInput.setValue(this._model.amount);
 
-    if (this._model.type === App.TransactionType.INCOME && !this._typeToggle.isSelected()) this._typeToggle.toggle();
-    if (this._model.pending && !this._pendingToggle.isSelected()) this._pendingToggle.toggle();
-    if (this._model.repeat && !this._repeatToggle.isSelected()) this._repeatToggle.toggle();
+    this._typeToggle.setState(this._model.type === App.TransactionType.INCOME);
+    this._pendingToggle.setState(this._model.pending);
+    this._repeatToggle.setState(this._model.repeat);
 
     this._accountOption.setValue(this._model.account ? this._model.account.name : "?");
     this._categoryOption.setValue(this._model.subCategory ? this._model.subCategory.name : "?",this._model.category ? this._model.category.name : null);
@@ -13349,11 +13360,8 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
         transactionButtonOptions = {
             labelStyles:{
                 edit:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-                //accountExpense:FontStyle.get(14,FontStyle.RED_DARK,null,FontStyle.LIGHT_CONDENSED),
                 accountIncome:FontStyle.get(14,FontStyle.BLUE_LIGHT,null,FontStyle.LIGHT_CONDENSED),
-                //amountExpense:FontStyle.get(26,FontStyle.RED_DARK),
                 amountIncome:FontStyle.get(26,FontStyle.BLUE),
-                //currencyExpense:FontStyle.get(16,FontStyle.RED_DARK,null,FontStyle.LIGHT_CONDENSED),
                 currencyIncome:FontStyle.get(16,FontStyle.BLUE_DARK,null,FontStyle.LIGHT_CONDENSED),
                 date:FontStyle.get(14,FontStyle.GREY_DARK),
                 pending:FontStyle.get(12,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
@@ -13743,13 +13751,14 @@ App.ChangeCategory.prototype._deleteCategory = function _deleteCategory(category
         i = 0,
         l = subCategories.length;
 
-    for (;i<l;) subCategoryCollection.removeItem(subCategories[i++]);
+    //TODO keep the (sub)category in collection, but them completely remove if it's not referenced anywhere?
+    //for (;i<l;) subCategoryCollection.removeItem(subCategories[i++]);
 
     ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).removeCategory(category);
 
     //ModelLocator.getProxy(ModelName.CATEGORIES).removeItem(category);
 
-    category.destroy();//TODO category is still referenced in transactions
+    category.destroy();
 };
 
 /**
@@ -13798,7 +13807,8 @@ App.ChangeSubCategory.prototype.execute = function execute(data)
     {
         data.category.removeSubCategory(subCategory);
 
-        App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).removeItem(subCategory);
+        //TODO keep the sub-category in collection, but them completely remove if it's not referenced anywhere?
+        //App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).removeItem(subCategory);
     }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
