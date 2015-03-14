@@ -13,7 +13,7 @@ App.TransactionToggleButton = function TransactionToggleButton(iconName,label,op
     this._toggleStyle = options.toggleStyle;
     this._toggleOptions = toggleOptions;
     this._icon = PIXI.Sprite.fromFrame(iconName);
-    this._toggle = false;
+    this._selected = false;
     this._iconResizeRatio = Math.round(20 * options.pixelRatio) / this._icon.height;
 
     App.Button.call(this,label,options);
@@ -39,7 +39,7 @@ App.TransactionToggleButton.prototype._render = function _render(updateAll)
         gap = Math.round(10 * r),
         padding = Math.round(5 * r);
 
-    if (this._toggle)
+    if (this._selected)
     {
         if (this._toggleOptions.icon) this._icon.setTexture(PIXI.TextureCache[this._toggleOptions.icon]);
         if (this._toggleOptions.label) this._labelField.setText(this._toggleOptions.label);
@@ -86,7 +86,18 @@ App.TransactionToggleButton.prototype._render = function _render(updateAll)
  */
 App.TransactionToggleButton.prototype.toggle = function toggle()
 {
-    this._toggle = !this._toggle;
+    this._selected = !this._selected;
+
+    this._render(false);
+};
+
+/**
+ * Set selection state
+ * @param {boolean} value
+ */
+App.TransactionToggleButton.prototype.setState = function setState(value)
+{
+    this._selected = value;
 
     this._render(false);
 };
@@ -97,5 +108,5 @@ App.TransactionToggleButton.prototype.toggle = function toggle()
  */
 App.TransactionToggleButton.prototype.isSelected = function isSelected()
 {
-    return this._toggle;
+    return this._selected;
 };

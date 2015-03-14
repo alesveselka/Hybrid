@@ -165,9 +165,9 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
 
     this._transactionInput.setValue(this._model.amount);
 
-    if (this._model.type === App.TransactionType.INCOME && !this._typeToggle.isSelected()) this._typeToggle.toggle();
-    if (this._model.pending && !this._pendingToggle.isSelected()) this._pendingToggle.toggle();
-    if (this._model.repeat && !this._repeatToggle.isSelected()) this._repeatToggle.toggle();
+    this._typeToggle.setState(this._model.type === App.TransactionType.INCOME);
+    this._pendingToggle.setState(this._model.pending);
+    this._repeatToggle.setState(this._model.repeat);
 
     this._accountOption.setValue(this._model.account ? this._model.account.name : "?");
     this._categoryOption.setValue(this._model.subCategory ? this._model.subCategory.name : "?",this._model.category ? this._model.category.name : null);
