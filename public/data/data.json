@@ -1,4 +1,5 @@
 {
+"TODO":"COMPRESS THE DATA BEFORE SAVING THEM?",
 "_commentSettings":["startOfWeek","baseCurrency","paymentMethod"],
 "settings":[1,1,1],
 "_commentCurrencies":["id","symbol","baseCurrency","rate"],

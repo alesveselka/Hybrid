@@ -82,12 +82,9 @@ App.CategoryScreen.prototype.update = function update(data,mode)
 
     for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
 
-    i = 0;
-    l = categories.length;
-
     buttonPool = mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool;
 
-    for (;i<l;)
+    for (i=0,l=categories.length;i<l;)
     {
         button = buttonPool.allocate();
         button.update(categories[i++],mode);

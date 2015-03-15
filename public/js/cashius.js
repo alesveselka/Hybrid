@@ -795,6 +795,7 @@ App.ModelName = {
  *      APPLICATION_VIEW:number,
  *      HEADER:number,
  *      SCREEN_STACK:number,
+ *      ACCOUNT_BUTTON_POOL:number,
  *      CATEGORY_BUTTON_EXPAND_POOL:number,
  *      CATEGORY_BUTTON_EDIT_POOL:number,
  *      SUB_CATEGORY_BUTTON_POOL:number,
@@ -805,11 +806,12 @@ App.ViewName = {
     APPLICATION_VIEW:0,
     HEADER:1,
     SCREEN_STACK:2,
-    CATEGORY_BUTTON_EXPAND_POOL:3,
-    CATEGORY_BUTTON_EDIT_POOL:4,
-    SUB_CATEGORY_BUTTON_POOL:5,
-    TRANSACTION_BUTTON_POOL:6,
-    SKIN:7
+    ACCOUNT_BUTTON_POOL:3,
+    CATEGORY_BUTTON_EXPAND_POOL:4,
+    CATEGORY_BUTTON_EDIT_POOL:5,
+    SUB_CATEGORY_BUTTON_POOL:6,
+    TRANSACTION_BUTTON_POOL:7,
+    SKIN:8
 };
 
 /**
@@ -1899,6 +1901,7 @@ Object.defineProperty(App.Transaction.prototype,'account',{
     {
         if (!this._account)
         {
+            //TODO keep just IDs instead of reference?
             if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).filter([this._data[4].split(".")[0]],"id")[0];
             else this._account = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultAccount;
         }
@@ -1919,6 +1922,7 @@ Object.defineProperty(App.Transaction.prototype,'category',{
     {
         if (!this._category)
         {
+            //TODO keep just IDs instead of reference?
             if (this._data)
             {
                 var ModelLocator = App.ModelLocator,
@@ -1949,6 +1953,7 @@ Object.defineProperty(App.Transaction.prototype,'category',{
 Object.defineProperty(App.Transaction.prototype,'subCategory',{
     get:function()
     {
+        //TODO keep just IDs instead of reference?
         if (!this._subCategory)
         {
             if (this._data) this._subCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).filter([this._data[4].split(".")[2]],"id")[0];
@@ -1969,6 +1974,7 @@ Object.defineProperty(App.Transaction.prototype,'subCategory',{
 Object.defineProperty(App.Transaction.prototype,'method',{
     get:function()
     {
+        //TODO keep just IDs instead of reference?
         if (!this._method)
         {
             if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).filter([this._data[5]],"id")[0];
@@ -2009,6 +2015,7 @@ Object.defineProperty(App.Transaction.prototype,'date',{
 Object.defineProperty(App.Transaction.prototype,'currency',{
     get:function()
     {
+        //TODO keep just IDs instead of reference?
         if (!this._currency)
         {
             if (this._data) this._currency = App.ModelLocator.getProxy(App.ModelName.CURRENCIES).filter([this._data[7]],"id")[0];
@@ -7343,12 +7350,11 @@ App.PopUpButton.prototype.removeEventListener = function removeEventListener(eve
  *
  * @class Screen
  * @extends DisplayObjectContainer
- * @param {Collection} model
  * @param {Object} layout
  * @param {number} tweenDuration
  * @constructor
  */
-App.Screen = function Screen(model,layout,tweenDuration)
+App.Screen = function Screen(layout,tweenDuration)
 {
     PIXI.DisplayObjectContainer.call(this);
 
@@ -7356,7 +7362,7 @@ App.Screen = function Screen(model,layout,tweenDuration)
         ModelName = App.ModelName,
         pixelRatio = layout.pixelRatio;
 
-    this._model = model;
+    this._model = null;
     this._layout = layout;
     this._enabled = false;
     this._eventsRegistered = App.EventLevel.NONE;
@@ -7731,7 +7737,7 @@ App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
  */
 App.EditScreen = function EditScreen(layout)
 {
-    App.Screen.call(this,null,layout,0.4);
+    App.Screen.call(this,layout,0.4);
 
     var FontStyle = App.FontStyle,
         r = layout.pixelRatio,
@@ -7984,13 +7990,12 @@ App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 /**
  * @class InputScrollScreen
  * @extends Screen
- * @param {Transaction} model
  * @param {Object} layout
  * @constructor
  */
-App.InputScrollScreen = function InputScrollScreen(model,layout)
+App.InputScrollScreen = function InputScrollScreen(layout)
 {
-    App.Screen.call(this,model,layout,0.4);
+    App.Screen.call(this,layout,0.4);
 
     //TODO also disable header actions if input is focused and soft keyboard shown
 
@@ -8365,7 +8370,7 @@ App.TransactionOptionButton.prototype.setValue = function setValue(value,details
  */
 App.AddTransactionScreen = function AddTransactionScreen(layout)
 {
-    App.InputScrollScreen.call(this,null,layout);
+    App.InputScrollScreen.call(this,layout);
 
     var TransactionOptionButton = App.TransactionOptionButton,
         TransactionToggleButton = App.TransactionToggleButton,
@@ -8849,7 +8854,7 @@ App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
  */
 App.SelectTimeScreen = function SelectTimeScreen(layout)
 {
-    App.InputScrollScreen.call(this,null,layout);
+    App.InputScrollScreen.call(this,layout);
 
     var r = layout.pixelRatio,
         w = layout.width,
@@ -9027,33 +9032,40 @@ App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 
 /**
  * @class AccountButton
- * @extends Graphics
- * @param {Account} model
- * @param {number} width
- * @param {number} height
- * @param {number} pixelRatio
- * @param {{font:string,fill:string}} nameStyle
- * @param {{font:string,fill:string}} detailStyle
+ * @extends SwipeButton
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {PIXI.Texture} options.skin
+ * @param {{font:string,fill:string}} options.nameStyle
+ * @param {{font:string,fill:string}} options.detailStyle
+ * @param {{font:string,fill:string}} options.editStyle
+ * @param {number} options.openOffset
  * @constructor
  */
-App.AccountButton = function AccountButton(model,width,height,pixelRatio,nameStyle,detailStyle)
+App.AccountButton = function AccountButton(poolIndex,options)
 {
-    PIXI.Graphics.call(this);
+    App.SwipeButton.call(this,options.width,options.openOffset);//TODO optionally enable/disable swiping
 
-    this.boundingBox = new PIXI.Rectangle(0,0,width,height);
-    //TODO also make 'swipe-able' version as Category button have
-    this._model = model;
-    this._pixelRatio = pixelRatio;
-    this._nameLabel = new PIXI.Text(this._model.name,nameStyle);
-    this._detailsLabel = new PIXI.Text("Balance: 2.876, Expenses: -250, Income: 1.500",detailStyle);//TODO remove hard-coded data
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+    this.boundingBox = new PIXI.Rectangle(0,0,options.width,options.height);
 
-    this._render();
-
-    this.addChild(this._nameLabel);
-    this.addChild(this._detailsLabel);
+    this._model = null;
+    this._mode = App.ScreenMode.SELECT;
+    this._pixelRatio = options.pixelRatio;
+    this._background = this.addChild(new PIXI.Graphics());
+    this._editLabel = this.addChild(new PIXI.Text("Edit",options.editStyle));
+    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
+    this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
+    this._nameLabel = this._swipeSurface.addChild(new PIXI.Text("",options.nameStyle));
+    this._detailsLabel = this._swipeSurface.addChild(new PIXI.Text("Balance: 2.876, Expenses: -250, Income: 1.500",options.detailStyle));//TODO remove hard-coded data
+    this._renderAll = true;
 };
 
-App.AccountButton.prototype = Object.create(PIXI.Graphics.prototype);
+App.AccountButton.prototype = Object.create(App.SwipeButton.prototype);
 App.AccountButton.prototype.constructor = App.AccountButton;
 
 /**
@@ -9062,23 +9074,41 @@ App.AccountButton.prototype.constructor = App.AccountButton;
  */
 App.AccountButton.prototype._render = function _render()
 {
-    var ColorTheme = App.ColorTheme,
-        GraphicUtils = App.GraphicUtils,
-        w = this.boundingBox.width,
-        h = this.boundingBox.height,
-        r = this._pixelRatio,
-        offset = Math.round(15 * r),
-        padding = Math.round(10 * r);
+    if (this._renderAll)
+    {
+        var w = this.boundingBox.width,
+            h = this.boundingBox.height,
+            r = this._pixelRatio,
+            offset = Math.round(15 * r);
 
-    this._nameLabel.x = offset;
-    this._nameLabel.y = offset;
+        this._renderAll = false;
 
-    this._detailsLabel.x = offset;
-    this._detailsLabel.y = Math.round(45 * r);
+        App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
 
-    GraphicUtils.drawRects(this,ColorTheme.GREY,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_LIGHT,1,[padding,0,w-padding*2,1],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.GREY_DARK,1,[padding,h-1,w-padding*2,1],false,true);
+        this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
+        this._editLabel.y = Math.round(18 * this._pixelRatio);
+
+        this._nameLabel.x = offset;
+        this._nameLabel.y = offset;
+
+        this._detailsLabel.x = offset;
+        this._detailsLabel.y = Math.round(45 * r);
+    }
+};
+
+/**
+ * Set model
+ * @param {App.Account} model
+ * @param {string} mode
+ */
+App.AccountButton.prototype.setModel = function getModel(model,mode)
+{
+    this._model = model;
+    this._mode = mode;
+
+    this._nameLabel.setText(this._model.name);
+
+    this._render();
 };
 
 /**
@@ -9093,43 +9123,26 @@ App.AccountButton.prototype.getModel = function getModel()
 /**
  * @class AccountScreen
  * @extends Screen
- * @param {Collection} model
  * @param {Object} layout
  * @constructor
  */
-App.AccountScreen = function AccountScreen(model,layout)
+App.AccountScreen = function AccountScreen(layout)
 {
-    App.Screen.call(this,model,layout,0.4);
+    App.Screen.call(this,layout,0.4);
 
-    var AccountButton = App.AccountButton,
+    var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
-        nameStyle = FontStyle.get(24,FontStyle.BLUE),
-        detailStyle = FontStyle.get(12,FontStyle.GREY_DARKER,null,FontStyle.LIGHT_CONDENSED),
         r = layout.pixelRatio,
-        w = layout.width,
-        h = layout.contentHeight,
-        i = 0,
-        l = this._model.length(),
-        itemHeight = Math.round(70 * r),
-        button = null;
+        h = layout.contentHeight;
 
-    //TODO when there is nothing set up at beginning yet, add messages to guide user how to set things up
+    this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
 
-    this._buttons = new Array(l);
+    this._interactiveButton = null;
     this._buttonList = new App.TileList(App.Direction.Y,h);
+    this._addNewButton = new App.AddNewButton("ADD CATEGORY",FontStyle.get(16,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_60,r);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,r,false);
 
-    //TODO move this to 'update' method
-    for (;i<l;i++)
-    {
-        button = new AccountButton(this._model.getItemAt(i),w,itemHeight,r,nameStyle,detailStyle);
-        this._buttons[i] = button;
-        this._buttonList.add(button);
-    }
-    this._buttonList.updateLayout();
-
-    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,h,r,false);
     this._pane.setContent(this._buttonList);
-
     this.addChild(this._pane);
 };
 
@@ -9145,6 +9158,51 @@ App.AccountScreen.prototype.enable = function enable()
 
     this._pane.resetScroll();
     this._pane.enable();
+};
+
+/**
+ * Disable
+ */
+App.AccountScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    //this._layoutDirty = false;
+
+    this._pane.disable();
+};
+
+/**
+ * Update
+ * @param {App.Collection} data
+ * @param {string} mode
+ * @private
+ */
+App.AccountScreen.prototype.update = function update(data,mode)
+{
+    this._buttonList.remove(this._addNewButton);
+
+    var buttonPool = App.ViewLocator.getViewSegment(App.ViewName.ACCOUNT_BUTTON_POOL),
+        i = 0,
+        l = this._buttonList.length,
+        button = null;
+
+    for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
+
+    for (i=0,l=this._model.length();i<l;)
+    {
+        button = buttonPool.allocate();
+        button.setModel(this._model.getItemAt(i++),mode);
+        this._buttonList.add(button);
+    }
+
+    this._buttonList.add(this._addNewButton);
+    this._buttonList.updateLayout(true);
+
+    this._pane.resize();
+
+    this._mode = mode;
+    this._swipeEnabled = mode === App.ScreenMode.EDIT;
 };
 
 /**
@@ -9543,15 +9601,11 @@ App.CategoryButtonSurface = function CategoryButtonSurface(options)
     this._height = options.height;
     this._pixelRatio = options.pixelRatio;
 
-    this._skin = new PIXI.Sprite(options.skin);
-    this._colorStripe = new PIXI.Graphics();
+    this._skin = this.addChild(new PIXI.Sprite(options.skin));
+    this._colorStripe = this.addChild(new PIXI.Graphics());
     this._icon = null;
-    this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
+    this._nameLabel = this.addChild(new PIXI.Text("",options.nameLabelStyle));
     this._renderAll = true;
-
-    this.addChild(this._skin);
-    this.addChild(this._colorStripe);
-    this.addChild(this._nameLabel);
 };
 
 App.CategoryButtonSurface.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -9608,14 +9662,10 @@ App.CategoryButtonEdit = function CategoryButtonEdit(poolIndex,options)
     this._model = null;
     this._mode = null;
     this._pixelRatio = options.pixelRatio;
-    this._swipeSurface = new App.CategoryButtonSurface(options);
-    this._background = new PIXI.Graphics();
-    this._editLabel = new PIXI.Text("Edit",options.editLabelStyle);
+    this._background = this.addChild(new PIXI.Graphics());
+    this._editLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));
+    this._swipeSurface = this.addChild(new App.CategoryButtonSurface(options));
     this._renderAll = true;
-
-    this.addChild(this._background);
-    this.addChild(this._editLabel);
-    this.addChild(this._swipeSurface);
 };
 
 App.CategoryButtonEdit.prototype = Object.create(App.SwipeButton.prototype);
@@ -9676,7 +9726,6 @@ App.CategoryButtonEdit.prototype.onClick = function onClick(data)
     {
         this._model.saveState();
 
-        //TODO set 'Edit' mode only if there are more than one categories in the account
         App.Controller.dispatchEvent(
             App.EventType.CHANGE_SCREEN,
             App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
@@ -9868,15 +9917,20 @@ App.CategoryButtonExpand.prototype.disable = function disable()
  */
 App.CategoryScreen = function CategoryScreen(layout)
 {
-    App.Screen.call(this,null,layout,0.4);
+    App.Screen.call(this,layout,0.4);
+
+    var ScrollPolicy = App.ScrollPolicy,
+        FontStyle = App.FontStyle,
+        r = layout.pixelRatio,
+        h = layout.contentHeight;
 
     this._interactiveButton = null;
     this._buttonsInTransition = [];
     this._layoutDirty = false;
 
-    this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
-    this._addNewButton = new App.AddNewButton("ADD CATEGORY",App.FontStyle.get(14,App.FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,layout.pixelRatio);
-    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.contentHeight,layout.pixelRatio,false);
+    this._buttonList = new App.TileList(App.Direction.Y,h);
+    this._addNewButton = new App.AddNewButton("ADD CATEGORY",FontStyle.get(14,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,r);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,r,false);
 
     this._pane.setContent(this._buttonList);
     this.addChild(this._pane);
@@ -9939,12 +9993,9 @@ App.CategoryScreen.prototype.update = function update(data,mode)
 
     for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
 
-    i = 0;
-    l = categories.length;
-
     buttonPool = mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool;
 
-    for (;i<l;)
+    for (i=0,l=categories.length;i<l;)
     {
         button = buttonPool.allocate();
         button.update(categories[i++],mode);
@@ -10376,7 +10427,7 @@ App.IconSample.prototype.select = function select(selectedIndex)
  */
 App.EditCategoryScreen = function EditCategoryScreen(layout)
 {
-    App.InputScrollScreen.call(this,null,layout);
+    App.InputScrollScreen.call(this,layout);
 
     var ScrollPolicy = App.ScrollPolicy,
         InfiniteList = App.InfiniteList,
@@ -10757,7 +10808,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
             }
             else
             {
-                //TODO check how many sub-categories the category have and allow to delete sub-category if there is more than one
+                //TODO check how many sub-categories the category have and allow to delete sub-category only if there is more than one
                 button.onClick(touchData,this._model);
             }
         }
@@ -11106,7 +11157,7 @@ App.TransactionButton.prototype._updateLayout = function _updateLayout(updateAll
 
 /**
  * Set model
- * @param {Object} model
+ * @param {App.Transaction} model
  */
 App.TransactionButton.prototype.setModel = function setModel(model)
 {
@@ -11178,7 +11229,7 @@ App.TransactionButton.prototype._getSwipePosition = function _getSwipePosition()
  */
 App.TransactionScreen = function TransactionScreen(layout)
 {
-    App.Screen.call(this,null,layout,0.4);
+    App.Screen.call(this,layout,0.4);
 
     var ScrollPolicy = App.ScrollPolicy,
         r = layout.pixelRatio,
@@ -11864,7 +11915,7 @@ App.ReportChart.prototype._onTweenComplete = function _onTweenComplete()
  */
 App.ReportScreen = function ReportScreen(layout)
 {
-    App.Screen.call(this,null,layout,0.4);
+    App.Screen.call(this,layout,0.4);
 
     var ReportAccountButton = App.ReportAccountButton,
         ScrollPolicy = App.ScrollPolicy,
@@ -12150,7 +12201,7 @@ App.MenuItem.prototype.getScreenName = function getScreenName()
  */
 App.Menu = function Menu(layout)
 {
-    App.Screen.call(this,null,layout);
+    App.Screen.call(this,layout);
 
     var MenuItem = App.MenuItem,
         ScreenName = App.ScreenName,
@@ -12326,7 +12377,6 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         ModelName = App.ModelName,
         ViewLocator = App.ViewLocator,
         ViewName = App.ViewName,
-        account = ModelLocator.getProxy(ModelName.ACCOUNTS),
         listenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
 
     this._renderer = renderer;
@@ -12349,7 +12399,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     //TODO use ScreenFactory for the screens?
     //TODO deffer initiation and/or rendering of most of the screens?
     this._screenStack = ViewLocator.addViewSegment(ViewName.SCREEN_STACK,new App.ViewStack([
-        new App.AccountScreen(account,this._layout),
+        new App.AccountScreen(this._layout),
         new App.CategoryScreen(this._layout),
         new App.SelectTimeScreen(this._layout),
         new App.EditCategoryScreen(this._layout),
@@ -12357,7 +12407,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.ReportScreen(this._layout),
         new App.AddTransactionScreen(this._layout),
         new App.EditScreen(this._layout),
-        new App.Menu(this._layout)//TODO is Menu part of stack?
+        new App.Menu(this._layout)
     ],false,listenerPool));
 
     this._header = ViewLocator.addViewSegment(ViewName.HEADER,new App.Header(this._layout));
@@ -13357,6 +13407,16 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
             editLabelStyle:FontStyle.get(16,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
             openOffset:Math.round(80 * pixelRatio)
         },
+        accountButtonOptions = {
+            width:width,
+            height:Math.round(70 * pixelRatio),
+            pixelRatio:pixelRatio,
+            skin:skin.GREY_70,
+            nameStyle:FontStyle.get(24,FontStyle.BLUE),
+            detailStyle:FontStyle.get(12,FontStyle.GREY_DARKER,null,FontStyle.LIGHT_CONDENSED),
+            editStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+            openOffset:Math.round(80 * pixelRatio)
+        },
         transactionButtonOptions = {
             labelStyles:{
                 edit:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
@@ -13380,6 +13440,7 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
 
     ViewLocator.init([
         ViewName.SKIN,skin,
+        ViewName.ACCOUNT_BUTTON_POOL,new ObjectPool(App.AccountButton,2,accountButtonOptions),
         ViewName.CATEGORY_BUTTON_EXPAND_POOL,new ObjectPool(App.CategoryButtonExpand,5,categoryButtonOptions),
         ViewName.CATEGORY_BUTTON_EDIT_POOL,new ObjectPool(App.CategoryButtonEdit,5,categoryButtonOptions),
         ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions),
@@ -13751,6 +13812,7 @@ App.ChangeCategory.prototype._deleteCategory = function _deleteCategory(category
         i = 0,
         l = subCategories.length;
 
+    //TODO may still be referenced in transaction(s)
     //TODO keep the (sub)category in collection, but them completely remove if it's not referenced anywhere?
     //for (;i<l;) subCategoryCollection.removeItem(subCategories[i++]);
 

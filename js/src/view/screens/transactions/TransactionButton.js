@@ -184,7 +184,7 @@ App.TransactionButton.prototype._updateLayout = function _updateLayout(updateAll
 
 /**
  * Set model
- * @param {Object} model
+ * @param {App.Transaction} model
  */
 App.TransactionButton.prototype.setModel = function setModel(model)
 {

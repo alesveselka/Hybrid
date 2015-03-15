@@ -16,14 +16,10 @@ App.CategoryButtonEdit = function CategoryButtonEdit(poolIndex,options)
     this._model = null;
     this._mode = null;
     this._pixelRatio = options.pixelRatio;
-    this._swipeSurface = new App.CategoryButtonSurface(options);
-    this._background = new PIXI.Graphics();
-    this._editLabel = new PIXI.Text("Edit",options.editLabelStyle);
+    this._background = this.addChild(new PIXI.Graphics());
+    this._editLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));
+    this._swipeSurface = this.addChild(new App.CategoryButtonSurface(options));
     this._renderAll = true;
-
-    this.addChild(this._background);
-    this.addChild(this._editLabel);
-    this.addChild(this._swipeSurface);
 };
 
 App.CategoryButtonEdit.prototype = Object.create(App.SwipeButton.prototype);
@@ -84,7 +80,6 @@ App.CategoryButtonEdit.prototype.onClick = function onClick(data)
     {
         this._model.saveState();
 
-        //TODO set 'Edit' mode only if there are more than one categories in the account
         App.Controller.dispatchEvent(
             App.EventType.CHANGE_SCREEN,
             App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(

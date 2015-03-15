@@ -17,15 +17,11 @@ App.CategoryButtonSurface = function CategoryButtonSurface(options)
     this._height = options.height;
     this._pixelRatio = options.pixelRatio;
 
-    this._skin = new PIXI.Sprite(options.skin);
-    this._colorStripe = new PIXI.Graphics();
+    this._skin = this.addChild(new PIXI.Sprite(options.skin));
+    this._colorStripe = this.addChild(new PIXI.Graphics());
     this._icon = null;
-    this._nameLabel = new PIXI.Text("",options.nameLabelStyle);
+    this._nameLabel = this.addChild(new PIXI.Text("",options.nameLabelStyle));
     this._renderAll = true;
-
-    this.addChild(this._skin);
-    this.addChild(this._colorStripe);
-    this.addChild(this._nameLabel);
 };
 
 App.CategoryButtonSurface.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);

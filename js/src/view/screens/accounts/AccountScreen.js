@@ -13,8 +13,9 @@ App.AccountScreen = function AccountScreen(layout)
         r = layout.pixelRatio,
         h = layout.contentHeight;
 
-    this._interactiveButton = null;
+    this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
 
+    this._interactiveButton = null;
     this._buttonList = new App.TileList(App.Direction.Y,h);
     this._addNewButton = new App.AddNewButton("ADD CATEGORY",FontStyle.get(16,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_60,r);
     this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,r,false);
@@ -51,47 +52,35 @@ App.AccountScreen.prototype.disable = function disable()
 
 /**
  * Update
- * @param {App.Account} data
+ * @param {App.Collection} data
  * @param {string} mode
  * @private
  */
 App.AccountScreen.prototype.update = function update(data,mode)
 {
-    /*this._model = data;
-
     this._buttonList.remove(this._addNewButton);
 
-    var ScreenMode = App.ScreenMode,
-        ViewLocator = App.ViewLocator,
-        ViewName = App.ViewName,
-        expandButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EXPAND_POOL),
-        editButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL),
-        buttonPool = this._mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool,
-        categories = this._model.categories,
+    var buttonPool = App.ViewLocator.getViewSegment(App.ViewName.ACCOUNT_BUTTON_POOL),
         i = 0,
         l = this._buttonList.length,
         button = null;
 
     for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
 
-    i = 0;
-    l = categories.length;
-
-    buttonPool = mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool;
-
-    for (;i<l;)
+    for (i=0,l=this._model.length();i<l;)
     {
         button = buttonPool.allocate();
-        button.update(categories[i++],mode);
-        this._buttonList.add(button,false);
+        button.setModel(this._model.getItemAt(i++),mode);
+        this._buttonList.add(button);
     }
 
     this._buttonList.add(this._addNewButton);
+    this._buttonList.updateLayout(true);
 
-    this._updateLayout();
+    this._pane.resize();
 
     this._mode = mode;
-    this._swipeEnabled = mode === ScreenMode.EDIT;*/
+    this._swipeEnabled = mode === App.ScreenMode.EDIT;
 };
 
 /**

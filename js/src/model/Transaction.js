@@ -122,6 +122,7 @@ Object.defineProperty(App.Transaction.prototype,'account',{
     {
         if (!this._account)
         {
+            //TODO keep just IDs instead of reference?
             if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).filter([this._data[4].split(".")[0]],"id")[0];
             else this._account = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultAccount;
         }
@@ -142,6 +143,7 @@ Object.defineProperty(App.Transaction.prototype,'category',{
     {
         if (!this._category)
         {
+            //TODO keep just IDs instead of reference?
             if (this._data)
             {
                 var ModelLocator = App.ModelLocator,
@@ -172,6 +174,7 @@ Object.defineProperty(App.Transaction.prototype,'category',{
 Object.defineProperty(App.Transaction.prototype,'subCategory',{
     get:function()
     {
+        //TODO keep just IDs instead of reference?
         if (!this._subCategory)
         {
             if (this._data) this._subCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).filter([this._data[4].split(".")[2]],"id")[0];
@@ -192,6 +195,7 @@ Object.defineProperty(App.Transaction.prototype,'subCategory',{
 Object.defineProperty(App.Transaction.prototype,'method',{
     get:function()
     {
+        //TODO keep just IDs instead of reference?
         if (!this._method)
         {
             if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).filter([this._data[5]],"id")[0];
@@ -232,6 +236,7 @@ Object.defineProperty(App.Transaction.prototype,'date',{
 Object.defineProperty(App.Transaction.prototype,'currency',{
     get:function()
     {
+        //TODO keep just IDs instead of reference?
         if (!this._currency)
         {
             if (this._data) this._currency = App.ModelLocator.getProxy(App.ModelName.CURRENCIES).filter([this._data[7]],"id")[0];
