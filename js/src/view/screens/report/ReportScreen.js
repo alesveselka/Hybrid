@@ -6,7 +6,7 @@
  */
 App.ReportScreen = function ReportScreen(layout)
 {
-    App.Screen.call(this,null,layout,0.4);
+    App.Screen.call(this,layout,0.4);
 
     var ReportAccountButton = App.ReportAccountButton,
         ScrollPolicy = App.ScrollPolicy,

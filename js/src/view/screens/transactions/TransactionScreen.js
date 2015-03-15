@@ -6,7 +6,7 @@
  */
 App.TransactionScreen = function TransactionScreen(layout)
 {
-    App.Screen.call(this,null,layout,0.4);
+    App.Screen.call(this,layout,0.4);
 
     var ScrollPolicy = App.ScrollPolicy,
         r = layout.pixelRatio,

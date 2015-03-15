@@ -6,7 +6,7 @@
  */
 App.EditCategoryScreen = function EditCategoryScreen(layout)
 {
-    App.InputScrollScreen.call(this,null,layout);
+    App.InputScrollScreen.call(this,layout);
 
     var ScrollPolicy = App.ScrollPolicy,
         InfiniteList = App.InfiniteList,
@@ -387,7 +387,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
             }
             else
             {
-                //TODO check how many sub-categories the category have and allow to delete sub-category if there is more than one
+                //TODO check how many sub-categories the category have and allow to delete sub-category only if there is more than one
                 button.onClick(touchData,this._model);
             }
         }

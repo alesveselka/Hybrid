@@ -16,7 +16,6 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         ModelName = App.ModelName,
         ViewLocator = App.ViewLocator,
         ViewName = App.ViewName,
-        account = ModelLocator.getProxy(ModelName.ACCOUNTS),
         listenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
 
     this._renderer = renderer;
@@ -39,7 +38,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     //TODO use ScreenFactory for the screens?
     //TODO deffer initiation and/or rendering of most of the screens?
     this._screenStack = ViewLocator.addViewSegment(ViewName.SCREEN_STACK,new App.ViewStack([
-        new App.AccountScreen(account,this._layout),
+        new App.AccountScreen(this._layout),
         new App.CategoryScreen(this._layout),
         new App.SelectTimeScreen(this._layout),
         new App.EditCategoryScreen(this._layout),
@@ -47,7 +46,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.ReportScreen(this._layout),
         new App.AddTransactionScreen(this._layout),
         new App.EditScreen(this._layout),
-        new App.Menu(this._layout)//TODO is Menu part of stack?
+        new App.Menu(this._layout)
     ],false,listenerPool));
 
     this._header = ViewLocator.addViewSegment(ViewName.HEADER,new App.Header(this._layout));

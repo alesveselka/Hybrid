@@ -6,7 +6,7 @@
  */
 App.SelectTimeScreen = function SelectTimeScreen(layout)
 {
-    App.InputScrollScreen.call(this,null,layout);
+    App.InputScrollScreen.call(this,layout);
 
     var r = layout.pixelRatio,
         w = layout.width,

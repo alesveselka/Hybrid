@@ -1,13 +1,12 @@
 /**
  * @class InputScrollScreen
  * @extends Screen
- * @param {Transaction} model
  * @param {Object} layout
  * @constructor
  */
-App.InputScrollScreen = function InputScrollScreen(model,layout)
+App.InputScrollScreen = function InputScrollScreen(layout)
 {
-    App.Screen.call(this,model,layout,0.4);
+    App.Screen.call(this,layout,0.4);
 
     //TODO also disable header actions if input is focused and soft keyboard shown
 

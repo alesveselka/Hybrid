@@ -6,7 +6,7 @@
  */
 App.AddTransactionScreen = function AddTransactionScreen(layout)
 {
-    App.InputScrollScreen.call(this,null,layout);
+    App.InputScrollScreen.call(this,layout);
 
     var TransactionOptionButton = App.TransactionOptionButton,
         TransactionToggleButton = App.TransactionToggleButton,

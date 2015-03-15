@@ -3,12 +3,11 @@
  *
  * @class Screen
  * @extends DisplayObjectContainer
- * @param {Collection} model
  * @param {Object} layout
  * @param {number} tweenDuration
  * @constructor
  */
-App.Screen = function Screen(model,layout,tweenDuration)
+App.Screen = function Screen(layout,tweenDuration)
 {
     PIXI.DisplayObjectContainer.call(this);
 
@@ -16,7 +15,7 @@ App.Screen = function Screen(model,layout,tweenDuration)
         ModelName = App.ModelName,
         pixelRatio = layout.pixelRatio;
 
-    this._model = model;
+    this._model = null;
     this._layout = layout;
     this._enabled = false;
     this._eventsRegistered = App.EventLevel.NONE;

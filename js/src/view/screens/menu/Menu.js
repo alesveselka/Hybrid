@@ -5,7 +5,7 @@
  */
 App.Menu = function Menu(layout)
 {
-    App.Screen.call(this,null,layout);
+    App.Screen.call(this,layout);
 
     var MenuItem = App.MenuItem,
         ScreenName = App.ScreenName,

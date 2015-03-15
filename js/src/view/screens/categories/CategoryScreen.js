@@ -6,15 +6,20 @@
  */
 App.CategoryScreen = function CategoryScreen(layout)
 {
-    App.Screen.call(this,null,layout,0.4);
+    App.Screen.call(this,layout,0.4);
+
+    var ScrollPolicy = App.ScrollPolicy,
+        FontStyle = App.FontStyle,
+        r = layout.pixelRatio,
+        h = layout.contentHeight;
 
     this._interactiveButton = null;
     this._buttonsInTransition = [];
     this._layoutDirty = false;
 
-    this._buttonList = new App.TileList(App.Direction.Y,layout.contentHeight);
-    this._addNewButton = new App.AddNewButton("ADD CATEGORY",App.FontStyle.get(14,App.FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,layout.pixelRatio);
-    this._pane = new App.TilePane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,layout.width,layout.contentHeight,layout.pixelRatio,false);
+    this._buttonList = new App.TileList(App.Direction.Y,h);
+    this._addNewButton = new App.AddNewButton("ADD CATEGORY",FontStyle.get(14,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,r);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,r,false);
 
     this._pane.setContent(this._buttonList);
     this.addChild(this._pane);
