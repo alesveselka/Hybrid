@@ -152,7 +152,8 @@ App.AccountScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.AccountScreen.prototype._onClick = function _onClick()
 {
-    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
+    var data = this.stage.getTouchData(),
+        button = this._buttonList.getItemUnderPoint(data);
 
     if (button)
     {
@@ -171,25 +172,47 @@ App.AccountScreen.prototype._onClick = function _onClick()
         }
         else
         {
-            var HeaderAction = App.HeaderAction;
+            var ScreenMode = App.ScreenMode,
+                HeaderAction = App.HeaderAction;
 
-            changeScreenData.update(
-                App.ScreenName.CATEGORY,
-                this._mode,
-                button.getModel(),
-                HeaderAction.MENU,
-                HeaderAction.ADD_TRANSACTION,
-                App.ScreenTitle.CATEGORIES
-            );
-
-            if (this._mode === App.ScreenMode.SELECT)
+            if (this._mode === ScreenMode.EDIT)
             {
-                changeScreenData.headerLeftAction = HeaderAction.CANCEL;
-                changeScreenData.headerRightAction = HeaderAction.NONE;
-                changeScreenData.headerName = App.ScreenTitle.SELECT_CATEGORY;
-            }
+                if (button.getClickMode(data) === ScreenMode.EDIT)
+                {
+                    //this._model.saveState();
 
-            App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData);
+                    App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
+                        App.ScreenName.EDIT,
+                        App.ScreenMode.EDIT,
+                        button.getModel(),
+                        0,
+                        0,
+                        App.ScreenTitle.EDIT_ACCOUNT
+                    ));
+                }
+                else
+                {
+                    App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
+                        App.ScreenName.CATEGORY,
+                        this._mode,
+                        button.getModel(),
+                        HeaderAction.MENU,
+                        HeaderAction.ADD_TRANSACTION,
+                        App.ScreenTitle.CATEGORIES
+                    ));
+                }
+            }
+            else
+            {
+                App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
+                    App.ScreenName.CATEGORY,
+                    this._mode,
+                    button.getModel(),
+                    0,
+                    HeaderAction.NONE,
+                    App.ScreenTitle.SELECT_CATEGORY
+                ));
+            }
         }
     }
 };

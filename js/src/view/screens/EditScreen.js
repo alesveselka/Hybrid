@@ -15,7 +15,7 @@ App.EditScreen = function EditScreen(layout)
 
     this._background = this.addChild(new PIXI.Graphics());
     this._input = this.addChild(new App.Input("",20,inputWidth,inputHeight,r,true));
-    this._deleteButton = new App.PopUpButton("Delete","Are you sure you want to\ndelete this sub-category?",{//TODO message will differ based on model to delete
+    this._deleteButton = new App.PopUpButton("Delete","",{
         width:inputWidth,
         height:inputHeight,
         pixelRatio:r,
@@ -109,10 +109,18 @@ App.EditScreen.prototype.update = function update(model,mode)
     this._mode = mode;
     this._target = this._model instanceof App.Account ? App.Account : App.SubCategory;
 
-    if (this._target === App.Account) this._input.setValue(this._model.name);
-    else if (this._target === App.SubCategory && this._model.subCategory) this._input.setValue(this._model.subCategory.name);
-
     this._deleteButton.hidePopUp(true);
+
+    if (this._target === App.Account)
+    {
+        this._input.setValue(this._model.name);
+        this._deleteButton.setMessage("Are you sure you want to\ndelete this account with all its\ndata and categories?");
+    }
+    else if (this._target === App.SubCategory && this._model.subCategory)
+    {
+        this._input.setValue(this._model.subCategory.name);
+        this._deleteButton.setMessage("Are you sure you want to\ndelete this sub-category?");
+    }
 
     this._render();
 };

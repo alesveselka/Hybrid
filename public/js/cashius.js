@@ -7051,6 +7051,15 @@ App.PopUpButton.prototype.setPosition = function setPosition(x,y)
 };
 
 /**
+ * Set message
+ * @param {string} message
+ */
+App.PopUpButton.prototype.setMessage = function setMessage(message)
+{
+    this._messageField.setText(message);
+};
+
+/**
  * Set popUp layout
  * @param {number} x
  * @param {number} y
@@ -7753,7 +7762,7 @@ App.EditScreen = function EditScreen(layout)
 
     this._background = this.addChild(new PIXI.Graphics());
     this._input = this.addChild(new App.Input("",20,inputWidth,inputHeight,r,true));
-    this._deleteButton = new App.PopUpButton("Delete","Are you sure you want to\ndelete this sub-category?",{//TODO message will differ based on model to delete
+    this._deleteButton = new App.PopUpButton("Delete","",{
         width:inputWidth,
         height:inputHeight,
         pixelRatio:r,
@@ -7847,10 +7856,18 @@ App.EditScreen.prototype.update = function update(model,mode)
     this._mode = mode;
     this._target = this._model instanceof App.Account ? App.Account : App.SubCategory;
 
-    if (this._target === App.Account) this._input.setValue(this._model.name);
-    else if (this._target === App.SubCategory && this._model.subCategory) this._input.setValue(this._model.subCategory.name);
-
     this._deleteButton.hidePopUp(true);
+
+    if (this._target === App.Account)
+    {
+        this._input.setValue(this._model.name);
+        this._deleteButton.setMessage("Are you sure you want to\ndelete this account with all its\ndata and categories?");
+    }
+    else if (this._target === App.SubCategory && this._model.subCategory)
+    {
+        this._input.setValue(this._model.subCategory.name);
+        this._deleteButton.setMessage("Are you sure you want to\ndelete this sub-category?");
+    }
 
     this._render();
 };
@@ -9140,7 +9157,7 @@ App.AccountButton.prototype.setModel = function getModel(model,mode)
 
     this._nameLabel.setText(this._model.name);
 
-    this._render();//TODO optionally enable/disable swiping
+    this._render();
 };
 
 /**
@@ -9150,6 +9167,17 @@ App.AccountButton.prototype.setModel = function getModel(model,mode)
 App.AccountButton.prototype.getModel = function getModel()
 {
     return this._model;
+};
+
+/**
+ * Click handler
+ * @param {InteractionData} data
+ * @returns {number}
+ */
+App.AccountButton.prototype.getClickMode = function getClickMode(data)
+{
+    if (this._isOpen && data.getLocalPosition(this).x >= this._width - this._openOffset) return App.ScreenMode.EDIT;
+    else return App.ScreenMode.SELECT;
 };
 
 /**
@@ -9217,8 +9245,6 @@ App.AccountScreen.prototype.enable = function enable()
 App.AccountScreen.prototype.disable = function disable()
 {
     App.Screen.prototype.disable.call(this);
-
-    //this._layoutDirty = false;
 
     this._pane.disable();
 };
@@ -9327,7 +9353,8 @@ App.AccountScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.AccountScreen.prototype._onClick = function _onClick()
 {
-    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
+    var data = this.stage.getTouchData(),
+        button = this._buttonList.getItemUnderPoint(data);
 
     if (button)
     {
@@ -9346,25 +9373,47 @@ App.AccountScreen.prototype._onClick = function _onClick()
         }
         else
         {
-            var HeaderAction = App.HeaderAction;
+            var ScreenMode = App.ScreenMode,
+                HeaderAction = App.HeaderAction;
 
-            changeScreenData.update(
-                App.ScreenName.CATEGORY,
-                this._mode,
-                button.getModel(),
-                HeaderAction.MENU,
-                HeaderAction.ADD_TRANSACTION,
-                App.ScreenTitle.CATEGORIES
-            );
-
-            if (this._mode === App.ScreenMode.SELECT)
+            if (this._mode === ScreenMode.EDIT)
             {
-                changeScreenData.headerLeftAction = HeaderAction.CANCEL;
-                changeScreenData.headerRightAction = HeaderAction.NONE;
-                changeScreenData.headerName = App.ScreenTitle.SELECT_CATEGORY;
-            }
+                if (button.getClickMode(data) === ScreenMode.EDIT)
+                {
+                    //this._model.saveState();
 
-            App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData);
+                    App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
+                        App.ScreenName.EDIT,
+                        App.ScreenMode.EDIT,
+                        button.getModel(),
+                        0,
+                        0,
+                        App.ScreenTitle.EDIT_ACCOUNT
+                    ));
+                }
+                else
+                {
+                    App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
+                        App.ScreenName.CATEGORY,
+                        this._mode,
+                        button.getModel(),
+                        HeaderAction.MENU,
+                        HeaderAction.ADD_TRANSACTION,
+                        App.ScreenTitle.CATEGORIES
+                    ));
+                }
+            }
+            else
+            {
+                App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
+                    App.ScreenName.CATEGORY,
+                    this._mode,
+                    button.getModel(),
+                    0,
+                    HeaderAction.NONE,
+                    App.ScreenTitle.SELECT_CATEGORY
+                ));
+            }
         }
     }
 };
@@ -10247,42 +10296,44 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    var EventType = App.EventType,
-        data = this.stage.getTouchData(),
+    var data = this.stage.getTouchData(),
         button = this._buttonList.getItemUnderPoint(data);
 
-    if (button instanceof App.AddNewButton)
+    if (button)
     {
-        var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT_CATEGORY);
-        changeScreenData.headerName = App.ScreenTitle.ADD_CATEGORY;
-
-        App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,{
-            type:EventType.CREATE,
-            account:this._model,
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
-        });
-    }
-    else
-    {
-        if (this._mode === App.ScreenMode.SELECT)
+        if (button instanceof App.AddNewButton)
         {
-            this._interactiveButton = button;
+            var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT_CATEGORY);
+            changeScreenData.headerName = App.ScreenTitle.ADD_CATEGORY;
 
-            if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
-            {
-                this._buttonsInTransition.push(this._interactiveButton);
-                this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
-
-                this._layoutDirty = true;
-            }
-
-            this._interactiveButton.onClick(data);
-            this._pane.cancelScroll();
+            App.Controller.dispatchEvent(App.EventType.CHANGE_CATEGORY,{
+                type:App.EventType.CREATE,
+                account:this._model,
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:changeScreenData
+            });
         }
-        else if (this._mode === App.ScreenMode.EDIT)
+        else
         {
-            button.onClick(data);
+            if (this._mode === App.ScreenMode.SELECT)
+            {
+                this._interactiveButton = button;
+
+                if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
+                {
+                    this._buttonsInTransition.push(this._interactiveButton);
+                    this._interactiveButton.addEventListener(App.EventType.COMPLETE,this,this._onButtonTransitionComplete);
+
+                    this._layoutDirty = true;
+                }
+
+                this._interactiveButton.onClick(data);
+                this._pane.cancelScroll();
+            }
+            else if (this._mode === App.ScreenMode.EDIT)
+            {
+                button.onClick(data);
+            }
         }
     }
 };

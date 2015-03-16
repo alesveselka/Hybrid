@@ -89,6 +89,17 @@ App.AccountButton.prototype.getModel = function getModel()
 };
 
 /**
+ * Click handler
+ * @param {InteractionData} data
+ * @returns {number}
+ */
+App.AccountButton.prototype.getClickMode = function getClickMode(data)
+{
+    if (this._isOpen && data.getLocalPosition(this).x >= this._width - this._openOffset) return App.ScreenMode.EDIT;
+    else return App.ScreenMode.SELECT;
+};
+
+/**
  * Update swipe position
  * @param {number} position
  * @private

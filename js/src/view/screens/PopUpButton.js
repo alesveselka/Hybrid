@@ -77,6 +77,15 @@ App.PopUpButton.prototype.setPosition = function setPosition(x,y)
 };
 
 /**
+ * Set message
+ * @param {string} message
+ */
+App.PopUpButton.prototype.setMessage = function setMessage(message)
+{
+    this._messageField.setText(message);
+};
+
+/**
  * Set popUp layout
  * @param {number} x
  * @param {number} y

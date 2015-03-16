@@ -202,42 +202,44 @@ App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.CategoryScreen.prototype._onClick = function _onClick()
 {
-    var EventType = App.EventType,
-        data = this.stage.getTouchData(),
+    var data = this.stage.getTouchData(),
         button = this._buttonList.getItemUnderPoint(data);
 
-    if (button instanceof App.AddNewButton)
+    if (button)
     {
-        var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT_CATEGORY);
-        changeScreenData.headerName = App.ScreenTitle.ADD_CATEGORY;
-
-        App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,{
-            type:EventType.CREATE,
-            account:this._model,
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
-        });
-    }
-    else
-    {
-        if (this._mode === App.ScreenMode.SELECT)
+        if (button instanceof App.AddNewButton)
         {
-            this._interactiveButton = button;
+            var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT_CATEGORY);
+            changeScreenData.headerName = App.ScreenTitle.ADD_CATEGORY;
 
-            if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
-            {
-                this._buttonsInTransition.push(this._interactiveButton);
-                this._interactiveButton.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
-
-                this._layoutDirty = true;
-            }
-
-            this._interactiveButton.onClick(data);
-            this._pane.cancelScroll();
+            App.Controller.dispatchEvent(App.EventType.CHANGE_CATEGORY,{
+                type:App.EventType.CREATE,
+                account:this._model,
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:changeScreenData
+            });
         }
-        else if (this._mode === App.ScreenMode.EDIT)
+        else
         {
-            button.onClick(data);
+            if (this._mode === App.ScreenMode.SELECT)
+            {
+                this._interactiveButton = button;
+
+                if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
+                {
+                    this._buttonsInTransition.push(this._interactiveButton);
+                    this._interactiveButton.addEventListener(App.EventType.COMPLETE,this,this._onButtonTransitionComplete);
+
+                    this._layoutDirty = true;
+                }
+
+                this._interactiveButton.onClick(data);
+                this._pane.cancelScroll();
+            }
+            else if (this._mode === App.ScreenMode.EDIT)
+            {
+                button.onClick(data);
+            }
         }
     }
 };
