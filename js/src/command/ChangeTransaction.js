@@ -36,7 +36,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
 
         data.nextCommandData.updateData = transaction;
     }
-    if (type === EventType.COPY)
+    else if (type === EventType.COPY)
     {
         transaction = data.transaction.copy();
         transactions.addItem(transaction);
@@ -87,5 +87,5 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
-    else this.dispatchEvent(App.EventType.COMPLETE,this);
+    else this.dispatchEvent(EventType.COMPLETE,this);
 };

@@ -15,7 +15,7 @@
  */
 App.AccountButton = function AccountButton(poolIndex,options)
 {
-    App.SwipeButton.call(this,options.width,options.openOffset);//TODO optionally enable/disable swiping
+    App.SwipeButton.call(this,options.width,options.openOffset);
 
     this.allocated = false;
     this.poolIndex = poolIndex;
@@ -76,7 +76,7 @@ App.AccountButton.prototype.setModel = function getModel(model,mode)
 
     this._nameLabel.setText(this._model.name);
 
-    this._render();
+    this._render();//TODO optionally enable/disable swiping
 };
 
 /**

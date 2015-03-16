@@ -7,10 +7,11 @@ App.EditScreen = function EditScreen(layout)
 {
     App.Screen.call(this,layout,0.4);
 
-    var FontStyle = App.FontStyle,
-        r = layout.pixelRatio,
+    var r = layout.pixelRatio,
         inputWidth = layout.width - Math.round(20 * r),
         inputHeight = Math.round(40 * r);
+
+    this._target = null;
 
     this._background = this.addChild(new PIXI.Graphics());
     this._input = this.addChild(new App.Input("",20,inputWidth,inputHeight,r,true));
@@ -106,9 +107,10 @@ App.EditScreen.prototype.update = function update(model,mode)
 {
     this._model = model;
     this._mode = mode;
+    this._target = this._model instanceof App.Account ? App.Account : App.SubCategory;
 
-    if (this._model.subCategory) this._input.setValue(this._model.subCategory.name);
-    //this._input.setPlaceholder(data.placeholder);
+    if (this._target === App.Account) this._input.setValue(this._model.name);
+    else if (this._target === App.SubCategory && this._model.subCategory) this._input.setValue(this._model.subCategory.name);
 
     this._deleteButton.hidePopUp(true);
 
@@ -166,18 +168,30 @@ App.EditScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
 
     changeScreenData.updateBackScreen = true;
 
-    App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
-        type:EventType.DELETE,
-        subCategory:this._model.subCategory,
-        category:this._model.category,
-        nextCommand:new App.ChangeCategory(),
-        nextCommandData:{
-            type:EventType.CHANGE,
-            category:this._model.category,
+    if (this._target === App.Account)
+    {
+        /*App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
+            type:EventType.DELETE,
+            account:this._model,
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData
-        }
-    });
+        });*/
+    }
+    else if (this._target === App.SubCategory)
+    {
+        App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
+            type:EventType.DELETE,
+            subCategory:this._model.subCategory,
+            category:this._model.category,
+            nextCommand:new App.ChangeCategory(),
+            nextCommandData:{
+                type:EventType.CHANGE,
+                category:this._model.category,
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:changeScreenData
+            }
+        });
+    }
 };
 
 /**
@@ -229,25 +243,37 @@ App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
     this._input.blur();
 
     //TODO check first if value is set
-    //TODO different action when editing different models
 
     if (action === App.HeaderAction.CONFIRM)
     {
         changeScreenData.updateBackScreen = true;
 
-        App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
-            type:EventType.CHANGE,
-            subCategory:this._model.subCategory,
-            category:this._model.category,
-            name:this._input.getValue(),
-            nextCommand:new App.ChangeCategory(),
-            nextCommandData:{
+        if (this._target === App.Account)
+        {
+            App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
                 type:EventType.CHANGE,
-                category:this._model.category,
+                account:this._model,
+                name:this._input.getValue(),
                 nextCommand:new App.ChangeScreen(),
                 nextCommandData:changeScreenData
-            }
-        });
+            });
+        }
+        else if (this._target === App.SubCategory)
+        {
+            App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
+                type:EventType.CHANGE,
+                subCategory:this._model.subCategory,
+                category:this._model.category,
+                name:this._input.getValue(),
+                nextCommand:new App.ChangeCategory(),
+                nextCommandData:{
+                    type:EventType.CHANGE,
+                    category:this._model.category,
+                    nextCommand:new App.ChangeScreen(),
+                    nextCommandData:changeScreenData
+                }
+            });
+        }
     }
     else if (action === App.HeaderAction.CANCEL)
     {

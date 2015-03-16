@@ -68,7 +68,11 @@ App.Account.prototype.removeCategory = function removeCategory(category)
 Object.defineProperty(App.Account.prototype,'categories',{
     get:function()
     {
-        if (!this._categories && this._data) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2].split(","),"id");
+        if (!this._categories)
+        {
+            if (this._data) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2].split(","),"id");
+            else this._categories = [];
+        }
         return this._categories;
     }
 });

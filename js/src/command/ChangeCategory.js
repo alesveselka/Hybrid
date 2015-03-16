@@ -72,7 +72,7 @@ App.ChangeCategory.prototype.execute = function execute(data)
     }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
-    else this.dispatchEvent(App.EventType.COMPLETE,this);
+    else this.dispatchEvent(EventType.COMPLETE,this);
 };
 
 /**

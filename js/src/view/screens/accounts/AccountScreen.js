@@ -17,7 +17,7 @@ App.AccountScreen = function AccountScreen(layout)
 
     this._interactiveButton = null;
     this._buttonList = new App.TileList(App.Direction.Y,h);
-    this._addNewButton = new App.AddNewButton("ADD CATEGORY",FontStyle.get(16,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_60,r);
+    this._addNewButton = new App.AddNewButton("ADD ACCOUNT",FontStyle.get(16,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_60,r);
     this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,r,false);
 
     this._pane.setContent(this._buttonList);
@@ -93,23 +93,41 @@ App.AccountScreen.prototype._onClick = function _onClick()
 
     if (button)
     {
-        var ScreenMode = App.ScreenMode,
-            HeaderAction = App.HeaderAction,
-            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.CATEGORY,this._mode,button.getModel());
+        var EventType = App.EventType,
+            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT);
 
-        if (this._mode === ScreenMode.SELECT)
+        if (button instanceof App.AddNewButton)
         {
-            changeScreenData.headerRightAction = HeaderAction.NONE;
-            changeScreenData.headerName = App.ScreenTitle.SELECT_CATEGORY;
+            changeScreenData.headerName = App.ScreenTitle.ADD_ACCOUNT;
+
+            App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
+                type:EventType.CREATE,
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:changeScreenData
+            });
         }
         else
         {
-            changeScreenData.headerLeftAction = HeaderAction.MENU;
-            changeScreenData.headerRightAction = HeaderAction.ADD_TRANSACTION;
-            changeScreenData.headerName = App.ScreenTitle.CATEGORIES;
-        }
+            var HeaderAction = App.HeaderAction;
 
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+            changeScreenData.update(
+                App.ScreenName.CATEGORY,
+                this._mode,
+                button.getModel(),
+                HeaderAction.MENU,
+                HeaderAction.ADD_TRANSACTION,
+                App.ScreenTitle.CATEGORIES
+            );
+
+            if (this._mode === App.ScreenMode.SELECT)
+            {
+                changeScreenData.headerLeftAction = HeaderAction.CANCEL;
+                changeScreenData.headerRightAction = HeaderAction.NONE;
+                changeScreenData.headerName = App.ScreenTitle.SELECT_CATEGORY;
+            }
+
+            App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData);
+        }
     }
 };
 
