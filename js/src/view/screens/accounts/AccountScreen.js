@@ -45,8 +45,6 @@ App.AccountScreen.prototype.disable = function disable()
 {
     App.Screen.prototype.disable.call(this);
 
-    //this._layoutDirty = false;
-
     this._pane.disable();
 };
 
@@ -81,6 +79,71 @@ App.AccountScreen.prototype.update = function update(data,mode)
 
     this._mode = mode;
     this._swipeEnabled = mode === App.ScreenMode.EDIT;
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.AccountScreen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    App.Screen.prototype._onTweenComplete.call(this);
+
+    if (this._transitionState === App.TransitionState.HIDDEN) this._closeButtons(true);
+};
+
+/**
+ * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
+ * @param {string} direction
+ * @private
+ */
+App.AccountScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
+{
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
+
+    if (button && !(button instanceof App.AddNewButton))
+    {
+        if (!preferScroll) this._pane.cancelScroll();
+
+        this._interactiveButton = button;
+        this._interactiveButton.swipeStart(direction);
+
+        this._closeButtons(false);
+    }
+};
+
+/**
+ * Called when swipe ends
+ * @private
+ */
+App.AccountScreen.prototype._swipeEnd = function _swipeEnd()
+{
+    if (this._interactiveButton)
+    {
+        this._interactiveButton.swipeEnd();
+        this._interactiveButton = null;
+    }
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.AccountScreen.prototype._closeButtons = function _closeButtons(immediate)
+{
+    if (this._mode === App.ScreenMode.EDIT)
+    {
+        var i = 0,
+            l = this._buttonList.length - 1,// last button is 'AddNewButton'
+            button = null;
+
+        for (;i<l;)
+        {
+            button = this._buttonList.getItemAt(i++);
+            if (button !== this._interactiveButton) button.close(immediate);
+        }
+    }
 };
 
 /**

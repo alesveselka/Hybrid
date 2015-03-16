@@ -9118,7 +9118,7 @@ App.AccountButton.prototype._render = function _render()
         App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
 
         this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
-        this._editLabel.y = Math.round(18 * this._pixelRatio);
+        this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
 
         this._nameLabel.x = offset;
         this._nameLabel.y = offset;
@@ -9150,6 +9150,25 @@ App.AccountButton.prototype.setModel = function getModel(model,mode)
 App.AccountButton.prototype.getModel = function getModel()
 {
     return this._model;
+};
+
+/**
+ * Update swipe position
+ * @param {number} position
+ * @private
+ */
+App.AccountButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
+{
+    this._swipeSurface.x = position;
+};
+
+/**
+ * Return swipe position
+ * @private
+ */
+App.AccountButton.prototype._getSwipePosition = function _getSwipePosition()
+{
+    return this._swipeSurface.x;
 };
 
 /**
@@ -9235,6 +9254,71 @@ App.AccountScreen.prototype.update = function update(data,mode)
 
     this._mode = mode;
     this._swipeEnabled = mode === App.ScreenMode.EDIT;
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.AccountScreen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    App.Screen.prototype._onTweenComplete.call(this);
+
+    if (this._transitionState === App.TransitionState.HIDDEN) this._closeButtons(true);
+};
+
+/**
+ * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
+ * @param {string} direction
+ * @private
+ */
+App.AccountScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
+{
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
+
+    if (button && !(button instanceof App.AddNewButton))
+    {
+        if (!preferScroll) this._pane.cancelScroll();
+
+        this._interactiveButton = button;
+        this._interactiveButton.swipeStart(direction);
+
+        this._closeButtons(false);
+    }
+};
+
+/**
+ * Called when swipe ends
+ * @private
+ */
+App.AccountScreen.prototype._swipeEnd = function _swipeEnd()
+{
+    if (this._interactiveButton)
+    {
+        this._interactiveButton.swipeEnd();
+        this._interactiveButton = null;
+    }
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.AccountScreen.prototype._closeButtons = function _closeButtons(immediate)
+{
+    if (this._mode === App.ScreenMode.EDIT)
+    {
+        var i = 0,
+            l = this._buttonList.length - 1,// last button is 'AddNewButton'
+            button = null;
+
+        for (;i<l;)
+        {
+            button = this._buttonList.getItemAt(i++);
+            if (button !== this._interactiveButton) button.close(immediate);
+        }
+    }
 };
 
 /**
@@ -13946,7 +14030,7 @@ App.ChangeAccount.prototype.constructor = App.ChangeAccount;
  * Execute the command
  *
  * @method execute
- * @param {{subCategory:App.SubCategory,name:string,category:App.Category,nextCommand:Command,nextCommandData:App.ChangeScreenData}} data
+ * @param {{account:App.Account,name:string,nextCommand:Command,nextCommandData:App.ChangeScreenData}} data
  */
 App.ChangeAccount.prototype.execute = function execute(data)
 {

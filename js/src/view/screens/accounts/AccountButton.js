@@ -54,7 +54,7 @@ App.AccountButton.prototype._render = function _render()
         App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
 
         this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
-        this._editLabel.y = Math.round(18 * this._pixelRatio);
+        this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
 
         this._nameLabel.x = offset;
         this._nameLabel.y = offset;
@@ -76,7 +76,7 @@ App.AccountButton.prototype.setModel = function getModel(model,mode)
 
     this._nameLabel.setText(this._model.name);
 
-    this._render();//TODO optionally enable/disable swiping
+    this._render();
 };
 
 /**
@@ -86,4 +86,23 @@ App.AccountButton.prototype.setModel = function getModel(model,mode)
 App.AccountButton.prototype.getModel = function getModel()
 {
     return this._model;
+};
+
+/**
+ * Update swipe position
+ * @param {number} position
+ * @private
+ */
+App.AccountButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
+{
+    this._swipeSurface.x = position;
+};
+
+/**
+ * Return swipe position
+ * @private
+ */
+App.AccountButton.prototype._getSwipePosition = function _getSwipePosition()
+{
+    return this._swipeSurface.x;
 };

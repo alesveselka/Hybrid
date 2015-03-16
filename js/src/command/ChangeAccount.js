@@ -16,7 +16,7 @@ App.ChangeAccount.prototype.constructor = App.ChangeAccount;
  * Execute the command
  *
  * @method execute
- * @param {{subCategory:App.SubCategory,name:string,category:App.Category,nextCommand:Command,nextCommandData:App.ChangeScreenData}} data
+ * @param {{account:App.Account,name:string,nextCommand:Command,nextCommandData:App.ChangeScreenData}} data
  */
 App.ChangeAccount.prototype.execute = function execute(data)
 {
