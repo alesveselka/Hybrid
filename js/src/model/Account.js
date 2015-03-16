@@ -26,6 +26,8 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
         this.name = "Account" + this.id;
         this._categories = null;
     }
+
+    this.lifeCycleState = App.LifeCycleState.CREATED;
 };
 
 App.Account._UID = 0;

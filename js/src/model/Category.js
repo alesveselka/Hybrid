@@ -35,6 +35,7 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
         this._subCategories = null;
     }
 
+//    this._lifeCycleState = App.LifeCycleState.CREATED;
     this._states = null;
 };
 

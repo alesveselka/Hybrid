@@ -178,12 +178,12 @@ App.EditScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
 
     if (this._target === App.Account)
     {
-        /*App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
+        App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
             type:EventType.DELETE,
             account:this._model,
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData
-        });*/
+        });
     }
     else if (this._target === App.SubCategory)
     {

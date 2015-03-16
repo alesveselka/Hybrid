@@ -23,6 +23,7 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
         this.category = null;
     }
 
+//    this._lifeCycleState = App.LifeCycleState.CREATED;
     this._state = null;
 };
 

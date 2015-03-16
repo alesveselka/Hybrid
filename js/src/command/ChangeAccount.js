@@ -35,16 +35,20 @@ App.ChangeAccount.prototype.execute = function execute(data)
     }
     else if (type === EventType.CHANGE)
     {
-        var collection = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
-
         account.name = data.name;
 
-        if (collection.indexOf(account) === -1) collection.addItem(account);
+        if (account.lifeCycleState === App.LifeCycleState.CREATED)
+        {
+            var collection = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
+            if (collection.indexOf(account) === -1) collection.addItem(account);
+
+            account.lifeCycleState = App.LifeCycleState.ACTIVE;
+        }
     }
-    /*else if (type === EventType.DELETE)
+    else if (type === EventType.DELETE)
     {
-        data.category.removeSubCategory(subCategory);
-    }*/
+        account.lifeCycleState = App.LifeCycleState.DELETED;
+    }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(EventType.COMPLETE,this);

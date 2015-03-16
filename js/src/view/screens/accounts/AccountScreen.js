@@ -61,15 +61,21 @@ App.AccountScreen.prototype.update = function update(data,mode)
     var buttonPool = App.ViewLocator.getViewSegment(App.ViewName.ACCOUNT_BUTTON_POOL),
         i = 0,
         l = this._buttonList.length,
+        deletedState = App.LifeCycleState.DELETED,
+        account = null,
         button = null;
 
     for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
 
     for (i=0,l=this._model.length();i<l;)
     {
-        button = buttonPool.allocate();
-        button.setModel(this._model.getItemAt(i++),mode);
-        this._buttonList.add(button);
+        account = this._model.getItemAt(i++);
+        if (account.lifeCycleState !== deletedState)
+        {
+            button = buttonPool.allocate();
+            button.setModel(account,mode);
+            this._buttonList.add(button);
+        }
     }
 
     this._buttonList.add(this._addNewButton);
@@ -179,8 +185,6 @@ App.AccountScreen.prototype._onClick = function _onClick()
             {
                 if (button.getClickMode(data) === ScreenMode.EDIT)
                 {
-                    //this._model.saveState();
-
                     App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
                         App.ScreenName.EDIT,
                         App.ScreenMode.EDIT,

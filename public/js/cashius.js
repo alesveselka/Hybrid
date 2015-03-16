@@ -977,6 +977,17 @@ App.EventLevel = {
 };
 
 /**
+ * LifeCycle state
+ * @enum {number}
+ * @return {{CREATED:number,ACTIVE:number,DELETED:number}}
+ */
+App.LifeCycleState = {
+    CREATED:1,
+    ACTIVE:2,
+    DELETED:3
+};
+
+/**
  * @class EventListener
  * @param {number} index
  * @constructor
@@ -2056,6 +2067,7 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
         this.category = null;
     }
 
+//    this._lifeCycleState = App.LifeCycleState.CREATED;
     this._state = null;
 };
 
@@ -2122,6 +2134,7 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
         this._subCategories = null;
     }
 
+//    this._lifeCycleState = App.LifeCycleState.CREATED;
     this._states = null;
 };
 
@@ -2314,6 +2327,8 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
         this.name = "Account" + this.id;
         this._categories = null;
     }
+
+    this.lifeCycleState = App.LifeCycleState.CREATED;
 };
 
 App.Account._UID = 0;
@@ -7925,12 +7940,12 @@ App.EditScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
 
     if (this._target === App.Account)
     {
-        /*App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
+        App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
             type:EventType.DELETE,
             account:this._model,
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData
-        });*/
+        });
     }
     else if (this._target === App.SubCategory)
     {
@@ -9262,15 +9277,21 @@ App.AccountScreen.prototype.update = function update(data,mode)
     var buttonPool = App.ViewLocator.getViewSegment(App.ViewName.ACCOUNT_BUTTON_POOL),
         i = 0,
         l = this._buttonList.length,
+        deletedState = App.LifeCycleState.DELETED,
+        account = null,
         button = null;
 
     for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
 
     for (i=0,l=this._model.length();i<l;)
     {
-        button = buttonPool.allocate();
-        button.setModel(this._model.getItemAt(i++),mode);
-        this._buttonList.add(button);
+        account = this._model.getItemAt(i++);
+        if (account.lifeCycleState !== deletedState)
+        {
+            button = buttonPool.allocate();
+            button.setModel(account,mode);
+            this._buttonList.add(button);
+        }
     }
 
     this._buttonList.add(this._addNewButton);
@@ -9380,8 +9401,6 @@ App.AccountScreen.prototype._onClick = function _onClick()
             {
                 if (button.getClickMode(data) === ScreenMode.EDIT)
                 {
-                    //this._model.saveState();
-
                     App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
                         App.ScreenName.EDIT,
                         App.ScreenMode.EDIT,
@@ -14100,16 +14119,20 @@ App.ChangeAccount.prototype.execute = function execute(data)
     }
     else if (type === EventType.CHANGE)
     {
-        var collection = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
-
         account.name = data.name;
 
-        if (collection.indexOf(account) === -1) collection.addItem(account);
+        if (account.lifeCycleState === App.LifeCycleState.CREATED)
+        {
+            var collection = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
+            if (collection.indexOf(account) === -1) collection.addItem(account);
+
+            account.lifeCycleState = App.LifeCycleState.ACTIVE;
+        }
     }
-    /*else if (type === EventType.DELETE)
+    else if (type === EventType.DELETE)
     {
-        data.category.removeSubCategory(subCategory);
-    }*/
+        account.lifeCycleState = App.LifeCycleState.DELETED;
+    }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(EventType.COMPLETE,this);
