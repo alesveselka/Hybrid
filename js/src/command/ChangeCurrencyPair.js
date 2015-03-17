@@ -23,7 +23,7 @@ App.ChangeCurrencyPair.prototype.execute = function execute(data)
     this._nextCommand = data.nextCommand;
     this._nextCommandData = data.nextCommandData;
 
-    data.currencyPair.rate = parseInt(data.rate,10);
+    data.currencyPair.rate = parseFloat(data.rate);
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);

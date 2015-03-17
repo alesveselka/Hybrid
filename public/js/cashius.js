@@ -3649,7 +3649,14 @@ App.Input.prototype._updateText = function _updateText(finish)
  */
 App.Input.prototype._format = function _format(finish)
 {
-    if (this._restrictPattern) this._inputProxy.value = this._inputProxy.value.replace(this._restrictPattern,"");
+    console.log("format A: ",this._inputProxy.value,this._inputProxy.value.match(this._restrictPattern));
+    //if (this._restrictPattern) this._inputProxy.value = this._inputProxy.value.replace(this._restrictPattern,"");
+    if (this._restrictPattern)
+    {
+        var result = this._inputProxy.value.match(this._restrictPattern);
+        if (result && result.length > 0) this._inputProxy.value = result[0];
+    }
+    console.log("format B: ",this._inputProxy.value);
 
     return this._inputProxy.value;
 };
@@ -12675,7 +12682,7 @@ App.EditCurrencyPairScreen = function EditCurrencyPairScreen(layout)
     this._pairLabel = this.addChild(new PIXI.Text("EUR / USD",App.FontStyle.get(24,App.FontStyle.BLUE)));
     this._input = this.addChild(new App.Input("",20,Math.round(layout.width - this._pairLabel.width - Math.round(50 * r)),Math.round(40 * r),r));
 
-    this._input.restrict(/\D/g);
+    this._input.restrict(/([0-9])+\.([0-9])*/g);
 
     this._render();
 };
@@ -14601,7 +14608,7 @@ App.ChangeCurrencyPair.prototype.execute = function execute(data)
     this._nextCommand = data.nextCommand;
     this._nextCommandData = data.nextCommandData;
 
-    data.currencyPair.rate = parseInt(data.rate,10);
+    data.currencyPair.rate = parseFloat(data.rate);
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);
