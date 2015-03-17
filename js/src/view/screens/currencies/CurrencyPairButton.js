@@ -27,8 +27,7 @@ App.CurrencyPairButton = function CurrencyPairButton(model,options)
     this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
     this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
     this._pairLabel = this._swipeSurface.addChild(new PIXI.Text(model.base+"/"+model.symbol,options.pairLabelStyle));
-    this._rateLabel = this._swipeSurface.addChild(new PIXI.Text(model.rate,options.rateLabelStyle));
-    this._renderAll = true;
+    this._rateLabel = this._swipeSurface.addChild(new PIXI.Text("@ "+model.rate,options.rateLabelStyle));
 
     this._render();
 };
@@ -47,22 +46,16 @@ App.CurrencyPairButton.prototype._render = function _render()
         r = this._pixelRatio,
         offset = Math.round(15 * r);
 
-    if (this._renderAll)
-    {
-        this._renderAll = false;
+    App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
 
-        App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
+    this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
+    this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
 
-        this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
-        this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
+    this._pairLabel.x = offset;
+    this._pairLabel.y = Math.round((h - this._pairLabel.height) / 2);
 
-        this._pairLabel.x = offset;
-        this._pairLabel.y = Math.round((h - this._pairLabel.height) / 2);
-
-        this._rateLabel.y = Math.round((h - this._rateLabel.height) / 2);
-    }
-
-    this._rateLabel.x = Math.round(w - offset - this._rateLabel.width);
+    this._rateLabel.x = Math.round(offset + this._pairLabel.width + 5 * r);
+    this._rateLabel.y = Math.round((h - this._rateLabel.height) / 2);
 };
 
 /**
@@ -71,9 +64,7 @@ App.CurrencyPairButton.prototype._render = function _render()
 App.CurrencyPairButton.prototype.update = function update()
 {
     //TODO check if model was updated so I don't have to update all items blindly
-    this._rateLabel.setText(this._model.rate);
-
-    this._render();
+    this._rateLabel.setText("@ "+this._model.rate);
 };
 
 /**
@@ -84,19 +75,14 @@ App.CurrencyPairButton.prototype.onClick = function onClick(interactionData)
 {
     if (this._isOpen && interactionData.getLocalPosition(this).x >= this._width - this._openOffset)
     {
-        this._model.saveState();
-
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,
-            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
-                App.ScreenName.EDIT,
-                App.ScreenMode.EDIT,
-                {subCategory:this._model,category:category},
-                0,
-                0,
-                App.ScreenTitle.EDIT_SUB_CATEGORY
-            )
-        );
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+            App.ScreenName.EDIT_CURRENCY_RATE,
+            App.ScreenMode.EDIT,
+            this._model,
+            0,
+            0,
+            App.ScreenTitle.EDIT_CURRENCY_RATE
+        ));
     }
 };
 

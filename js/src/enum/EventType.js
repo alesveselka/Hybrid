@@ -7,6 +7,7 @@
  *      CHANGE_ACCOUNT:string,
  *      CHANGE_CATEGORY:string,
  *      CHANGE_SUB_CATEGORY:string,
+ *      CHANGE_CURRENCY_PAIR:string,
  *      CREATE:string,
  *      CANCEL:string,
  *      CONFIRM:string,
@@ -43,6 +44,7 @@ App.EventType = {
     CHANGE_ACCOUNT:"CHANGE_ACCOUNT",
     CHANGE_CATEGORY:"CHANGE_CATEGORY",
     CHANGE_SUB_CATEGORY:"CHANGE_SUB_CATEGORY",
+    CHANGE_CURRENCY_PAIR:"CHANGE_CURRENCY_PAIR",
 
     // App
     CREATE:"CREATE",

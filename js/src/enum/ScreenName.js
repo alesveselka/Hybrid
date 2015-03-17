@@ -12,6 +12,7 @@
  *      ADD_TRANSACTION:number,
  *      EDIT:number,
  *      CURRENCY_PAIRS:number,
+ *      EDIT_CURRENCY_RATE:number,
  *      MENU:number
  * }}
  */
@@ -26,5 +27,6 @@ App.ScreenName = {
     ADD_TRANSACTION:6,
     EDIT:7,
     CURRENCY_PAIRS:8,
-    MENU:9
+    EDIT_CURRENCY_RATE:9,
+    MENU:10
 };

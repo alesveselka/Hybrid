@@ -74,6 +74,7 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         userData = JSON.parse(data.userData),
         currencyPairs = new Collection(userData.currencyPairs,CurrencyPair,null,this._eventListenerPool);
 
+    //TODO set default currency
     //currencyPairs.addItem(new CurrencyPair([1,"USD","USD",1.0]));
 
     App.ModelLocator.init([
@@ -107,7 +108,8 @@ App.Initialize.prototype._initController = function _initController()
         EventType.CHANGE_TRANSACTION,App.ChangeTransaction,
         EventType.CHANGE_ACCOUNT,App.ChangeAccount,
         EventType.CHANGE_CATEGORY,App.ChangeCategory,
-        EventType.CHANGE_SUB_CATEGORY,App.ChangeSubCategory
+        EventType.CHANGE_SUB_CATEGORY,App.ChangeSubCategory,
+        EventType.CHANGE_CURRENCY_PAIR,App.ChangeCurrencyPair
     ]);
 };
 
