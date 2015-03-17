@@ -46,6 +46,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.ReportScreen(this._layout),
         new App.AddTransactionScreen(this._layout),
         new App.EditScreen(this._layout),
+        new App.CurrencyPairScreen(this._layout),
         new App.Menu(this._layout)
     ],false,listenerPool));
 

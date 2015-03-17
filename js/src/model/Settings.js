@@ -37,7 +37,7 @@ Object.defineProperty(App.Settings.prototype,'startOfWeek',{
 Object.defineProperty(App.Settings.prototype,'baseCurrency',{
     get:function()
     {
-        if (!this._baseCurrency) this._baseCurrency = App.ModelLocator.getProxy(App.ModelName.CURRENCIES).filter([this._data[1]],"id")[0];
+        if (!this._baseCurrency) this._baseCurrency = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).filter([this._data[1]],"id")[0];
         return this._baseCurrency;
     },
     set:function(value)

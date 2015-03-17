@@ -764,7 +764,7 @@ App.EventType = {
  *      TICKER:number,
  *      EVENT_LISTENER_POOL:number,
  *      PAYMENT_METHODS:number,
- *      CURRENCIES:number,
+ *      CURRENCY_PAIRS:number,
  *      SUB_CATEGORIES:number,
  *      CATEGORIES:number,
  *      ACCOUNTS:number,
@@ -779,7 +779,7 @@ App.ModelName = {
     TICKER:0,
     EVENT_LISTENER_POOL:1,
     PAYMENT_METHODS:2,
-    CURRENCIES:3,
+    CURRENCY_PAIRS:3,//TODO also add 'CURRENCIES' that will be extracted from the pairs?
     SUB_CATEGORIES:4,
     CATEGORIES:5,
     ACCOUNTS:6,
@@ -874,7 +874,19 @@ App.Direction = {
 /**
  * Screen Name
  * @enum {number}
- * @return {{BACK:number,ACCOUNT:number,CATEGORY:number,SELECT_TIME:number,EDIT_CATEGORY:number,TRANSACTIONS:number,REPORT:number,ADD_TRANSACTION:number,EDIT:number,MENU:number}}
+ * @return {{
+ *      BACK:number,
+ *      ACCOUNT:number,
+ *      CATEGORY:number,
+ *      SELECT_TIME:number,
+ *      EDIT_CATEGORY:number,
+ *      TRANSACTIONS:number,
+ *      REPORT:number,
+ *      ADD_TRANSACTION:number,
+ *      EDIT:number,
+ *      CURRENCY_PAIRS:number,
+ *      MENU:number
+ * }}
  */
 App.ScreenName = {
     BACK:-1,
@@ -886,7 +898,8 @@ App.ScreenName = {
     REPORT:5,
     ADD_TRANSACTION:6,
     EDIT:7,
-    MENU:8
+    CURRENCY_PAIRS:8,
+    MENU:9
 };
 
 /**
@@ -944,7 +957,8 @@ App.ScreenMode = {
  *      TRANSACTIONS:string,
  *      ADD_TRANSACTION: string,
  *      EDIT_TRANSACTION: string,
- *      REPORT:string
+ *      REPORT:string,
+ *      CURRENCY_PAIRS:string
  * }}
  */
 App.ScreenTitle = {
@@ -963,7 +977,8 @@ App.ScreenTitle = {
     TRANSACTIONS:"Transactions",
     ADD_TRANSACTION:"Add Transaction",
     EDIT_TRANSACTION:"Edit Transaction",
-    REPORT:"Report"
+    REPORT:"Report",
+    CURRENCY_PAIRS:"Currency Pairs"
 };
 
 /**
@@ -1730,7 +1745,7 @@ Object.defineProperty(App.Settings.prototype,'startOfWeek',{
 Object.defineProperty(App.Settings.prototype,'baseCurrency',{
     get:function()
     {
-        if (!this._baseCurrency) this._baseCurrency = App.ModelLocator.getProxy(App.ModelName.CURRENCIES).filter([this._data[1]],"id")[0];
+        if (!this._baseCurrency) this._baseCurrency = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).filter([this._data[1]],"id")[0];
         return this._baseCurrency;
     },
     set:function(value)
@@ -1774,20 +1789,22 @@ App.PaymentMethod.CASH = "Cash";
 App.PaymentMethod.CREDIT_CARD = "Credit-Card";
 
 /**
- * @class Currency
- * @param {{symbol:string,rate:number,pair:Currency}} data
+ * @class CurrencyPair
+ * @param {Array} data
  * @param {Collection} collection
  * @param {*} parent
  * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.Currency = function Currency(data,collection,parent,eventListenerPool)
+App.CurrencyPair = function CurrencyPair(data,collection,parent,eventListenerPool)
 {
     this.id = data[0];
-    this.symbol = data[1];//quote symbol
-    this.base = data[2];
+    this.base = data[1];
+    this.symbol = data[2];//quote symbol
     this.rate = data[3];
-    this.default = this.id === 1;
+
+    //CZK/CZK@1.0
+    //USD/CZK@25.7
 };
 
 /**
@@ -2031,7 +2048,7 @@ Object.defineProperty(App.Transaction.prototype,'currency',{
         //TODO keep just IDs instead of reference?
         if (!this._currency)
         {
-            if (this._data) this._currency = App.ModelLocator.getProxy(App.ModelName.CURRENCIES).filter([this._data[7]],"id")[0];
+            if (this._data) this._currency = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).filter([this._data[7]],"id")[0];
             else this._currency = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
         }
         return this._currency;
@@ -2067,7 +2084,6 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
         this.category = null;
     }
 
-//    this._lifeCycleState = App.LifeCycleState.CREATED;
     this._state = null;
 };
 
@@ -12339,6 +12355,314 @@ App.ReportScreen.prototype._buttonsInTransition = function _buttonsInTransition(
 };
 
 /**
+ * @class CurrencyPairButton
+ * @extends SwipeButton
+ * @param {App.CurrencyPair} model
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {PIXI.Texture} options.skin
+ * @param {{font:string,fill:string}} options.editLabelStyle
+ * @param {{font:string,fill:string}} options.pairLabelStyle
+ * @param {{font:string,fill:string}} options.rateLabelStyle
+ * @param {number} options.openOffset
+ * @constructor
+ */
+App.CurrencyPairButton = function CurrencyPairButton(model,options)
+{
+    App.SwipeButton.call(this,options.width,options.openOffset);
+
+    this.boundingBox = new PIXI.Rectangle(0,0,options.width,options.height);
+
+    this._model = model;
+
+    this._pixelRatio = options.pixelRatio;
+    this._background = this.addChild(new PIXI.Graphics());
+    this._editLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));
+    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
+    this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
+    this._pairLabel = this._swipeSurface.addChild(new PIXI.Text(model.base+"/"+model.symbol,options.pairLabelStyle));
+    this._rateLabel = this._swipeSurface.addChild(new PIXI.Text(model.rate,options.rateLabelStyle));
+    this._renderAll = true;
+
+    this._render();
+};
+
+App.CurrencyPairButton.prototype = Object.create(App.SwipeButton.prototype);
+App.CurrencyPairButton.prototype.constructor = App.CurrencyPairButton;
+
+/**
+ * @method render
+ * @private
+ */
+App.CurrencyPairButton.prototype._render = function _render()
+{
+    var w = this.boundingBox.width,
+        h = this.boundingBox.height,
+        r = this._pixelRatio,
+        offset = Math.round(15 * r);
+
+    if (this._renderAll)
+    {
+        this._renderAll = false;
+
+        App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
+
+        this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
+        this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
+
+        this._pairLabel.x = offset;
+        this._pairLabel.y = Math.round((h - this._pairLabel.height) / 2);
+
+        this._rateLabel.y = Math.round((h - this._rateLabel.height) / 2);
+    }
+
+    this._rateLabel.x = Math.round(w - offset - this._rateLabel.width);
+};
+
+/**
+ * Set model
+ * @param {App.Account} model
+ * @param {string} mode
+ */
+/*App.CurrencyPairButton.prototype.setModel = function getModel(model,mode)
+{
+    this._model = model;
+    this._mode = mode;
+
+    this._nameLabel.setText(this._model.name);
+
+    this._render();
+};*/
+
+/**
+ * Return model
+ * @returns {Account}
+ */
+/*App.CurrencyPairButton.prototype.getModel = function getModel()
+{
+    return this._model;
+};*/
+
+App.CurrencyPairButton.prototype.update = function update()
+{
+    this._render();
+};
+
+/**
+ * Update swipe position
+ * @param {number} position
+ * @private
+ */
+App.CurrencyPairButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
+{
+    this._swipeSurface.x = position;
+};
+
+/**
+ * Return swipe position
+ * @private
+ */
+App.CurrencyPairButton.prototype._getSwipePosition = function _getSwipePosition()
+{
+    return this._swipeSurface.x;
+};
+
+/**
+ * @class CurrencyPairScreen
+ * @extends Screen
+ * @param {Object} layout
+ * @constructor
+ */
+App.CurrencyPairScreen = function CurrencyPairScreen(layout)
+{
+    App.Screen.call(this,layout,0.4);
+
+    var ScrollPolicy = App.ScrollPolicy,
+        h = layout.contentHeight;
+
+    this._model = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS);
+    this._initialized = false;
+
+    this._interactiveButton = null;
+    this._buttonList = new App.TileList(App.Direction.Y,h);
+    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,layout.pixelRatio,false));
+    this._pane.setContent(this._buttonList);
+
+    this._swipeEnabled = true;
+};
+
+App.CurrencyPairScreen.prototype = Object.create(App.Screen.prototype);
+App.CurrencyPairScreen.prototype.constructor = App.CurrencyPairScreen;
+
+/**
+ * Enable
+ */
+App.CurrencyPairScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._pane.resetScroll();
+    this._pane.enable();
+};
+
+/**
+ * Disable
+ */
+App.CurrencyPairScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._pane.disable();
+};
+
+/**
+ * Update
+ * @param {App.Collection} data
+ * @param {string} mode
+ * @private
+ */
+App.CurrencyPairScreen.prototype.update = function update(data,mode)
+{
+    var i = 0,
+        l = this._buttonList.length;
+
+    if (this._initialized)
+    {
+        for (;i<l;) this._buttonList.getItemAt(i++).update();
+    }
+    else
+    {
+        var CurrencyPairButton = App.CurrencyPairButton,
+            FontStyle = App.FontStyle,
+            r = this._layout.pixelRatio,
+            buttonOptions = {
+                width:this._layout.width,
+                height:Math.round(50 * r),
+                pixelRatio:r,
+                skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,
+                editLabelStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+                pairLabelStyle:FontStyle.get(18,FontStyle.BLUE),
+                rateLabelStyle:FontStyle.get(18,FontStyle.BLUE,null,FontStyle.LIGHT_CONDENSED),
+                openOffset:Math.round(80 * r)
+            };
+
+        for (l=this._model.length();i<l;) this._buttonList.add(new CurrencyPairButton(this._model.getItemAt(i++),buttonOptions));
+
+        this._initialized = true;
+
+        this._buttonList.updateLayout();
+        this._pane.resize();
+    }
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.CurrencyPairScreen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    App.Screen.prototype._onTweenComplete.call(this);
+
+    if (this._transitionState === App.TransitionState.HIDDEN) this._closeButtons(true);
+};
+
+/**
+ * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
+ * @param {string} direction
+ * @private
+ */
+App.CurrencyPairScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
+{
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
+
+    if (button)
+    {
+        if (!preferScroll) this._pane.cancelScroll();
+
+        this._interactiveButton = button;
+        this._interactiveButton.swipeStart(direction);
+
+        this._closeButtons(false);
+    }
+};
+
+/**
+ * Called when swipe ends
+ * @private
+ */
+App.CurrencyPairScreen.prototype._swipeEnd = function _swipeEnd()
+{
+    if (this._interactiveButton)
+    {
+        this._interactiveButton.swipeEnd();
+        this._interactiveButton = null;
+    }
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.CurrencyPairScreen.prototype._closeButtons = function _closeButtons(immediate)
+{
+    var i = 0,
+        l = this._buttonList.length,
+        button = null;
+
+    for (;i<l;)
+    {
+        button = this._buttonList.getItemAt(i++);
+        if (button !== this._interactiveButton) button.close(immediate);
+    }
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.CurrencyPairScreen.prototype._onClick = function _onClick()
+{
+    var data = this.stage.getTouchData(),
+        button = this._buttonList.getItemUnderPoint(data);
+
+    if (button) button.onClick(data);
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.CurrencyPairScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
+
+    if (action === HeaderAction.ADD_TRANSACTION)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CREATE,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData.update()
+        });
+    }
+    else if (action === HeaderAction.MENU)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(
+            App.ScreenName.MENU,
+            0,
+            null,
+            HeaderAction.NONE,
+            HeaderAction.CANCEL,
+            App.ScreenTitle.MENU
+        ));
+    }
+};
+
+/**
  * @class MenuItem
  * @extends Graphics
  * @param {string} label
@@ -12423,9 +12747,9 @@ App.Menu = function Menu(layout)
     this._addTransactionItem = new MenuItem("Add Transaction","transactions",ScreenName.ADD_TRANSACTION,{width:w,height:Math.round(50*r),pixelRatio:r,style:itemLabelStyle});
     this._accountsItem = new MenuItem("Accounts","account",ScreenName.ACCOUNT,itemOptions);
     this._reportItem = new MenuItem("Report","chart",ScreenName.REPORT,itemOptions);
-    this._budgetItem = new MenuItem("Budgets","budget",ScreenName.EDIT_CATEGORY,itemOptions);
+    this._budgetItem = new MenuItem("Budgets","budget",-1,itemOptions);
     this._transactionsItem = new MenuItem("Transactions","transactions",ScreenName.TRANSACTIONS,itemOptions);
-    this._currenciesItem = new MenuItem("Currencies","currencies",-1,itemOptions);
+    this._currenciesItem = new MenuItem("Currencies","currencies",ScreenName.CURRENCY_PAIRS,itemOptions);
     this._settignsItem = new MenuItem("Settings","settings-app",-1,itemOptions);
     this._container = new PIXI.Graphics();
     this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
@@ -12539,6 +12863,12 @@ App.Menu.prototype._onClick = function _onClick()
             changeScreenData.updateData = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).copySource().reverse();
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             break;
+
+        case ScreenName.CURRENCY_PAIRS:
+            changeScreenData.screenMode = App.ScreenMode.EDIT;
+            changeScreenData.headerName = ScreenTitle.CURRENCY_PAIRS;
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+            break;
     }
 };
 
@@ -12611,6 +12941,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.ReportScreen(this._layout),
         new App.AddTransactionScreen(this._layout),
         new App.EditScreen(this._layout),
+        new App.CurrencyPairScreen(this._layout),
         new App.Menu(this._layout)
     ],false,listenerPool));
 
@@ -13485,18 +13816,18 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
     var ModelName = App.ModelName,
         Collection = App.Collection,
         PaymentMethod = App.PaymentMethod,
-        Currency = App.Currency,
+        CurrencyPair = App.CurrencyPair,
         userData = JSON.parse(data.userData),
-        currencies = new Collection(userData.currencies,Currency,null,this._eventListenerPool);
+        currencyPairs = new Collection(userData.currencyPairs,CurrencyPair,null,this._eventListenerPool);
 
-    currencies.addItem(new Currency([1,"USD"]));
+    //currencyPairs.addItem(new CurrencyPair([1,"USD","USD",1.0]));
 
     App.ModelLocator.init([
         ModelName.EVENT_LISTENER_POOL,this._eventListenerPool,
         ModelName.TICKER,new App.Ticker(this._eventListenerPool),
         ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}),
         ModelName.PAYMENT_METHODS,new Collection([PaymentMethod.CASH,PaymentMethod.CREDIT_CARD],PaymentMethod,null,this._eventListenerPool),
-        ModelName.CURRENCIES,currencies,
+        ModelName.CURRENCY_PAIRS,currencyPairs,
         ModelName.SETTINGS,new App.Settings(userData.settings),
         ModelName.SUB_CATEGORIES,new Collection(userData.subCategories,App.SubCategory,null,this._eventListenerPool),
         ModelName.CATEGORIES,new Collection(userData.categories,App.Category,null,this._eventListenerPool),

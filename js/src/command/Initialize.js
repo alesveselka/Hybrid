@@ -70,18 +70,18 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
     var ModelName = App.ModelName,
         Collection = App.Collection,
         PaymentMethod = App.PaymentMethod,
-        Currency = App.Currency,
+        CurrencyPair = App.CurrencyPair,
         userData = JSON.parse(data.userData),
-        currencies = new Collection(userData.currencies,Currency,null,this._eventListenerPool);
+        currencyPairs = new Collection(userData.currencyPairs,CurrencyPair,null,this._eventListenerPool);
 
-    currencies.addItem(new Currency([1,"USD"]));
+    //currencyPairs.addItem(new CurrencyPair([1,"USD","USD",1.0]));
 
     App.ModelLocator.init([
         ModelName.EVENT_LISTENER_POOL,this._eventListenerPool,
         ModelName.TICKER,new App.Ticker(this._eventListenerPool),
         ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}),
         ModelName.PAYMENT_METHODS,new Collection([PaymentMethod.CASH,PaymentMethod.CREDIT_CARD],PaymentMethod,null,this._eventListenerPool),
-        ModelName.CURRENCIES,currencies,
+        ModelName.CURRENCY_PAIRS,currencyPairs,
         ModelName.SETTINGS,new App.Settings(userData.settings),
         ModelName.SUB_CATEGORIES,new Collection(userData.subCategories,App.SubCategory,null,this._eventListenerPool),
         ModelName.CATEGORIES,new Collection(userData.categories,App.Category,null,this._eventListenerPool),

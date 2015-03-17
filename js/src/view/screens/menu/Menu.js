@@ -23,9 +23,9 @@ App.Menu = function Menu(layout)
     this._addTransactionItem = new MenuItem("Add Transaction","transactions",ScreenName.ADD_TRANSACTION,{width:w,height:Math.round(50*r),pixelRatio:r,style:itemLabelStyle});
     this._accountsItem = new MenuItem("Accounts","account",ScreenName.ACCOUNT,itemOptions);
     this._reportItem = new MenuItem("Report","chart",ScreenName.REPORT,itemOptions);
-    this._budgetItem = new MenuItem("Budgets","budget",ScreenName.EDIT_CATEGORY,itemOptions);
+    this._budgetItem = new MenuItem("Budgets","budget",-1,itemOptions);
     this._transactionsItem = new MenuItem("Transactions","transactions",ScreenName.TRANSACTIONS,itemOptions);
-    this._currenciesItem = new MenuItem("Currencies","currencies",-1,itemOptions);
+    this._currenciesItem = new MenuItem("Currencies","currencies",ScreenName.CURRENCY_PAIRS,itemOptions);
     this._settignsItem = new MenuItem("Settings","settings-app",-1,itemOptions);
     this._container = new PIXI.Graphics();
     this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
@@ -137,6 +137,12 @@ App.Menu.prototype._onClick = function _onClick()
         case ScreenName.TRANSACTIONS:
             changeScreenData.headerName = ScreenTitle.TRANSACTIONS;
             changeScreenData.updateData = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).copySource().reverse();
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+            break;
+
+        case ScreenName.CURRENCY_PAIRS:
+            changeScreenData.screenMode = App.ScreenMode.EDIT;
+            changeScreenData.headerName = ScreenTitle.CURRENCY_PAIRS;
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             break;
     }

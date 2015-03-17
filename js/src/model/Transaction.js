@@ -239,7 +239,7 @@ Object.defineProperty(App.Transaction.prototype,'currency',{
         //TODO keep just IDs instead of reference?
         if (!this._currency)
         {
-            if (this._data) this._currency = App.ModelLocator.getProxy(App.ModelName.CURRENCIES).filter([this._data[7]],"id")[0];
+            if (this._data) this._currency = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).filter([this._data[7]],"id")[0];
             else this._currency = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
         }
         return this._currency;
