@@ -53,7 +53,7 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
 
     //TODO center selected color/icon when shown
 
-    this._budget.restrict(/\D/g);
+    this._budget.restrict(/\d{1,}(\.\d{0,2}){0,1}/g);
 
     this._pane.setContent(this._container);
     this.addChild(this._pane);

@@ -64,7 +64,7 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
     //TODO automatically focus input when this screen is shown?
     //TODO add repeat frequency when 'repeat' is on?
 
-    this._transactionInput.restrict(/\D/g);
+    this._transactionInput.restrict(/\d{1,}(\.\d*){0,1}/g);
 
     this._container.addChild(this._background);
     this._container.addChild(this._transactionInput);

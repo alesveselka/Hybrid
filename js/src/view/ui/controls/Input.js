@@ -356,14 +356,12 @@ App.Input.prototype._updateText = function _updateText(finish)
  */
 App.Input.prototype._format = function _format(finish)
 {
-    console.log("format A: ",this._inputProxy.value,this._inputProxy.value.match(this._restrictPattern));
-    //if (this._restrictPattern) this._inputProxy.value = this._inputProxy.value.replace(this._restrictPattern,"");
     if (this._restrictPattern)
     {
         var result = this._inputProxy.value.match(this._restrictPattern);
         if (result && result.length > 0) this._inputProxy.value = result[0];
+        else this._inputProxy.value = "";
     }
-    console.log("format B: ",this._inputProxy.value);
 
     return this._inputProxy.value;
 };

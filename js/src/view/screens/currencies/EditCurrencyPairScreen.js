@@ -13,7 +13,7 @@ App.EditCurrencyPairScreen = function EditCurrencyPairScreen(layout)
     this._pairLabel = this.addChild(new PIXI.Text("EUR / USD",App.FontStyle.get(24,App.FontStyle.BLUE)));
     this._input = this.addChild(new App.Input("",20,Math.round(layout.width - this._pairLabel.width - Math.round(50 * r)),Math.round(40 * r),r));
 
-    this._input.restrict(/([0-9])+\.([0-9])*/g);
+    this._input.restrict(/\d{1,}(\.\d*){0,1}/g);
 
     this._render();
 };

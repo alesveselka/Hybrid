@@ -3649,14 +3649,12 @@ App.Input.prototype._updateText = function _updateText(finish)
  */
 App.Input.prototype._format = function _format(finish)
 {
-    console.log("format A: ",this._inputProxy.value,this._inputProxy.value.match(this._restrictPattern));
-    //if (this._restrictPattern) this._inputProxy.value = this._inputProxy.value.replace(this._restrictPattern,"");
     if (this._restrictPattern)
     {
         var result = this._inputProxy.value.match(this._restrictPattern);
         if (result && result.length > 0) this._inputProxy.value = result[0];
+        else this._inputProxy.value = "";
     }
-    console.log("format B: ",this._inputProxy.value);
 
     return this._inputProxy.value;
 };
@@ -8521,7 +8519,7 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
     //TODO automatically focus input when this screen is shown?
     //TODO add repeat frequency when 'repeat' is on?
 
-    this._transactionInput.restrict(/\D/g);
+    this._transactionInput.restrict(/\d{1,}(\.\d*){0,1}/g);
 
     this._container.addChild(this._background);
     this._container.addChild(this._transactionInput);
@@ -10707,7 +10705,7 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
 
     //TODO center selected color/icon when shown
 
-    this._budget.restrict(/\D/g);
+    this._budget.restrict(/\d{1,}(\.\d{0,2}){0,1}/g);
 
     this._pane.setContent(this._container);
     this.addChild(this._pane);
@@ -12682,7 +12680,7 @@ App.EditCurrencyPairScreen = function EditCurrencyPairScreen(layout)
     this._pairLabel = this.addChild(new PIXI.Text("EUR / USD",App.FontStyle.get(24,App.FontStyle.BLUE)));
     this._input = this.addChild(new App.Input("",20,Math.round(layout.width - this._pairLabel.width - Math.round(50 * r)),Math.round(40 * r),r));
 
-    this._input.restrict(/([0-9])+\.([0-9])*/g);
+    this._input.restrict(/\d{1,}(\.\d*){0,1}/g);
 
     this._render();
 };
