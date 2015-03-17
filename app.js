@@ -14,6 +14,8 @@ function init()
     server = require('http').createServer();
     server.on('request',onServerRequest);
     server.listen(port);
+
+    console.log(getAddresses());
 }
 
 /**
@@ -38,4 +40,31 @@ function onServerRequest(request,response)
     });
 }
 
+/**
+ * Find and return local addresses
+ * @returns {Array}
+ */
+function getAddresses()
+{
+    var os = require('os'),
+        interfaces = os.networkInterfaces(),
+        addresses = [],
+        address = null;
+
+    for (var k in interfaces)
+    {
+        for (var k2 in interfaces[k])
+        {
+            address = interfaces[k][k2];
+            if (address.family === 'IPv4' && !address.internal)
+            {
+                addresses.push(address.address);
+            }
+        }
+    }
+
+    return addresses;
+}
+
 init();
+
