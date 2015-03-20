@@ -9,17 +9,31 @@ App.CurrencyPairScreen = function CurrencyPairScreen(layout)
     App.Screen.call(this,layout,0.4);
 
     var ScrollPolicy = App.ScrollPolicy,
-        h = layout.contentHeight;
+        FontStyle = App.FontStyle,
+        h = layout.contentHeight,
+        w = layout.width,
+        r = layout.pixelRatio,
+        buttonOptions = {
+            width:w,
+            height:Math.round(50 * r),
+            pixelRatio:r,
+            skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,
+            editLabelStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+            pairLabelStyle:FontStyle.get(18,FontStyle.BLUE),
+            rateLabelStyle:FontStyle.get(18,FontStyle.BLUE,null,FontStyle.LIGHT_CONDENSED),
+            openOffset:Math.round(80 * r)
+        };
 
     this._model = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS);
-    this._initialized = false;
 
     this._interactiveButton = null;
-    this._buttonList = new App.TileList(App.Direction.Y,h);
-    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,layout.pixelRatio,false));
+    this._buttonPool = new App.ObjectPool(App.CurrencyPairButton,4,buttonOptions);
+    this._buttonList = new App.VirtualList(this._buttonPool,App.Direction.Y,w,h,r);
+    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,false));
     this._pane.setContent(this._buttonList);
 
     this._swipeEnabled = true;
+    this._initialized = false;
 };
 
 App.CurrencyPairScreen.prototype = Object.create(App.Screen.prototype);
@@ -54,34 +68,16 @@ App.CurrencyPairScreen.prototype.disable = function disable()
  */
 App.CurrencyPairScreen.prototype.update = function update(data,mode)
 {
-    var i = 0,
-        l = this._buttonList.length;
-
     if (this._initialized)
     {
-        for (;i<l;) this._buttonList.getItemAt(i++).update();
+        this._pane.resetScroll();
+        this._buttonList.reset();
     }
     else
     {
-        var CurrencyPairButton = App.CurrencyPairButton,
-            FontStyle = App.FontStyle,
-            r = this._layout.pixelRatio,
-            buttonOptions = {
-                width:this._layout.width,
-                height:Math.round(50 * r),
-                pixelRatio:r,
-                skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,
-                editLabelStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-                pairLabelStyle:FontStyle.get(18,FontStyle.BLUE),
-                rateLabelStyle:FontStyle.get(18,FontStyle.BLUE,null,FontStyle.LIGHT_CONDENSED),
-                openOffset:Math.round(80 * r)
-            };
-
-        for (l=this._model.length();i<l;) this._buttonList.add(new CurrencyPairButton(this._model.getItemAt(i++),buttonOptions));
-
         this._initialized = true;
 
-        this._buttonList.updateLayout();
+        this._buttonList.update(this._model.copySource());
         this._pane.resize();
     }
 };
@@ -138,12 +134,12 @@ App.CurrencyPairScreen.prototype._swipeEnd = function _swipeEnd()
 App.CurrencyPairScreen.prototype._closeButtons = function _closeButtons(immediate)
 {
     var i = 0,
-        l = this._buttonList.length,
+        l = this._buttonList.children.length,
         button = null;
 
     for (;i<l;)
     {
-        button = this._buttonList.getItemAt(i++);
+        button = this._buttonList.getChildAt(i++);
         if (button !== this._interactiveButton) button.close(immediate);
     }
 };

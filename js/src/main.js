@@ -1,6 +1,6 @@
 (function()
 {
-    //TODO move to index.html and also build simply pre-preloader
+    //TODO move to index.html and also build simple pre-preloader
 
     function onInitComplete()
     {

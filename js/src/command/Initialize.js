@@ -230,6 +230,7 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
             openOffset:Math.round(120 * pixelRatio)
         };
 
+    //TODO move some pools to the actual screens?; they may not be accessed anywhere else anyway ...
     ViewLocator.init([
         ViewName.SKIN,skin,
         ViewName.ACCOUNT_BUTTON_POOL,new ObjectPool(App.AccountButton,2,accountButtonOptions),

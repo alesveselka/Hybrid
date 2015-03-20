@@ -55,8 +55,8 @@ App.TransactionButton.prototype._update = function _update(updateAll)
         dateText = (date.getMonth() + 1) + "/" + date.getDate() + "/" + date.getFullYear();
 
     this._accountField.setText(this._model.account.name);
-    this._amountField.setText(this._model.amount);//TODO add decimal space
-    this._currencyField.setText(this._model.currency.symbol);
+    this._amountField.setText(this._model.amount);
+    this._currencyField.setText(" " + this._model.currency.symbol);
     this._categoryField.setText(this._model.subCategory.name+" / "+this._model.category.name);
     this._dateField.setText(pending ? "Due by\n"+dateText : dateText);
 
@@ -176,7 +176,7 @@ App.TransactionButton.prototype._updateLayout = function _updateLayout(updateAll
         this._pendingFlag.y = Math.round(7 * r);
     }
 
-    this._currencyField.x = Math.round(this._amountField.x + this._amountField.width + padding);
+    this._currencyField.x = Math.round(this._amountField.x + this._amountField.width);
 
     this._dateField.x = Math.round(w - padding - this._dateField.width);
     this._dateField.y = pending ? Math.round(38 * r) : Math.round(52 * r);

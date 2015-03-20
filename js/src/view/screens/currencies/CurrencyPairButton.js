@@ -1,7 +1,7 @@
 /**
  * @class CurrencyPairButton
  * @extends SwipeButton
- * @param {App.CurrencyPair} model
+ * @param {number} poolIndex
  * @param {Object} options
  * @param {number} options.width
  * @param {number} options.height
@@ -13,21 +13,24 @@
  * @param {number} options.openOffset
  * @constructor
  */
-App.CurrencyPairButton = function CurrencyPairButton(model,options)
+App.CurrencyPairButton = function CurrencyPairButton(poolIndex,options)
 {
     App.SwipeButton.call(this,options.width,options.openOffset);
 
+    this.allocated = false;
+    this.poolIndex = poolIndex;
     this.boundingBox = new PIXI.Rectangle(0,0,options.width,options.height);
 
-    this._model = model;
+    this._model = null;
 
     this._pixelRatio = options.pixelRatio;
     this._background = this.addChild(new PIXI.Graphics());
     this._editLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));
     this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
     this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
-    this._pairLabel = this._swipeSurface.addChild(new PIXI.Text(model.base+"/"+model.symbol,options.pairLabelStyle));
-    this._rateLabel = this._swipeSurface.addChild(new PIXI.Text("@ "+model.rate,options.rateLabelStyle));
+    this._pairLabel = this._swipeSurface.addChild(new PIXI.Text("EUR/USD",options.pairLabelStyle));
+    this._rateLabel = this._swipeSurface.addChild(new PIXI.Text("@ 1.0",options.rateLabelStyle));
+    this._renderAll = true;
 
     this._render();
 };
@@ -59,12 +62,15 @@ App.CurrencyPairButton.prototype._render = function _render()
 };
 
 /**
- * Update
+ * Set model
+ * @param {App.CurrencyPair} model
  */
-App.CurrencyPairButton.prototype.update = function update()
+App.CurrencyPairButton.prototype.setModel = function setModel(model)
 {
-    //TODO check if model was updated so I don't have to update all items blindly
-    this._rateLabel.setText("@ "+this._model.rate);
+    this._model = model;
+
+    this._pairLabel.setText(model.base+"/"+model.symbol);
+    this._rateLabel.setText("@ "+model.rate);
 };
 
 /**

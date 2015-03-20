@@ -82,6 +82,7 @@ App.EditCurrencyPairScreen.prototype.update = function update(model,mode)
 App.EditCurrencyPairScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
+    changeScreenData.updateBackScreen = true;
 
     this._input.blur();
 
@@ -89,8 +90,6 @@ App.EditCurrencyPairScreen.prototype._onHeaderClick = function _onHeaderClick(ac
 
     if (action === App.HeaderAction.CONFIRM)
     {
-        changeScreenData.updateBackScreen = true;
-
         App.Controller.dispatchEvent(App.EventType.CHANGE_CURRENCY_PAIR,{
             currencyPair:this._model,
             rate:this._input.getValue(),
