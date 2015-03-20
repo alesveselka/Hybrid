@@ -13,8 +13,16 @@ function init()
 
     server = require('http').createServer();
     server.on('request',onServerRequest);
-    server.listen(port);
+    server.listen(port,onServerListens);
 
+
+}
+
+/**
+ * Server listens handler
+ */
+function onServerListens()
+{
     console.log(getAddresses());
 }
 
