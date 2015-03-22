@@ -86,9 +86,46 @@ App.Transaction.prototype.serialize = function serialize()
         this.account.id + "." + this.category.id + "." + this.subCategory.id,
         this.method.id,
         this.date.getTime(),
-        this.currency.id,//USD/CZK@25.7//base_currency/spent_currency@rate
+        this._serializeCurrency(),
         App.StringUtils.encode(this.note)//TODO check if note is set before even adding it
     ];
+};
+
+/**
+ * Serialize currency in form 'base_currency.spent_currency.currencyPairID (USD.CZK.41)'
+ * In case the base and symbol are same, currency pair ID will equal to 0
+ * @returns {string}
+ * @private
+ */
+App.Transaction.prototype._serializeCurrency = function _serializeCurrency()
+{
+    var baseSymbol = "CZK",//TODO this will be retrieved from Settings
+        symbol = this.currency.symbol,
+        serialized = baseSymbol+"."+symbol;
+
+    if (symbol === baseSymbol)
+    {
+        serialized += ".0";
+    }
+    else
+    {
+        var currencyPairs = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS),
+            pair = null,
+            i = 0,
+            l = currencyPairs.length();
+
+        for (;i<l;i++)
+        {
+            pair = currencyPairs.getItemAt(i);
+            if ((baseSymbol === pair.base && symbol === pair.symbol) || (baseSymbol === pair.symbol && symbol === pair.base))
+            {
+                serialized += "."+pair.id;
+                break;
+            }
+        }
+    }
+
+    return serialized;
 };
 
 /**
