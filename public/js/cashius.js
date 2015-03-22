@@ -12451,9 +12451,8 @@ App.CurrencyButton.prototype.setModel = function getModel(model)
 
 /**
  * Click handler
- * @param {PIXI.InteractionData} data
  */
-App.CurrencyButton.prototype.onClick = function onClick(data)
+App.CurrencyButton.prototype.onClick = function onClick()
 {
     var EventType = App.EventType,
         changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
@@ -12554,10 +12553,8 @@ App.CurrencyScreen.prototype.update = function update(data,mode)
  */
 App.CurrencyScreen.prototype._onClick = function _onClick()
 {
-    var data = this.stage.getTouchData(),
-        button = this._buttonList.getItemUnderPoint(data);
-
-    if (button) button.onClick(data);
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
+    if (button) button.onClick();
 };
 
 /**
@@ -12567,25 +12564,13 @@ App.CurrencyScreen.prototype._onClick = function _onClick()
  */
 App.CurrencyScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    /*var HeaderAction = App.HeaderAction,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
-
-    if (action === HeaderAction.ADD_TRANSACTION)
+    if (action === App.HeaderAction.CANCEL)
     {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
-            type:App.EventType.CREATE,
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData.update()
-        });
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,
+            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK)
+        );
     }
-    else if (action === HeaderAction.MENU)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.MENU,0,null,HeaderAction.NONE,HeaderAction.CANCEL,App.ScreenTitle.MENU));
-    }
-    else if (action === HeaderAction.CANCEL)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.BACK));
-    }*/
 };
 
 /**
