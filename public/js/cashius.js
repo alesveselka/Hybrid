@@ -1852,7 +1852,7 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
         this._subCategory = null;
         this._method = null;
         this._date = null;
-        this._currency = null;
+        this._currencySymbol = null;
         this.note = data[8] ? decodeURI(data[8]) : "";
     }
     else
@@ -1868,11 +1868,9 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
         this._subCategory = null;
         this._method = null;
         this._date = null;
-        this._currency = null;
+        this._currencySymbol = null;
         this.note = "";
     }
-
-    console.log(parseInt("-1",10));
 };
 
 /**
@@ -1885,7 +1883,6 @@ App.Transaction.prototype.destroy = function destroy()
     this._subCategory = null;
     this._method = null;
     this._date = null;
-    this._currency = null;
 };
 
 /**
@@ -1919,25 +1916,26 @@ App.Transaction.prototype.serialize = function serialize()
         this.account.id + "." + this.category.id + "." + this.subCategory.id,
         this.method.id,
         this.date.getTime(),
-        this._serializeCurrency(),
+        this.currency,
         App.StringUtils.encode(this.note)//TODO check if note is set before even adding it
     ];
 };
 
 /**
- * Serialize currency in form 'base_currency/spent_currency@rate (USD/CZK@25.7)'
+ * Serialize currency in form 'base_currency.spent_currency.currencyPairID (USD.CZK.41)'
+ * In case the base and symbol are same, currency pair ID will equal to 0
  * @returns {string}
  * @private
  */
-App.Transaction.prototype._serializeCurrency = function _serializeCurrency()
+/*App.Transaction.prototype._serializeCurrency = function _serializeCurrency()
 {
     var baseSymbol = "CZK",//TODO this will be retrieved from Settings
-        symbol = this.currency.symbol,
-        serialized = null;
+        symbol = this.currency,
+        serialized = baseSymbol+"."+symbol;
 
     if (symbol === baseSymbol)
     {
-        serialized = baseSymbol+"/"+symbol+"@1.0";
+        serialized += ".0";
     }
     else
     {
@@ -1946,16 +1944,19 @@ App.Transaction.prototype._serializeCurrency = function _serializeCurrency()
             i = 0,
             l = currencyPairs.length();
 
-        for (;i<l;i++)
+        for (;i<l;)
         {
-            pair = currencyPairs.getItemAt(i);
-            if (baseSymbol === pair.base && symbol === pair.symbol) serialized = baseSymbol+"/"+symbol+"@"+pair.rate;
-            else if (baseSymbol === pair.symbol && symbol === pair.base) serialized = baseSymbol+"/"+symbol+"@"+pair.rate;
+            pair = currencyPairs.getItemAt(i++);
+            if ((baseSymbol === pair.base && symbol === pair.symbol) || (baseSymbol === pair.symbol && symbol === pair.base))
+            {
+                serialized += "."+pair.id;
+                break;
+            }
         }
     }
 
     return serialized;
-};
+};*/
 
 /**
  * Create and return copy of itself
@@ -2102,21 +2103,16 @@ Object.defineProperty(App.Transaction.prototype,'date',{
 Object.defineProperty(App.Transaction.prototype,'currency',{
     get:function()
     {
-        //TODO keep just IDs instead of reference?
-
-        //TODO currency will be just three-letter symbol of currency spent at the transaction. When saved (at CONFIRM), it will look up pair and its current rate and serialize in form ...
-        // TODO ... 'base_currency/spent_currency@rate', where rate will be the listed pair rate, not necessarily the ratio expressed
-        if (!this._currency)
+        if (!this._currencySymbol)
         {
-            //if (this._data) this._currency = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).filter([this._data[7]],"id")[0];
-            if (this._data) this._currency = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).getItemAt(0);
-            else this._currency = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
+            if (this._data) this._currencySymbol = App.ModelLocator.getProxy(App.ModelName.CURRENCY_SYMBOLS).filter([this._data[7]],"symbol")[0].symbol;
+            else this._currencySymbol = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency.symbol;
         }
-        return this._currency;
+        return this._currencySymbol;
     },
     set:function(value)
     {
-        this._currency = value; //USD/CZK@25.7//base_currency/spent_currency@rate
+        this._currencySymbol = value;
     }
 });
 
@@ -8683,7 +8679,7 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
     this._categoryOption.setValue(this._model.subCategory ? this._model.subCategory.name : "?",this._model.category ? this._model.category.name : null);
     this._timeOption.setValue(App.DateUtils.getMilitaryTime(this._model.date),this._model.date.toDateString());
     this._methodOption.setValue(this._model.method.name);
-    this._currencyOption.setValue(this._model.currency.symbol);
+    this._currencyOption.setValue(this._model.currency);
 
     this._deleteButton.hidePopUp(true);
 
@@ -11320,7 +11316,7 @@ App.TransactionButton.prototype._update = function _update(updateAll)
 
     this._accountField.setText(this._model.account.name);
     this._amountField.setText(this._model.amount);
-    this._currencyField.setText(" " + this._model.currency.symbol);
+    this._currencyField.setText(" " + this._model.currency);
     this._categoryField.setText(this._model.subCategory.name+" / "+this._model.category.name);
     this._dateField.setText(pending ? "Due by\n"+dateText : dateText);
 
@@ -12496,7 +12492,7 @@ App.CurrencyButton.prototype.onClick = function onClick()
 
     App.Controller.dispatchEvent(EventType.CHANGE_TRANSACTION,{
         type:EventType.CHANGE,
-        currency:this._model,
+        currency:this._model.symbol,
         nextCommand:new App.ChangeScreen(),
         nextCommandData:changeScreenData
     });

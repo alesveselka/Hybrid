@@ -56,7 +56,7 @@ App.TransactionButton.prototype._update = function _update(updateAll)
 
     this._accountField.setText(this._model.account.name);
     this._amountField.setText(this._model.amount);
-    this._currencyField.setText(" " + this._model.currency.symbol);
+    this._currencyField.setText(" " + this._model.currency);
     this._categoryField.setText(this._model.subCategory.name+" / "+this._model.category.name);
     this._dateField.setText(pending ? "Due by\n"+dateText : dateText);
 

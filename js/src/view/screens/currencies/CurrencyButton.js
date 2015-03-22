@@ -69,7 +69,7 @@ App.CurrencyButton.prototype.onClick = function onClick()
 
     App.Controller.dispatchEvent(EventType.CHANGE_TRANSACTION,{
         type:EventType.CHANGE,
-        currency:this._model,
+        currency:this._model.symbol,
         nextCommand:new App.ChangeScreen(),
         nextCommandData:changeScreenData
     });

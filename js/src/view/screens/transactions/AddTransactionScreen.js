@@ -173,7 +173,7 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
     this._categoryOption.setValue(this._model.subCategory ? this._model.subCategory.name : "?",this._model.category ? this._model.category.name : null);
     this._timeOption.setValue(App.DateUtils.getMilitaryTime(this._model.date),this._model.date.toDateString());
     this._methodOption.setValue(this._model.method.name);
-    this._currencyOption.setValue(this._model.currency.symbol);
+    this._currencyOption.setValue(this._model.currency);
 
     this._deleteButton.hidePopUp(true);
 
