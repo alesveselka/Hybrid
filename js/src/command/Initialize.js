@@ -83,6 +83,7 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}),
         ModelName.PAYMENT_METHODS,new Collection([PaymentMethod.CASH,PaymentMethod.CREDIT_CARD],PaymentMethod,null,this._eventListenerPool),
         ModelName.CURRENCY_PAIRS,currencyPairs,
+        ModelName.CURRENCY_SYMBOLS,new Collection(this._getCurrencySymbols(currencyPairs),App.CurrencySymbol,null,this._eventListenerPool),
         ModelName.SETTINGS,new App.Settings(userData.settings),
         ModelName.SUB_CATEGORIES,new Collection(userData.subCategories,App.SubCategory,null,this._eventListenerPool),
         ModelName.CATEGORIES,new Collection(userData.categories,App.Category,null,this._eventListenerPool),
@@ -91,6 +92,29 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         ModelName.CHANGE_SCREEN_DATA_POOL,changeScreenDataPool,
         ModelName.SCREEN_HISTORY,new App.Stack()
     ]);
+};
+
+/**
+ * Goes through currencyPairs passed in and generate array of currency symbols
+ * @param {App.Collection} currencyPairs
+ * @returns {Array.<string>}
+ * @private
+ */
+App.Initialize.prototype._getCurrencySymbols = function _getCurrencySymbols(currencyPairs)
+{
+    var symbols = [],
+        currencyPair = null,
+        i = 0,
+        l = currencyPairs.length();
+
+    for (;i<l;)
+    {
+        currencyPair = currencyPairs.getItemAt(i++);
+        if (symbols.indexOf(currencyPair.symbol) === -1) symbols.push(currencyPair.symbol);
+        if (symbols.indexOf(currencyPair.base) === -1) symbols.push(currencyPair.base);
+    }
+
+    return symbols;
 };
 
 /**
@@ -132,7 +156,6 @@ App.Initialize.prototype._initView = function _initView()
         pixelRatio = dpr / bsr > 2 ? 2 : dpr / bsr,
         width = window.innerWidth,
         height = window.innerHeight,
-        w = Math.round(width * pixelRatio),
         stage = new PIXI.Stage(0xffffff),
         renderer = new PIXI.CanvasRenderer(width,height,{
             view:canvas,

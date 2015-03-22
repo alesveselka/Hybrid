@@ -6,6 +6,7 @@
  *      EVENT_LISTENER_POOL:number,
  *      PAYMENT_METHODS:number,
  *      CURRENCY_PAIRS:number,
+ *      CURRENCY_SYMBOLS:number,
  *      SUB_CATEGORIES:number,
  *      CATEGORIES:number,
  *      ACCOUNTS:number,
@@ -20,13 +21,14 @@ App.ModelName = {
     TICKER:0,
     EVENT_LISTENER_POOL:1,
     PAYMENT_METHODS:2,
-    CURRENCY_PAIRS:3,//TODO also add 'CURRENCIES' that will be extracted from the pairs?
-    SUB_CATEGORIES:4,
-    CATEGORIES:5,
-    ACCOUNTS:6,
-    TRANSACTIONS:7,
-    SETTINGS:8,
-    ICONS:9,
-    CHANGE_SCREEN_DATA_POOL:10,
-    SCREEN_HISTORY:11
+    CURRENCY_PAIRS:3,
+    CURRENCY_SYMBOLS:4,
+    SUB_CATEGORIES:5,
+    CATEGORIES:6,
+    ACCOUNTS:7,
+    TRANSACTIONS:8,
+    SETTINGS:9,
+    ICONS:10,
+    CHANGE_SCREEN_DATA_POOL:11,
+    SCREEN_HISTORY:12
 };

@@ -18,6 +18,7 @@
  *      EDIT_TRANSACTION: string,
  *      REPORT:string,
  *      CURRENCY_PAIRS:string,
+ *      SELECT_CURRENCY:string,
  *      EDIT_CURRENCY_RATE:string
  * }}
  */
@@ -39,5 +40,6 @@ App.ScreenTitle = {
     EDIT_TRANSACTION:"Edit Transaction",
     REPORT:"Report",
     CURRENCY_PAIRS:"Currency Pairs",
+    SELECT_CURRENCY:"Select Currency",
     EDIT_CURRENCY_RATE:"Edit Currency Rate"
 };

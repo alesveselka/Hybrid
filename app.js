@@ -14,8 +14,6 @@ function init()
     server = require('http').createServer();
     server.on('request',onServerRequest);
     server.listen(port,onServerListens);
-
-
 }
 
 /**
@@ -75,4 +73,3 @@ function getAddresses()
 }
 
 init();
-

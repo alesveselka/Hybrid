@@ -386,6 +386,11 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
             changeScreenData.headerName = ScreenTitle.SELECT_TIME;
             changeScreenData.headerRightAction = HeaderAction.CONFIRM;
         }
+        else if (button === this._currencyOption)
+        {
+            changeScreenData.screenName = ScreenName.CURRENCIES;
+            changeScreenData.headerName = ScreenTitle.SELECT_CURRENCY;
+        }
         //TODO disable before changing screen?
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
     }

@@ -7,21 +7,29 @@
 App.CurrencyScreen = function CurrencyScreen(layout)
 {
     App.Screen.call(this,layout,0.4);
-    //TODO use 2 different screens - 'Currency Pairs' and 'Currencies' (Currencies will extract particular symbols from the pairs available)
+
     var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
+        h = layout.contentHeight,
+        w = layout.width,
         r = layout.pixelRatio,
-        h = layout.contentHeight;
+        buttonOptions = {
+            width:w,
+            height:Math.round(50 * r),
+            pixelRatio:r,
+            skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,
+            symbolLabelStyle:FontStyle.get(18,FontStyle.BLUE)
+        };
 
-    this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
+    this._model = App.ModelLocator.getProxy(App.ModelName.CURRENCY_SYMBOLS);
 
     this._interactiveButton = null;
-    this._buttonList = new App.TileList(App.Direction.Y,h);
-    this._addNewButton = new App.AddNewButton("ADD ACCOUNT",FontStyle.get(16,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_60,r);
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,r,false);
-
+    this._buttonPool = new App.ObjectPool(App.CurrencyButton,4,buttonOptions);
+    this._buttonList = new App.VirtualList(this._buttonPool,App.Direction.Y,w,h,r);
+    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,false));
     this._pane.setContent(this._buttonList);
-    this.addChild(this._pane);
+
+    this._initialized = false;
 };
 
 App.CurrencyScreen.prototype = Object.create(App.Screen.prototype);
@@ -56,99 +64,17 @@ App.CurrencyScreen.prototype.disable = function disable()
  */
 App.CurrencyScreen.prototype.update = function update(data,mode)
 {
-    this._buttonList.remove(this._addNewButton);
-
-    var buttonPool = App.ViewLocator.getViewSegment(App.ViewName.ACCOUNT_BUTTON_POOL),
-        i = 0,
-        l = this._buttonList.length,
-        deletedState = App.LifeCycleState.DELETED,
-        account = null,
-        button = null;
-
-    for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
-
-    for (i=0,l=this._model.length();i<l;)
+    if (this._initialized)
     {
-        account = this._model.getItemAt(i++);
-        if (account.lifeCycleState !== deletedState)
-        {
-            button = buttonPool.allocate();
-            button.setModel(account,mode);
-            this._buttonList.add(button);
-        }
+        this._pane.resetScroll();
+        this._buttonList.reset();
     }
-
-    this._buttonList.add(this._addNewButton);
-    this._buttonList.updateLayout(true);
-
-    this._pane.resize();
-
-    this._mode = mode;
-    this._swipeEnabled = mode === App.ScreenMode.EDIT;
-};
-
-/**
- * On tween complete
- * @private
- */
-App.CurrencyScreen.prototype._onTweenComplete = function _onTweenComplete()
-{
-    App.Screen.prototype._onTweenComplete.call(this);
-
-    if (this._transitionState === App.TransitionState.HIDDEN) this._closeButtons(true);
-};
-
-/**
- * Called when swipe starts
- * @param {boolean} [preferScroll=false]
- * @param {string} direction
- * @private
- */
-App.CurrencyScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
-{
-    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
-
-    if (button && !(button instanceof App.AddNewButton))
+    else
     {
-        if (!preferScroll) this._pane.cancelScroll();
+        this._initialized = true;
 
-        this._interactiveButton = button;
-        this._interactiveButton.swipeStart(direction);
-
-        this._closeButtons(false);
-    }
-};
-
-/**
- * Called when swipe ends
- * @private
- */
-App.CurrencyScreen.prototype._swipeEnd = function _swipeEnd()
-{
-    if (this._interactiveButton)
-    {
-        this._interactiveButton.swipeEnd();
-        this._interactiveButton = null;
-    }
-};
-
-/**
- * Close opened buttons
- * @private
- */
-App.CurrencyScreen.prototype._closeButtons = function _closeButtons(immediate)
-{
-    if (this._mode === App.ScreenMode.EDIT)
-    {
-        var i = 0,
-            l = this._buttonList.length - 1,// last button is 'AddNewButton'
-            button = null;
-
-        for (;i<l;)
-        {
-            button = this._buttonList.getItemAt(i++);
-            if (button !== this._interactiveButton) button.close(immediate);
-        }
+        this._buttonList.update(this._model.copySource());
+        this._pane.resize();
     }
 };
 
@@ -158,67 +84,8 @@ App.CurrencyScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.CurrencyScreen.prototype._onClick = function _onClick()
 {
-    var data = this.stage.getTouchData(),
-        button = this._buttonList.getItemUnderPoint(data);
-
-    if (button)
-    {
-        var EventType = App.EventType,
-            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT);
-
-        if (button instanceof App.AddNewButton)
-        {
-            changeScreenData.headerName = App.ScreenTitle.ADD_ACCOUNT;
-
-            App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
-                type:EventType.CREATE,
-                nextCommand:new App.ChangeScreen(),
-                nextCommandData:changeScreenData
-            });
-        }
-        else
-        {
-            var ScreenMode = App.ScreenMode,
-                HeaderAction = App.HeaderAction;
-
-            if (this._mode === ScreenMode.EDIT)
-            {
-                if (button.getClickMode(data) === ScreenMode.EDIT)
-                {
-                    App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
-                        App.ScreenName.EDIT,
-                        App.ScreenMode.EDIT,
-                        button.getModel(),
-                        0,
-                        0,
-                        App.ScreenTitle.EDIT_ACCOUNT
-                    ));
-                }
-                else
-                {
-                    App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
-                        App.ScreenName.CATEGORY,
-                        this._mode,
-                        button.getModel(),
-                        HeaderAction.MENU,
-                        HeaderAction.ADD_TRANSACTION,
-                        App.ScreenTitle.CATEGORIES
-                    ));
-                }
-            }
-            else
-            {
-                App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
-                    App.ScreenName.CATEGORY,
-                    this._mode,
-                    button.getModel(),
-                    0,
-                    HeaderAction.NONE,
-                    App.ScreenTitle.SELECT_CATEGORY
-                ));
-            }
-        }
-    }
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
+    if (button) button.onClick();
 };
 
 /**
@@ -228,7 +95,7 @@ App.CurrencyScreen.prototype._onClick = function _onClick()
  */
 App.CurrencyScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    var HeaderAction = App.HeaderAction,
+    /*var HeaderAction = App.HeaderAction,
         changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
 
     if (action === HeaderAction.ADD_TRANSACTION)
@@ -246,5 +113,5 @@ App.CurrencyScreen.prototype._onHeaderClick = function _onHeaderClick(action)
     else if (action === HeaderAction.CANCEL)
     {
         App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.BACK));
-    }
+    }*/
 };
