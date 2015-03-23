@@ -71,7 +71,7 @@ App.Transaction.prototype.save = function save()
     this._data = this.serialize();
 
     var base = "CZK",
-        spent = "EUR",
+        spent = "GBP",
         //rate = this._findRate(base,spent);
         rate = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(base,spent);
     console.log("Result rate: ",rate,"(",rate.toFixed(6),"), 100 "+spent+" = "+(100/rate)+" "+base);//100CHF = 2895.8956 CZK
@@ -95,86 +95,6 @@ App.Transaction.prototype.serialize = function serialize()
         App.StringUtils.encode(this.note)//TODO check if note is set before even adding it
     ];
 };
-
-/**
- * Find and return rate between base and symbol(spent) currency symbols passed in
- * In case there is no direct rate, EUR is used as cross since all currency have EUR-pair
- * @param {string} base
- * @param {string} symbol
- * @private
- */
-App.Transaction.prototype._findRate = function _findRate(base,symbol)
-{
-    var currencyPairs = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS),
-        pair = null,
-        basePair = null,
-        symbolPair = null,
-        i = 0,
-        l = currencyPairs.length();
-
-    // First, check if both base and spent currency are in one pair ...
-    for (;i<l;)
-    {
-        pair = currencyPairs.getItemAt(i++);
-        if ((base === pair.base && symbol === pair.symbol) || (base === pair.symbol && symbol === pair.base))
-        {
-            if (base === pair.base && symbol === pair.symbol) return pair.rate;
-            else if (base === pair.symbol && symbol === pair.base) return 1 / pair.rate;
-        }
-    }
-
-    // .. if not, use EUR pair as cross
-    for (i=0;i<l;)
-    {
-        pair = currencyPairs.getItemAt(i++);
-        if (pair.base === "EUR")
-        {
-            if (pair.symbol === base) basePair = pair;
-            if (pair.symbol === symbol) symbolPair = pair;
-        }
-    }
-
-    if (basePair && symbolPair) return symbolPair.rate / basePair.rate;
-
-    return 1.0;
-};
-
-/**
- * Serialize currency in form 'base_currency.spent_currency.currencyPairID (USD.CZK.41)'
- * In case the base and symbol are same, currency pair ID will equal to 0
- * @returns {string}
- * @private
- */
-/*App.Transaction.prototype._serializeCurrency = function _serializeCurrency()
-{
-    var baseSymbol = "CZK",//TODO this will be retrieved from Settings
-        symbol = this.currency,
-        serialized = baseSymbol+"."+symbol;
-
-    if (symbol === baseSymbol)
-    {
-        serialized += ".0";
-    }
-    else
-    {
-        var currencyPairs = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS),
-            pair = null,
-            i = 0,
-            l = currencyPairs.length();
-
-        for (;i<l;)
-        {
-            pair = currencyPairs.getItemAt(i++);
-            if ((baseSymbol === pair.base && symbol === pair.symbol) || (baseSymbol === pair.symbol && symbol === pair.base))
-            {
-                serialized += "."+pair.id;
-                break;
-            }
-        }
-    }
-
-    return serialized;
-};*/
 
 /**
  * Create and return copy of itself
