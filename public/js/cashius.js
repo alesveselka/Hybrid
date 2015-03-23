@@ -1820,6 +1820,62 @@ App.CurrencyPair = function CurrencyPair(data,collection,parent,eventListenerPoo
 };
 
 /**
+ * @class CurrencyPairCollection
+ * @param {Array} source
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.CurrencyPairCollection = function CurrencyPairCollection(source,eventListenerPool)
+{
+    App.Collection.call(this,source,App.CurrencyPair,null,eventListenerPool);
+};
+
+App.CurrencyPairCollection.prototype = Object.create(App.Collection.prototype);
+App.CurrencyPairCollection.prototype.constructor = App.CurrencyPairCollection;
+
+/**
+ * Find and return rate between base and symbol(spent) currency symbols passed in
+ * In case there is no direct rate, EUR is used as cross since all currency have EUR-pair
+ * @param {string} base
+ * @param {string} symbol
+ * @private
+ */
+App.CurrencyPairCollection.prototype.findRate = function findRate(base,symbol)
+{
+    var pair = null,
+        basePair = null,
+        symbolPair = null,
+        i = 0,
+        l = this._items.length;
+
+    // First, check if both base and spent currency are in one pair ...
+    for (;i<l;)
+    {
+        pair = this._items[i++];
+        if ((base === pair.base && symbol === pair.symbol) || (base === pair.symbol && symbol === pair.base))
+        {
+            if (base === pair.base && symbol === pair.symbol) return pair.rate;
+            else if (base === pair.symbol && symbol === pair.base) return 1 / pair.rate;
+        }
+    }
+
+    // .. if not, use EUR pair as cross
+    for (i=0;i<l;)
+    {
+        pair = this._items[i++];
+        if (pair.base === "EUR")
+        {
+            if (pair.symbol === base) basePair = pair;
+            if (pair.symbol === symbol) symbolPair = pair;
+        }
+    }
+
+    if (basePair && symbolPair) return symbolPair.rate / basePair.rate;
+
+    return 1.0;
+};
+
+/**
  * @class CurrencySymbol
  * @param {string} symbol
  * @constructor
@@ -1900,6 +1956,12 @@ App.Transaction.prototype.isSaved = function isSaved()
 App.Transaction.prototype.save = function save()
 {
     this._data = this.serialize();
+
+    var base = "CZK",
+        spent = "EUR",
+        //rate = this._findRate(base,spent);
+        rate = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(base,spent);
+    console.log("Result rate: ",rate,"(",rate.toFixed(6),"), 100 "+spent+" = "+(100/rate)+" "+base);//100CHF = 2895.8956 CZK
 };
 
 /**
@@ -1919,6 +1981,49 @@ App.Transaction.prototype.serialize = function serialize()
         this.currency,
         App.StringUtils.encode(this.note)//TODO check if note is set before even adding it
     ];
+};
+
+/**
+ * Find and return rate between base and symbol(spent) currency symbols passed in
+ * In case there is no direct rate, EUR is used as cross since all currency have EUR-pair
+ * @param {string} base
+ * @param {string} symbol
+ * @private
+ */
+App.Transaction.prototype._findRate = function _findRate(base,symbol)
+{
+    var currencyPairs = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS),
+        pair = null,
+        basePair = null,
+        symbolPair = null,
+        i = 0,
+        l = currencyPairs.length();
+
+    // First, check if both base and spent currency are in one pair ...
+    for (;i<l;)
+    {
+        pair = currencyPairs.getItemAt(i++);
+        if ((base === pair.base && symbol === pair.symbol) || (base === pair.symbol && symbol === pair.base))
+        {
+            if (base === pair.base && symbol === pair.symbol) return pair.rate;
+            else if (base === pair.symbol && symbol === pair.base) return 1 / pair.rate;
+        }
+    }
+
+    // .. if not, use EUR pair as cross
+    for (i=0;i<l;)
+    {
+        pair = currencyPairs.getItemAt(i++);
+        if (pair.base === "EUR")
+        {
+            if (pair.symbol === base) basePair = pair;
+            if (pair.symbol === symbol) symbolPair = pair;
+        }
+    }
+
+    if (basePair && symbolPair) return symbolPair.rate / basePair.rate;
+
+    return 1.0;
 };
 
 /**
@@ -3669,6 +3774,7 @@ App.Input.prototype._onChange = function _onChange(e)
  */
 App.Input.prototype._updateText = function _updateText(finish)
 {
+    //TODO limit text length to the input's width (minus 'clear' button width)
     this._text = this._format(finish);
 
     if (this._text === this._placeholder || this._text.length === 0)
@@ -12628,7 +12734,7 @@ App.CurrencyPairButton = function CurrencyPairButton(poolIndex,options)
     this.boundingBox = new PIXI.Rectangle(0,0,options.width,options.height);
 
     this._model = null;
-
+    //TODO add arrow to the right indicating Edit option
     this._pixelRatio = options.pixelRatio;
     this._background = this.addChild(new PIXI.Graphics());
     this._editLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));
@@ -14167,9 +14273,8 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
     var ModelName = App.ModelName,
         Collection = App.Collection,
         PaymentMethod = App.PaymentMethod,
-        CurrencyPair = App.CurrencyPair,
         userData = JSON.parse(data.userData),
-        currencyPairs = new Collection(userData.currencyPairs,CurrencyPair,null,this._eventListenerPool);
+        currencyPairs = new App.CurrencyPairCollection(userData.currencyPairs,this._eventListenerPool);
 
     //TODO set default currency
     //currencyPairs.addItem(new CurrencyPair([1,"USD","USD",1.0]));

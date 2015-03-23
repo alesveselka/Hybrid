@@ -22,7 +22,7 @@ App.CurrencyPairButton = function CurrencyPairButton(poolIndex,options)
     this.boundingBox = new PIXI.Rectangle(0,0,options.width,options.height);
 
     this._model = null;
-
+    //TODO add arrow to the right indicating Edit option
     this._pixelRatio = options.pixelRatio;
     this._background = this.addChild(new PIXI.Graphics());
     this._editLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));

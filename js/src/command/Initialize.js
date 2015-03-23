@@ -70,9 +70,8 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
     var ModelName = App.ModelName,
         Collection = App.Collection,
         PaymentMethod = App.PaymentMethod,
-        CurrencyPair = App.CurrencyPair,
         userData = JSON.parse(data.userData),
-        currencyPairs = new Collection(userData.currencyPairs,CurrencyPair,null,this._eventListenerPool);
+        currencyPairs = new App.CurrencyPairCollection(userData.currencyPairs,this._eventListenerPool);
 
     //TODO set default currency
     //currencyPairs.addItem(new CurrencyPair([1,"USD","USD",1.0]));

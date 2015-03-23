@@ -69,6 +69,12 @@ App.Transaction.prototype.isSaved = function isSaved()
 App.Transaction.prototype.save = function save()
 {
     this._data = this.serialize();
+
+    var base = "CZK",
+        spent = "EUR",
+        //rate = this._findRate(base,spent);
+        rate = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(base,spent);
+    console.log("Result rate: ",rate,"(",rate.toFixed(6),"), 100 "+spent+" = "+(100/rate)+" "+base);//100CHF = 2895.8956 CZK
 };
 
 /**
@@ -88,6 +94,49 @@ App.Transaction.prototype.serialize = function serialize()
         this.currency,
         App.StringUtils.encode(this.note)//TODO check if note is set before even adding it
     ];
+};
+
+/**
+ * Find and return rate between base and symbol(spent) currency symbols passed in
+ * In case there is no direct rate, EUR is used as cross since all currency have EUR-pair
+ * @param {string} base
+ * @param {string} symbol
+ * @private
+ */
+App.Transaction.prototype._findRate = function _findRate(base,symbol)
+{
+    var currencyPairs = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS),
+        pair = null,
+        basePair = null,
+        symbolPair = null,
+        i = 0,
+        l = currencyPairs.length();
+
+    // First, check if both base and spent currency are in one pair ...
+    for (;i<l;)
+    {
+        pair = currencyPairs.getItemAt(i++);
+        if ((base === pair.base && symbol === pair.symbol) || (base === pair.symbol && symbol === pair.base))
+        {
+            if (base === pair.base && symbol === pair.symbol) return pair.rate;
+            else if (base === pair.symbol && symbol === pair.base) return 1 / pair.rate;
+        }
+    }
+
+    // .. if not, use EUR pair as cross
+    for (i=0;i<l;)
+    {
+        pair = currencyPairs.getItemAt(i++);
+        if (pair.base === "EUR")
+        {
+            if (pair.symbol === base) basePair = pair;
+            if (pair.symbol === symbol) symbolPair = pair;
+        }
+    }
+
+    if (basePair && symbolPair) return symbolPair.rate / basePair.rate;
+
+    return 1.0;
 };
 
 /**

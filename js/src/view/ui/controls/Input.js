@@ -325,6 +325,7 @@ App.Input.prototype._onChange = function _onChange(e)
  */
 App.Input.prototype._updateText = function _updateText(finish)
 {
+    //TODO limit text length to the input's width (minus 'clear' button width)
     this._text = this._format(finish);
 
     if (this._text === this._placeholder || this._text.length === 0)
