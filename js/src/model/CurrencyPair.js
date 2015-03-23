@@ -12,7 +12,4 @@ App.CurrencyPair = function CurrencyPair(data,collection,parent,eventListenerPoo
     this.base = data[1];
     this.symbol = data[2];//quote symbol
     this.rate = data[3];
-
-    //CZK/CZK@1.0
-    //USD/CZK@25.7
 };

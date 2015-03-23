@@ -1814,9 +1814,6 @@ App.CurrencyPair = function CurrencyPair(data,collection,parent,eventListenerPoo
     this.base = data[1];
     this.symbol = data[2];//quote symbol
     this.rate = data[3];
-
-    //CZK/CZK@1.0
-    //USD/CZK@25.7
 };
 
 /**
@@ -1908,7 +1905,9 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
         this._subCategory = null;
         this._method = null;
         this._date = null;
-        this._currencySymbol = null;
+        this._currencyBase = null;
+        this._currencyQuote = null;
+//        this._currencyRate = 1.0;
         this.note = data[8] ? decodeURI(data[8]) : "";
     }
     else
@@ -1924,7 +1923,9 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
         this._subCategory = null;
         this._method = null;
         this._date = null;
-        this._currencySymbol = null;
+        this._currencyBase = null;
+        this._currencyQuote = null;
+//        this._currencyRate = 1.0;
         this.note = "";
     }
 };
@@ -1958,8 +1959,7 @@ App.Transaction.prototype.save = function save()
     this._data = this.serialize();
 
     var base = "CZK",
-        spent = "GBP",
-        //rate = this._findRate(base,spent);
+        spent = "USD",
         rate = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(base,spent);
     console.log("Result rate: ",rate,"(",rate.toFixed(6),"), 100 "+spent+" = "+(100/rate)+" "+base);//100CHF = 2895.8956 CZK
 };
@@ -1970,6 +1970,9 @@ App.Transaction.prototype.save = function save()
  */
 App.Transaction.prototype.serialize = function serialize()
 {
+    var base = this.currencyBase,
+        quote = this.currencyQuote;
+
     return [
         parseInt(this.amount,10),
         this.type,
@@ -1978,7 +1981,7 @@ App.Transaction.prototype.serialize = function serialize()
         this.account.id + "." + this.category.id + "." + this.subCategory.id,
         this.method.id,
         this.date.getTime(),
-        this.currency,
+        base + "/" + quote + "@" + App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(base,quote),
         App.StringUtils.encode(this.note)//TODO check if note is set before even adding it
     ];
 };
@@ -2123,23 +2126,64 @@ Object.defineProperty(App.Transaction.prototype,'date',{
 
 /**
  * @property currency
- * @type Currency
+ * @type string
  */
-Object.defineProperty(App.Transaction.prototype,'currency',{
+Object.defineProperty(App.Transaction.prototype,'currencyBase',{
     get:function()
     {
-        if (!this._currencySymbol)
+        if (!this._currencyBase)
         {
-            if (this._data) this._currencySymbol = App.ModelLocator.getProxy(App.ModelName.CURRENCY_SYMBOLS).filter([this._data[7]],"symbol")[0].symbol;
-            else this._currencySymbol = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency.symbol;
+            if (this._data) this._currencyBase = this._data[7].split("@")[0].split("/")[0];
+            else this._currencyBase = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;//TODO implement
         }
-        return this._currencySymbol;
+        return this._currencyBase;
     },
     set:function(value)
     {
-        this._currencySymbol = value;
+        this._currencyBase = value;
     }
 });
+
+/**
+ * @property currency
+ * @type string
+ */
+Object.defineProperty(App.Transaction.prototype,'currencyQuote',{
+    get:function()
+    {
+        if (!this._currencyQuote)
+        {
+            if (this._data) this._currencyQuote = this._data[7].split("@")[0].split("/")[1];
+            else this._currencyQuote = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultQuote;//TODO implement
+        }
+        return this._currencyQuote;
+    },
+    set:function(value)
+    {
+        this._currencyQuote = value;
+    }
+});
+
+/**
+ * @property currency
+ * @type number
+ */
+//TODO i may not need this and use something like 'getBaseValue' function that will automatically convert it
+/*Object.defineProperty(App.Transaction.prototype,'currencyRate',{
+    get:function()
+    {
+        if (!this._currencyRate)
+        {
+            if (this._data) this._currencyRate = parseFloat(this._data[7].split("@")[1]);
+            else this._currencyRate = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(this.currencyBase,this.currencyQuote);
+        }
+        return this._currencyRate;
+    },
+    set:function(value)
+    {
+        this._currencyRate = value;
+    }
+});*/
 
 /**
  * @class SubCategory
@@ -8705,7 +8749,7 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
     this._categoryOption.setValue(this._model.subCategory ? this._model.subCategory.name : "?",this._model.category ? this._model.category.name : null);
     this._timeOption.setValue(App.DateUtils.getMilitaryTime(this._model.date),this._model.date.toDateString());
     this._methodOption.setValue(this._model.method.name);
-    this._currencyOption.setValue(this._model.currency);
+    this._currencyOption.setValue(this._model.currencyQuote);
 
     this._deleteButton.hidePopUp(true);
 
@@ -11342,7 +11386,7 @@ App.TransactionButton.prototype._update = function _update(updateAll)
 
     this._accountField.setText(this._model.account.name);
     this._amountField.setText(this._model.amount);
-    this._currencyField.setText(" " + this._model.currency);
+    this._currencyField.setText(" " + this._model.currencyQuote);
     this._categoryField.setText(this._model.subCategory.name+" / "+this._model.category.name);
     this._dateField.setText(pending ? "Due by\n"+dateText : dateText);
 
