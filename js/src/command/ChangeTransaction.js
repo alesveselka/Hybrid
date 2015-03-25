@@ -54,7 +54,8 @@ App.ChangeTransaction.prototype.execute = function execute(data)
         transaction.category = data.category || transaction.category;
         transaction.subCategory = data.subCategory || transaction.subCategory;
         transaction.method = data.method || transaction.method;
-        transaction.currency = data.currency || transaction.currency;
+        transaction.currencyBase = data.currencyBase || transaction.currencyBase;
+        transaction.currencyQuote = data.currencyQuote || transaction.currencyQuote;
         transaction.note = data.note || transaction.note;
 
         if (date && time)

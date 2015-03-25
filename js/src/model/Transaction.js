@@ -73,11 +73,6 @@ App.Transaction.prototype.isSaved = function isSaved()
 App.Transaction.prototype.save = function save()
 {
     this._data = this.serialize();
-
-    var base = "CZK",
-        spent = "USD",
-        rate = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(base,spent);
-    console.log("Result rate: ",rate,"(",rate.toFixed(6),"), 100 "+spent+" = "+(100/rate)+" "+base);//100CHF = 2895.8956 CZK
 };
 
 /**
@@ -118,7 +113,8 @@ App.Transaction.prototype.copy = function copy()
     copy.subCategory = this.subCategory;
     copy.method = this.method;
     copy.date = this.date;
-    copy.currency = this.currency;
+    copy.currencyBase = this.currencyBase;
+    copy.currencyQuote = this.currencyQuote;
     copy.note = this.note;
 
     return copy;
