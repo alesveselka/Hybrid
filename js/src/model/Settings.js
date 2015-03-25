@@ -40,7 +40,7 @@ Object.defineProperty(App.Settings.prototype,'defaultAccount',{
     {
         if (!this._defaultAccount)
         {
-            if (this._data) this._defaultAccount = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find(this._data[3],"id");
+            if (this._data) this._defaultAccount = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find("id",this._data[3]);
             else this._defaultAccount = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).getItemAt(0);
         }
         return this._defaultAccount;
@@ -60,7 +60,7 @@ Object.defineProperty(App.Settings.prototype,'defaultCategory',{
     {
         if (!this._defaultCategory)
         {
-            if (this._data) this._defaultCategory = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).find(this._data[4],"id");
+            if (this._data) this._defaultCategory = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).find("id",this._data[4]);
             else this._defaultCategory = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).getItemAt(0);
         }
         return this._defaultCategory;
@@ -80,7 +80,7 @@ Object.defineProperty(App.Settings.prototype,'defaultSubCategory',{
     {
         if (!this._defaultSubCategory)
         {
-            if (this._data) this._defaultSubCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find(this._data[5],"id");
+            if (this._data) this._defaultSubCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find("id",this._data[5]);
             else this._defaultSubCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).getItemAt(0);
         }
         return this._defaultSubCategory;
@@ -100,7 +100,7 @@ Object.defineProperty(App.Settings.prototype,'defaultPaymentMethod',{
     {
         if (!this._defaultPaymentMethod)
         {
-            if (this._data) this._defaultPaymentMethod = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find(this._data[6],"id");
+            if (this._data) this._defaultPaymentMethod = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find("id",this._data[6]);
             else this._defaultPaymentMethod = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).getItemAt(0);
         }
         return this._defaultPaymentMethod;

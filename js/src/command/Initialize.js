@@ -73,9 +73,6 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         userData = JSON.parse(data.userData),
         currencyPairs = new App.CurrencyPairCollection(userData.currencyPairs,this._eventListenerPool);
 
-    //TODO set default currency
-    //currencyPairs.addItem(new CurrencyPair([1,"USD","USD",1.0]));
-
     App.ModelLocator.init([
         ModelName.EVENT_LISTENER_POOL,this._eventListenerPool,
         ModelName.TICKER,new App.Ticker(this._eventListenerPool),

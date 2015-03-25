@@ -133,7 +133,7 @@ Object.defineProperty(App.Transaction.prototype,'account',{
     {
         if (!this._account)
         {
-            if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find(this._data[4].split(".")[0],"id");
+            if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find("id",this._data[4].split(".")[0]);
             else this._account = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultAccount;
         }
         return this._account;//TODO save last used account as 'default' on save
@@ -159,8 +159,8 @@ Object.defineProperty(App.Transaction.prototype,'category',{
                     ModelName = App.ModelName,
                     ids = this._data[4].split(".");
 
-                this._category = ModelLocator.getProxy(ModelName.CATEGORIES).find(ids[1],"id");
-                this._subCategory = ModelLocator.getProxy(ModelName.SUB_CATEGORIES).find(ids[2],"id");
+                this._category = ModelLocator.getProxy(ModelName.CATEGORIES).find("id",ids[1]);
+                this._subCategory = ModelLocator.getProxy(ModelName.SUB_CATEGORIES).find("id",ids[2]);
             }
             else
             {
@@ -185,7 +185,7 @@ Object.defineProperty(App.Transaction.prototype,'subCategory',{
     {
         if (!this._subCategory)
         {
-            if (this._data) this._subCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find(this._data[4].split(".")[2],"id");
+            if (this._data) this._subCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find("id",this._data[4].split(".")[2]);
             else this._subCategory = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultSubCategory;
         }
         return this._subCategory;
@@ -205,7 +205,7 @@ Object.defineProperty(App.Transaction.prototype,'method',{
     {
         if (!this._method)
         {
-            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find(this._data[5],"id");
+            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find("id",this._data[5]);
             else this._method = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultPaymentMethod;
         }
         return this._method;

@@ -1,7 +1,7 @@
 {
 "TODO":"COMPRESS THE DATA BEFORE SAVING THEM?",
 "_commentSettings":["startOfWeek","baseCurrency","defaultCurrency","defaultAccount","defaultCategory","defaultSubCategory","defaultPaymentMethod"],
-"settings":[1,"CZK","CZK","1","1","1",1],
+"settings":[1,"CZK","CZK",1,1,1,1],
 "_commentCurrencies":["id","baseCurrency","symbol","rate"],
 "currencyPairs":[
     [1,"EUR","AUD",1.3932],

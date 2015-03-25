@@ -1760,7 +1760,7 @@ Object.defineProperty(App.Settings.prototype,'defaultAccount',{
     {
         if (!this._defaultAccount)
         {
-            if (this._data) this._defaultAccount = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find(this._data[3],"id");
+            if (this._data) this._defaultAccount = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find("id",this._data[3]);
             else this._defaultAccount = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).getItemAt(0);
         }
         return this._defaultAccount;
@@ -1780,7 +1780,7 @@ Object.defineProperty(App.Settings.prototype,'defaultCategory',{
     {
         if (!this._defaultCategory)
         {
-            if (this._data) this._defaultCategory = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).find(this._data[4],"id");
+            if (this._data) this._defaultCategory = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).find("id",this._data[4]);
             else this._defaultCategory = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).getItemAt(0);
         }
         return this._defaultCategory;
@@ -1800,7 +1800,7 @@ Object.defineProperty(App.Settings.prototype,'defaultSubCategory',{
     {
         if (!this._defaultSubCategory)
         {
-            if (this._data) this._defaultSubCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find(this._data[5],"id");
+            if (this._data) this._defaultSubCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find("id",this._data[5]);
             else this._defaultSubCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).getItemAt(0);
         }
         return this._defaultSubCategory;
@@ -1820,7 +1820,7 @@ Object.defineProperty(App.Settings.prototype,'defaultPaymentMethod',{
     {
         if (!this._defaultPaymentMethod)
         {
-            if (this._data) this._defaultPaymentMethod = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find(this._data[6],"id");
+            if (this._data) this._defaultPaymentMethod = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find("id",this._data[6]);
             else this._defaultPaymentMethod = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).getItemAt(0);
         }
         return this._defaultPaymentMethod;
@@ -2066,7 +2066,7 @@ Object.defineProperty(App.Transaction.prototype,'account',{
     {
         if (!this._account)
         {
-            if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find(this._data[4].split(".")[0],"id");
+            if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find("id",this._data[4].split(".")[0]);
             else this._account = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultAccount;
         }
         return this._account;//TODO save last used account as 'default' on save
@@ -2092,8 +2092,8 @@ Object.defineProperty(App.Transaction.prototype,'category',{
                     ModelName = App.ModelName,
                     ids = this._data[4].split(".");
 
-                this._category = ModelLocator.getProxy(ModelName.CATEGORIES).find(ids[1],"id");
-                this._subCategory = ModelLocator.getProxy(ModelName.SUB_CATEGORIES).find(ids[2],"id");
+                this._category = ModelLocator.getProxy(ModelName.CATEGORIES).find("id",ids[1]);
+                this._subCategory = ModelLocator.getProxy(ModelName.SUB_CATEGORIES).find("id",ids[2]);
             }
             else
             {
@@ -2118,7 +2118,7 @@ Object.defineProperty(App.Transaction.prototype,'subCategory',{
     {
         if (!this._subCategory)
         {
-            if (this._data) this._subCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find(this._data[4].split(".")[2],"id");
+            if (this._data) this._subCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find("id",this._data[4].split(".")[2]);
             else this._subCategory = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultSubCategory;
         }
         return this._subCategory;
@@ -2138,7 +2138,7 @@ Object.defineProperty(App.Transaction.prototype,'method',{
     {
         if (!this._method)
         {
-            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find(this._data[5],"id");
+            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find("id",this._data[5]);
             else this._method = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultPaymentMethod;
         }
         return this._method;
@@ -14284,9 +14284,6 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         PaymentMethod = App.PaymentMethod,
         userData = JSON.parse(data.userData),
         currencyPairs = new App.CurrencyPairCollection(userData.currencyPairs,this._eventListenerPool);
-
-    //TODO set default currency
-    //currencyPairs.addItem(new CurrencyPair([1,"USD","USD",1.0]));
 
     App.ModelLocator.init([
         ModelName.EVENT_LISTENER_POOL,this._eventListenerPool,
