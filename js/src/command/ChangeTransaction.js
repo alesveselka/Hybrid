@@ -21,7 +21,9 @@ App.ChangeTransaction.prototype.constructor = App.ChangeTransaction;
 App.ChangeTransaction.prototype.execute = function execute(data)
 {
     var EventType = App.EventType,
-        transactions = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS),
+        ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        transactions = ModelLocator.getProxy(ModelName.TRANSACTIONS),
         transaction = transactions.getCurrent(),
         type = data.type;
 
@@ -46,15 +48,11 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.CHANGE)
     {
-        var date = data.date,
+        var settings = ModelLocator.getProxy(ModelName.SETTINGS),
+            date = data.date,
             time = data.time;
 
         transaction.amount = data.amount || transaction.amount;
-        transaction.account = data.account || transaction.account;
-        transaction.category = data.category || transaction.category;
-        transaction.subCategory = data.subCategory || transaction.subCategory;
-        transaction.currencyBase = data.currencyBase || transaction.currencyBase;
-        transaction.currencyQuote = data.currencyQuote || transaction.currencyQuote;
         transaction.note = data.note || transaction.note;
 
         if (date && time)
@@ -62,16 +60,37 @@ App.ChangeTransaction.prototype.execute = function execute(data)
             transaction.date.setFullYear(date.getFullYear(),date.getMonth(),date.getDate());
             if (time.length > 0) transaction.date.setHours(parseInt(time.split(":")[0],10),parseInt(time.split(":")[1],10));
         }
+
+        if (data.account && data.category && data.subCategory)
+        {
+            transaction.account = data.account;
+            transaction.category = data.category;
+            transaction.subCategory = data.subCategory;
+
+            settings.defaultAccount = data.account;
+            settings.defaultCategory = data.category;
+            settings.defaultSubCategory = data.subCategory;
+        }
+
+        if (data.method)
+        {
+            var method = ModelLocator.getProxy(ModelName.PAYMENT_METHODS).find("name",data.method);
+            transaction.method = method;
+            settings.defaultPaymentMethod = method;
+        }
+
+        if (data.currencyQuote)
+        {
+            transaction.currencyQuote = data.currencyQuote;
+            settings.defaultCurrencyQuote = data.currencyQuote;
+        }
     }
     else if (type === EventType.CONFIRM)
     {
-        var methodCollection = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS);
-
         transaction.amount = data.amount || transaction.amount;
         transaction.type = data.transactionType || transaction.type;
         transaction.pending = data.pending === true;
         transaction.repeat = data.repeat === true;
-        transaction.method = data.method ? methodCollection.find("name",data.method)  : transaction.method;
         transaction.note = data.note || transaction.note;
 
         transaction.save();

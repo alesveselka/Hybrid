@@ -393,10 +393,12 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
         }
         else if (button === this._methodOption)
         {
-            var method = this._methodOption.getValue(),
-                PaymentMethod = App.PaymentMethod;
+            var PaymentMethod = App.PaymentMethod,
+                method = this._methodOption.getValue() === PaymentMethod.CASH ? PaymentMethod.CREDIT_CARD : PaymentMethod.CASH;
 
-            this._methodOption.setValue(method === PaymentMethod.CASH ? PaymentMethod.CREDIT_CARD : PaymentMethod.CASH);
+            App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{type:App.EventType.CHANGE,method:method});
+
+            this._methodOption.setValue(method);
 
             return;
         }
@@ -466,7 +468,6 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
             transactionType:this._typeToggle.isSelected() ? App.TransactionType.INCOME : App.TransactionType.EXPENSE,
             pending:this._pendingToggle.isSelected(),
             repeat:this._repeatToggle.isSelected(),
-            method:this._methodOption.getValue(),
             note:this._noteInput.getValue(),
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData

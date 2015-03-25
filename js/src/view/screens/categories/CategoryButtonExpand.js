@@ -111,7 +111,7 @@ App.CategoryButtonExpand.prototype.onClick = function onClick(data)
 
                     App.Controller.dispatchEvent(EventType.CHANGE_TRANSACTION,{
                         type:EventType.CHANGE,
-                        account:ModelLocator.getProxy(ModelName.ACCOUNTS).filter([this._model.account],"id")[0],
+                        account:ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",this._model.account),
                         category:this._model,
                         subCategory:button.getModel(),
                         nextCommand:new App.ChangeScreen(),
