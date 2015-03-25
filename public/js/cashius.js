@@ -2065,7 +2065,7 @@ Object.defineProperty(App.Transaction.prototype,'account',{
             if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find("id",this._data[4].split(".")[0]);
             else this._account = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultAccount;
         }
-        return this._account;//TODO save last used account as 'default' on save
+        return this._account;
     },
     set:function(value)
     {
@@ -2097,7 +2097,7 @@ Object.defineProperty(App.Transaction.prototype,'category',{
                 this._subCategory = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultSubCategory;
             }
         }
-        return this._category;//TODO save last used account as 'default' on save
+        return this._category;
     },
     set:function(value)
     {
@@ -2178,7 +2178,7 @@ Object.defineProperty(App.Transaction.prototype,'currencyBase',{
             else this._currencyBase = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
         }
         return this._currencyBase;
-    },
+    },//TODO do I need 'set' - this should be ALWAYS loaded from data or settings
     set:function(value)
     {
         this._currencyBase = value;
@@ -8930,26 +8930,23 @@ App.AddTransactionScreen.prototype._onDeleteCancel = function _onDeleteCancel()
 App.AddTransactionScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
 {
     var HeaderAction = App.HeaderAction,
-        ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName;
-
-    this._onHidePopUpComplete();
-    App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
-
-    ModelLocator.getProxy(ModelName.TRANSACTIONS).setCurrent(this._model);
-
-    App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
-        type:App.EventType.DELETE,
-        nextCommand:new App.ChangeScreen(),
-        nextCommandData:ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+        changeTransactionData = this._getChangeTransactionData(
             App.ScreenName.TRANSACTIONS,
             0,
             null,
             HeaderAction.MENU,
             HeaderAction.ADD_TRANSACTION,
             App.ScreenTitle.TRANSACTIONS
-        )
-    });
+        );
+
+    this._onHidePopUpComplete();
+    App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
+
+    App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).setCurrent(this._model);
+
+    changeTransactionData.type = App.EventType.DELETE;
+
+    App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,changeTransactionData);
 };
 
 /**
@@ -8990,56 +8987,12 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     {
         if (inputFocused) this._scrollInput.blur();
 
-        var HeaderAction = App.HeaderAction,
-            ScreenTitle = App.ScreenTitle,
-            ScreenName = App.ScreenName,
-            button = this._optionList.getItemUnderPoint(pointerData),
-            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
-                ScreenName.ACCOUNT,
-                App.ScreenMode.SELECT,
-                null,
-                null,
-                HeaderAction.NONE,
-                ScreenTitle.SELECT_ACCOUNT
-            );
-
-        if (button === this._categoryOption)
-        {
-            if (this._model.account)
-            {
-                changeScreenData.screenName = ScreenName.CATEGORY;
-                changeScreenData.updateData = this._model.account;
-                changeScreenData.headerName = ScreenTitle.SELECT_CATEGORY;
-            }
-        }
-        else if (button === this._timeOption)
-        {
-            changeScreenData.screenName = ScreenName.SELECT_TIME;
-            changeScreenData.updateData = this._model.date;
-            changeScreenData.headerName = ScreenTitle.SELECT_TIME;
-            changeScreenData.headerRightAction = HeaderAction.CONFIRM;
-        }
-        else if (button === this._methodOption)
-        {
-            var PaymentMethod = App.PaymentMethod,
-                method = this._methodOption.getValue() === PaymentMethod.CASH ? PaymentMethod.CREDIT_CARD : PaymentMethod.CASH;
-
-            App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
-                type:App.EventType.CHANGE,
-                method:method
-            });
-
-            this._methodOption.setValue(method);
-
-            return;
-        }
-        else if (button === this._currencyOption)
-        {
-            changeScreenData.screenName = ScreenName.CURRENCIES;
-            changeScreenData.headerName = ScreenTitle.SELECT_CURRENCY;
-        }
-        //TODO disable before changing screen?
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+        var button = this._optionList.getItemUnderPoint(pointerData);
+        if (button === this._accountOption) this._onAccountOptionClick();
+        else if (button === this._categoryOption) this._onCategoryOptionClick();
+        else if (button === this._timeOption) this._onTimeOptionClick();
+        else if (button === this._methodOption) this._onMethodOptionClick();
+        else if (button === this._currencyOption) this._onCurrencyOptionClick();
     }
     else if (this._noteInput.hitTest(position))
     {
@@ -9069,6 +9022,82 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
 };
 
 /**
+ * On account option button click
+ * @private
+ */
+App.AddTransactionScreen.prototype._onAccountOptionClick = function _onAccountOptionClick()
+{
+    App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,this._getChangeTransactionData(
+        App.ScreenName.ACCOUNT,
+        App.ScreenMode.SELECT,
+        null,
+        0,
+        App.HeaderAction.NONE,
+        App.ScreenTitle.SELECT_ACCOUNT
+    ));
+};
+
+/**
+ * On category option button click
+ * @private
+ */
+App.AddTransactionScreen.prototype._onCategoryOptionClick = function _onCategoryOptionClick()
+{
+    if (this._model.account)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,this._getChangeTransactionData(
+            App.ScreenName.CATEGORY,
+            App.ScreenMode.SELECT,
+            this._model.account,
+            0,
+            App.HeaderAction.NONE,
+            App.ScreenTitle.SELECT_CATEGORY
+        ));
+    }
+};
+
+/**
+ * On time option button click
+ * @private
+ */
+App.AddTransactionScreen.prototype._onTimeOptionClick = function _onTimeOptionClick()
+{
+    App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,this._getChangeTransactionData(
+        App.ScreenName.SELECT_TIME,
+        App.ScreenMode.SELECT,
+        this._model.date,
+        0,
+        0,
+        App.ScreenTitle.SELECT_TIME
+    ));
+};
+
+/**
+ * On payment method option button click
+ * @private
+ */
+App.AddTransactionScreen.prototype._onMethodOptionClick = function _onMethodOptionClick()
+{
+    this._methodOption.setValue(this._methodOption.getValue() === App.PaymentMethod.CASH ? App.PaymentMethod.CREDIT_CARD : App.PaymentMethod.CASH);
+};
+
+/**
+ * On currency option button click
+ * @private
+ */
+App.AddTransactionScreen.prototype._onCurrencyOptionClick = function _onCurrencyOptionClick()
+{
+    App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,this._getChangeTransactionData(
+        App.ScreenName.CURRENCIES,
+        App.ScreenMode.SELECT,
+        null,
+        0,
+        App.HeaderAction.NONE,
+        App.ScreenTitle.SELECT_CURRENCY
+    ));
+};
+
+/**
  * On Header click
  * @param {number} action
  * @private
@@ -9076,12 +9105,10 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
 App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
     var HeaderAction = App.HeaderAction,
-        ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+        changeTransactionData = this._getChangeTransactionData(
             App.ScreenName.TRANSACTIONS,
             0,
-            ModelLocator.getProxy(ModelName.TRANSACTIONS).copySource().reverse(),
+            App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).copySource().reverse(),
             HeaderAction.MENU,
             HeaderAction.ADD_TRANSACTION,
             App.ScreenTitle.TRANSACTIONS
@@ -9091,47 +9118,51 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
 
     if (action === HeaderAction.CONFIRM)
     {
-        //TODO first check if all values are set!
+        changeTransactionData.type = App.EventType.CONFIRM;
 
-        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
-            type:App.EventType.CONFIRM,
-            amount:this._transactionInput.getValue(),
-            transactionType:this._typeToggle.isSelected() ? App.TransactionType.INCOME : App.TransactionType.EXPENSE,
-            pending:this._pendingToggle.isSelected(),
-            repeat:this._repeatToggle.isSelected(),
-            note:this._noteInput.getValue(),
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
-        });
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,changeTransactionData);
     }
     else
     {
-        changeScreenData.screenName = App.ScreenName.BACK;
-        changeScreenData.updateBackScreen = true;
+        changeTransactionData.type = App.EventType.CANCEL;
+        changeTransactionData.nextCommandData.screenName = App.ScreenName.BACK;
+        changeTransactionData.nextCommandData.updateBackScreen = true;
 
-        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
-            type:App.EventType.CANCEL,
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
-        });
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,changeTransactionData);
     }
 };
 
 /**
- * On budget field blur
+ * Construct and return change transaction data object
+ * @param {number} screenName
+ * @param {number} screenMode
+ * @param {*} updateData
+ * @param {number} headerLeftAction
+ * @param {number} headerRightAction
+ * @param {string} headerName
+ * @returns {{type:string,amount:string,transactionType:string,pending:boolean,repeat:boolean,method:string,note:string,nextCommand:App.ChangeScreen,nextCommandData:Object}}
  * @private
  */
-App.AddTransactionScreen.prototype._onInputBlur = function _onInputBlur()
+App.AddTransactionScreen.prototype._getChangeTransactionData = function _getChangeTransactionData(screenName,screenMode,updateData,headerLeftAction,headerRightAction,headerName)
 {
-    App.InputScrollScreen.prototype._onInputBlur.call(this);
-
-    var EventType = App.EventType;
-
-    App.Controller.dispatchEvent(EventType.CHANGE_TRANSACTION,{
-        type:EventType.CHANGE,
+    return {
+        type:App.EventType.CHANGE,
         amount:this._transactionInput.getValue(),
-        note:this._noteInput.getValue()
-    });
+        transactionType:this._typeToggle.isSelected() ? App.TransactionType.INCOME : App.TransactionType.EXPENSE,
+        pending:this._pendingToggle.isSelected(),
+        repeat:this._repeatToggle.isSelected(),
+        method:this._methodOption.getValue(),
+        note:this._noteInput.getValue(),
+        nextCommand:new App.ChangeScreen(),
+        nextCommandData:App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+            screenName,
+            screenMode,
+            updateData,
+            headerLeftAction,
+            headerRightAction,
+            headerName
+        )
+    };
 };
 
 /**
@@ -14632,6 +14663,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     var EventType = App.EventType,
         ModelLocator = App.ModelLocator,
         ModelName = App.ModelName,
+        settings = ModelLocator.getProxy(ModelName.SETTINGS),
         transactions = ModelLocator.getProxy(ModelName.TRANSACTIONS),
         transaction = transactions.getCurrent(),
         type = data.type;
@@ -14657,50 +14689,18 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.CHANGE)
     {
-        var settings = ModelLocator.getProxy(ModelName.SETTINGS),
-            date = data.date,
-            time = data.time;
-
-        transaction.amount = data.amount || transaction.amount;
-        transaction.note = data.note || transaction.note;
-
-        if (date && time)
-        {
-            transaction.date.setFullYear(date.getFullYear(),date.getMonth(),date.getDate());
-            if (time.length > 0) transaction.date.setHours(parseInt(time.split(":")[0],10),parseInt(time.split(":")[1],10));
-        }
-
-        if (data.account && data.category && data.subCategory)
-        {
-            transaction.account = data.account;
-            transaction.category = data.category;
-            transaction.subCategory = data.subCategory;
-
-            settings.defaultAccount = data.account;
-            settings.defaultCategory = data.category;
-            settings.defaultSubCategory = data.subCategory;
-        }
-
-        if (data.method)
-        {
-            var method = ModelLocator.getProxy(ModelName.PAYMENT_METHODS).find("name",data.method);
-            transaction.method = method;
-            settings.defaultPaymentMethod = method;
-        }
-
-        if (data.currencyQuote)
-        {
-            transaction.currencyQuote = data.currencyQuote;
-            settings.defaultCurrencyQuote = data.currencyQuote;
-        }
+        this._saveInputs(transaction,data);
+        this._saveToggles(transaction,data);
+        this._saveCategories(transaction,data,settings);
+        this._saveTime(transaction,data);
+        this._saveMethod(transaction,data,settings);
+        this._saveCurrency(transaction,data,settings);
     }
     else if (type === EventType.CONFIRM)
     {
-        transaction.amount = data.amount || transaction.amount;
-        transaction.type = data.transactionType || transaction.type;
-        transaction.pending = data.pending === true;
-        transaction.repeat = data.repeat === true;
-        transaction.note = data.note || transaction.note;
+        this._saveInputs(transaction,data);
+        this._saveToggles(transaction,data);
+        this._saveMethod(transaction,data,settings);
 
         transaction.save();
         transactions.setCurrent(null);
@@ -14719,6 +14719,103 @@ App.ChangeTransaction.prototype.execute = function execute(data)
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(EventType.COMPLETE,this);
+};
+
+/**
+ * Save input texts
+ * @param {App.Transaction} transaction
+ * @param {Object} data
+ * @private
+ */
+App.ChangeTransaction.prototype._saveInputs = function _saveInputs(transaction,data)
+{
+    transaction.amount = data.amount || transaction.amount;
+    transaction.note = data.note || transaction.note;
+};
+
+/**
+ * Save toggle button values
+ * @param {App.Transaction} transaction
+ * @param {Object} data
+ * @private
+ */
+App.ChangeTransaction.prototype._saveToggles = function _saveToggles(transaction,data)
+{
+    transaction.type = data.transactionType || transaction.type;
+    if (typeof data.pending === "boolean") transaction.pending = data.pending;
+    if (typeof data.repeat === "boolean") transaction.repeat = data.repeat;
+};
+
+/**
+ * Save Account, Category, and SubCategory
+ * @param {App.Transaction} transaction
+ * @param {Object} data
+ * @param {App.Settings} settings
+ * @private
+ */
+App.ChangeTransaction.prototype._saveCategories = function _saveCategories(transaction,data,settings)
+{
+    if (data.account && data.category && data.subCategory)
+    {
+        transaction.account = data.account;
+        transaction.category = data.category;
+        transaction.subCategory = data.subCategory;
+
+        settings.defaultAccount = data.account;
+        settings.defaultCategory = data.category;
+        settings.defaultSubCategory = data.subCategory;
+    }
+};
+
+/**
+ * Save time and data
+ * @param {App.Transaction} transaction
+ * @param {Object} data
+ * @private
+ */
+App.ChangeTransaction.prototype._saveTime = function _saveTime(transaction,data)
+{
+    var date = data.date,
+        time = data.time;
+
+    if (date && time)
+    {
+        transaction.date.setFullYear(date.getFullYear(),date.getMonth(),date.getDate());
+        if (time.length > 0) transaction.date.setHours(parseInt(time.split(":")[0],10),parseInt(time.split(":")[1],10));
+    }
+};
+
+/**
+ * Save payment method
+ * @param {App.Transaction} transaction
+ * @param {Object} data
+ * @param {App.Settings} settings
+ * @private
+ */
+App.ChangeTransaction.prototype._saveMethod = function _saveMethod(transaction,data,settings)
+{
+    if (data.method)
+    {
+        var method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find("name",data.method);
+        transaction.method = method;
+        settings.defaultPaymentMethod = method;
+    }
+};
+
+/**
+ * Save currency quote
+ * @param {App.Transaction} transaction
+ * @param {Object} data
+ * @param {App.Settings} settings
+ * @private
+ */
+App.ChangeTransaction.prototype._saveCurrency = function _saveCurrency(transaction,data,settings)
+{
+    if (data.currencyQuote)
+    {
+        transaction.currencyQuote = data.currencyQuote;
+        settings.defaultCurrencyQuote = data.currencyQuote;
+    }
 };
 
 /**

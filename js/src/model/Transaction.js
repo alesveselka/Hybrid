@@ -132,7 +132,7 @@ Object.defineProperty(App.Transaction.prototype,'account',{
             if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find("id",this._data[4].split(".")[0]);
             else this._account = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultAccount;
         }
-        return this._account;//TODO save last used account as 'default' on save
+        return this._account;
     },
     set:function(value)
     {
@@ -164,7 +164,7 @@ Object.defineProperty(App.Transaction.prototype,'category',{
                 this._subCategory = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultSubCategory;
             }
         }
-        return this._category;//TODO save last used account as 'default' on save
+        return this._category;
     },
     set:function(value)
     {
@@ -245,7 +245,7 @@ Object.defineProperty(App.Transaction.prototype,'currencyBase',{
             else this._currencyBase = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
         }
         return this._currencyBase;
-    },
+    },//TODO do I need 'set' - this should be ALWAYS loaded from data or settings
     set:function(value)
     {
         this._currencyBase = value;
