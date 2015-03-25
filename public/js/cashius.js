@@ -14689,7 +14689,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.CHANGE)
     {
-        this._saveInputs(transaction,data);
+        this._saveInputs(transaction,data,false);
         this._saveToggles(transaction,data);
         this._saveCategories(transaction,data,settings);
         this._saveTime(transaction,data);
@@ -14698,7 +14698,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.CONFIRM)
     {
-        this._saveInputs(transaction,data);
+        this._saveInputs(transaction,data,true);
         this._saveToggles(transaction,data);
         this._saveMethod(transaction,data,settings);
 
@@ -14725,12 +14725,15 @@ App.ChangeTransaction.prototype.execute = function execute(data)
  * Save input texts
  * @param {App.Transaction} transaction
  * @param {Object} data
+ * @param {boolean} setDefault
  * @private
  */
-App.ChangeTransaction.prototype._saveInputs = function _saveInputs(transaction,data)
+App.ChangeTransaction.prototype._saveInputs = function _saveInputs(transaction,data,setDefault)
 {
     transaction.amount = data.amount || transaction.amount;
     transaction.note = data.note || transaction.note;
+    
+    if (setDefault && !transaction.amount) transaction.amount = "0";
 };
 
 /**
