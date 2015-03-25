@@ -62,6 +62,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
         this._saveToggles(transaction,data);
         this._saveMethod(transaction,data,settings);
 
+        transaction.currencyBase = settings.baseCurrency;
         transaction.save();
         transactions.setCurrent(null);
     }

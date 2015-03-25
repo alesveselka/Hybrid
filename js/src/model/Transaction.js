@@ -245,7 +245,7 @@ Object.defineProperty(App.Transaction.prototype,'currencyBase',{
             else this._currencyBase = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
         }
         return this._currencyBase;
-    },//TODO do I need 'set' - this should be ALWAYS loaded from data or settings
+    },
     set:function(value)
     {
         this._currencyBase = value;
