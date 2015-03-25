@@ -12901,14 +12901,15 @@ App.CurrencyPairScreen = function CurrencyPairScreen(layout)
 
     var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
-        h = layout.contentHeight,
-        w = layout.width,
         r = layout.pixelRatio,
+        h = layout.contentHeight - Math.round(60 * r),
+        w = layout.width,
+        skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
         buttonOptions = {
             width:w,
             height:Math.round(50 * r),
             pixelRatio:r,
-            skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,
+            skin:skin.GREY_50,
             editLabelStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
             pairLabelStyle:FontStyle.get(18,FontStyle.BLUE),
             rateLabelStyle:FontStyle.get(18,FontStyle.BLUE,null,FontStyle.LIGHT_CONDENSED),
@@ -12918,9 +12919,17 @@ App.CurrencyPairScreen = function CurrencyPairScreen(layout)
     this._model = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS);
 
     this._interactiveButton = null;
+    this._downloadButtonBackground = this.addChild(new PIXI.Sprite(skin.GREY_60));//TODO may not need this - I can use Screen BG
+    this._downloadButton = this.addChild(new App.Button("Update rates from internet",{
+        width:Math.round(w - 20 * r),
+        height:Math.round(40 * r),
+        pixelRatio:r,
+        style:FontStyle.get(18,FontStyle.BLACK_LIGHT,null,FontStyle.LIGHT_CONDENSED),
+        backgroundColor:App.ColorTheme.GREY_DARK
+    }));
     this._buttonPool = new App.ObjectPool(App.CurrencyPairButton,4,buttonOptions);
     this._buttonList = new App.VirtualList(this._buttonPool,App.Direction.Y,w,h,r);
-    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,false));
+    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,true));
     this._pane.setContent(this._buttonList);
 
     this._swipeEnabled = true;
@@ -12929,6 +12938,21 @@ App.CurrencyPairScreen = function CurrencyPairScreen(layout)
 
 App.CurrencyPairScreen.prototype = Object.create(App.Screen.prototype);
 App.CurrencyPairScreen.prototype.constructor = App.CurrencyPairScreen;
+
+/**
+ * Render
+ * @private
+ */
+App.CurrencyPairScreen.prototype._render = function _render()
+{
+    var padding = Math.round(10 * this._layout.pixelRatio),
+        buttonHeight = this._downloadButton.boundingBox.height + padding * 2;
+
+    this._downloadButton.x = padding;
+    this._downloadButton.y = padding;
+
+    this._pane.y = buttonHeight;
+};
 
 /**
  * Enable
@@ -12967,6 +12991,8 @@ App.CurrencyPairScreen.prototype.update = function update(data,mode)
     else
     {
         this._initialized = true;
+
+        this._render();
 
         this._buttonList.update(this._model.copySource());
         this._pane.resize();
@@ -13087,11 +13113,20 @@ App.EditCurrencyPairScreen = function EditCurrencyPairScreen(layout)
 {
     App.Screen.call(this,layout,0.4);
 
-    var r = layout.pixelRatio;
+    var FontStyle = App.FontStyle,
+        r = layout.pixelRatio,
+        w = layout.width;
 
     this._background = this.addChild(new PIXI.Graphics());
     this._pairLabel = this.addChild(new PIXI.Text("EUR / USD",App.FontStyle.get(24,App.FontStyle.BLUE)));
     this._input = this.addChild(new App.Input("",20,Math.round(layout.width - this._pairLabel.width - Math.round(50 * r)),Math.round(40 * r),r));
+    this._downloadButton = this.addChild(new App.Button("Update rate from internet",{
+        width:Math.round(w - 20 * r),
+        height:Math.round(40 * r),
+        pixelRatio:r,
+        style:FontStyle.get(18,FontStyle.BLACK_LIGHT,null,FontStyle.LIGHT_CONDENSED),
+        backgroundColor:App.ColorTheme.GREY_DARK
+    }));
 
     this._input.restrict(/\d{1,}(\.\d*){0,1}/g);
 
@@ -13107,7 +13142,9 @@ App.EditCurrencyPairScreen.prototype.constructor = App.EditCurrencyPairScreen;
  */
 App.EditCurrencyPairScreen.prototype._render = function _render()
 {
-    var r = this._layout.pixelRatio,
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        r = this._layout.pixelRatio,
         w = this._layout.width,
         padding = Math.round(10 * r),
         inputHeight = Math.round(60 * r);
@@ -13118,7 +13155,12 @@ App.EditCurrencyPairScreen.prototype._render = function _render()
     this._input.x = Math.round(w - padding - this._input.width);
     this._input.y = padding;
 
-    App.GraphicUtils.drawRect(this._background,App.ColorTheme.GREY,1,0,0,w,inputHeight);
+    this._downloadButton.x = padding;
+    this._downloadButton.y = inputHeight + padding;
+
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w,inputHeight*2],true,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,inputHeight-1,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,inputHeight,w-padding*2,1],false,true);
 };
 
 /**

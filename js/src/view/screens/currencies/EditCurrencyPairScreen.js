@@ -7,11 +7,20 @@ App.EditCurrencyPairScreen = function EditCurrencyPairScreen(layout)
 {
     App.Screen.call(this,layout,0.4);
 
-    var r = layout.pixelRatio;
+    var FontStyle = App.FontStyle,
+        r = layout.pixelRatio,
+        w = layout.width;
 
     this._background = this.addChild(new PIXI.Graphics());
     this._pairLabel = this.addChild(new PIXI.Text("EUR / USD",App.FontStyle.get(24,App.FontStyle.BLUE)));
     this._input = this.addChild(new App.Input("",20,Math.round(layout.width - this._pairLabel.width - Math.round(50 * r)),Math.round(40 * r),r));
+    this._downloadButton = this.addChild(new App.Button("Update rate from internet",{
+        width:Math.round(w - 20 * r),
+        height:Math.round(40 * r),
+        pixelRatio:r,
+        style:FontStyle.get(18,FontStyle.BLACK_LIGHT,null,FontStyle.LIGHT_CONDENSED),
+        backgroundColor:App.ColorTheme.GREY_DARK
+    }));
 
     this._input.restrict(/\d{1,}(\.\d*){0,1}/g);
 
@@ -27,7 +36,9 @@ App.EditCurrencyPairScreen.prototype.constructor = App.EditCurrencyPairScreen;
  */
 App.EditCurrencyPairScreen.prototype._render = function _render()
 {
-    var r = this._layout.pixelRatio,
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        r = this._layout.pixelRatio,
         w = this._layout.width,
         padding = Math.round(10 * r),
         inputHeight = Math.round(60 * r);
@@ -38,7 +49,12 @@ App.EditCurrencyPairScreen.prototype._render = function _render()
     this._input.x = Math.round(w - padding - this._input.width);
     this._input.y = padding;
 
-    App.GraphicUtils.drawRect(this._background,App.ColorTheme.GREY,1,0,0,w,inputHeight);
+    this._downloadButton.x = padding;
+    this._downloadButton.y = inputHeight + padding;
+
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w,inputHeight*2],true,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,inputHeight-1,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,inputHeight,w-padding*2,1],false,true);
 };
 
 /**
