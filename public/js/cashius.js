@@ -8519,6 +8519,7 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,tar
     this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
     this._options = options;
+    this._value = null;
     this._pixelRatio = options.pixelRatio;
     this._skin = new Sprite(options.skin);
     this._icon = new Sprite.fromFrame(iconName);
@@ -8598,6 +8599,7 @@ App.TransactionOptionButton.prototype._update = function _update()
  */
 App.TransactionOptionButton.prototype.setValue = function setValue(value,details)
 {
+    this._value = value;
     this._valueField.setText(value);
 
     if (details)
@@ -8613,6 +8615,15 @@ App.TransactionOptionButton.prototype.setValue = function setValue(value,details
     }
 
     this._update();
+};
+
+/**
+ * Return value
+ * @returns {string}
+ */
+App.TransactionOptionButton.prototype.getValue = function getValue()
+{
+    return this._value;
 };
 
 /**
@@ -9008,6 +9019,15 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
             changeScreenData.headerName = ScreenTitle.SELECT_TIME;
             changeScreenData.headerRightAction = HeaderAction.CONFIRM;
         }
+        else if (button === this._methodOption)
+        {
+            var method = this._methodOption.getValue(),
+                PaymentMethod = App.PaymentMethod;
+
+            this._methodOption.setValue(method === PaymentMethod.CASH ? PaymentMethod.CREDIT_CARD : PaymentMethod.CASH);
+
+            return;
+        }
         else if (button === this._currencyOption)
         {
             changeScreenData.screenName = ScreenName.CURRENCIES;
@@ -9074,6 +9094,7 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
             transactionType:this._typeToggle.isSelected() ? App.TransactionType.INCOME : App.TransactionType.EXPENSE,
             pending:this._pendingToggle.isSelected(),
             repeat:this._repeatToggle.isSelected(),
+            method:this._methodOption.getValue(),
             note:this._noteInput.getValue(),
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData
@@ -14637,7 +14658,6 @@ App.ChangeTransaction.prototype.execute = function execute(data)
         transaction.account = data.account || transaction.account;
         transaction.category = data.category || transaction.category;
         transaction.subCategory = data.subCategory || transaction.subCategory;
-        transaction.method = data.method || transaction.method;
         transaction.currencyBase = data.currencyBase || transaction.currencyBase;
         transaction.currencyQuote = data.currencyQuote || transaction.currencyQuote;
         transaction.note = data.note || transaction.note;
@@ -14650,10 +14670,13 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.CONFIRM)
     {
+        var methodCollection = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS);
+
         transaction.amount = data.amount || transaction.amount;
         transaction.type = data.transactionType || transaction.type;
         transaction.pending = data.pending === true;
         transaction.repeat = data.repeat === true;
+        transaction.method = data.method ? methodCollection.find("name",data.method)  : transaction.method;
         transaction.note = data.note || transaction.note;
 
         transaction.save();

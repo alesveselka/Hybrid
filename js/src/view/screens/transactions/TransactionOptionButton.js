@@ -17,6 +17,7 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,tar
     this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
     this._options = options;
+    this._value = null;
     this._pixelRatio = options.pixelRatio;
     this._skin = new Sprite(options.skin);
     this._icon = new Sprite.fromFrame(iconName);
@@ -96,6 +97,7 @@ App.TransactionOptionButton.prototype._update = function _update()
  */
 App.TransactionOptionButton.prototype.setValue = function setValue(value,details)
 {
+    this._value = value;
     this._valueField.setText(value);
 
     if (details)
@@ -111,4 +113,13 @@ App.TransactionOptionButton.prototype.setValue = function setValue(value,details
     }
 
     this._update();
+};
+
+/**
+ * Return value
+ * @returns {string}
+ */
+App.TransactionOptionButton.prototype.getValue = function getValue()
+{
+    return this._value;
 };

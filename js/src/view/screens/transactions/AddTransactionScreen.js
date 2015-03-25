@@ -391,6 +391,15 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
             changeScreenData.headerName = ScreenTitle.SELECT_TIME;
             changeScreenData.headerRightAction = HeaderAction.CONFIRM;
         }
+        else if (button === this._methodOption)
+        {
+            var method = this._methodOption.getValue(),
+                PaymentMethod = App.PaymentMethod;
+
+            this._methodOption.setValue(method === PaymentMethod.CASH ? PaymentMethod.CREDIT_CARD : PaymentMethod.CASH);
+
+            return;
+        }
         else if (button === this._currencyOption)
         {
             changeScreenData.screenName = ScreenName.CURRENCIES;
@@ -457,6 +466,7 @@ App.AddTransactionScreen.prototype._onHeaderClick = function _onHeaderClick(acti
             transactionType:this._typeToggle.isSelected() ? App.TransactionType.INCOME : App.TransactionType.EXPENSE,
             pending:this._pendingToggle.isSelected(),
             repeat:this._repeatToggle.isSelected(),
+            method:this._methodOption.getValue(),
             note:this._noteInput.getValue(),
             nextCommand:new App.ChangeScreen(),
             nextCommandData:changeScreenData

@@ -53,7 +53,6 @@ App.ChangeTransaction.prototype.execute = function execute(data)
         transaction.account = data.account || transaction.account;
         transaction.category = data.category || transaction.category;
         transaction.subCategory = data.subCategory || transaction.subCategory;
-        transaction.method = data.method || transaction.method;
         transaction.currencyBase = data.currencyBase || transaction.currencyBase;
         transaction.currencyQuote = data.currencyQuote || transaction.currencyQuote;
         transaction.note = data.note || transaction.note;
@@ -66,10 +65,13 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.CONFIRM)
     {
+        var methodCollection = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS);
+
         transaction.amount = data.amount || transaction.amount;
         transaction.type = data.transactionType || transaction.type;
         transaction.pending = data.pending === true;
         transaction.repeat = data.repeat === true;
+        transaction.method = data.method ? methodCollection.find("name",data.method)  : transaction.method;
         transaction.note = data.note || transaction.note;
 
         transaction.save();
