@@ -362,53 +362,12 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     {
         if (inputFocused) this._scrollInput.blur();
 
-        var HeaderAction = App.HeaderAction,
-            ScreenTitle = App.ScreenTitle,
-            ScreenName = App.ScreenName,
-            button = this._optionList.getItemUnderPoint(pointerData),
-            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
-                ScreenName.ACCOUNT,
-                App.ScreenMode.SELECT,
-                null,
-                null,
-                HeaderAction.NONE,
-                ScreenTitle.SELECT_ACCOUNT
-            );
-
-        if (button === this._categoryOption)
-        {
-            if (this._model.account)
-            {
-                changeScreenData.screenName = ScreenName.CATEGORY;
-                changeScreenData.updateData = this._model.account;
-                changeScreenData.headerName = ScreenTitle.SELECT_CATEGORY;
-            }
-        }
-        else if (button === this._timeOption)
-        {
-            changeScreenData.screenName = ScreenName.SELECT_TIME;
-            changeScreenData.updateData = this._model.date;
-            changeScreenData.headerName = ScreenTitle.SELECT_TIME;
-            changeScreenData.headerRightAction = HeaderAction.CONFIRM;
-        }
-        else if (button === this._methodOption)
-        {
-            var PaymentMethod = App.PaymentMethod,
-                method = this._methodOption.getValue() === PaymentMethod.CASH ? PaymentMethod.CREDIT_CARD : PaymentMethod.CASH;
-
-            App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{type:App.EventType.CHANGE,method:method});
-
-            this._methodOption.setValue(method);
-
-            return;
-        }
-        else if (button === this._currencyOption)
-        {
-            changeScreenData.screenName = ScreenName.CURRENCIES;
-            changeScreenData.headerName = ScreenTitle.SELECT_CURRENCY;
-        }
-        //TODO disable before changing screen?
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+        var button = this._optionList.getItemUnderPoint(pointerData);
+        if (button === this._accountOption) this._onAccountOptionClick();
+        else if (button === this._categoryOption) this._onCategoryOptionClick();
+        else if (button === this._timeOption) this._onTimeOptionClick();
+        else if (button === this._methodOption) this._onMethodOptionClick();
+        else if (button === this._currencyOption) this._onCurrencyOptionClick();
     }
     else if (this._noteInput.hitTest(position))
     {
@@ -435,6 +394,99 @@ App.AddTransactionScreen.prototype._onClick = function _onClick()
     {
         if (inputFocused) this._scrollInput.blur();
     }
+};
+
+/**
+ * On account option button click
+ * @private
+ */
+App.AddTransactionScreen.prototype._onAccountOptionClick = function _onAccountOptionClick()
+{
+    App.Controller.dispatchEvent(
+        App.EventType.CHANGE_SCREEN,
+        App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+            App.ScreenName.ACCOUNT,
+            App.ScreenMode.SELECT,
+            null,
+            0,
+            App.HeaderAction.NONE,
+            App.ScreenTitle.SELECT_ACCOUNT
+        )
+    );
+};
+
+/**
+ * On category option button click
+ * @private
+ */
+App.AddTransactionScreen.prototype._onCategoryOptionClick = function _onCategoryOptionClick()
+{
+    if (this._model.account)
+    {
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,
+            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+                App.ScreenName.CATEGORY,
+                App.ScreenMode.SELECT,
+                this._model.account,
+                0,
+                App.HeaderAction.NONE,
+                App.ScreenTitle.SELECT_CATEGORY
+            )
+        );
+    }
+};
+
+/**
+ * On time option button click
+ * @private
+ */
+App.AddTransactionScreen.prototype._onTimeOptionClick = function _onTimeOptionClick()
+{
+    App.Controller.dispatchEvent(
+        App.EventType.CHANGE_SCREEN,
+        App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+            App.ScreenName.SELECT_TIME,
+            App.ScreenMode.SELECT,
+            this._model.date,
+            0,
+            0,
+            App.ScreenTitle.SELECT_TIME
+        )
+    );
+};
+
+/**
+ * On payment method option button click
+ * @private
+ */
+App.AddTransactionScreen.prototype._onMethodOptionClick = function _onMethodOptionClick()
+{
+    var PaymentMethod = App.PaymentMethod,
+        method = this._methodOption.getValue() === PaymentMethod.CASH ? PaymentMethod.CREDIT_CARD : PaymentMethod.CASH;
+
+    App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{type:App.EventType.CHANGE,method:method});
+
+    this._methodOption.setValue(method);
+};
+
+/**
+ * On currency option button click
+ * @private
+ */
+App.AddTransactionScreen.prototype._onCurrencyOptionClick = function _onCurrencyOptionClick()
+{
+    App.Controller.dispatchEvent(
+        App.EventType.CHANGE_SCREEN,
+        App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+            App.ScreenName.CURRENCIES,
+            App.ScreenMode.SELECT,
+            null,
+            0,
+            App.HeaderAction.NONE,
+            App.ScreenTitle.SELECT_CURRENCY
+        )
+    );
 };
 
 /**
