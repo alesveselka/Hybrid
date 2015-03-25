@@ -8780,14 +8780,19 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
     this._model = data || this._model;
     this._mode = mode || this._mode;
 
+    var settings = App.ModelLocator.getProxy(App.ModelName.SETTINGS),
+        account = this._model.account ? this._model.account : settings.defaultAccount,
+        category = this._model.category ? this._model.category : settings.defaultCategory,
+        subCategory = this._model.subCategory ? this._model.subCategory : settings.defaultSubCategory;
+
     this._transactionInput.setValue(this._model.amount);
 
     this._typeToggle.setState(this._model.type === App.TransactionType.INCOME);
     this._pendingToggle.setState(this._model.pending);
     this._repeatToggle.setState(this._model.repeat);
 
-    this._accountOption.setValue(this._model.account ? this._model.account.name : "?");
-    this._categoryOption.setValue(this._model.subCategory ? this._model.subCategory.name : "?",this._model.category ? this._model.category.name : null);
+    this._accountOption.setValue(account.name);
+    this._categoryOption.setValue(subCategory.name,category.name);
     this._timeOption.setValue(App.DateUtils.getMilitaryTime(this._model.date),this._model.date.toDateString());
     this._methodOption.setValue(this._model.method.name);
     this._currencyOption.setValue(this._model.currencyQuote);
