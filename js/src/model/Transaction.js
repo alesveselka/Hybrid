@@ -133,8 +133,7 @@ Object.defineProperty(App.Transaction.prototype,'account',{
     {
         if (!this._account)
         {
-            //TODO keep just IDs instead of reference?
-            if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).filter([this._data[4].split(".")[0]],"id")[0];
+            if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find(this._data[4].split(".")[0],"id");
             else this._account = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultAccount;
         }
         return this._account;//TODO save last used account as 'default' on save
@@ -154,15 +153,14 @@ Object.defineProperty(App.Transaction.prototype,'category',{
     {
         if (!this._category)
         {
-            //TODO keep just IDs instead of reference?
             if (this._data)
             {
                 var ModelLocator = App.ModelLocator,
                     ModelName = App.ModelName,
                     ids = this._data[4].split(".");
 
-                this._category = ModelLocator.getProxy(ModelName.CATEGORIES).filter([ids[1]],"id")[0];
-                this._subCategory = ModelLocator.getProxy(ModelName.SUB_CATEGORIES).filter([ids[2]],"id")[0];
+                this._category = ModelLocator.getProxy(ModelName.CATEGORIES).find(ids[1],"id");
+                this._subCategory = ModelLocator.getProxy(ModelName.SUB_CATEGORIES).find(ids[2],"id");
             }
             else
             {
@@ -185,10 +183,9 @@ Object.defineProperty(App.Transaction.prototype,'category',{
 Object.defineProperty(App.Transaction.prototype,'subCategory',{
     get:function()
     {
-        //TODO keep just IDs instead of reference?
         if (!this._subCategory)
         {
-            if (this._data) this._subCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).filter([this._data[4].split(".")[2]],"id")[0];
+            if (this._data) this._subCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find(this._data[4].split(".")[2],"id");
             else this._subCategory = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultSubCategory;
         }
         return this._subCategory;
@@ -206,10 +203,9 @@ Object.defineProperty(App.Transaction.prototype,'subCategory',{
 Object.defineProperty(App.Transaction.prototype,'method',{
     get:function()
     {
-        //TODO keep just IDs instead of reference?
         if (!this._method)
         {
-            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).filter([this._data[5]],"id")[0];
+            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find(this._data[5],"id");
             else this._method = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultPaymentMethod;
         }
         return this._method;
@@ -250,7 +246,7 @@ Object.defineProperty(App.Transaction.prototype,'currencyBase',{
         if (!this._currencyBase)
         {
             if (this._data) this._currencyBase = this._data[7].split("@")[0].split("/")[0];
-            else this._currencyBase = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;//TODO implement
+            else this._currencyBase = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
         }
         return this._currencyBase;
     },
@@ -270,7 +266,7 @@ Object.defineProperty(App.Transaction.prototype,'currencyQuote',{
         if (!this._currencyQuote)
         {
             if (this._data) this._currencyQuote = this._data[7].split("@")[0].split("/")[1];
-            else this._currencyQuote = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultQuote;//TODO implement
+            else this._currencyQuote = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultCurrencyQuote;
         }
         return this._currencyQuote;
     },

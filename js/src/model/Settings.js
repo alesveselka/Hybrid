@@ -8,11 +8,12 @@ App.Settings = function Settings(data)
     this._data = data;
 
     this._startOfWeek = data[0];
-    this._baseCurrency = null;
+    this.baseCurrency = data[1] || "USD";
+    this.defaultCurrencyQuote = data[2] || "USD";
+    this._defaultAccount = null;
+    this._defaultCategory = null;
+    this._defaultSubCategory = null;
     this._defaultPaymentMethod = null;
-    this.defaultAccount = null;
-    this.defaultCategory = null;
-    this.defaultSubCategory = null;
 };
 
 /**
@@ -31,29 +32,77 @@ Object.defineProperty(App.Settings.prototype,'startOfWeek',{
 });
 
 /**
- * @property baseCurrency
- * @type Currency
+ * @property defaultAccount
+ * @type App.Account
  */
-Object.defineProperty(App.Settings.prototype,'baseCurrency',{
+Object.defineProperty(App.Settings.prototype,'defaultAccount',{
     get:function()
     {
-        if (!this._baseCurrency) this._baseCurrency = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).filter([this._data[1]],"id")[0];
-        return this._baseCurrency;
+        if (!this._defaultAccount)
+        {
+            if (this._data) this._defaultAccount = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find(this._data[3],"id");
+            else this._defaultAccount = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).getItemAt(0);
+        }
+        return this._defaultAccount;
     },
     set:function(value)
     {
-        this._baseCurrency = value;
+        this._defaultAccount = value;
+    }
+});
+
+/**
+ * @property defaultCategory
+ * @type App.Category
+ */
+Object.defineProperty(App.Settings.prototype,'defaultCategory',{
+    get:function()
+    {
+        if (!this._defaultCategory)
+        {
+            if (this._data) this._defaultCategory = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).find(this._data[4],"id");
+            else this._defaultCategory = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).getItemAt(0);
+        }
+        return this._defaultCategory;
+    },
+    set:function(value)
+    {
+        this._defaultCategory = value;
+    }
+});
+
+/**
+ * @property defaultSubCategory
+ * @type App.SubCategory
+ */
+Object.defineProperty(App.Settings.prototype,'defaultSubCategory',{
+    get:function()
+    {
+        if (!this._defaultSubCategory)
+        {
+            if (this._data) this._defaultSubCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find(this._data[5],"id");
+            else this._defaultSubCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).getItemAt(0);
+        }
+        return this._defaultSubCategory;
+    },
+    set:function(value)
+    {
+        this._defaultSubCategory = value;
     }
 });
 
 /**
  * @property defaultPaymentMethod
- * @type PaymentMethod
+ * @type App.PaymentMethod
  */
 Object.defineProperty(App.Settings.prototype,'defaultPaymentMethod',{
     get:function()
     {
-        if (!this._defaultPaymentMethod) this._defaultPaymentMethod = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).filter([this._data[2]],"id")[0];
+        if (!this._defaultPaymentMethod)
+        {
+            if (this._data) this._defaultPaymentMethod = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find(this._data[6],"id");
+            else this._defaultPaymentMethod = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).getItemAt(0);
+        }
         return this._defaultPaymentMethod;
     },
     set:function(value)
