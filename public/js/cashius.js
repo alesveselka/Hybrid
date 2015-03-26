@@ -2014,20 +2014,24 @@ App.Transaction.prototype.save = function save()
  */
 App.Transaction.prototype.serialize = function serialize()
 {
+    // If base and quote currency are same, I don't need to save whole 'base/quote@rate' format - it's redundant; save just one quote.
     var base = this.currencyBase,
-        quote = this.currencyQuote;
+        quote = this.currencyQuote,
+        currency = base === quote ? quote : base + "/" + quote + "@" + App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(base,quote),
+        data = [
+            parseInt(this.amount,10),
+            this.type,
+            this.pending ? 1 : 0,
+            this.repeat ? 1 : 0,
+            this.account.id + "." + this.category.id + "." + this.subCategory.id,
+            this.method.id,
+            this.date.getTime(),
+            currency
+        ];
 
-    return [
-        parseInt(this.amount,10),
-        this.type,
-        this.pending ? 1 : 0,
-        this.repeat ? 1 : 0,
-        this.account.id + "." + this.category.id + "." + this.subCategory.id,
-        this.method.id,
-        this.date.getTime(),
-        base + "/" + quote + "@" + App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(base,quote),
-        App.StringUtils.encode(this.note)//TODO check if note is set before even adding it
-    ];
+    if (this.note && this.note.length) data.push(App.StringUtils.encode(this.note));
+    console.log(data);
+    return data;
 };
 
 /**
@@ -2174,8 +2178,15 @@ Object.defineProperty(App.Transaction.prototype,'currencyBase',{
     {
         if (!this._currencyBase)
         {
-            if (this._data) this._currencyBase = this._data[7].split("@")[0].split("/")[0];
-            else this._currencyBase = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
+            if (this._data)
+            {
+                if (this._data[7].indexOf("@") === -1) this._currencyBase = this._data[7];
+                else this._currencyBase = this._data[7].split("@")[0].split("/")[0];
+            }
+            else
+            {
+                this._currencyBase = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
+            }
         }
         return this._currencyBase;
     },
@@ -2194,8 +2205,15 @@ Object.defineProperty(App.Transaction.prototype,'currencyQuote',{
     {
         if (!this._currencyQuote)
         {
-            if (this._data) this._currencyQuote = this._data[7].split("@")[0].split("/")[1];
-            else this._currencyQuote = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultCurrencyQuote;
+            if (this._data)
+            {
+                if (this._data[7].indexOf("@") === -1) this._currencyQuote = this._data[7];
+                else this._currencyQuote = this._data[7].split("@")[0].split("/")[1];
+            }
+            else
+            {
+                this._currencyQuote = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultCurrencyQuote;
+            }
         }
         return this._currencyQuote;
     },
