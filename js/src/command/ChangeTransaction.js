@@ -49,18 +49,18 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.CHANGE)
     {
-        this._saveInputs(transaction,data,false);
-        this._saveToggles(transaction,data);
-        this._saveCategories(transaction,data,settings);
-        this._saveTime(transaction,data);
-        this._saveMethod(transaction,data,settings);
-        this._saveCurrency(transaction,data,settings);
+        this._setInputs(transaction,data,false);
+        this._setToggles(transaction,data);
+        this._setCategories(transaction,data,settings);
+        this._setTime(transaction,data);
+        this._setMethod(transaction,data,settings);
+        this._setCurrency(transaction,data,settings);
     }
     else if (type === EventType.CONFIRM)
     {
-        this._saveInputs(transaction,data,true);
-        this._saveToggles(transaction,data);
-        this._saveMethod(transaction,data,settings);
+        this._setInputs(transaction,data,true);
+        this._setToggles(transaction,data);
+        this._setMethod(transaction,data,settings);
 
         transaction.currencyBase = settings.baseCurrency;
         transaction.save();
@@ -68,8 +68,15 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.CANCEL)
     {
-        if (transaction.isSaved()) transactions.setCurrent(null);
-        else transactions.removeItem(transaction).destroy();
+        if (transaction.isSaved())
+        {
+            transaction.revokeState();
+            transactions.setCurrent(null);
+        }
+        else
+        {
+            transactions.removeItem(transaction).destroy();
+        }
     }
     else if (type === EventType.DELETE)
     {
@@ -89,7 +96,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
  * @param {boolean} setDefault
  * @private
  */
-App.ChangeTransaction.prototype._saveInputs = function _saveInputs(transaction,data,setDefault)
+App.ChangeTransaction.prototype._setInputs = function _setInputs(transaction,data,setDefault)
 {
     transaction.amount = data.amount || transaction.amount;
     transaction.note = data.note || transaction.note;
@@ -103,7 +110,7 @@ App.ChangeTransaction.prototype._saveInputs = function _saveInputs(transaction,d
  * @param {Object} data
  * @private
  */
-App.ChangeTransaction.prototype._saveToggles = function _saveToggles(transaction,data)
+App.ChangeTransaction.prototype._setToggles = function _setToggles(transaction,data)
 {
     transaction.type = data.transactionType || transaction.type;
     if (typeof data.pending === "boolean") transaction.pending = data.pending;
@@ -117,7 +124,7 @@ App.ChangeTransaction.prototype._saveToggles = function _saveToggles(transaction
  * @param {App.Settings} settings
  * @private
  */
-App.ChangeTransaction.prototype._saveCategories = function _saveCategories(transaction,data,settings)
+App.ChangeTransaction.prototype._setCategories = function _setCategories(transaction,data,settings)
 {
     if (data.account && data.category && data.subCategory)
     {
@@ -137,7 +144,7 @@ App.ChangeTransaction.prototype._saveCategories = function _saveCategories(trans
  * @param {Object} data
  * @private
  */
-App.ChangeTransaction.prototype._saveTime = function _saveTime(transaction,data)
+App.ChangeTransaction.prototype._setTime = function _setTime(transaction,data)
 {
     var date = data.date,
         time = data.time;
@@ -156,7 +163,7 @@ App.ChangeTransaction.prototype._saveTime = function _saveTime(transaction,data)
  * @param {App.Settings} settings
  * @private
  */
-App.ChangeTransaction.prototype._saveMethod = function _saveMethod(transaction,data,settings)
+App.ChangeTransaction.prototype._setMethod = function _setMethod(transaction,data,settings)
 {
     if (data.method)
     {
@@ -173,7 +180,7 @@ App.ChangeTransaction.prototype._saveMethod = function _saveMethod(transaction,d
  * @param {App.Settings} settings
  * @private
  */
-App.ChangeTransaction.prototype._saveCurrency = function _saveCurrency(transaction,data,settings)
+App.ChangeTransaction.prototype._setCurrency = function _setCurrency(transaction,data,settings)
 {
     if (data.currencyQuote)
     {

@@ -76,6 +76,29 @@ App.Transaction.prototype.save = function save()
 };
 
 /**
+ * Revoke all changes to the last saved ones
+ */
+App.Transaction.prototype.revokeState = function revokeState()
+{
+    if (this._data)
+    {
+        this.amount = this._data[0];
+        this.type = this._data[1];
+        this.pending = this._data[2] === 1;
+        this.repeat = this._data[3] === 1;
+        this._account = null;
+        this._category = null;
+        this._subCategory = null;
+        this._method = null;
+        this._date = null;
+        this._currencyBase = null;
+        this._currencyQuote = null;
+        // this._currencyRate = 1.0;
+        this.note = this._data[8] ? decodeURI(data[8]) : "";
+    }
+};
+
+/**
  * Serialize
  * @returns {Array}
  */
