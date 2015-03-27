@@ -2841,6 +2841,31 @@ App.Skin = function Skin(width,pixelRatio)
     draw(graphics,ColorTheme.RED_DARK,1,[padding,h-1,w,1],false,true);
 
     this.RED_70 = graphics.generateTexture(1,defaultScaleMode);
+
+    w = Math.round(40 * pixelRatio);
+    h = w;
+
+    graphics.clear();
+    graphics.beginFill(ColorTheme.BLUE_DARK,1.0);
+    graphics.drawRect(0,0,w,h);
+    graphics.beginFill(ColorTheme.BLUE_LIGHT,1.0);
+    graphics.drawRect(0,h/2,w/2,h/2);
+    graphics.beginFill(ColorTheme.BLUE,1.0);
+    graphics.drawShape(new PIXI.Polygon([0,0,w,0,w,h,0,0]));
+    graphics.endFill();
+
+    this.BLUE_PATTERN = graphics.generateTexture(1,defaultScaleMode);
+
+    graphics.clear();
+    graphics.beginFill(ColorTheme.GREY_DARK,1.0);
+    graphics.drawRect(0,0,w,h);
+    graphics.beginFill(ColorTheme.GREY,1.0);
+    graphics.drawRect(0,h/2,w/2,h/2);
+    graphics.beginFill(0xdedede,1.0);
+    graphics.drawShape(new PIXI.Polygon([0,0,w,0,w,h,0,0]));
+    graphics.endFill();
+
+    this.GREY_PATTERN = graphics.generateTexture(1,defaultScaleMode);
 };
 
 /**
@@ -13315,7 +13340,7 @@ App.MenuItem.prototype._render = function _render()
     this._labelField.x = Math.round(60 * this._pixelRatio);
     this._labelField.y = Math.round((h - this._labelField.height) / 2);
 
-    App.GraphicUtils.drawRect(this,ColorTheme.BLUE,1,0,0,this.boundingBox.width,h);
+    App.GraphicUtils.drawRect(this,ColorTheme.BLUE,1.0,0,0,this.boundingBox.width,h);
 };
 
 /**
@@ -13411,6 +13436,7 @@ App.Menu.prototype.enable = function enable()
         this._registerEventListeners(App.EventLevel.LEVEL_1);
         this._registerEventListeners(App.EventLevel.LEVEL_2);
 
+        this._pane.resetScroll();
         this._pane.enable();
 
         this._enabled = true;
@@ -13578,7 +13604,7 @@ App.SettingScreen.prototype._updateLayout = function _updateLayout()
  */
 App.SettingScreen.prototype.update = function update()
 {
-    this._weekDayOption.setValue(this._model.startOfWeek);
+    this._weekDayOption.setValue(/*this._model.startOfWeek*/"Monday");
     this._baseCurrencyOption.setValue(this._model.baseCurrency);
     this._defaultCurrencyOption.setValue(this._model.defaultCurrencyQuote);
     this._defaultAccountOption.setValue(this._model.defaultAccount.name);
@@ -13702,58 +13728,31 @@ App.SettingScreen.prototype._onHidePopUpComplete = function _onHidePopUpComplete
  */
 App.SettingScreen.prototype._onClick = function _onClick()
 {
-    /*this._pane.cancelScroll();
+    this._pane.cancelScroll();
 
-    var inputFocused = this._scrollState === App.TransitionState.SHOWN && this._scrollInput,
-        pointerData = this.stage.getTouchData(),
+    var pointerData = this.stage.getTouchData(),
         position = pointerData.getLocalPosition(this._container).y;
 
-    if (this._transactionInput.hitTest(position))
+    if (this._list.hitTest(position))
     {
-        this._scrollInput = this._transactionInput;
-        this._focusInput(this._scrollInput.y + this._container.y > 0);
-    }
-    else if (this._toggleButtonList.hitTest(position))
-    {
-        if (inputFocused) this._scrollInput.blur();
-        else this._toggleButtonList.getItemUnderPoint(pointerData).toggle();
-    }
-    else if (this._optionList.hitTest(position))
-    {
-        if (inputFocused) this._scrollInput.blur();
-
         var button = this._optionList.getItemUnderPoint(pointerData);
-        if (button === this._accountOption) this._onAccountOptionClick();
-        else if (button === this._categoryOption) this._onCategoryOptionClick();
-        else if (button === this._timeOption) this._onTimeOptionClick();
-        else if (button === this._methodOption) this._onMethodOptionClick();
-        else if (button === this._currencyOption) this._onCurrencyOptionClick();
-    }
-    else if (this._noteInput.hitTest(position))
-    {
-        this._scrollInput = this._noteInput;
-        this._focusInput(false);
+        if (button === this._weekDayOption) this._onAccountOptionClick();
+        else if (button === this._baseCurrencyOption) this._onCategoryOptionClick();
+        else if (button === this._defaultCurrencyOption) this._onTimeOptionClick();
+        else if (button === this._defaultAccountOption) this._onMethodOptionClick();
+        else if (button === this._defaultCategoryOption) this._onCurrencyOptionClick();
+        else if (button === this._defaultSubCategoryOption) this._onCurrencyOptionClick();
+        else if (button === this._defaultMethodOption) this._onCurrencyOptionClick();
     }
     else if (this._deleteButton.hitTest(position))
     {
-        if (inputFocused)
-        {
-            this._scrollInput.blur();
-        }
-        else
-        {
-            this.disable();
-            this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
-            App.ViewLocator.getViewSegment(App.ViewName.HEADER).disableActions();
-            this._registerDeleteButtonListeners();
-            this._deleteButton.setPopUpLayout(0,this._container.y + this._layout.headerHeight,0,this._layout.contentHeight > this._container.height ? this._layout.contentHeight : this._container.height);
-            this._deleteButton.showPopUp();
-        }
+        this.disable();
+        this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
+        App.ViewLocator.getViewSegment(App.ViewName.HEADER).disableActions();
+        this._registerDeleteButtonListeners();
+        this._deleteButton.setPopUpLayout(0,this._container.y + this._layout.headerHeight,0,this._layout.contentHeight > this._container.height ? this._layout.contentHeight : this._container.height);
+        this._deleteButton.showPopUp();
     }
-    else
-    {
-        if (inputFocused) this._scrollInput.blur();
-    }*/
 };
 
 /**
@@ -13839,32 +13838,28 @@ App.SettingScreen.prototype._onCurrencyOptionClick = function _onCurrencyOptionC
  */
 App.SettingScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 {
-    /*var HeaderAction = App.HeaderAction,
-        changeTransactionData = this._getChangeTransactionData(
-            App.ScreenName.TRANSACTIONS,
-            0,
-            App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).copySource().reverse(),
-            HeaderAction.MENU,
-            HeaderAction.ADD_TRANSACTION,
-            App.ScreenTitle.TRANSACTIONS
-        );
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
 
-    if (this._scrollState === App.TransitionState.SHOWN && this._scrollInput) this._scrollInput.blur();
-
-    if (action === HeaderAction.CONFIRM)
+    if (action === HeaderAction.ADD_TRANSACTION)
     {
-        changeTransactionData.type = App.EventType.CONFIRM;
-
-        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,changeTransactionData);
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CREATE,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData.update()
+        });
     }
-    else
+    else if (action === HeaderAction.MENU)
     {
-        changeTransactionData.type = App.EventType.CANCEL;
-        changeTransactionData.nextCommandData.screenName = App.ScreenName.BACK;
-        changeTransactionData.nextCommandData.updateBackScreen = true;
-
-        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,changeTransactionData);
-    }*/
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(
+            App.ScreenName.MENU,
+            0,
+            null,
+            HeaderAction.NONE,
+            HeaderAction.CANCEL,
+            App.ScreenTitle.MENU
+        ));
+    }
 };
 
 /**
@@ -13936,6 +13931,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     //TODO do I need event dispatcher here?
     this._eventDispatcher = new App.EventDispatcher(listenerPool);
     this._background = new PIXI.Graphics();
+    this._backgroundPattern = new PIXI.TilingSprite(App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_PATTERN,this._layout.width,this._layout.height);
 
     //TODO use ScreenFactory for the screens?
     //TODO deffer initiation and/or rendering of most of the screens?
@@ -13960,6 +13956,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     this._init();
 
     this.addChild(this._background);
+    this.addChild(this._backgroundPattern);
     this.addChild(this._screenStack);
     this.addChild(this._header);
 };
@@ -13973,7 +13970,8 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
  */
 App.ApplicationView.prototype._init = function _init()
 {
-    App.GraphicUtils.drawRect(this._background,0xbada55,1,0,0,this._layout.width,this._layout.height);
+    App.GraphicUtils.drawRect(this._background,App.ColorTheme.GREY,1,0,0,this._layout.width,this._layout.height);
+    this._backgroundPattern.alpha = 0.4;
 
     this.scrollTo(0);
 

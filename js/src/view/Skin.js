@@ -57,4 +57,29 @@ App.Skin = function Skin(width,pixelRatio)
     draw(graphics,ColorTheme.RED_DARK,1,[padding,h-1,w,1],false,true);
 
     this.RED_70 = graphics.generateTexture(1,defaultScaleMode);
+
+    w = Math.round(40 * pixelRatio);
+    h = w;
+
+    graphics.clear();
+    graphics.beginFill(ColorTheme.BLUE_DARK,1.0);
+    graphics.drawRect(0,0,w,h);
+    graphics.beginFill(ColorTheme.BLUE_LIGHT,1.0);
+    graphics.drawRect(0,h/2,w/2,h/2);
+    graphics.beginFill(ColorTheme.BLUE,1.0);
+    graphics.drawShape(new PIXI.Polygon([0,0,w,0,w,h,0,0]));
+    graphics.endFill();
+
+    this.BLUE_PATTERN = graphics.generateTexture(1,defaultScaleMode);
+
+    graphics.clear();
+    graphics.beginFill(ColorTheme.GREY_DARK,1.0);
+    graphics.drawRect(0,0,w,h);
+    graphics.beginFill(ColorTheme.GREY,1.0);
+    graphics.drawRect(0,h/2,w/2,h/2);
+    graphics.beginFill(0xdedede,1.0);
+    graphics.drawShape(new PIXI.Polygon([0,0,w,0,w,h,0,0]));
+    graphics.endFill();
+
+    this.GREY_PATTERN = graphics.generateTexture(1,defaultScaleMode);
 };

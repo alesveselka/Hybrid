@@ -82,6 +82,7 @@ App.Menu.prototype.enable = function enable()
         this._registerEventListeners(App.EventLevel.LEVEL_1);
         this._registerEventListeners(App.EventLevel.LEVEL_2);
 
+        this._pane.resetScroll();
         this._pane.enable();
 
         this._enabled = true;

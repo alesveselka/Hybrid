@@ -46,7 +46,7 @@ App.MenuItem.prototype._render = function _render()
     this._labelField.x = Math.round(60 * this._pixelRatio);
     this._labelField.y = Math.round((h - this._labelField.height) / 2);
 
-    App.GraphicUtils.drawRect(this,ColorTheme.BLUE,1,0,0,this.boundingBox.width,h);
+    App.GraphicUtils.drawRect(this,ColorTheme.BLUE,1.0,0,0,this.boundingBox.width,h);
 };
 
 /**

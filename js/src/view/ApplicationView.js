@@ -34,6 +34,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     //TODO do I need event dispatcher here?
     this._eventDispatcher = new App.EventDispatcher(listenerPool);
     this._background = new PIXI.Graphics();
+    this._backgroundPattern = new PIXI.TilingSprite(App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_PATTERN,this._layout.width,this._layout.height);
 
     //TODO use ScreenFactory for the screens?
     //TODO deffer initiation and/or rendering of most of the screens?
@@ -58,6 +59,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
     this._init();
 
     this.addChild(this._background);
+    this.addChild(this._backgroundPattern);
     this.addChild(this._screenStack);
     this.addChild(this._header);
 };
@@ -71,7 +73,8 @@ App.ApplicationView.prototype.constructor = App.ApplicationView;
  */
 App.ApplicationView.prototype._init = function _init()
 {
-    App.GraphicUtils.drawRect(this._background,0xbada55,1,0,0,this._layout.width,this._layout.height);
+    App.GraphicUtils.drawRect(this._background,App.ColorTheme.GREY,1,0,0,this._layout.width,this._layout.height);
+    this._backgroundPattern.alpha = 0.4;
 
     this.scrollTo(0);
 
