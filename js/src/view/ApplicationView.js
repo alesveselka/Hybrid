@@ -49,6 +49,7 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
         new App.CurrencyPairScreen(this._layout),
         new App.EditCurrencyPairScreen(this._layout),
         new App.CurrencyScreen(this._layout),
+        new App.SettingScreen(this._layout),
         new App.Menu(this._layout)
     ],false,listenerPool));
 

@@ -11,7 +11,6 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
     var TransactionOptionButton = App.TransactionOptionButton,
         TransactionToggleButton = App.TransactionToggleButton,
         FontStyle = App.FontStyle,
-        ScreenName = App.ScreenName,
         skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
         r = layout.pixelRatio,
         w = layout.width,
@@ -49,11 +48,11 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
     });
 
     this._optionList = new App.List(App.Direction.Y);
-    this._accountOption = this._optionList.add(new TransactionOptionButton("account","Account",ScreenName.ACCOUNT,options));
-    this._categoryOption = this._optionList.add(new TransactionOptionButton("folder-app","Category",ScreenName.CATEGORY,options));
-    this._timeOption = this._optionList.add(new TransactionOptionButton("calendar","Time",ScreenName.SELECT_TIME,options));
-    this._methodOption = this._optionList.add(new TransactionOptionButton("credit-card","Method",ScreenName.CATEGORY,options));
-    this._currencyOption = this._optionList.add(new TransactionOptionButton("currencies","Currency",ScreenName.ACCOUNT,options),true);
+    this._accountOption = this._optionList.add(new TransactionOptionButton("account","Account",options));
+    this._categoryOption = this._optionList.add(new TransactionOptionButton("folder-app","Category",options));
+    this._timeOption = this._optionList.add(new TransactionOptionButton("calendar","Time",options));
+    this._methodOption = this._optionList.add(new TransactionOptionButton("credit-card","Method",options));
+    this._currencyOption = this._optionList.add(new TransactionOptionButton("currencies","Currency",options),true);
 
     this._toggleButtonList = new App.List(App.Direction.X);
     this._typeToggle = this._toggleButtonList.add(new TransactionToggleButton("expense","Expense",toggleOptions,{icon:"income",label:"Income",toggleColor:false}));

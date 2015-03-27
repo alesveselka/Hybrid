@@ -1,6 +1,6 @@
 /**
  * @class PopUpButton
- * @extend Graphics
+ * @extend DisplayObjectContainer
  * @param {string} label
  * @param {string} message
  * @param {{width:number,height:number,pixelRatio:number,popUpLayout:{x:number,y:number,width:number,height:number,overlayWidth:number,overlayHeight:number}}} options

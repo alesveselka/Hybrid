@@ -3,11 +3,10 @@
  * @extends Graphics
  * @param {string} iconName
  * @param {string} name
- * @param {number} targetScreenName
  * @param {{width:number,height:number,pixelRatio:number,nameStyle:Object,valueStyle:Object,valueDetailStyle:Object}} options
  * @constructor
  */
-App.TransactionOptionButton = function TransactionOptionButton(iconName,name,targetScreenName,options)
+App.TransactionOptionButton = function TransactionOptionButton(iconName,name,options)
 {
     PIXI.DisplayObjectContainer.call(this);
 
@@ -24,7 +23,6 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,tar
     this._nameField = new Text(name,options.nameStyle);
     this._valueField = new Text("",options.valueStyle);
     this._valueDetailField = null;
-    this._targetScreenName = targetScreenName;
     this._arrow = new Sprite.fromFrame("arrow-app");
     this._iconResizeRatio = Math.round(20 * this._pixelRatio) / this._icon.height;
     this._arrowResizeRatio = Math.round(12 * this._pixelRatio) / this._arrow.height;

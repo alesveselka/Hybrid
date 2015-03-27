@@ -14,6 +14,7 @@
  *      CURRENCY_PAIRS:number,
  *      EDIT_CURRENCY_RATE:number,
  *      CURRENCIES:number,
+ *      SETTINGS:number,
  *      MENU:number
  * }}
  */
@@ -30,5 +31,6 @@ App.ScreenName = {
     CURRENCY_PAIRS:8,
     EDIT_CURRENCY_RATE:9,
     CURRENCIES:10,
-    MENU:11
+    SETTINGS:11,
+    MENU:12
 };

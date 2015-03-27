@@ -26,7 +26,7 @@ App.Menu = function Menu(layout)
     this._budgetItem = new MenuItem("Budgets","budget",-1,itemOptions);
     this._transactionsItem = new MenuItem("Transactions","transactions",ScreenName.TRANSACTIONS,itemOptions);
     this._currenciesItem = new MenuItem("Currency rates","currencies",ScreenName.CURRENCY_PAIRS,itemOptions);
-    this._settignsItem = new MenuItem("Settings","settings-app",-1,itemOptions);
+    this._settignsItem = new MenuItem("Settings","settings-app",ScreenName.SETTINGS,itemOptions);
     this._container = new PIXI.Graphics();
     this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
     this._background = new PIXI.Graphics();
@@ -143,6 +143,11 @@ App.Menu.prototype._onClick = function _onClick()
         case ScreenName.CURRENCY_PAIRS:
             changeScreenData.screenMode = App.ScreenMode.EDIT;
             changeScreenData.headerName = ScreenTitle.CURRENCY_RATES;
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+            break;
+
+        case ScreenName.SETTINGS:
+            changeScreenData.headerName = ScreenTitle.SETTINGS;
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             break;
     }
