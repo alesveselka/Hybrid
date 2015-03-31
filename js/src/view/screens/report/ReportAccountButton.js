@@ -26,6 +26,7 @@ App.ReportAccountButton = function ReportAccountButton(poolIndex,options)
     this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
     this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
     this._categoryList = new App.List(App.Direction.Y);
+    this._updated = false;
 
     this._render();
 
@@ -63,19 +64,21 @@ App.ReportAccountButton.prototype._render = function _render()
  */
 App.ReportAccountButton.prototype.setModel = function setModel(model)
 {
+    this._updated = false;
+
     this._model = model;
 
     this.close(true);
-    this._update();//TODO update later - after ReportScreen finishes showing
+
+    this._nameField.setText(this._model.name);
 };
 
 /**
  * Update
- * @private
  */
 App.ReportAccountButton.prototype._update = function _update()
 {
-    this._nameField.setText(this._model.name);
+    this._updated = true;
 
     var i = 0,
         l = this._categoryList.length,
@@ -108,8 +111,16 @@ App.ReportAccountButton.prototype.onClick = function onClick(pointerData)
     // Click on button itself
     if (position <= this._height)
     {
-        if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING) this.open(true);
-        else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING) this.close(false,true);
+        if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
+        {
+            if (!this._updated) this._update();
+
+            this.open(true);
+        }
+        else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
+        {
+            this.close(false,true);
+        }
     }
     // Click on category sub-list
     else if (position > this._height)

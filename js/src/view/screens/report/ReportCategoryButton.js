@@ -29,6 +29,7 @@ App.ReportCategoryButton = function ReportCategoryButton(poolIndex,options)
     this._percentField = this.addChild(new PIXI.Text("%",options.labelStyles.percent));
     this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
     this._subCategoryList = new App.List(App.Direction.Y);
+    this._updated = false;
 
     this._render();
 
@@ -63,10 +64,15 @@ App.ReportCategoryButton.prototype._render = function _render()
  */
 App.ReportCategoryButton.prototype.setModel = function setModel(model)
 {
+    this._updated = false;
+
     this._model = model;
 
     this.close(true);
-    this._update();//TODO postpone updating? - after actually clicked?
+
+    this._nameField.setText(this._model.name);
+
+    App.GraphicUtils.drawRect(this._colorStripe,"0x" + this._model.color,1,0,0,Math.round(4 * this._pixelRatio),this.boundingBox.height);
 };
 
 /**
@@ -75,15 +81,12 @@ App.ReportCategoryButton.prototype.setModel = function setModel(model)
  */
 App.ReportCategoryButton.prototype._update = function _update()
 {
-    var color = "0x" + this._model.color;
-
-    this._nameField.setText(this._model.name);
-
-    App.GraphicUtils.drawRect(this._colorStripe,color,1,0,0,Math.round(4 * this._pixelRatio),this.boundingBox.height);
+    this._updated = true;
 
     var i = 0,
         l = this._subCategoryList.length,
         subCategories = this._model.subCategories,
+        color = "0x" + this._model.color,
         subCategory = null,
         button = null;
 
@@ -107,6 +110,14 @@ App.ReportCategoryButton.prototype.onClick = function onClick(position)
 {
     var TransitionState = App.TransitionState;
 
-    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING) this.open(true);
-    else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING) this.close(false,true);
+    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
+    {
+        if (!this._updated) this._update();
+
+        this.open(true);
+    }
+    else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
+    {
+        this.close(false,true);
+    }
 };

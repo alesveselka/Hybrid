@@ -125,7 +125,10 @@ App.ReportScreen.prototype._onTweenComplete = function _onTweenComplete()
 {
     App.Screen.prototype._onTweenComplete.call(this);
 
-    this._chart.show();
+    if (this._transitionState === App.TransitionState.SHOWN)
+    {
+        this._chart.show();
+    }
 };
 
 /**
