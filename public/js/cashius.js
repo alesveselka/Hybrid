@@ -2846,7 +2846,7 @@ App.Skin = function Skin(width,pixelRatio)
     w = Math.round(40 * pixelRatio);
     h = w;
 
-    graphics.clear();
+    /*graphics.clear();
     graphics.beginFill(ColorTheme.BLUE_DARK,1.0);
     graphics.drawRect(0,0,w,h);
     graphics.beginFill(ColorTheme.BLUE_LIGHT,1.0);
@@ -2855,7 +2855,7 @@ App.Skin = function Skin(width,pixelRatio)
     graphics.drawShape(new PIXI.Polygon([0,0,w,0,w,h,0,0]));
     graphics.endFill();
 
-    this.BLUE_PATTERN = graphics.generateTexture(1,defaultScaleMode);
+    this.BLUE_PATTERN = graphics.generateTexture(1,defaultScaleMode);*/
 
     graphics.clear();
     graphics.beginFill(ColorTheme.GREY_DARK,1.0);
@@ -2867,6 +2867,20 @@ App.Skin = function Skin(width,pixelRatio)
     graphics.endFill();
 
     this.GREY_PATTERN = graphics.generateTexture(1,defaultScaleMode);
+
+    w = width - padding * 4;
+    h = Math.round(40 * pixelRatio);
+
+    draw(graphics,color,1,[0,0,width,h],true,false);
+    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
+    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
+
+    this.NARROW_GREY_40 = graphics.generateTexture(1,defaultScaleMode);
+
+    draw(graphics,ColorTheme.WHITE,1,[0,0,width,h],true,false);
+    draw(graphics,color,1,[padding,h-1,w,1],false,true);
+
+    this.NARROW_WHITE_40 = graphics.generateTexture(1,defaultScaleMode);
 };
 
 /**
@@ -11910,34 +11924,32 @@ App.TransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 
 /**
  * @class ReportSubCategoryButton
- * @extends ExpandButton
- * @param {Category} model
- * @param {number} width
- * @param {number} height
- * @param {number} pixelRatio
- * @param {Object} labelStyles
+ * @extends DisplayObjectContainer
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {Texture} options.skin
+ * @param {Object} options.labelStyles
  * @constructor
  */
 App.ReportSubCategoryButton = function ReportSubCategoryButton(poolIndex,options)
 {
     PIXI.DisplayObjectContainer.call(this);
 
-    var Text = PIXI.Text,
-        labelStyles = options.subCategoryLabelStyles;
-
     this.allocated = false;
     this.poolIndex = poolIndex;
     this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
     this._model = null;
-    this._width = options.width;//TODO do I need this when i have bounds?
-    this._height = options.height;
     this._pixelRatio = options.pixelRatio;
 
-    this._background = this.addChild(new PIXI.Graphics());
-    this._nameField = this.addChild(new Text("",labelStyles.name));
-    this._percentField = this.addChild(new Text("%",labelStyles.percent));
-    this._amountField = this.addChild(new Text("",labelStyles.amount));
+    this._background = this.addChild(new PIXI.Sprite(options.skin));
+    this._colorStripe = this.addChild(new PIXI.Graphics());
+    this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
+    this._percentField = this.addChild(new PIXI.Text("%",options.labelStyles.percent));
+    this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
 
     this._render();
 };
@@ -11951,54 +11963,53 @@ App.ReportSubCategoryButton.prototype.constructor = App.ReportSubCategoryButton;
  */
 App.ReportSubCategoryButton.prototype._render = function _render()
 {
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
-        padding = Math.round(10 * this._pixelRatio),
-        w = this._width - padding * 2,
+    var padding = Math.round(10 * this._pixelRatio),
+        w = this.boundingBox.width,
         h = this.boundingBox.height;
 
-    //TODO use skin instead
-    GraphicUtils.drawRects(this._background,ColorTheme.WHITE,1,[0,0,this._width,h],true,false);
-    GraphicUtils.drawRects(this._background,0xff3300,1,[0,0,Math.round(4 * this._pixelRatio),h],false,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,h-1,w,1],false,true);
-
-    this._nameField.x = Math.round(20 * this._pixelRatio);
+    this._nameField.x = padding * 2;
     this._nameField.y = Math.round((h - this._nameField.height) / 2);
-    this._percentField.x = Math.round(this._width * 0.7 - this._percentField.width);
+    this._percentField.x = Math.round(w * 0.7 - this._percentField.width);
     this._percentField.y = Math.round((h - this._percentField.height) / 2);
-    this._amountField.x = Math.round(this._width - padding - this._amountField.width);
+    this._amountField.x = Math.round(w - padding - this._amountField.width);
     this._amountField.y = Math.round((h - this._amountField.height) / 2);
 };
 
 /**
  * Set model
- * @param {App.Category} model
+ * @param {App.SubCategory} model
+ * @param {string} color
  */
-App.ReportSubCategoryButton.prototype.setModel = function setModel(model)
+App.ReportSubCategoryButton.prototype.setModel = function setModel(model,color)
 {
     this._model = model;
 
-    this._update();
+    this._update(color);
 };
 
 /**
  * Update
+ * @param {string} color
  * @private
  */
-App.ReportSubCategoryButton.prototype._update = function _update()
+App.ReportSubCategoryButton.prototype._update = function _update(color)
 {
     this._nameField.setText(this._model.name);
+
+    App.GraphicUtils.drawRect(this._colorStripe,color,1,0,0,Math.round(2 * this._pixelRatio),this.boundingBox.height);
 };
 
 /**
  * @class ReportCategoryButton
  * @extends ExpandButton
- * @param {Category} model
- * @param {number} width
- * @param {number} height
- * @param {number} pixelRatio
- * @param {Object} labelStyles
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {Texture} options.skin
+ * @param {Object} options.labelStyles
+ * @param {App.ObjectPool} options.subCategoryButtonPool
  * @constructor
  */
 App.ReportCategoryButton = function ReportCategoryButton(poolIndex,options)
@@ -12006,32 +12017,24 @@ App.ReportCategoryButton = function ReportCategoryButton(poolIndex,options)
     //TODO extend ReportAccountButton?
     App.ExpandButton.call(this,options.width,options.height,false);
 
-    var labelStyles = options.categoryLabelStyles;
-
     this.allocated = false;
     this.poolIndex = poolIndex;
 
     this._model = null;
-    this._width = options.width;//TODO do I need this when i have bounds?
-    this._height = options.height;
     this._pixelRatio = options.pixelRatio;
-    this._buttonPool = new App.ObjectPool(App.ReportSubCategoryButton,5,options);//TODO pass in from parent
+    this._buttonPool = options.subCategoryButtonPool;
 
-    this._background = new PIXI.Graphics();
-    this._nameField = new PIXI.Text("",labelStyles.categoryName);
-    this._percentField = new PIXI.Text("%",labelStyles.categoryPercent);
-    this._amountField = new PIXI.Text("",labelStyles.categoryPrice);
+    this._background = this.addChild(new PIXI.Sprite(options.skin));
+    this._colorStripe = this.addChild(new PIXI.Graphics());
+    this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
+    this._percentField = this.addChild(new PIXI.Text("%",options.labelStyles.percent));
+    this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
     this._subCategoryList = new App.List(App.Direction.Y);
-//    this._subList = new App.SubCategoryReportList(null,this._width,this._pixelRatio,labelStyles);
 
     this._render();
 
     this._setContent(this._subCategoryList);
     this.addChild(this._subCategoryList);
-    this.addChild(this._background);
-    this.addChild(this._nameField);
-    this.addChild(this._amountField);
-    this.addChild(this._percentField);
 };
 
 App.ReportCategoryButton.prototype = Object.create(App.ExpandButton.prototype);
@@ -12043,23 +12046,15 @@ App.ReportCategoryButton.prototype.constructor = App.ReportCategoryButton;
  */
 App.ReportCategoryButton.prototype._render = function _render()
 {
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
-        padding = Math.round(10 * this._pixelRatio),
-        w = this._width - padding * 2,
+    var padding = Math.round(10 * this._pixelRatio),
+        w = this.boundingBox.width,
         h = this.boundingBox.height;
-
-    //TODO use skin instead
-    GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,this._width,h],true,false);
-    GraphicUtils.drawRects(this._background,0xff3300,1,[0,0,Math.round(4 * this._pixelRatio),h],false,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,h-1,w,1],false,true);
 
     this._nameField.x = Math.round(15 * this._pixelRatio);
     this._nameField.y = Math.round((h - this._nameField.height) / 2);
-    this._percentField.x = Math.round(this._width * 0.7 - this._percentField.width);
+    this._percentField.x = Math.round(w * 0.7 - this._percentField.width);
     this._percentField.y = Math.round((h - this._percentField.height) / 2);
-    this._amountField.x = Math.round(this._width - padding - this._amountField.width);
+    this._amountField.x = Math.round(w - padding - this._amountField.width);
     this._amountField.y = Math.round((h - this._amountField.height) / 2);
 };
 
@@ -12072,7 +12067,7 @@ App.ReportCategoryButton.prototype.setModel = function setModel(model)
     this._model = model;
 
     this.close(true);
-    this._update();
+    this._update();//TODO postpone updating? - after actually clicked?
 };
 
 /**
@@ -12081,7 +12076,11 @@ App.ReportCategoryButton.prototype.setModel = function setModel(model)
  */
 App.ReportCategoryButton.prototype._update = function _update()
 {
+    var color = "0x" + this._model.color;
+
     this._nameField.setText(this._model.name);
+
+    App.GraphicUtils.drawRect(this._colorStripe,color,1,0,0,Math.round(4 * this._pixelRatio),this.boundingBox.height);
 
     var i = 0,
         l = this._subCategoryList.length,
@@ -12095,7 +12094,7 @@ App.ReportCategoryButton.prototype._update = function _update()
     {
         subCategory = subCategories[i++];
         button = this._buttonPool.allocate();
-        button.setModel(subCategory);
+        button.setModel(subCategory,color);
         this._subCategoryList.add(button);
     }
     this._subCategoryList.updateLayout();
@@ -12121,45 +12120,31 @@ App.ReportCategoryButton.prototype.onClick = function onClick(position)
  * @param {number} options.width
  * @param {number} options.height
  * @param {number} options.pixelRatio
- * @param {{font:string,fill:string}} options.nameStyle
- * @param {{font:string,fill:string}} options.detailStyle
- * @param {{font:string,fill:string}} options.editStyle
- * @param {number} options.openOffset
+ * @param {Object} options.labelStyles
+ * @param {App.ObjectPool} options.categoryButtonPool
  * @constructor
  */
 App.ReportAccountButton = function ReportAccountButton(poolIndex,options)
 {
     App.ExpandButton.call(this,options.width,options.height,true);
 
-    var ReportCategoryButton = App.ReportCategoryButton,
-        itemHeight = Math.round(40 * options.pixelRatio),
-        accountLabelStyles = options.accountLabelStyles;
-
     this.allocated = false;
     this.poolIndex = poolIndex;
 
     this._model = null;
-    this._width = options.width;//TODO do I need this when i have bounds?
     this._height = options.height;
     this._pixelRatio = options.pixelRatio;
-    this._buttonPool = new App.ObjectPool(App.ReportCategoryButton,5,options);//TODO pass in from parent
+    this._buttonPool = options.categoryButtonPool;
 
-    this._background = new PIXI.Graphics();
-    this._nameField = new PIXI.Text("",accountLabelStyles.accountName);
-    this._amountField = new PIXI.Text("",accountLabelStyles.accountAmount);
+    this._background = this.addChild(new PIXI.Graphics());
+    this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
+    this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
     this._categoryList = new App.List(App.Direction.Y);
-//    this._categoryList.add(new ReportCategoryButton("Entertainment",width,itemHeight,pixelRatio,labelStyles),false);
-//    this._categoryList.add(new ReportCategoryButton("Food",width,itemHeight,pixelRatio,labelStyles),false);
-//    this._categoryList.add(new ReportCategoryButton("Household",width,itemHeight,pixelRatio,labelStyles),false);
-//    this._categoryList.add(new ReportCategoryButton("Shopping",width,itemHeight,pixelRatio,labelStyles),true);
 
     this._render();
 
     this._setContent(this._categoryList);
     this.addChild(this._categoryList);
-    this.addChild(this._background);
-    this.addChild(this._nameField);
-    this.addChild(this._amountField);
 };
 
 App.ReportAccountButton.prototype = Object.create(App.ExpandButton.prototype);
@@ -12172,17 +12157,18 @@ App.ReportAccountButton.prototype.constructor = App.ReportAccountButton;
 App.ReportAccountButton.prototype._render = function _render()
 {
     var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme;
+        ColorTheme = App.ColorTheme,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height;
 
-    //TODO use skin instead
-    GraphicUtils.drawRects(this._background,ColorTheme.BLUE,1,[0,0,this._width,this._height],true,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.BLUE_DARK,1,[0,this._height-1,this._width,1],false,true);
+    GraphicUtils.drawRects(this._background,ColorTheme.BLUE,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.BLUE_DARK,1,[0,h-1,w,1],false,true);
 
     this._nameField.x = Math.round(10 * this._pixelRatio);
-    this._nameField.y = Math.round((this._height - this._nameField.height) / 2);
+    this._nameField.y = Math.round((h - this._nameField.height) / 2);
 
-    this._amountField.x = Math.round(this._width - this._amountField.width - 10 * this._pixelRatio);
-    this._amountField.y = Math.round((this._height - this._amountField.height) / 2);
+    this._amountField.x = Math.round(w - this._amountField.width - 10 * this._pixelRatio);
+    this._amountField.y = Math.round((h - this._amountField.height) / 2);
 };
 
 /**
@@ -12194,7 +12180,7 @@ App.ReportAccountButton.prototype.setModel = function setModel(model)
     this._model = model;
 
     this.close(true);
-    this._update();
+    this._update();//TODO update later - after ReportScreen finishes showing
 };
 
 /**
@@ -12568,33 +12554,48 @@ App.ReportScreen = function ReportScreen(layout)
 
     var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
+        ObjectPool = App.ObjectPool,
         h = layout.contentHeight,
         r = layout.pixelRatio,
         chartSize = Math.round(h * 0.3 - 20 * r),
         listWidth = Math.round(layout.width - 20 * r),// 10pts padding on both sides
         listHeight = Math.round(h * 0.7),
-        accountButtonOptions = {
+        itemHeight = Math.round(40 * r),
+        skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
+        buttonOptions = {
             width:listWidth,
-            height:Math.round(40 * r),
+            height:itemHeight,
             pixelRatio:r,
-            accountLabelStyles:{
-                accountName:FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-                accountAmount:FontStyle.get(16,FontStyle.WHITE)
+            labelStyles:{
+                name:FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+                amount:FontStyle.get(16,FontStyle.WHITE)
             },
-            categoryLabelStyles:{
-                categoryName:FontStyle.get(18,FontStyle.BLUE),
-                categoryPercent:FontStyle.get(16,FontStyle.GREY_DARK),
-                categoryPrice:FontStyle.get(16,FontStyle.BLUE)
-            },
-            subCategoryLabelStyles:{
-                name:FontStyle.get(14,FontStyle.BLUE),
-                percent:FontStyle.get(14,FontStyle.GREY_DARK),
-                amount:FontStyle.get(14,FontStyle.BLUE)
-            }
+            categoryButtonPool:new ObjectPool(App.ReportCategoryButton,5,{
+                width:listWidth,
+                height:itemHeight,
+                pixelRatio:r,
+                skin:skin.NARROW_GREY_40,
+                labelStyles:{
+                    name:FontStyle.get(18,FontStyle.BLUE),
+                    percent:FontStyle.get(16,FontStyle.GREY_DARK),
+                    amount:FontStyle.get(16,FontStyle.BLUE)
+                },
+                subCategoryButtonPool:new ObjectPool(App.ReportSubCategoryButton,5,{
+                    width:listWidth,
+                    height:itemHeight,
+                    pixelRatio:r,
+                    skin:skin.NARROW_WHITE_40,
+                    labelStyles:{
+                        name:FontStyle.get(14,FontStyle.BLUE),
+                        percent:FontStyle.get(14,FontStyle.GREY_DARK),
+                        amount:FontStyle.get(14,FontStyle.BLUE)
+                    }
+                })
+            })
         };
 
     this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
-    this._buttonPool = new App.ObjectPool(App.ReportAccountButton,2,accountButtonOptions);
+    this._buttonPool = new ObjectPool(App.ReportAccountButton,2,buttonOptions);
 
     this._chart = this.addChild(new App.ReportChart(null,chartSize,chartSize,r));
     this._buttonList = new App.TileList(App.Direction.Y,listHeight);

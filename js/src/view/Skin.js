@@ -61,7 +61,7 @@ App.Skin = function Skin(width,pixelRatio)
     w = Math.round(40 * pixelRatio);
     h = w;
 
-    graphics.clear();
+    /*graphics.clear();
     graphics.beginFill(ColorTheme.BLUE_DARK,1.0);
     graphics.drawRect(0,0,w,h);
     graphics.beginFill(ColorTheme.BLUE_LIGHT,1.0);
@@ -70,7 +70,7 @@ App.Skin = function Skin(width,pixelRatio)
     graphics.drawShape(new PIXI.Polygon([0,0,w,0,w,h,0,0]));
     graphics.endFill();
 
-    this.BLUE_PATTERN = graphics.generateTexture(1,defaultScaleMode);
+    this.BLUE_PATTERN = graphics.generateTexture(1,defaultScaleMode);*/
 
     graphics.clear();
     graphics.beginFill(ColorTheme.GREY_DARK,1.0);
@@ -82,4 +82,18 @@ App.Skin = function Skin(width,pixelRatio)
     graphics.endFill();
 
     this.GREY_PATTERN = graphics.generateTexture(1,defaultScaleMode);
+
+    w = width - padding * 4;
+    h = Math.round(40 * pixelRatio);
+
+    draw(graphics,color,1,[0,0,width,h],true,false);
+    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
+    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
+
+    this.NARROW_GREY_40 = graphics.generateTexture(1,defaultScaleMode);
+
+    draw(graphics,ColorTheme.WHITE,1,[0,0,width,h],true,false);
+    draw(graphics,color,1,[padding,h-1,w,1],false,true);
+
+    this.NARROW_WHITE_40 = graphics.generateTexture(1,defaultScaleMode);
 };

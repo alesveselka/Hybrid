@@ -6,45 +6,31 @@
  * @param {number} options.width
  * @param {number} options.height
  * @param {number} options.pixelRatio
- * @param {{font:string,fill:string}} options.nameStyle
- * @param {{font:string,fill:string}} options.detailStyle
- * @param {{font:string,fill:string}} options.editStyle
- * @param {number} options.openOffset
+ * @param {Object} options.labelStyles
+ * @param {App.ObjectPool} options.categoryButtonPool
  * @constructor
  */
 App.ReportAccountButton = function ReportAccountButton(poolIndex,options)
 {
     App.ExpandButton.call(this,options.width,options.height,true);
 
-    var ReportCategoryButton = App.ReportCategoryButton,
-        itemHeight = Math.round(40 * options.pixelRatio),
-        accountLabelStyles = options.accountLabelStyles;
-
     this.allocated = false;
     this.poolIndex = poolIndex;
 
     this._model = null;
-    this._width = options.width;//TODO do I need this when i have bounds?
     this._height = options.height;
     this._pixelRatio = options.pixelRatio;
-    this._buttonPool = new App.ObjectPool(App.ReportCategoryButton,5,options);//TODO pass in from parent
+    this._buttonPool = options.categoryButtonPool;
 
-    this._background = new PIXI.Graphics();
-    this._nameField = new PIXI.Text("",accountLabelStyles.accountName);
-    this._amountField = new PIXI.Text("",accountLabelStyles.accountAmount);
+    this._background = this.addChild(new PIXI.Graphics());
+    this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
+    this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
     this._categoryList = new App.List(App.Direction.Y);
-//    this._categoryList.add(new ReportCategoryButton("Entertainment",width,itemHeight,pixelRatio,labelStyles),false);
-//    this._categoryList.add(new ReportCategoryButton("Food",width,itemHeight,pixelRatio,labelStyles),false);
-//    this._categoryList.add(new ReportCategoryButton("Household",width,itemHeight,pixelRatio,labelStyles),false);
-//    this._categoryList.add(new ReportCategoryButton("Shopping",width,itemHeight,pixelRatio,labelStyles),true);
 
     this._render();
 
     this._setContent(this._categoryList);
     this.addChild(this._categoryList);
-    this.addChild(this._background);
-    this.addChild(this._nameField);
-    this.addChild(this._amountField);
 };
 
 App.ReportAccountButton.prototype = Object.create(App.ExpandButton.prototype);
@@ -57,17 +43,18 @@ App.ReportAccountButton.prototype.constructor = App.ReportAccountButton;
 App.ReportAccountButton.prototype._render = function _render()
 {
     var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme;
+        ColorTheme = App.ColorTheme,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height;
 
-    //TODO use skin instead
-    GraphicUtils.drawRects(this._background,ColorTheme.BLUE,1,[0,0,this._width,this._height],true,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.BLUE_DARK,1,[0,this._height-1,this._width,1],false,true);
+    GraphicUtils.drawRects(this._background,ColorTheme.BLUE,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.BLUE_DARK,1,[0,h-1,w,1],false,true);
 
     this._nameField.x = Math.round(10 * this._pixelRatio);
-    this._nameField.y = Math.round((this._height - this._nameField.height) / 2);
+    this._nameField.y = Math.round((h - this._nameField.height) / 2);
 
-    this._amountField.x = Math.round(this._width - this._amountField.width - 10 * this._pixelRatio);
-    this._amountField.y = Math.round((this._height - this._amountField.height) / 2);
+    this._amountField.x = Math.round(w - this._amountField.width - 10 * this._pixelRatio);
+    this._amountField.y = Math.round((h - this._amountField.height) / 2);
 };
 
 /**
@@ -79,7 +66,7 @@ App.ReportAccountButton.prototype.setModel = function setModel(model)
     this._model = model;
 
     this.close(true);
-    this._update();
+    this._update();//TODO update later - after ReportScreen finishes showing
 };
 
 /**

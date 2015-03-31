@@ -10,33 +10,48 @@ App.ReportScreen = function ReportScreen(layout)
 
     var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
+        ObjectPool = App.ObjectPool,
         h = layout.contentHeight,
         r = layout.pixelRatio,
         chartSize = Math.round(h * 0.3 - 20 * r),
         listWidth = Math.round(layout.width - 20 * r),// 10pts padding on both sides
         listHeight = Math.round(h * 0.7),
-        accountButtonOptions = {
+        itemHeight = Math.round(40 * r),
+        skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
+        buttonOptions = {
             width:listWidth,
-            height:Math.round(40 * r),
+            height:itemHeight,
             pixelRatio:r,
-            accountLabelStyles:{
-                accountName:FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-                accountAmount:FontStyle.get(16,FontStyle.WHITE)
+            labelStyles:{
+                name:FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+                amount:FontStyle.get(16,FontStyle.WHITE)
             },
-            categoryLabelStyles:{
-                categoryName:FontStyle.get(18,FontStyle.BLUE),
-                categoryPercent:FontStyle.get(16,FontStyle.GREY_DARK),
-                categoryPrice:FontStyle.get(16,FontStyle.BLUE)
-            },
-            subCategoryLabelStyles:{
-                name:FontStyle.get(14,FontStyle.BLUE),
-                percent:FontStyle.get(14,FontStyle.GREY_DARK),
-                amount:FontStyle.get(14,FontStyle.BLUE)
-            }
+            categoryButtonPool:new ObjectPool(App.ReportCategoryButton,5,{
+                width:listWidth,
+                height:itemHeight,
+                pixelRatio:r,
+                skin:skin.NARROW_GREY_40,
+                labelStyles:{
+                    name:FontStyle.get(18,FontStyle.BLUE),
+                    percent:FontStyle.get(16,FontStyle.GREY_DARK),
+                    amount:FontStyle.get(16,FontStyle.BLUE)
+                },
+                subCategoryButtonPool:new ObjectPool(App.ReportSubCategoryButton,5,{
+                    width:listWidth,
+                    height:itemHeight,
+                    pixelRatio:r,
+                    skin:skin.NARROW_WHITE_40,
+                    labelStyles:{
+                        name:FontStyle.get(14,FontStyle.BLUE),
+                        percent:FontStyle.get(14,FontStyle.GREY_DARK),
+                        amount:FontStyle.get(14,FontStyle.BLUE)
+                    }
+                })
+            })
         };
 
     this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
-    this._buttonPool = new App.ObjectPool(App.ReportAccountButton,2,accountButtonOptions);
+    this._buttonPool = new ObjectPool(App.ReportAccountButton,2,buttonOptions);
 
     this._chart = this.addChild(new App.ReportChart(null,chartSize,chartSize,r));
     this._buttonList = new App.TileList(App.Direction.Y,listHeight);
