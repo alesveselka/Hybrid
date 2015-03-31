@@ -20,6 +20,7 @@ App.ExpandButton = function ExpandButton(width,height,useMask)
     this._contentHeight = height;
     this._buttonHeight = height;
     this._useMask = useMask;
+    this._updateBoundsInTransition = false;
 
     this._eventsRegistered = false;
     this._transitionState = App.TransitionState.CLOSED;
@@ -97,10 +98,8 @@ App.ExpandButton.prototype._onTick = function _onTick()
  */
 App.ExpandButton.prototype._updateTransition = function _updateTransition()
 {
-    this._updateBounds(false);
+    this._updateBounds(this._updateBoundsInTransition);
     if (this._useMask) this._updateMask();
-
-//    this._eventDispatcher.dispatchEvent(App.EventType.LAYOUT_UPDATE);
 };
 
 /**
@@ -124,10 +123,15 @@ App.ExpandButton.prototype._onTransitionComplete = function _onTransitionComplet
 
     this._unRegisterEventListeners();
 
-    this._updateBounds(false);
+    this._updateBounds(this._updateBoundsInTransition);
     if (this._useMask) this._updateMask();
 
-    if (!this.isInTransition()) this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
+    if (!this.isInTransition())
+    {
+        this._updateBoundsInTransition = false;
+
+        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
+    }
 };
 
 /**
@@ -203,8 +207,9 @@ App.ExpandButton.prototype.isInTransition = function isInTransition()
 
 /**
  * Open
+ * @param {boolean} [updateBounds=false]
  */
-App.ExpandButton.prototype.open = function open()
+App.ExpandButton.prototype.open = function open(updateBounds)
 {
     var TransitionState = App.TransitionState;
 
@@ -216,17 +221,18 @@ App.ExpandButton.prototype.open = function open()
 
         this._transitionState = TransitionState.OPENING;
 
-        this._expandTween.restart();
+        this._updateBoundsInTransition = updateBounds;
 
-        //this._eventDispatcher.dispatchEvent(App.EventType.START,this);
+        this._expandTween.restart();
     }
 };
 
 /**
  * Close
  * @param {boolean} [immediate=false]
+ * @param {boolean} [updateBounds=false]
  */
-App.ExpandButton.prototype.close = function close(immediate)
+App.ExpandButton.prototype.close = function close(immediate,updateBounds)
 {
     var TransitionState = App.TransitionState,
         EventType = App.EventType;
@@ -234,6 +240,8 @@ App.ExpandButton.prototype.close = function close(immediate)
     if (immediate)
     {
         this._transitionState = TransitionState.CLOSING;
+
+        this._updateBoundsInTransition = updateBounds;
 
         this._expandTween.stop();
 
@@ -247,9 +255,9 @@ App.ExpandButton.prototype.close = function close(immediate)
 
             this._transitionState = TransitionState.CLOSING;
 
-            this._expandTween.start(true);
+            this._updateBoundsInTransition = updateBounds;
 
-            //this._eventDispatcher.dispatchEvent(EventType.START,this);
+            this._expandTween.start(true);
         }
         else
         {
