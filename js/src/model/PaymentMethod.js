@@ -15,3 +15,4 @@ App.PaymentMethod = function PaymentMethod(name,collection,parent,eventListenerP
 App.PaymentMethod._ID = 1;
 App.PaymentMethod.CASH = "Cash";
 App.PaymentMethod.CREDIT_CARD = "Credit-Card";
+//TODO add vouchers (or let user add his own method)

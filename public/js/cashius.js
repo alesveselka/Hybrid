@@ -1852,6 +1852,7 @@ App.PaymentMethod = function PaymentMethod(name,collection,parent,eventListenerP
 App.PaymentMethod._ID = 1;
 App.PaymentMethod.CASH = "Cash";
 App.PaymentMethod.CREDIT_CARD = "Credit-Card";
+//TODO add vouchers (or let user add his own method)
 
 /**
  * @class CurrencyPair
@@ -13789,15 +13790,27 @@ App.SettingScreen.prototype._onAccountOptionClick = function _onAccountOptionCli
  */
 App.SettingScreen.prototype._onCategoryOptionClick = function _onCategoryOptionClick()
 {
-    /*if (this._model.account)
+    /*var account = this._model.account;
+    if (account && account.lifeCycleState !== App.LifeCycleState.DELETED)
     {
         App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,this._getChangeTransactionData(
             App.ScreenName.CATEGORY,
             App.ScreenMode.SELECT,
-            this._model.account,
+            account,
             0,
             App.HeaderAction.NONE,
             App.ScreenTitle.SELECT_CATEGORY
+        ));
+    }
+    else
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,this._getChangeTransactionData(
+            App.ScreenName.ACCOUNT,
+            App.ScreenMode.SELECT,
+            null,
+            0,
+            App.HeaderAction.NONE,
+            App.ScreenTitle.SELECT_ACCOUNT
         ));
     }*/
 };
