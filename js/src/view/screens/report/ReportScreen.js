@@ -8,44 +8,45 @@ App.ReportScreen = function ReportScreen(layout)
 {
     App.Screen.call(this,layout,0.4);
 
-    var ReportAccountButton = App.ReportAccountButton,
-        ScrollPolicy = App.ScrollPolicy,
+    var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
         h = layout.contentHeight,
         r = layout.pixelRatio,
         chartSize = Math.round(h * 0.3 - 20 * r),
         listWidth = Math.round(layout.width - 20 * r),// 10pts padding on both sides
         listHeight = Math.round(h * 0.7),
-        itemHeight = Math.round(40 * r),
-        labelStyles = {
-            accountName:FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-            accountAmount:FontStyle.get(16,FontStyle.WHITE),
-            categoryName:FontStyle.get(18,FontStyle.BLUE),
-            categoryPercent:FontStyle.get(16,FontStyle.GREY_DARK),
-            categoryPrice:FontStyle.get(16,FontStyle.BLUE),
-            subName:FontStyle.get(14,FontStyle.BLUE),
-            subPercent:FontStyle.get(14,FontStyle.GREY_DARK),
-            subPrice:FontStyle.get(14,FontStyle.BLUE)
+        accountButtonOptions = {
+            width:listWidth,
+            height:Math.round(40 * r),
+            pixelRatio:r,
+            accountLabelStyles:{
+                accountName:FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+                accountAmount:FontStyle.get(16,FontStyle.WHITE)
+            },
+            categoryLabelStyles:{
+                categoryName:FontStyle.get(18,FontStyle.BLUE),
+                categoryPercent:FontStyle.get(16,FontStyle.GREY_DARK),
+                categoryPrice:FontStyle.get(16,FontStyle.BLUE)
+            },
+            subCategoryLabelStyles:{
+                name:FontStyle.get(14,FontStyle.BLUE),
+                percent:FontStyle.get(14,FontStyle.GREY_DARK),
+                amount:FontStyle.get(14,FontStyle.BLUE)
+            }
         };
 
-    this._percentField = new PIXI.Text("15 %",FontStyle.get(20,FontStyle.BLUE));//TODO set font size proportionally to chart size
-    this._chart = new App.ReportChart(null,chartSize,chartSize,r);
+    this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
+    this._buttonPool = new App.ObjectPool(App.ReportAccountButton,2,accountButtonOptions);
+
+    this._chart = this.addChild(new App.ReportChart(null,chartSize,chartSize,r));
     this._buttonList = new App.TileList(App.Direction.Y,listHeight);
-    this._buttonList.add(new ReportAccountButton("Private",listWidth,itemHeight,r,labelStyles),false);
-    this._buttonList.add(new ReportAccountButton("Travel",listWidth,itemHeight,r,labelStyles),false);
-    this._buttonList.add(new ReportAccountButton("Business",listWidth,itemHeight,r,labelStyles),true);
-
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,listWidth,listHeight,r,true);
+    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,listWidth,listHeight,r,true));
     this._pane.setContent(this._buttonList);
-
-    this._interactiveButton = null;
-    this._layoutDirty = false;
 
     this._updateLayout();
 
-    this.addChild(this._percentField);
-    this.addChild(this._chart);
-    this.addChild(this._pane);
+    this._interactiveButton = null;
+    this._layoutDirty = false;
 };
 
 App.ReportScreen.prototype = Object.create(App.Screen.prototype);
@@ -58,7 +59,6 @@ App.ReportScreen.prototype.enable = function enable()
 {
     App.Screen.prototype.enable.call(this);
 
-    this._pane.resetScroll();
     this._pane.enable();
 };
 
@@ -72,6 +72,34 @@ App.ReportScreen.prototype.disable = function disable()
     this._layoutDirty = false;
 
     this._pane.disable();
+};
+
+/**
+ * Update
+ */
+App.ReportScreen.prototype.update = function update()
+{
+    var i = 0,
+        l = this._buttonList.length,
+        deletedState = App.LifeCycleState.DELETED,
+        account = null,
+        button = null;
+
+    for (;i<l;i++) this._buttonPool.release(this._buttonList.removeItemAt(0));
+
+    for (i=0,l=this._model.length();i<l;)
+    {
+        account = this._model.getItemAt(i++);
+        if (account.lifeCycleState !== deletedState)
+        {
+            button = this._buttonPool.allocate();
+            button.setModel(account);
+            this._buttonList.add(button);
+        }
+    }
+
+    this._buttonList.updateLayout(true);
+    this._pane.resize();
 };
 
 /**
@@ -94,9 +122,6 @@ App.ReportScreen.prototype._updateLayout = function _updateLayout()
     var w = this._layout.width,
         padding = Math.round(10 * this._layout.pixelRatio),
         chartBounds = this._chart.boundingBox;
-
-    this._percentField.x = Math.round((w - this._percentField.width) / 2);
-    this._percentField.y = Math.round(padding + (chartBounds.height - this._percentField.height) / 2);
 
     this._chart.x = Math.round((w - chartBounds.width) / 2);
     this._chart.y = padding;

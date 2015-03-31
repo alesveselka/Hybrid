@@ -105,7 +105,6 @@ App.Screen.prototype.disable = function disable()
 
 /**
  * Update
- * @private
  */
 App.Screen.prototype.update = function update(data,mode)
 {

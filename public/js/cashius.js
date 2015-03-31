@@ -6986,6 +6986,7 @@ App.ExpandButton = function ExpandButton(width,height,useMask)
     this._contentHeight = height;
     this._buttonHeight = height;
     this._useMask = useMask;
+    this._updateBoundsInTransition = false;
 
     this._eventsRegistered = false;
     this._transitionState = App.TransitionState.CLOSED;
@@ -7063,10 +7064,8 @@ App.ExpandButton.prototype._onTick = function _onTick()
  */
 App.ExpandButton.prototype._updateTransition = function _updateTransition()
 {
-    this._updateBounds(false);
+    this._updateBounds(this._updateBoundsInTransition);
     if (this._useMask) this._updateMask();
-
-//    this._eventDispatcher.dispatchEvent(App.EventType.LAYOUT_UPDATE);
 };
 
 /**
@@ -7090,10 +7089,15 @@ App.ExpandButton.prototype._onTransitionComplete = function _onTransitionComplet
 
     this._unRegisterEventListeners();
 
-    this._updateBounds(false);
+    this._updateBounds(this._updateBoundsInTransition);
     if (this._useMask) this._updateMask();
 
-    if (!this.isInTransition()) this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
+    if (!this.isInTransition())
+    {
+        this._updateBoundsInTransition = false;
+
+        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
+    }
 };
 
 /**
@@ -7169,8 +7173,9 @@ App.ExpandButton.prototype.isInTransition = function isInTransition()
 
 /**
  * Open
+ * @param {boolean} [updateBounds=false]
  */
-App.ExpandButton.prototype.open = function open()
+App.ExpandButton.prototype.open = function open(updateBounds)
 {
     var TransitionState = App.TransitionState;
 
@@ -7182,17 +7187,18 @@ App.ExpandButton.prototype.open = function open()
 
         this._transitionState = TransitionState.OPENING;
 
-        this._expandTween.restart();
+        this._updateBoundsInTransition = updateBounds;
 
-        //this._eventDispatcher.dispatchEvent(App.EventType.START,this);
+        this._expandTween.restart();
     }
 };
 
 /**
  * Close
  * @param {boolean} [immediate=false]
+ * @param {boolean} [updateBounds=false]
  */
-App.ExpandButton.prototype.close = function close(immediate)
+App.ExpandButton.prototype.close = function close(immediate,updateBounds)
 {
     var TransitionState = App.TransitionState,
         EventType = App.EventType;
@@ -7200,6 +7206,8 @@ App.ExpandButton.prototype.close = function close(immediate)
     if (immediate)
     {
         this._transitionState = TransitionState.CLOSING;
+
+        this._updateBoundsInTransition = updateBounds;
 
         this._expandTween.stop();
 
@@ -7213,9 +7221,9 @@ App.ExpandButton.prototype.close = function close(immediate)
 
             this._transitionState = TransitionState.CLOSING;
 
-            this._expandTween.start(true);
+            this._updateBoundsInTransition = updateBounds;
 
-            //this._eventDispatcher.dispatchEvent(EventType.START,this);
+            this._expandTween.start(true);
         }
         else
         {
@@ -7742,7 +7750,6 @@ App.Screen.prototype.disable = function disable()
 
 /**
  * Update
- * @private
  */
 App.Screen.prototype.update = function update(data,mode)
 {
@@ -11902,90 +11909,86 @@ App.TransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
 };
 
 /**
- * @class SubCategoryReportList
- * @extends Graphics
+ * @class ReportSubCategoryButton
+ * @extends ExpandButton
  * @param {Category} model
  * @param {number} width
+ * @param {number} height
  * @param {number} pixelRatio
  * @param {Object} labelStyles
  * @constructor
  */
-App.SubCategoryReportList = function SubCategoryReportList(model,width,pixelRatio,labelStyles)
+App.ReportSubCategoryButton = function ReportSubCategoryButton(poolIndex,options)
 {
-    PIXI.Graphics.call(this);
+    PIXI.DisplayObjectContainer.call(this);
 
     var Text = PIXI.Text,
-        i = 0,
-        l = 3,//Number of sub-categories
-        item = null,
-        textField = null;
+        labelStyles = options.subCategoryLabelStyles;
 
-    this._model = [{name:"Cinema",percent:"24",price:"50.00"},{name:"Theatre",percent:"71",price:"176.50"},{name:"Gallery",percent:"5",price:"87.00"}];
-    this._width = width;
-    this._itemHeight = Math.round(30 * pixelRatio);
-    this._pixelRatio = pixelRatio;
-    this._nameFields = new Array(l);
-    this._percentFields = new Array(l);
-    this._priceFields = new Array(l);
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
 
-    for (;i<l;i++)
-    {
-        item = this._model[i];
-        textField = new Text(item.name,labelStyles.subName);
-        this._nameFields[i] = textField;
-        this.addChild(textField);
-        textField = new Text(item.percent+" %",labelStyles.subPercent);
-        this._percentFields[i] = textField;
-        this.addChild(textField);
-        textField = new Text(item.price,labelStyles.subPrice);
-        this._priceFields[i] = textField;
-        this.addChild(textField);
-    }
+    this._model = null;
+    this._width = options.width;//TODO do I need this when i have bounds?
+    this._height = options.height;
+    this._pixelRatio = options.pixelRatio;
 
-    this.boundingBox = new App.Rectangle(0,0,this._width,this._itemHeight*l);
+    this._background = this.addChild(new PIXI.Graphics());
+    this._nameField = this.addChild(new Text("",labelStyles.name));
+    this._percentField = this.addChild(new Text("%",labelStyles.percent));
+    this._amountField = this.addChild(new Text("",labelStyles.amount));
 
     this._render();
 };
 
-App.SubCategoryReportList.prototype = Object.create(PIXI.Graphics.prototype);
-App.SubCategoryReportList.prototype.constructor = App.SubCategoryReportList;
+App.ReportSubCategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.ReportSubCategoryButton.prototype.constructor = App.ReportSubCategoryButton;
 
 /**
  * Render
  * @private
  */
-App.SubCategoryReportList.prototype._render = function _render()
+App.ReportSubCategoryButton.prototype._render = function _render()
 {
     var GraphicUtils = App.GraphicUtils,
         ColorTheme = App.ColorTheme,
         padding = Math.round(10 * this._pixelRatio),
         w = this._width - padding * 2,
-        h = this.boundingBox.height,
-        percentOffset = Math.round(this._width * 0.7),
-        i = 0,
-        l = 3,
-        y = 0,
-        textField = null;
+        h = this.boundingBox.height;
 
-    GraphicUtils.drawRects(this,0xffffff,1,[0,0,this._width,h],true,false);
+    //TODO use skin instead
+    GraphicUtils.drawRects(this._background,ColorTheme.WHITE,1,[0,0,this._width,h],true,false);
+    GraphicUtils.drawRects(this._background,0xff3300,1,[0,0,Math.round(4 * this._pixelRatio),h],false,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,0,w,1],false,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,h-1,w,1],false,true);
 
-    for (;i<l;i++)
-    {
-        textField = this._nameFields[i];
-        y = Math.round(this._itemHeight * i + (this._itemHeight - textField.height) / 2);
-        textField.x = padding;
-        textField.y = y;
-        textField = this._percentFields[i];
-        textField.x = Math.round(percentOffset - textField.width);
-        textField.y = y;
-        textField = this._priceFields[i];
-        textField.x = Math.round(this._width - padding - textField.width);
-        textField.y = y;
+    this._nameField.x = Math.round(20 * this._pixelRatio);
+    this._nameField.y = Math.round((h - this._nameField.height) / 2);
+    this._percentField.x = Math.round(this._width * 0.7 - this._percentField.width);
+    this._percentField.y = Math.round((h - this._percentField.height) / 2);
+    this._amountField.x = Math.round(this._width - padding - this._amountField.width);
+    this._amountField.y = Math.round((h - this._amountField.height) / 2);
+};
 
-        if (i > 0) GraphicUtils.drawRects(this,ColorTheme.GREY,1,[padding,this._itemHeight*i,w,1],false,false);
-    }
+/**
+ * Set model
+ * @param {App.Category} model
+ */
+App.ReportSubCategoryButton.prototype.setModel = function setModel(model)
+{
+    this._model = model;
 
-    GraphicUtils.drawRects(this,0xff3366,1,[0,0,Math.round(2 * this._pixelRatio),h],false,true);
+    this._update();
+};
+
+/**
+ * Update
+ * @private
+ */
+App.ReportSubCategoryButton.prototype._update = function _update()
+{
+    this._nameField.setText(this._model.name);
 };
 
 /**
@@ -11998,27 +12001,36 @@ App.SubCategoryReportList.prototype._render = function _render()
  * @param {Object} labelStyles
  * @constructor
  */
-App.ReportCategoryButton = function ReportCategoryButton(model,width,height,pixelRatio,labelStyles)
+App.ReportCategoryButton = function ReportCategoryButton(poolIndex,options)
 {
-    App.ExpandButton.call(this,width,height,false);
+    //TODO extend ReportAccountButton?
+    App.ExpandButton.call(this,options.width,options.height,false);
 
-    this._model = model;
-    this._width = width;
-    this._height = height;
-    this._pixelRatio = pixelRatio;
+    var labelStyles = options.categoryLabelStyles;
+
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+
+    this._model = null;
+    this._width = options.width;//TODO do I need this when i have bounds?
+    this._height = options.height;
+    this._pixelRatio = options.pixelRatio;
+    this._buttonPool = new App.ObjectPool(App.ReportSubCategoryButton,5,options);//TODO pass in from parent
+
     this._background = new PIXI.Graphics();
-    this._nameField = new PIXI.Text(model,labelStyles.categoryName);
-    this._percentField = new PIXI.Text("24 %",labelStyles.categoryPercent);
-    this._priceField = new PIXI.Text("1,560.00",labelStyles.categoryPrice);
-    this._subList = new App.SubCategoryReportList(null,width,pixelRatio,labelStyles);
+    this._nameField = new PIXI.Text("",labelStyles.categoryName);
+    this._percentField = new PIXI.Text("%",labelStyles.categoryPercent);
+    this._amountField = new PIXI.Text("",labelStyles.categoryPrice);
+    this._subCategoryList = new App.List(App.Direction.Y);
+//    this._subList = new App.SubCategoryReportList(null,this._width,this._pixelRatio,labelStyles);
 
     this._render();
 
-    this._setContent(this._subList);
-    this.addChild(this._subList);
+    this._setContent(this._subCategoryList);
+    this.addChild(this._subCategoryList);
     this.addChild(this._background);
     this.addChild(this._nameField);
-    this.addChild(this._priceField);
+    this.addChild(this._amountField);
     this.addChild(this._percentField);
 };
 
@@ -12047,40 +12059,99 @@ App.ReportCategoryButton.prototype._render = function _render()
     this._nameField.y = Math.round((h - this._nameField.height) / 2);
     this._percentField.x = Math.round(this._width * 0.7 - this._percentField.width);
     this._percentField.y = Math.round((h - this._percentField.height) / 2);
-    this._priceField.x = Math.round(this._width - padding - this._priceField.width);
-    this._priceField.y = Math.round((h - this._priceField.height) / 2);
+    this._amountField.x = Math.round(this._width - padding - this._amountField.width);
+    this._amountField.y = Math.round((h - this._amountField.height) / 2);
+};
+
+/**
+ * Set model
+ * @param {App.Category} model
+ */
+App.ReportCategoryButton.prototype.setModel = function setModel(model)
+{
+    this._model = model;
+
+    this.close(true);
+    this._update();
+};
+
+/**
+ * Update
+ * @private
+ */
+App.ReportCategoryButton.prototype._update = function _update()
+{
+    this._nameField.setText(this._model.name);
+
+    var i = 0,
+        l = this._subCategoryList.length,
+        subCategories = this._model.subCategories,
+        subCategory = null,
+        button = null;
+
+    for (;i<l;i++) this._buttonPool.release(this._subCategoryList.removeItemAt(0));
+
+    for (i=0,l=subCategories.length;i<l;)
+    {
+        subCategory = subCategories[i++];
+        button = this._buttonPool.allocate();
+        button.setModel(subCategory);
+        this._subCategoryList.add(button);
+    }
+    this._subCategoryList.updateLayout();
+};
+
+/**
+ * Click handler
+ * @param {Point} position
+ */
+App.ReportCategoryButton.prototype.onClick = function onClick(position)
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING) this.open(true);
+    else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING) this.close(false,true);
 };
 
 /**
  * @class ReportAccountButton
  * @extends ExpandButton
- * @param {Account} model
- * @param {number} width
- * @param {number} height
- * @param {number} pixelRatio
- * @param {Object} labelStyles
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {{font:string,fill:string}} options.nameStyle
+ * @param {{font:string,fill:string}} options.detailStyle
+ * @param {{font:string,fill:string}} options.editStyle
+ * @param {number} options.openOffset
  * @constructor
  */
-App.ReportAccountButton = function ReportAccountButton(model,width,height,pixelRatio,labelStyles)
+App.ReportAccountButton = function ReportAccountButton(poolIndex,options)
 {
-    App.ExpandButton.call(this,width,height,true);
+    App.ExpandButton.call(this,options.width,options.height,true);
 
     var ReportCategoryButton = App.ReportCategoryButton,
-        itemHeight = Math.round(40 * pixelRatio);
+        itemHeight = Math.round(40 * options.pixelRatio),
+        accountLabelStyles = options.accountLabelStyles;
 
-    this._model = model;
-    this._width = width;
-    this._height = height;
-    this._pixelRatio = pixelRatio;
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+
+    this._model = null;
+    this._width = options.width;//TODO do I need this when i have bounds?
+    this._height = options.height;
+    this._pixelRatio = options.pixelRatio;
+    this._buttonPool = new App.ObjectPool(App.ReportCategoryButton,5,options);//TODO pass in from parent
 
     this._background = new PIXI.Graphics();
-    this._nameField = new PIXI.Text(model,labelStyles.accountName);
-    this._amountField = new PIXI.Text("1,560.00",labelStyles.accountAmount);
+    this._nameField = new PIXI.Text("",accountLabelStyles.accountName);
+    this._amountField = new PIXI.Text("",accountLabelStyles.accountAmount);
     this._categoryList = new App.List(App.Direction.Y);
-    this._categoryList.add(new ReportCategoryButton("Entertainment",width,itemHeight,pixelRatio,labelStyles),false);
-    this._categoryList.add(new ReportCategoryButton("Food",width,itemHeight,pixelRatio,labelStyles),false);
-    this._categoryList.add(new ReportCategoryButton("Household",width,itemHeight,pixelRatio,labelStyles),false);
-    this._categoryList.add(new ReportCategoryButton("Shopping",width,itemHeight,pixelRatio,labelStyles),true);
+//    this._categoryList.add(new ReportCategoryButton("Entertainment",width,itemHeight,pixelRatio,labelStyles),false);
+//    this._categoryList.add(new ReportCategoryButton("Food",width,itemHeight,pixelRatio,labelStyles),false);
+//    this._categoryList.add(new ReportCategoryButton("Household",width,itemHeight,pixelRatio,labelStyles),false);
+//    this._categoryList.add(new ReportCategoryButton("Shopping",width,itemHeight,pixelRatio,labelStyles),true);
 
     this._render();
 
@@ -12103,6 +12174,7 @@ App.ReportAccountButton.prototype._render = function _render()
     var GraphicUtils = App.GraphicUtils,
         ColorTheme = App.ColorTheme;
 
+    //TODO use skin instead
     GraphicUtils.drawRects(this._background,ColorTheme.BLUE,1,[0,0,this._width,this._height],true,false);
     GraphicUtils.drawRects(this._background,ColorTheme.BLUE_DARK,1,[0,this._height-1,this._width,1],false,true);
 
@@ -12111,6 +12183,44 @@ App.ReportAccountButton.prototype._render = function _render()
 
     this._amountField.x = Math.round(this._width - this._amountField.width - 10 * this._pixelRatio);
     this._amountField.y = Math.round((this._height - this._amountField.height) / 2);
+};
+
+/**
+ * Set model
+ * @param {App.Account} model
+ */
+App.ReportAccountButton.prototype.setModel = function setModel(model)
+{
+    this._model = model;
+
+    this.close(true);
+    this._update();
+};
+
+/**
+ * Update
+ * @private
+ */
+App.ReportAccountButton.prototype._update = function _update()
+{
+    this._nameField.setText(this._model.name);
+
+    var i = 0,
+        l = this._categoryList.length,
+        categories = this._model.categories,
+        category = null,
+        button = null;
+
+    for (;i<l;i++) this._buttonPool.release(this._categoryList.removeItemAt(0));
+
+    for (i=0,l=categories.length;i<l;)
+    {
+        category = categories[i++];
+        button = this._buttonPool.allocate();
+        button.setModel(category);
+        this._categoryList.add(button);
+    }
+    this._categoryList.updateLayout();
 };
 
 /**
@@ -12126,8 +12236,8 @@ App.ReportAccountButton.prototype.onClick = function onClick(pointerData)
     // Click on button itself
     if (position <= this._height)
     {
-        if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING) this.open();
-        else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING) this.close();
+        if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING) this.open(true);
+        else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING) this.close(false,true);
     }
     // Click on category sub-list
     else if (position > this._height)
@@ -12456,44 +12566,45 @@ App.ReportScreen = function ReportScreen(layout)
 {
     App.Screen.call(this,layout,0.4);
 
-    var ReportAccountButton = App.ReportAccountButton,
-        ScrollPolicy = App.ScrollPolicy,
+    var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
         h = layout.contentHeight,
         r = layout.pixelRatio,
         chartSize = Math.round(h * 0.3 - 20 * r),
         listWidth = Math.round(layout.width - 20 * r),// 10pts padding on both sides
         listHeight = Math.round(h * 0.7),
-        itemHeight = Math.round(40 * r),
-        labelStyles = {
-            accountName:FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-            accountAmount:FontStyle.get(16,FontStyle.WHITE),
-            categoryName:FontStyle.get(18,FontStyle.BLUE),
-            categoryPercent:FontStyle.get(16,FontStyle.GREY_DARK),
-            categoryPrice:FontStyle.get(16,FontStyle.BLUE),
-            subName:FontStyle.get(14,FontStyle.BLUE),
-            subPercent:FontStyle.get(14,FontStyle.GREY_DARK),
-            subPrice:FontStyle.get(14,FontStyle.BLUE)
+        accountButtonOptions = {
+            width:listWidth,
+            height:Math.round(40 * r),
+            pixelRatio:r,
+            accountLabelStyles:{
+                accountName:FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+                accountAmount:FontStyle.get(16,FontStyle.WHITE)
+            },
+            categoryLabelStyles:{
+                categoryName:FontStyle.get(18,FontStyle.BLUE),
+                categoryPercent:FontStyle.get(16,FontStyle.GREY_DARK),
+                categoryPrice:FontStyle.get(16,FontStyle.BLUE)
+            },
+            subCategoryLabelStyles:{
+                name:FontStyle.get(14,FontStyle.BLUE),
+                percent:FontStyle.get(14,FontStyle.GREY_DARK),
+                amount:FontStyle.get(14,FontStyle.BLUE)
+            }
         };
 
-    this._percentField = new PIXI.Text("15 %",FontStyle.get(20,FontStyle.BLUE));//TODO set font size proportionally to chart size
-    this._chart = new App.ReportChart(null,chartSize,chartSize,r);
+    this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
+    this._buttonPool = new App.ObjectPool(App.ReportAccountButton,2,accountButtonOptions);
+
+    this._chart = this.addChild(new App.ReportChart(null,chartSize,chartSize,r));
     this._buttonList = new App.TileList(App.Direction.Y,listHeight);
-    this._buttonList.add(new ReportAccountButton("Private",listWidth,itemHeight,r,labelStyles),false);
-    this._buttonList.add(new ReportAccountButton("Travel",listWidth,itemHeight,r,labelStyles),false);
-    this._buttonList.add(new ReportAccountButton("Business",listWidth,itemHeight,r,labelStyles),true);
-
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,listWidth,listHeight,r,true);
+    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,listWidth,listHeight,r,true));
     this._pane.setContent(this._buttonList);
-
-    this._interactiveButton = null;
-    this._layoutDirty = false;
 
     this._updateLayout();
 
-    this.addChild(this._percentField);
-    this.addChild(this._chart);
-    this.addChild(this._pane);
+    this._interactiveButton = null;
+    this._layoutDirty = false;
 };
 
 App.ReportScreen.prototype = Object.create(App.Screen.prototype);
@@ -12506,7 +12617,6 @@ App.ReportScreen.prototype.enable = function enable()
 {
     App.Screen.prototype.enable.call(this);
 
-    this._pane.resetScroll();
     this._pane.enable();
 };
 
@@ -12520,6 +12630,34 @@ App.ReportScreen.prototype.disable = function disable()
     this._layoutDirty = false;
 
     this._pane.disable();
+};
+
+/**
+ * Update
+ */
+App.ReportScreen.prototype.update = function update()
+{
+    var i = 0,
+        l = this._buttonList.length,
+        deletedState = App.LifeCycleState.DELETED,
+        account = null,
+        button = null;
+
+    for (;i<l;i++) this._buttonPool.release(this._buttonList.removeItemAt(0));
+
+    for (i=0,l=this._model.length();i<l;)
+    {
+        account = this._model.getItemAt(i++);
+        if (account.lifeCycleState !== deletedState)
+        {
+            button = this._buttonPool.allocate();
+            button.setModel(account);
+            this._buttonList.add(button);
+        }
+    }
+
+    this._buttonList.updateLayout(true);
+    this._pane.resize();
 };
 
 /**
@@ -12542,9 +12680,6 @@ App.ReportScreen.prototype._updateLayout = function _updateLayout()
     var w = this._layout.width,
         padding = Math.round(10 * this._layout.pixelRatio),
         chartBounds = this._chart.boundingBox;
-
-    this._percentField.x = Math.round((w - this._percentField.width) / 2);
-    this._percentField.y = Math.round(padding + (chartBounds.height - this._percentField.height) / 2);
 
     this._chart.x = Math.round((w - chartBounds.width) / 2);
     this._chart.y = padding;
