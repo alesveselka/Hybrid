@@ -10,8 +10,8 @@ App.StringUtils = {
      */
     encode:function encode(str)
     {
-        //encodeURIComponent(str).replace(/[!'()]/g,escape).replace(/\*/g,"%2A").replace(/%(?:7C|60|5E)/g,unescape);
-        return encodeURIComponent(str).replace(/[!'()]/g,escape).replace(/\*/g,"%2A");
+        //return encodeURIComponent(str).replace(/[!'()]/g,escape).replace(/\*/g,"%2A");// 'escape' is depreciated
+        return encodeURIComponent(str).replace(/[!'()*]/g,function(c) {return '%'+c.charCodeAt(0).toString(16);});
     },
 
     /**
