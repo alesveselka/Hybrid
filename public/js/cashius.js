@@ -70,7 +70,129 @@ window.requestAnimationFrame || (window.requestAnimationFrame =
  * @module App
  */
 var App = App || {};
+/** @type {{
+*   _daysInMonth:Array.<number>,
+*   _monthLabels:Array.<string>,
+*   _dayLabels:Array.<string>,
+*   getMonthLabel:Function,
+*   getDayLabels:Function,
+*   getMonth:Function,
+*   getDaysInMonth:Function
+*   }} */
+App.DateUtils = {
+    _daysInMonth:[31,28,31,30,31,30,31,31,30,31,30,31],
+    _monthLabels:["January","February","March","April","May","June","July","August","September","October","November","December"],
+    _dayLabels:["S","M","T","W","T","F","S"],
 
+    /**
+     * Return month label according to month index passed in
+     * @param {number} month
+     * @returns {string}
+     */
+    getMonthLabel:function getMonthLabel(month)
+    {
+        return this._monthLabels[month];
+    },
+
+    /**
+     * Return array of day labels in order from start of week passed in
+     * @param {number} startOfWeek
+     * @return {Array.<string>}
+     */
+    getDayLabels:function getDayLabels(startOfWeek)
+    {
+        var i = startOfWeek;
+        while (i)
+        {
+            this._dayLabels.push(this._dayLabels.shift());
+            i--;
+        }
+        return this._dayLabels;
+    },
+
+    /**
+     * Calculate and generate all days in a month, based on starting day of a week passed in
+     * Returns 2-dimensional array, where rows are weeks, and columns particular days in a week
+     * @param {Date} date
+     * @param {number} startOfWeek 0 = Sunday, 1 = Monday, ... , 6 = Saturday
+     * @return {Array.<Array.<number>>} Days in Week array is twice as long, as the second offsetting number indicate if the day belongs to other month(1) or not(0)
+     */
+    getMonth:function getMonth(date,startOfWeek)
+    {
+        //TODO allocate arrays from pool?
+        var year = date.getFullYear(),
+            currentMonth = date.getMonth(),
+            previousMonth = currentMonth ? currentMonth - 1 : 11,
+            daysInCurrentMonth = this.getDaysInMonth(year,currentMonth),
+            daysInPreviousMonth = this.getDaysInMonth(year,previousMonth),
+            firstDayOfMonth = new Date(year,currentMonth,1).getDay(),
+            dayOffset = firstDayOfMonth >= startOfWeek ? firstDayOfMonth - startOfWeek : 7 + firstDayOfMonth - startOfWeek,
+            firstDateOfWeek = 7 + 1 - dayOffset,
+            weeks = [],
+            days = null,
+            otherMonth = 0,
+            l = 6 * 7,// 6 weeks of 7 days
+            i = 0,
+            j = 0;
+
+        if (firstDateOfWeek !== 1)
+        {
+            firstDateOfWeek = daysInPreviousMonth + 1 - dayOffset;
+            otherMonth = 1;
+        }
+
+        for (;i<l;i++)
+        {
+            if (firstDateOfWeek > daysInPreviousMonth && otherMonth === 1)
+            {
+                firstDateOfWeek = 1;
+                otherMonth = 0;
+            }
+
+            if (firstDateOfWeek > daysInCurrentMonth && otherMonth === 0)
+            {
+                firstDateOfWeek = 1;
+                otherMonth = 1;
+            }
+
+            if (i % 7 === 0)
+            {
+                days = new Array(7*2);
+                weeks[weeks.length] = days;
+                j = 0;
+            }
+
+            days[j++] = firstDateOfWeek++;
+            days[j++] = otherMonth;
+        }
+
+        return weeks;
+    },
+
+    /**
+     * Return number of days in particular month passed in
+     * Also check for Leap year
+     * @param {number} year
+     * @param {number} month zero-based
+     * @return {number}
+     */
+    getDaysInMonth:function getDaysInMonth(year,month)
+    {
+        return (month === 1 && (year % 400 === 0 || year % 4 === 0)) ? 29 : this._daysInMonth[month];
+    },
+
+    /**
+     * Format and return military time
+     * @param {Date} time
+     * @returns {string}
+     */
+    getMilitaryTime:function getMilitaryTime(time)
+    {
+        var padFunction = App.StringUtils.pad;
+
+        return padFunction(time.getHours()) + ":" + padFunction(time.getMinutes());
+    }
+};
 /** @type {{
 *   rgbToHex:Function,
 *   hexToRgb:Function,
@@ -353,131 +475,6 @@ App.MathUtils = {
         return p;
     }
 };
-
-/** @type {{
-*   _daysInMonth:Array.<number>,
-*   _monthLabels:Array.<string>,
-*   _dayLabels:Array.<string>,
-*   getMonthLabel:Function,
-*   getDayLabels:Function,
-*   getMonth:Function,
-*   getDaysInMonth:Function
-*   }} */
-App.DateUtils = {
-    _daysInMonth:[31,28,31,30,31,30,31,31,30,31,30,31],
-    _monthLabels:["January","February","March","April","May","June","July","August","September","October","November","December"],
-    _dayLabels:["S","M","T","W","T","F","S"],
-
-    /**
-     * Return month label according to month index passed in
-     * @param {number} month
-     * @returns {string}
-     */
-    getMonthLabel:function getMonthLabel(month)
-    {
-        return this._monthLabels[month];
-    },
-
-    /**
-     * Return array of day labels in order from start of week passed in
-     * @param {number} startOfWeek
-     * @return {Array.<string>}
-     */
-    getDayLabels:function getDayLabels(startOfWeek)
-    {
-        var i = startOfWeek;
-        while (i)
-        {
-            this._dayLabels.push(this._dayLabels.shift());
-            i--;
-        }
-        return this._dayLabels;
-    },
-
-    /**
-     * Calculate and generate all days in a month, based on starting day of a week passed in
-     * Returns 2-dimensional array, where rows are weeks, and columns particular days in a week
-     * @param {Date} date
-     * @param {number} startOfWeek 0 = Sunday, 1 = Monday, ... , 6 = Saturday
-     * @return {Array.<Array.<number>>} Days in Week array is twice as long, as the second offsetting number indicate if the day belongs to other month(1) or not(0)
-     */
-    getMonth:function getMonth(date,startOfWeek)
-    {
-        //TODO allocate arrays from pool?
-        var year = date.getFullYear(),
-            currentMonth = date.getMonth(),
-            previousMonth = currentMonth ? currentMonth - 1 : 11,
-            daysInCurrentMonth = this.getDaysInMonth(year,currentMonth),
-            daysInPreviousMonth = this.getDaysInMonth(year,previousMonth),
-            firstDayOfMonth = new Date(year,currentMonth,1).getDay(),
-            dayOffset = firstDayOfMonth >= startOfWeek ? firstDayOfMonth - startOfWeek : 7 + firstDayOfMonth - startOfWeek,
-            firstDateOfWeek = 7 + 1 - dayOffset,
-            weeks = [],
-            days = null,
-            otherMonth = 0,
-            l = 6 * 7,// 6 weeks of 7 days
-            i = 0,
-            j = 0;
-
-        if (firstDateOfWeek !== 1)
-        {
-            firstDateOfWeek = daysInPreviousMonth + 1 - dayOffset;
-            otherMonth = 1;
-        }
-
-        for (;i<l;i++)
-        {
-            if (firstDateOfWeek > daysInPreviousMonth && otherMonth === 1)
-            {
-                firstDateOfWeek = 1;
-                otherMonth = 0;
-            }
-
-            if (firstDateOfWeek > daysInCurrentMonth && otherMonth === 0)
-            {
-                firstDateOfWeek = 1;
-                otherMonth = 1;
-            }
-
-            if (i % 7 === 0)
-            {
-                days = new Array(7*2);
-                weeks[weeks.length] = days;
-                j = 0;
-            }
-
-            days[j++] = firstDateOfWeek++;
-            days[j++] = otherMonth;
-        }
-
-        return weeks;
-    },
-
-    /**
-     * Return number of days in particular month passed in
-     * Also check for Leap year
-     * @param {number} year
-     * @param {number} month zero-based
-     * @return {number}
-     */
-    getDaysInMonth:function getDaysInMonth(year,month)
-    {
-        return (month === 1 && (year % 400 === 0 || year % 4 === 0)) ? 29 : this._daysInMonth[month];
-    },
-
-    /**
-     * Format and return military time
-     * @param {Date} time
-     * @returns {string}
-     */
-    getMilitaryTime:function getMilitaryTime(time)
-    {
-        var padFunction = App.StringUtils.pad;
-
-        return padFunction(time.getHours()) + ":" + padFunction(time.getMinutes());
-    }
-};
-
 /**
  * Device
  * @type {{TOUCH_SUPPORTED:boolean}}
@@ -487,7 +484,126 @@ App.Device = {
         || (window.navigator['msPointerEnabled'] && window.navigator['msMaxTouchPoints'] > 0) // IE10
         || (window.navigator['pointerEnabled'] && window.navigator['maxTouchPoints'] > 0) // IE11+
 };
+/**
+ * Event type
+ * @enum {string}
+ * @return {{
+ *      CHANGE_SCREEN:string,
+ *      CHANGE_TRANSACTION:string,
+ *      CHANGE_ACCOUNT:string,
+ *      CHANGE_CATEGORY:string,
+ *      CHANGE_SUB_CATEGORY:string,
+ *      CHANGE_CURRENCY_PAIR:string,
+ *      CREATE:string,
+ *      CANCEL:string,
+ *      CONFIRM:string,
+ *      COPY:string,
+ *      DELETE:string,
+ *      START:string,
+ *      COMPLETE:string,
+ *      UPDATE:string,
+ *      PROGRESS:string,
+ *      ERROR:string,
+ *      CHANGE:string,
+ *      LAYOUT_UPDATE:string,
+ *      TICK:string,
+ *      ADDED:string,
+ *      REMOVED:string,
+ *      RESIZE:string,
+ *      MOUSE_ENTER:string,
+ *      MOUSE_LEAVE:string,
+ *      MOUSE_DOWN:string,
+ *      MOUSE_UP:string,
+ *      MOUSE_MOVE:string,
+ *      CLICK:string,
+ *      FOCUS:string,
+ *      BLUR:string,
+ *      KEY_PRESS:string,
+ *      PASTE:string,
+ *      TEXT_INPUT:string,
+ *      INPUT:string}}
+ */
+App.EventType = {
+    // Commands
+    CHANGE_SCREEN:"CHANGE_SCREEN",
+    CHANGE_TRANSACTION:"CHANGE_TRANSACTION",
+    CHANGE_ACCOUNT:"CHANGE_ACCOUNT",
+    CHANGE_CATEGORY:"CHANGE_CATEGORY",
+    CHANGE_SUB_CATEGORY:"CHANGE_SUB_CATEGORY",
+    CHANGE_CURRENCY_PAIR:"CHANGE_CURRENCY_PAIR",
 
+    // App
+    CREATE:"CREATE",
+    CANCEL:"CANCEL",
+    CONFIRM:"CONFIRM",
+    COPY:"COPY",
+    DELETE:"DELETE",
+    START:"START",
+    COMPLETE:"COMPLETE",
+    UPDATE:"UPDATE",
+    PROGRESS:"PROGRESS",
+    ERROR:"ERROR",
+    CHANGE:"change",
+    LAYOUT_UPDATE:"LAYOUT_UPDATE",
+    TICK:"TICK",
+
+    // Collection
+    ADDED:"ADDED",
+    REMOVED:"REMOVED",
+
+    // DOM
+    RESIZE:"resize",
+    MOUSE_ENTER:"mouseenter",
+    MOUSE_LEAVE:"mouseleave",
+    MOUSE_DOWN:"mousedown",
+    MOUSE_UP:"mouseup",
+    MOUSE_MOVE:"mousemove",
+    CLICK:"click",
+    FOCUS:"focus",
+    BLUR:"blur",
+    KEY_PRESS:"keypress",
+    PASTE:"paste",
+    TEXT_INPUT:"textInput",
+    INPUT:"input"
+};
+/**
+ * Interactive state
+ * @enum {string}
+ * @return {{OVER:string,OUT:string,DRAGGING:string,SCROLLING:string,SNAPPING:string,SWIPING:string}}
+ */
+App.InteractiveState = {
+    OVER:"OVER",
+    OUT:"OUT",
+    DRAGGING:"DRAGGING",
+    SCROLLING:"SCROLLING",
+    SNAPPING:"SNAPPING",
+    SWIPING:"SWIPING"
+};
+/**
+ * View Segment state
+ * @enum {number}
+ * @return {{
+ *      APPLICATION_VIEW:number,
+ *      HEADER:number,
+ *      SCREEN_STACK:number,
+ *      ACCOUNT_BUTTON_POOL:number,
+ *      CATEGORY_BUTTON_EXPAND_POOL:number,
+ *      CATEGORY_BUTTON_EDIT_POOL:number,
+ *      SUB_CATEGORY_BUTTON_POOL:number,
+ *      TRANSACTION_BUTTON_POOL:number,
+ *      SKIN:number}}
+ */
+App.ViewName = {
+    APPLICATION_VIEW:0,
+    HEADER:1,
+    SCREEN_STACK:2,
+    ACCOUNT_BUTTON_POOL:3,
+    CATEGORY_BUTTON_EXPAND_POOL:4,
+    CATEGORY_BUTTON_EDIT_POOL:5,
+    SUB_CATEGORY_BUTTON_POOL:6,
+    TRANSACTION_BUTTON_POOL:7,
+    SKIN:8
+};
 /**
  * GraphicUtils
  * @type {{drawRect: Function,drawRects:Function}}
@@ -608,7 +724,40 @@ App.GraphicUtils = {
         graphics.endFill();
     }
 };
-
+/**
+ * Model Proxy state
+ * @enum {number}
+ * @return {{
+ *      TICKER:number,
+ *      EVENT_LISTENER_POOL:number,
+ *      PAYMENT_METHODS:number,
+ *      CURRENCY_PAIRS:number,
+ *      CURRENCY_SYMBOLS:number,
+ *      SUB_CATEGORIES:number,
+ *      CATEGORIES:number,
+ *      ACCOUNTS:number,
+ *      TRANSACTIONS:number,
+ *      SETTINGS:number,
+ *      ICONS:number,
+ *      CHANGE_SCREEN_DATA_POOL:number,
+ *      SCREEN_HISTORY:number
+ * }}
+ */
+App.ModelName = {
+    TICKER:0,
+    EVENT_LISTENER_POOL:1,
+    PAYMENT_METHODS:2,
+    CURRENCY_PAIRS:3,
+    CURRENCY_SYMBOLS:4,
+    SUB_CATEGORIES:5,
+    CATEGORIES:6,
+    ACCOUNTS:7,
+    TRANSACTIONS:8,
+    SETTINGS:9,
+    ICONS:10,
+    CHANGE_SCREEN_DATA_POOL:11,
+    SCREEN_HISTORY:12
+};
 /**
  * LayoutUtils
  * @type {{update: Function}}
@@ -648,233 +797,6 @@ App.LayoutUtils = {
         }
     }
 };
-
-/**
- * StringUtils
- * @type {{encode: Function}}
- */
-App.StringUtils = {
-    /**
-     * Encode URI component
-     * @param {string} str
-     * @returns {string}
-     */
-    encode:function encode(str)
-    {
-        //encodeURIComponent(str).replace(/[!'()]/g,escape).replace(/\*/g,"%2A").replace(/%(?:7C|60|5E)/g,unescape);
-        return encodeURIComponent(str).replace(/[!'()]/g,escape).replace(/\*/g,"%2A");
-    },
-
-    /**
-     * Add leading zero to number passed in
-     * @param {number} value
-     */
-    pad:function pad(value)
-    {
-        if (value < 10) return '0' + value;
-        return value;
-    }
-};
-
-/**
- * Event type
- * @enum {string}
- * @return {{
- *      CHANGE_SCREEN:string,
- *      CHANGE_TRANSACTION:string,
- *      CHANGE_ACCOUNT:string,
- *      CHANGE_CATEGORY:string,
- *      CHANGE_SUB_CATEGORY:string,
- *      CHANGE_CURRENCY_PAIR:string,
- *      CREATE:string,
- *      CANCEL:string,
- *      CONFIRM:string,
- *      COPY:string,
- *      DELETE:string,
- *      START:string,
- *      COMPLETE:string,
- *      UPDATE:string,
- *      PROGRESS:string,
- *      ERROR:string,
- *      CHANGE:string,
- *      LAYOUT_UPDATE:string,
- *      TICK:string,
- *      ADDED:string,
- *      REMOVED:string,
- *      RESIZE:string,
- *      MOUSE_ENTER:string,
- *      MOUSE_LEAVE:string,
- *      MOUSE_DOWN:string,
- *      MOUSE_UP:string,
- *      MOUSE_MOVE:string,
- *      CLICK:string,
- *      FOCUS:string,
- *      BLUR:string,
- *      KEY_PRESS:string,
- *      PASTE:string,
- *      TEXT_INPUT:string,
- *      INPUT:string}}
- */
-App.EventType = {
-    // Commands
-    CHANGE_SCREEN:"CHANGE_SCREEN",
-    CHANGE_TRANSACTION:"CHANGE_TRANSACTION",
-    CHANGE_ACCOUNT:"CHANGE_ACCOUNT",
-    CHANGE_CATEGORY:"CHANGE_CATEGORY",
-    CHANGE_SUB_CATEGORY:"CHANGE_SUB_CATEGORY",
-    CHANGE_CURRENCY_PAIR:"CHANGE_CURRENCY_PAIR",
-
-    // App
-    CREATE:"CREATE",
-    CANCEL:"CANCEL",
-    CONFIRM:"CONFIRM",
-    COPY:"COPY",
-    DELETE:"DELETE",
-    START:"START",
-    COMPLETE:"COMPLETE",
-    UPDATE:"UPDATE",
-    PROGRESS:"PROGRESS",
-    ERROR:"ERROR",
-    CHANGE:"change",
-    LAYOUT_UPDATE:"LAYOUT_UPDATE",
-    TICK:"TICK",
-
-    // Collection
-    ADDED:"ADDED",
-    REMOVED:"REMOVED",
-
-    // DOM
-    RESIZE:"resize",
-    MOUSE_ENTER:"mouseenter",
-    MOUSE_LEAVE:"mouseleave",
-    MOUSE_DOWN:"mousedown",
-    MOUSE_UP:"mouseup",
-    MOUSE_MOVE:"mousemove",
-    CLICK:"click",
-    FOCUS:"focus",
-    BLUR:"blur",
-    KEY_PRESS:"keypress",
-    PASTE:"paste",
-    TEXT_INPUT:"textInput",
-    INPUT:"input"
-};
-
-/**
- * Model Proxy state
- * @enum {number}
- * @return {{
- *      TICKER:number,
- *      EVENT_LISTENER_POOL:number,
- *      PAYMENT_METHODS:number,
- *      CURRENCY_PAIRS:number,
- *      CURRENCY_SYMBOLS:number,
- *      SUB_CATEGORIES:number,
- *      CATEGORIES:number,
- *      ACCOUNTS:number,
- *      TRANSACTIONS:number,
- *      SETTINGS:number,
- *      ICONS:number,
- *      CHANGE_SCREEN_DATA_POOL:number,
- *      SCREEN_HISTORY:number
- * }}
- */
-App.ModelName = {
-    TICKER:0,
-    EVENT_LISTENER_POOL:1,
-    PAYMENT_METHODS:2,
-    CURRENCY_PAIRS:3,
-    CURRENCY_SYMBOLS:4,
-    SUB_CATEGORIES:5,
-    CATEGORIES:6,
-    ACCOUNTS:7,
-    TRANSACTIONS:8,
-    SETTINGS:9,
-    ICONS:10,
-    CHANGE_SCREEN_DATA_POOL:11,
-    SCREEN_HISTORY:12
-};
-
-/**
- * View Segment state
- * @enum {number}
- * @return {{
- *      APPLICATION_VIEW:number,
- *      HEADER:number,
- *      SCREEN_STACK:number,
- *      ACCOUNT_BUTTON_POOL:number,
- *      CATEGORY_BUTTON_EXPAND_POOL:number,
- *      CATEGORY_BUTTON_EDIT_POOL:number,
- *      SUB_CATEGORY_BUTTON_POOL:number,
- *      TRANSACTION_BUTTON_POOL:number,
- *      SKIN:number}}
- */
-App.ViewName = {
-    APPLICATION_VIEW:0,
-    HEADER:1,
-    SCREEN_STACK:2,
-    ACCOUNT_BUTTON_POOL:3,
-    CATEGORY_BUTTON_EXPAND_POOL:4,
-    CATEGORY_BUTTON_EDIT_POOL:5,
-    SUB_CATEGORY_BUTTON_POOL:6,
-    TRANSACTION_BUTTON_POOL:7,
-    SKIN:8
-};
-
-/**
- * Interactive state
- * @enum {string}
- * @return {{OVER:string,OUT:string,DRAGGING:string,SCROLLING:string,SNAPPING:string,SWIPING:string}}
- */
-App.InteractiveState = {
-    OVER:"OVER",
-    OUT:"OUT",
-    DRAGGING:"DRAGGING",
-    SCROLLING:"SCROLLING",
-    SNAPPING:"SNAPPING",
-    SWIPING:"SWIPING"
-};
-
-/**
- * Transition state
- * @enum {string}
- * @return {{SHOWING:string,SHOWN:string,HIDING:string,HIDDEN:string,OPEN:string,OPENING:string,CLOSED:string,CLOSING:string}}
- */
-App.TransitionState = {
-    SHOWING:"SHOWING",
-    SHOWN:"SHOWN",
-    HIDING:"HIDING",
-    HIDDEN:"HIDDEN",
-
-    OPEN:"OPEN",
-    OPENING:"OPENING",
-    CLOSED:"CLOSED",
-    CLOSING:"CLOSING"
-};
-
-/**
- * Scroll Policy
- * @enum {string}
- * @return {{ON:string,OFF:string,AUTO:string}}
- */
-App.ScrollPolicy = {
-    ON:"ON",
-    OFF:"OFF",
-    AUTO:"AUTO"
-};
-
-
-/**
- * Direction
- * @enum {string}
- * @return {{X:string,Y:string,LEFT:string,RIGHT:string}}
- */
-App.Direction = {
-    X:"x",
-    Y:"y",
-    LEFT:"LEFT",
-    RIGHT:"RIGHT"
-};
-
 /**
  * Screen Name
  * @enum {number}
@@ -911,7 +833,48 @@ App.ScreenName = {
     SETTINGS:11,
     MENU:12
 };
+/**
+ * Transition state
+ * @enum {string}
+ * @return {{SHOWING:string,SHOWN:string,HIDING:string,HIDDEN:string,OPEN:string,OPENING:string,CLOSED:string,CLOSING:string}}
+ */
+App.TransitionState = {
+    SHOWING:"SHOWING",
+    SHOWN:"SHOWN",
+    HIDING:"HIDING",
+    HIDDEN:"HIDDEN",
 
+    OPEN:"OPEN",
+    OPENING:"OPENING",
+    CLOSED:"CLOSED",
+    CLOSING:"CLOSING"
+};
+/**
+ * StringUtils
+ * @type {{encode: Function}}
+ */
+App.StringUtils = {
+    /**
+     * Encode URI component
+     * @param {string} str
+     * @returns {string}
+     */
+    encode:function encode(str)
+    {
+        //return encodeURIComponent(str).replace(/[!'()]/g,escape).replace(/\*/g,"%2A");// 'escape' is depreciated
+        return encodeURIComponent(str).replace(/[!'()*]/g,function(c) {return '%'+c.charCodeAt(0).toString(16);});
+    },
+
+    /**
+     * Add leading zero to number passed in
+     * @param {number} value
+     */
+    pad:function pad(value)
+    {
+        if (value < 10) return '0' + value;
+        return value;
+    }
+};
 /**
  * HeaderAction
  * @enum {number}
@@ -924,7 +887,6 @@ App.HeaderAction = {
     CONFIRM:3,
     ADD_TRANSACTION:4
 };
-
 /**
  * TransactionType
  * @type {{EXPENSE: number, INCOME: number, toString: Function}}
@@ -937,18 +899,6 @@ App.TransactionType = {
         return type === App.TransactionType.INCOME ? "Income" : "Expense";
     }
 };
-
-/**
- * ScreenMode
- * @type {{DEFAULT: number, ADD: number, EDIT: number, SELECT: number}}
- */
-App.ScreenMode = {
-    DEFAULT:1,
-    ADD:2,
-    EDIT:3,
-    SELECT:4
-};
-
 /**
  * ScreenTitle
  * @type {{
@@ -996,7 +946,6 @@ App.ScreenTitle = {
     EDIT_CURRENCY_RATE:"Edit Currency Rate",
     SETTINGS:"Settings"
 };
-
 /**
  * EventLevel
  * @type {{NONE: number, LEVEL_1: number,LEVEL_2: number}}
@@ -1006,43 +955,6 @@ App.EventLevel = {
     LEVEL_1:1,
     LEVEL_2:2
 };
-
-/**
- * LifeCycle state
- * @enum {number}
- * @return {{CREATED:number,ACTIVE:number,DELETED:number}}
- */
-App.LifeCycleState = {
-    CREATED:1,
-    ACTIVE:2,
-    DELETED:3
-};
-
-/**
- * @class EventListener
- * @param {number} index
- * @constructor
- */
-App.EventListener = function EventListener(index)
-{
-    this.allocated = false;
-    this.poolIndex = index;
-    this.type = null;
-    this.scope = null;
-    this.handler = null;
-};
-
-/**
- * @method reset Reset item returning to pool
- */
-App.EventListener.prototype.reset = function reset()
-{
-    this.allocated = false;
-    this.type = null;
-    this.scope = null;
-    this.handler = null;
-};
-
 /**
  * @class EventDispatcher
  * @constructor
@@ -1202,7 +1114,30 @@ App.EventDispatcher.prototype.destroy = function destroy()
     this._listeners = null;
     this._listenersPool = null;
 };
+/**
+ * @class EventListener
+ * @param {number} index
+ * @constructor
+ */
+App.EventListener = function EventListener(index)
+{
+    this.allocated = false;
+    this.poolIndex = index;
+    this.type = null;
+    this.scope = null;
+    this.handler = null;
+};
 
+/**
+ * @method reset Reset item returning to pool
+ */
+App.EventListener.prototype.reset = function reset()
+{
+    this.allocated = false;
+    this.type = null;
+    this.scope = null;
+    this.handler = null;
+};
 /**
  * @class Rectangle
  * @param {number} x
@@ -1231,68 +1166,7 @@ App.Rectangle = function Rectangle(x,y,width,height)
     this.y = 0;
     this.width = 0;
     this.height = 0;
-};*/
-/**
- * @class Stack
- * @constructor
- */
-App.Stack = function Stack()
-{
-    this._source = [];
-    this._top = 0;
-};
-
-/**
- * Push item into stack
- * @param {*} item
- */
-App.Stack.prototype.push = function push(item)
-{
-    this._source[this._top++] = item;
-};
-
-/**
- * Remove item from top of the stack
- * @returns {*}
- */
-App.Stack.prototype.pop = function pop()
-{
-    var item = this._source[this._top-1];
-
-    if (item) this._source[--this._top] = null;
-
-    return item;
-};
-
-/**
- * Peek what on top of the stack
- * @returns {*}
- */
-App.Stack.prototype.peek = function peek(index)
-{
-    if (!index) index = 1;
-
-    return this._source[this._top-index];
-};
-
-/**
- * Return size of the stack
- * @returns {number}
- */
-App.Stack.prototype.length = function length()
-{
-    return this._top;
-};
-
-/**
- * Clear stack
- */
-App.Stack.prototype.clear = function clear()
-{
-    this._top = 0;
-};
-
-/**
+};*//**
  * ChangeScreenData
  * @param {number} index
  * @constructor
@@ -1337,57 +1211,16 @@ App.ChangeScreenData.prototype.update = function update(screenName,screenMode,up
 
     return this;
 };
-
 /**
- * @class ModelLocator
- * @type {{_proxies:Object,addProxy:Function,hasProxy:Function,getProxy:Function}}
+ * Direction
+ * @enum {string}
+ * @return {{X:string,Y:string,LEFT:string,RIGHT:string}}
  */
-App.ModelLocator = {
-    _proxies:{},
-
-    /**
-     * Initialize with array of proxies passed in
-     * @param {Array.<>} proxies
-     */
-    init:function init(proxies)
-    {
-        var i = 0,
-            l = proxies.length;
-
-        for (;i<l;) this._proxies[proxies[i++]] = proxies[i++];
-    },
-
-    /**
-     * @method addPoxy Add proxy to the locator
-     * @param {string} proxyName
-     * @param {*} proxy
-     */
-    addProxy:function addProxy(proxyName,proxy)
-    {
-        if (this._proxies[proxyName]) throw Error("Proxy "+proxyName+" already exist");
-
-        this._proxies[proxyName] = proxy;
-    },
-
-    /**
-     * @method hasProxy Check if proxy already exist
-     * @param {string} proxyName
-     * @return {boolean}
-     */
-    hasProxy:function hasProxy(proxyName)
-    {
-        return this._proxies[proxyName];
-    },
-
-    /**
-     * @method getProxy Returns proxy by name passed in
-     * @param {string} proxyName
-     * @return {*}
-     */
-    getProxy:function getProxy(proxyName)
-    {
-        return this._proxies[proxyName];
-    }
+App.Direction = {
+    X:"x",
+    Y:"y",
+    LEFT:"LEFT",
+    RIGHT:"RIGHT"
 };
 /**
  * @class ObjectPool
@@ -1449,7 +1282,6 @@ App.ObjectPool.prototype.release = function release(item)
 
     this._freeItems.push(item.poolIndex);
 };
-
 /**
  * @class Collection
  * @param {Array} source
@@ -1721,7 +1553,111 @@ App.Collection.prototype.length = function length()
 {
     return this._items.length;
 };
+/**
+ * @class ModelLocator
+ * @type {{_proxies:Object,addProxy:Function,hasProxy:Function,getProxy:Function}}
+ */
+App.ModelLocator = {
+    _proxies:{},
 
+    /**
+     * Initialize with array of proxies passed in
+     * @param {Array.<>} proxies
+     */
+    init:function init(proxies)
+    {
+        var i = 0,
+            l = proxies.length;
+
+        for (;i<l;) this._proxies[proxies[i++]] = proxies[i++];
+    },
+
+    /**
+     * @method addPoxy Add proxy to the locator
+     * @param {string} proxyName
+     * @param {*} proxy
+     */
+    addProxy:function addProxy(proxyName,proxy)
+    {
+        if (this._proxies[proxyName]) throw Error("Proxy "+proxyName+" already exist");
+
+        this._proxies[proxyName] = proxy;
+    },
+
+    /**
+     * @method hasProxy Check if proxy already exist
+     * @param {string} proxyName
+     * @return {boolean}
+     */
+    hasProxy:function hasProxy(proxyName)
+    {
+        return this._proxies[proxyName];
+    },
+
+    /**
+     * @method getProxy Returns proxy by name passed in
+     * @param {string} proxyName
+     * @return {*}
+     */
+    getProxy:function getProxy(proxyName)
+    {
+        return this._proxies[proxyName];
+    }
+};/**
+ * @class CurrencyPairCollection
+ * @param {Array} source
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.CurrencyPairCollection = function CurrencyPairCollection(source,eventListenerPool)
+{
+    App.Collection.call(this,source,App.CurrencyPair,null,eventListenerPool);
+};
+
+App.CurrencyPairCollection.prototype = Object.create(App.Collection.prototype);
+App.CurrencyPairCollection.prototype.constructor = App.CurrencyPairCollection;
+
+/**
+ * Find and return rate between base and symbol(spent) currency symbols passed in
+ * In case there is no direct rate, EUR is used as cross since all currency have EUR-pair
+ * @param {string} base
+ * @param {string} symbol
+ * @private
+ */
+App.CurrencyPairCollection.prototype.findRate = function findRate(base,symbol)
+{
+    var pair = null,
+        basePair = null,
+        symbolPair = null,
+        i = 0,
+        l = this._items.length;
+
+    // First, check if both base and spent currency are in one pair ...
+    for (;i<l;)
+    {
+        pair = this._items[i++];
+        if ((base === pair.base && symbol === pair.symbol) || (base === pair.symbol && symbol === pair.base))
+        {
+            if (base === pair.base && symbol === pair.symbol) return pair.rate;
+            else if (base === pair.symbol && symbol === pair.base) return 1 / pair.rate;
+        }
+    }
+
+    // .. if not, use EUR pair as cross
+    for (i=0;i<l;)
+    {
+        pair = this._items[i++];
+        if (pair.base === "EUR")
+        {
+            if (pair.symbol === base) basePair = pair;
+            if (pair.symbol === symbol) symbolPair = pair;
+        }
+    }
+
+    if (basePair && symbolPair) return symbolPair.rate / basePair.rate;
+
+    return 1.0;
+};
 /**
  * @class Settings
  * @param {Array} data
@@ -1834,108 +1770,6 @@ Object.defineProperty(App.Settings.prototype,'defaultPaymentMethod',{
         this._defaultPaymentMethod = value;
     }
 });
-
-/**
- * @class PaymentMethod
- * @param {string} name
- * @param {Collection} collection
- * @param {*} parent
- * @param {ObjectPool} eventListenerPool
- * @constructor
- */
-App.PaymentMethod = function PaymentMethod(name,collection,parent,eventListenerPool)
-{
-    this.id = App.PaymentMethod._ID++;
-    this.name = name;
-};
-
-App.PaymentMethod._ID = 1;
-App.PaymentMethod.CASH = "Cash";
-App.PaymentMethod.CREDIT_CARD = "Credit-Card";
-//TODO add vouchers (or let user add his own method)
-
-/**
- * @class CurrencyPair
- * @param {Array} data
- * @param {Collection} collection
- * @param {*} parent
- * @param {ObjectPool} eventListenerPool
- * @constructor
- */
-App.CurrencyPair = function CurrencyPair(data,collection,parent,eventListenerPool)
-{
-    this.id = data[0];
-    this.base = data[1];
-    this.symbol = data[2];//quote symbol
-    this.rate = data[3];
-};
-
-/**
- * @class CurrencyPairCollection
- * @param {Array} source
- * @param {ObjectPool} eventListenerPool
- * @constructor
- */
-App.CurrencyPairCollection = function CurrencyPairCollection(source,eventListenerPool)
-{
-    App.Collection.call(this,source,App.CurrencyPair,null,eventListenerPool);
-};
-
-App.CurrencyPairCollection.prototype = Object.create(App.Collection.prototype);
-App.CurrencyPairCollection.prototype.constructor = App.CurrencyPairCollection;
-
-/**
- * Find and return rate between base and symbol(spent) currency symbols passed in
- * In case there is no direct rate, EUR is used as cross since all currency have EUR-pair
- * @param {string} base
- * @param {string} symbol
- * @private
- */
-App.CurrencyPairCollection.prototype.findRate = function findRate(base,symbol)
-{
-    var pair = null,
-        basePair = null,
-        symbolPair = null,
-        i = 0,
-        l = this._items.length;
-
-    // First, check if both base and spent currency are in one pair ...
-    for (;i<l;)
-    {
-        pair = this._items[i++];
-        if ((base === pair.base && symbol === pair.symbol) || (base === pair.symbol && symbol === pair.base))
-        {
-            if (base === pair.base && symbol === pair.symbol) return pair.rate;
-            else if (base === pair.symbol && symbol === pair.base) return 1 / pair.rate;
-        }
-    }
-
-    // .. if not, use EUR pair as cross
-    for (i=0;i<l;)
-    {
-        pair = this._items[i++];
-        if (pair.base === "EUR")
-        {
-            if (pair.symbol === base) basePair = pair;
-            if (pair.symbol === symbol) symbolPair = pair;
-        }
-    }
-
-    if (basePair && symbolPair) return symbolPair.rate / basePair.rate;
-
-    return 1.0;
-};
-
-/**
- * @class CurrencySymbol
- * @param {string} symbol
- * @constructor
- */
-App.CurrencySymbol = function CurrencySymbol(symbol)
-{
-    this.symbol = symbol;
-};
-
 /**
  * @class Transaction
  * @param {Array} [data=null]
@@ -2271,61 +2105,174 @@ Object.defineProperty(App.Transaction.prototype,'currencyQuote',{
         this._currencyRate = value;
     }
 });*/
+/**
+ * Scroll Policy
+ * @enum {string}
+ * @return {{ON:string,OFF:string,AUTO:string}}
+ */
+App.ScrollPolicy = {
+    ON:"ON",
+    OFF:"OFF",
+    AUTO:"AUTO"
+};
 
 /**
- * @class SubCategory
- * @param {Array} data
+ * @class PaymentMethod
+ * @param {string} name
  * @param {Collection} collection
  * @param {*} parent
  * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
+App.PaymentMethod = function PaymentMethod(name,collection,parent,eventListenerPool)
+{
+    this.id = App.PaymentMethod._ID++;
+    this.name = name;
+};
+
+App.PaymentMethod._ID = 1;
+App.PaymentMethod.CASH = "Cash";
+App.PaymentMethod.CREDIT_CARD = "Credit-Card";
+//TODO add vouchers (or let user add his own method)
+/**
+ * @class Stack
+ * @constructor
+ */
+App.Stack = function Stack()
+{
+    this._source = [];
+    this._top = 0;
+};
+
+/**
+ * Push item into stack
+ * @param {*} item
+ */
+App.Stack.prototype.push = function push(item)
+{
+    this._source[this._top++] = item;
+};
+
+/**
+ * Remove item from top of the stack
+ * @returns {*}
+ */
+App.Stack.prototype.pop = function pop()
+{
+    var item = this._source[this._top-1];
+
+    if (item) this._source[--this._top] = null;
+
+    return item;
+};
+
+/**
+ * Peek what on top of the stack
+ * @returns {*}
+ */
+App.Stack.prototype.peek = function peek(index)
+{
+    if (!index) index = 1;
+
+    return this._source[this._top-index];
+};
+
+/**
+ * Return size of the stack
+ * @returns {number}
+ */
+App.Stack.prototype.length = function length()
+{
+    return this._top;
+};
+
+/**
+ * Clear stack
+ */
+App.Stack.prototype.clear = function clear()
+{
+    this._top = 0;
+};
+/**
+ * @class Account
+ * @param {Array} data
+ * @param {Collection} collection
+ * @param {Object} parent
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.Account = function Account(data,collection,parent,eventListenerPool)
 {
     if (data)
     {
-        if (parseInt(data[0],10) >= App.SubCategory._UID) App.SubCategory._UID = parseInt(data[0],10);
+        this._data = data;
 
-        this.id = data[0];
-        this.name = data[1];
-        this.category = data[2];
+        if (parseInt(data[0],10) >= App.Account._UID) App.Account._UID = parseInt(data[0],10);
+
+        this.id = this._data[0];
+        this.name = this._data[1];
+        this._categories = null;
     }
     else
     {
-        this.id = String(++App.SubCategory._UID);
-        this.name = "SubCategory" + this.id;
-        this.category = null;
+        this._data = null;
+
+        this.id = String(++App.Account._UID);
+        this.name = "Account" + this.id;
+        this._categories = null;
     }
 
-    this._state = null;
+    this.lifeCycleState = App.LifeCycleState.CREATED;
 };
 
-App.SubCategory._UID = 0;
+App.Account._UID = 0;
 
 /**
- * Save current state
+ * Add category
+ * @param {App.Category} category
+ * @private
  */
-App.SubCategory.prototype.saveState = function saveState()
+App.Account.prototype.addCategory = function addCategory(category)
 {
-    if (!this._state) this._state = this.name;
-};
-
-/**
- * Revoke last state
- */
-App.SubCategory.prototype.revokeState = function revokeState()
-{
-    if (this._state) this.name = this._state;
+    if (this._categories) this._categories.push(category);
+    else this._categories = [category];
 };
 
 /**
- * Clear saved state
+ * Remove category
+ * @param {App.Category} category
+ * @private
  */
-App.SubCategory.prototype.clearSavedState = function clearSavedState()
+App.Account.prototype.removeCategory = function removeCategory(category)
 {
-    this._state = null;
+    var i = 0,
+        l = this._categories.length;
+
+    for (;i<l;i++)
+    {
+        if (this._categories[i] === category)
+        {
+            this._categories.splice(i,1);
+            break;
+        }
+    }
 };
 
+/**
+ * @property categories
+ * @type Array.<Category>
+ */
+Object.defineProperty(App.Account.prototype,'categories',{
+    get:function()
+    {
+        if (!this._categories)
+        {
+            if (this._data) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2].split(","),"id");
+            else this._categories = [];
+        }
+        return this._categories;
+    }
+});
 /**
  * @class Category
  * @param {Array} data
@@ -2527,800 +2474,6 @@ Object.defineProperty(App.Category.prototype,'subCategories',{
         return this._subCategories;
     }
 });
-
-/**
- * @class Account
- * @param {Array} data
- * @param {Collection} collection
- * @param {Object} parent
- * @param {ObjectPool} eventListenerPool
- * @constructor
- */
-App.Account = function Account(data,collection,parent,eventListenerPool)
-{
-    if (data)
-    {
-        this._data = data;
-
-        if (parseInt(data[0],10) >= App.Account._UID) App.Account._UID = parseInt(data[0],10);
-
-        this.id = this._data[0];
-        this.name = this._data[1];
-        this._categories = null;
-    }
-    else
-    {
-        this._data = null;
-
-        this.id = String(++App.Account._UID);
-        this.name = "Account" + this.id;
-        this._categories = null;
-    }
-
-    this.lifeCycleState = App.LifeCycleState.CREATED;
-};
-
-App.Account._UID = 0;
-
-/**
- * Add category
- * @param {App.Category} category
- * @private
- */
-App.Account.prototype.addCategory = function addCategory(category)
-{
-    if (this._categories) this._categories.push(category);
-    else this._categories = [category];
-};
-
-/**
- * Remove category
- * @param {App.Category} category
- * @private
- */
-App.Account.prototype.removeCategory = function removeCategory(category)
-{
-    var i = 0,
-        l = this._categories.length;
-
-    for (;i<l;i++)
-    {
-        if (this._categories[i] === category)
-        {
-            this._categories.splice(i,1);
-            break;
-        }
-    }
-};
-
-/**
- * @property categories
- * @type Array.<Category>
- */
-Object.defineProperty(App.Account.prototype,'categories',{
-    get:function()
-    {
-        if (!this._categories)
-        {
-            if (this._data) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2].split(","),"id");
-            else this._categories = [];
-        }
-        return this._categories;
-    }
-});
-
-App.Filter = function Filter(startDate,endDate,categories)
-{
-    this.startDate = startDate;
-    this.endDate = endDate;
-    this.categories = categories;
-};
-
-/**
- * @class ViewLocator
- * @type {{_viewSegments:Object,init:Function, addViewSegment: Function, hasViewSegment: Function, getViewSegment: Function}}
- */
-App.ViewLocator = {
-    _viewSegments:{},
-
-    /**
-     * Initialize with array of segments passed in
-     * @param {Array.<>} segments
-     */
-    init:function init(segments)
-    {
-        var i = 0,
-            l = segments.length;
-
-        for (;i<l;) this._viewSegments[segments[i++]] = segments[i++];
-    },
-
-    /**
-     * Add view segment
-     * @param {string} segmentName
-     * @param {*} segment
-     */
-    addViewSegment:function addViewSegment(segmentName,segment)
-    {
-        if (this._viewSegments[segmentName]) throw Error("View segment "+segmentName+" already exist");
-
-        this._viewSegments[segmentName] = segment;
-
-        return segment;
-    },
-
-    /**
-     * Check if view segment already exist
-     * @param {string} segmentName
-     * @return {boolean}
-     */
-    hasViewSegment:function hasViewSegment(segmentName)
-    {
-        return this._viewSegments[segmentName];
-    },
-
-    /**
-     * Return view segment by name passed in
-     * @param {string} segmentName
-     * @return {*}
-     */
-    getViewSegment:function getViewSegment(segmentName)
-    {
-        return this._viewSegments[segmentName];
-    }
-};
-
-/**
- * ColorTheme
- * @enum {number}
- * @type {{
- *      WHITE:number,
- *      BLUE: number,
- *      BLUE_DARK:number,
- *      BLUE_LIGHT:number,
- *      GREY: number,
- *      GREY_DARK: number,
- *      GREY_DARKER: number,
- *      GREY_LIGHT: number,
- *      RED:number,
- *      RED_DARK:number,
- *      RED_LIGHT:number,
- *      GREEN:number,
- *      INPUT_HIGHLIGHT:number,
- *      BLACK:number
- * }}
- */
-App.ColorTheme = {
-    WHITE:0xfffffe,
-    BLUE:0x394264,
-    BLUE_DARK:0x252B44,
-    BLUE_LIGHT:0x50597B,
-    GREY:0xefefef,
-    GREY_DARK:0xcccccc,
-    GREY_DARKER:0x999999,
-    GREY_LIGHT:0xffffff,
-    RED:0xE53013,
-    RED_DARK:0x990000,
-    RED_LIGHT:0xFF3300,
-    GREEN:0x33CC33,
-    INPUT_HIGHLIGHT:0x0099ff,
-    BLACK:0x000000
-};
-
-/**
- * @class FontStyle
- * @type {{init: Function, get: Function, WHITE: string, BLUE: string, BLUE_LIGHT: string, BLUE_DARK: string, GREY: string, GREY_DARK: string, GREY_DARKER: string,BLACK_LIGHT:string, RED_DARK: string}}
- */
-App.FontStyle = {
-    /**
-     * @private
-     */
-    _pixelRatio:1,
-    _styles:[],
-    /**
-     * Init
-     * @param {number} pixelRatio
-     */
-    init:function init(pixelRatio)
-    {
-        this._pixelRatio = pixelRatio;
-
-        return this;
-    },
-
-    /**
-     * Construct and return font style object
-     * @param {number} fontSize
-     * @param {string} color
-     * @param {string} [align=null]
-     * @param {string} [font=null]
-     * @returns {{font: string, fill: string}}
-     */
-    get:function get(fontSize,color,align,font)
-    {
-        var i = 0,
-            l = this._styles.length,
-            style = null;
-
-        font = font || this.CONDENSED;
-
-        for (;i<l;)
-        {
-            style = this._styles[i++];
-            if (style.fontSize === fontSize && style.fill === color && style.fontName === font)
-            {
-                if (align)
-                {
-                    if (style.align === align)
-                    {
-                        return style;
-                    }
-                }
-                else
-                {
-                    return style;
-                }
-            }
-        }
-
-        style = {fontSize:fontSize,font:Math.round(fontSize * this._pixelRatio)+"px "+font,fill:color,align:align ? align : "left",fontName:font};
-        this._styles.push(style);
-
-        return style;
-    },
-
-    CONDENSED:"HelveticaNeueCond",
-    LIGHT_CONDENSED:"HelveticaNeueLightCond",
-
-    WHITE:"#ffffff",
-    BLUE:"#394264",
-    BLUE_LIGHT:"#50597B",
-    BLUE_DARK:"#252B44",
-    GREY:"#efefef",
-    GREY_DARK:"#cccccc",
-    GREY_DARKER:"#999999",
-    BLACK_LIGHT:"#333333",
-    RED_DARK:"#990000"
-};
-
-/**
- * @class Skin
- * @param {number} width
- * @param {number} pixelRatio
- * @constructor
- */
-App.Skin = function Skin(width,pixelRatio)
-{
-    var ColorTheme = App.ColorTheme,
-        defaultScaleMode = PIXI.scaleModes.DEFAULT,
-        padding = Math.round(10 * pixelRatio),
-        graphics = new PIXI.Graphics(),
-        w = width - padding * 2,
-        h = Math.round(40 * pixelRatio),
-        draw = App.GraphicUtils.drawRects,
-        color = ColorTheme.GREY,
-        lightColor = ColorTheme.GREY_LIGHT,
-        darkColor = ColorTheme.GREY_DARK;
-
-    draw(graphics,color,1,[0,0,width,h],true,false);
-    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
-    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
-
-    this.GREY_40 = graphics.generateTexture(1,defaultScaleMode);
-
-    draw(graphics,ColorTheme.WHITE,1,[0,0,width,h],true,false);
-    draw(graphics,color,1,[padding,h-1,w,1],false,true);
-
-    this.WHITE_40 = graphics.generateTexture(1,defaultScaleMode);
-
-    h = Math.round(50 * pixelRatio);
-
-    draw(graphics,color,1,[0,0,width,h],true,false);
-    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
-    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
-
-    this.GREY_50 = graphics.generateTexture(1,defaultScaleMode);
-
-    h = Math.round(60 * pixelRatio);
-
-    draw(graphics,color,1,[0,0,width,h],true,false);
-    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
-    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
-
-    this.GREY_60 = graphics.generateTexture(1,defaultScaleMode);
-
-    h = Math.round(70 * pixelRatio);
-
-    draw(graphics,color,1,[0,0,width,h],true,false);
-    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
-    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
-
-    this.GREY_70 = graphics.generateTexture(1,defaultScaleMode);
-
-    draw(graphics,ColorTheme.RED,1,[0,0,width,h],true,false);
-    draw(graphics,ColorTheme.RED_LIGHT,1,[padding,0,w,1],false,false);
-    draw(graphics,ColorTheme.RED_DARK,1,[padding,h-1,w,1],false,true);
-
-    this.RED_70 = graphics.generateTexture(1,defaultScaleMode);
-
-    w = Math.round(40 * pixelRatio);
-    h = w;
-
-    /*graphics.clear();
-    graphics.beginFill(ColorTheme.BLUE_DARK,1.0);
-    graphics.drawRect(0,0,w,h);
-    graphics.beginFill(ColorTheme.BLUE_LIGHT,1.0);
-    graphics.drawRect(0,h/2,w/2,h/2);
-    graphics.beginFill(ColorTheme.BLUE,1.0);
-    graphics.drawShape(new PIXI.Polygon([0,0,w,0,w,h,0,0]));
-    graphics.endFill();
-
-    this.BLUE_PATTERN = graphics.generateTexture(1,defaultScaleMode);*/
-
-    graphics.clear();
-    graphics.beginFill(ColorTheme.GREY_DARK,1.0);
-    graphics.drawRect(0,0,w,h);
-    graphics.beginFill(ColorTheme.GREY,1.0);
-    graphics.drawRect(0,h/2,w/2,h/2);
-    graphics.beginFill(0xdedede,1.0);
-    graphics.drawShape(new PIXI.Polygon([0,0,w,0,w,h,0,0]));
-    graphics.endFill();
-
-    this.GREY_PATTERN = graphics.generateTexture(1,defaultScaleMode);
-
-    w = width - padding * 4;
-    h = Math.round(40 * pixelRatio);
-
-    draw(graphics,color,1,[0,0,width,h],true,false);
-    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
-    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
-
-    this.NARROW_GREY_40 = graphics.generateTexture(1,defaultScaleMode);
-
-    draw(graphics,ColorTheme.WHITE,1,[0,0,width,h],true,false);
-    draw(graphics,color,1,[padding,h-1,w,1],false,true);
-
-    this.NARROW_WHITE_40 = graphics.generateTexture(1,defaultScaleMode);
-};
-
-/**
- * @class HeaderSegment
- * @extends DisplayObjectContainer
- * @param {number} value
- * @param {number} width
- * @param {number} height
- * @param {number} pixelRatio
- * @constructor
- */
-App.HeaderSegment = function HeaderSegment(value,width,height,pixelRatio)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    this._action = value;
-    this._width = width;
-    this._height = height;
-    this._pixelRatio = pixelRatio;
-    this._frontElement = null;
-    this._backElement = null;
-    this._middlePosition = Math.round(15 * pixelRatio);
-    this._needsUpdate = true;
-    this._mask = new PIXI.Graphics();
-    this.mask = this._mask;
-
-    this.addChild(this._mask);
-};
-
-App.HeaderSegment.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.HeaderSegment.prototype.constructor = App.HeaderSegment;
-
-/**
- * Render
- * @private
- */
-App.HeaderSegment.prototype._render = function _render()
-{
-    var padding = Math.round(10 * this._pixelRatio);
-
-    App.GraphicUtils.drawRect(this._mask,0xff0000,0.5,0,0,this._width,this._height-padding*2);
-    this._mask.y = padding;
-};
-
-/**
- * Change
- * @param {number} action
- */
-App.HeaderSegment.prototype.change = function change(action)
-{
-    if (this._action === action)
-    {
-        this._needsUpdate = false;
-    }
-    else
-    {
-        var tempIcon = this._frontElement;
-        this._frontElement = this._backElement;
-        this._backElement = tempIcon;
-
-        this._needsUpdate = true;
-    }
-
-    this._action = action;
-};
-
-/**
- * Update
- * @param {number} progress
- */
-App.HeaderSegment.prototype.update = function update(progress)
-{
-    if (this._needsUpdate)
-    {
-        this._frontElement.y = Math.round((this._middlePosition + this._frontElement.height) * progress - this._frontElement.height);
-        this._backElement.y = Math.round(this._middlePosition + (this._height - this._middlePosition) * progress);
-    }
-};
-
-/**
- * Return action
- * @returns {number}
- */
-App.HeaderSegment.prototype.getAction = function getAction()
-{
-    return this._action;
-};
-
-/**
- * @class HeaderIcon
- * @extends HeaderSegment
- * @param {number} value
- * @param {number} width
- * @param {number} height
- * @param {number} pixelRatio
- * @constructor
- */
-App.HeaderIcon = function HeaderIcon(value,width,height,pixelRatio)
-{
-    App.HeaderSegment.call(this,value,width,height,pixelRatio);
-
-    this._frontElement = PIXI.Sprite.fromFrame(this._getIconByAction(value));
-    this._backElement = PIXI.Sprite.fromFrame(this._getIconByAction(value));
-    this._iconResizeRatio = Math.round(20 * pixelRatio) / this._frontElement.height;
-
-    this._render();
-
-    this.addChild(this._frontElement);
-    this.addChild(this._backElement);
-};
-
-App.HeaderIcon.prototype = Object.create(App.HeaderSegment.prototype);
-App.HeaderIcon.prototype.constructor = App.HeaderIcon;
-
-/**
- * Render
- * @private
- */
-App.HeaderIcon.prototype._render = function _render()
-{
-    App.HeaderSegment.prototype._render.call(this);
-
-    var ColorTheme = App.ColorTheme;
-
-    this._frontElement.scale.x = this._iconResizeRatio;
-    this._frontElement.scale.y = this._iconResizeRatio;
-    this._frontElement.x = this._middlePosition;
-    this._frontElement.y = this._height;
-    this._frontElement.tint = ColorTheme.WHITE;
-    this._frontElement.alpha = 0.0;
-
-    this._backElement.scale.x = this._iconResizeRatio;
-    this._backElement.scale.y = this._iconResizeRatio;
-    this._backElement.x = this._middlePosition;
-    this._backElement.y = this._height;
-    this._backElement.tint = ColorTheme.WHITE;
-    this._backElement.alpha = 0.0;
-};
-
-/**
- * Return icon name by action passed in
- * @param {number} action
- * @returns {string}
- * @private
- */
-App.HeaderIcon.prototype._getIconByAction = function _getIconByAction(action)
-{
-    var HeaderAction = App.HeaderAction,
-        iconName = null;
-
-    if (action === HeaderAction.MENU) iconName = "menu-app";
-    else if (action === HeaderAction.CANCEL) iconName = "close-app";
-    else if (action === HeaderAction.CONFIRM) iconName = "apply-app";
-    else if (action === HeaderAction.ADD_TRANSACTION) iconName = "plus-app";
-
-    return iconName;
-};
-
-/**
- * Change
- * @param {number} action
- */
-App.HeaderIcon.prototype.change = function change(action)
-{
-    App.HeaderSegment.prototype.change.call(this,action);
-
-    var iconName = this._getIconByAction(action);
-
-    if (iconName === null)
-    {
-        this._frontElement.alpha = 0.0;
-    }
-    else
-    {
-        this._frontElement.setTexture(PIXI.TextureCache[iconName]);
-        this._frontElement.alpha = 1.0;
-    }
-};
-
-/**
- * @class HeaderTitle
- * @extends HeaderSegment
- * @param {string} value
- * @param {number} width
- * @param {number} height
- * @param {number} pixelRatio
- * @param {{font:string,fill:string}} fontStyle
- * @constructor
- */
-App.HeaderTitle = function HeaderTitle(value,width,height,pixelRatio,fontStyle)
-{
-    App.HeaderSegment.call(this,value,width,height,pixelRatio);
-
-    this._frontElement = new PIXI.Text(value,fontStyle);
-    this._backElement = new PIXI.Text(value,fontStyle);
-
-    this._render();
-
-    this.addChild(this._frontElement);
-    this.addChild(this._backElement);
-};
-
-App.HeaderTitle.prototype = Object.create(App.HeaderSegment.prototype);
-App.HeaderTitle.prototype.constructor = App.HeaderTitle;
-
-/**
- * Render
- * @private
- */
-App.HeaderTitle.prototype._render = function _render()
-{
-    App.HeaderSegment.prototype._render.call(this);
-
-    this._middlePosition = Math.round(18 * this._pixelRatio);
-
-    this._frontElement.x = Math.round((this._width - this._frontElement.width) / 2);
-    this._frontElement.y = this._height;
-    this._frontElement.alpha = 0.0;
-
-    this._backElement.x = Math.round((this._width - this._backElement.width) / 2);
-    this._backElement.y = this._height;
-    this._backElement.alpha = 0.0;
-};
-
-/**
- * Change
- * @param {string} name
- */
-App.HeaderTitle.prototype.change = function change(name)
-{
-    App.HeaderSegment.prototype.change.call(this,name);
-
-    this._frontElement.setText(name);
-    this._frontElement.x = Math.round((this._width - this._frontElement.width) / 2);
-    this._frontElement.alpha = 1.0;
-};
-
-/**
- * @class Header
- * @extends Graphics
- * @param {Object} layout
- * @constructor
- */
-App.Header = function Header(layout)
-{
-    PIXI.Graphics.call(this);
-
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        HeaderIcon = App.HeaderIcon,
-        HeaderAction = App.HeaderAction,
-        FontStyle = App.FontStyle,
-        r = layout.pixelRatio,
-        listenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
-
-    this._layout = layout;
-    this._iconSize = Math.round(50 * r);
-    this._leftIcon = new HeaderIcon(HeaderAction.ADD_TRANSACTION,this._iconSize,this._iconSize,r);
-    this._rightIcon = new HeaderIcon(HeaderAction.MENU,this._iconSize,this._iconSize,r);
-    this._title = new App.HeaderTitle("Cashius",this._layout.width-this._iconSize*2,this._iconSize,r,FontStyle.get(20,FontStyle.WHITE));
-    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-    this._tween = new App.TweenProxy(0.7,App.Easing.outExpo,0,listenerPool);
-    this._eventDispatcher = new App.EventDispatcher(listenerPool);
-    this._actionEnabled = true;
-
-    this._render();
-
-    this.addChild(this._leftIcon);
-    this.addChild(this._title);
-    this.addChild(this._rightIcon);
-
-    this._registerEventListeners();
-};
-
-App.Header.prototype = Object.create(PIXI.Graphics.prototype);
-App.Header.prototype.constructor = App.Header;
-
-/**
- * Render
- * @private
- */
-App.Header.prototype._render = function _render()
-{
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
-        r = this._layout.pixelRatio,
-        w = this._layout.width,
-        h = this._layout.headerHeight,
-        offset = h - this._iconSize,
-        padding = Math.round(10 * r);
-
-    this._title.x = this._iconSize;
-    this._rightIcon.x = w - this._iconSize;
-
-    GraphicUtils.drawRects(this,ColorTheme.BLUE,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this,ColorTheme.BLUE_LIGHT,1,[
-        this._iconSize+1,offset+padding,1,this._iconSize-padding*2,
-        w-this._iconSize,offset+padding,1,this._iconSize-padding*2
-    ],false,false);
-    GraphicUtils.drawRects(this,ColorTheme.BLUE_DARK,1,[
-        0,h-1,w,1,
-        this._iconSize,offset+padding,1,this._iconSize-padding*2,
-        w-this._iconSize-1,offset+padding,1,this._iconSize-padding*2
-    ],false,true);
-};
-
-/**
- * Register event listeners
- * @private
- */
-App.Header.prototype._registerEventListeners = function _registerEventListeners()
-{
-    var EventType = App.EventType;
-
-    App.ViewLocator.getViewSegment(App.ViewName.SCREEN_STACK).addEventListener(EventType.CHANGE,this,this._onScreenChange);
-
-    if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
-    else this.click = this._onClick;
-
-    this._tween.addEventListener(EventType.COMPLETE,this,this._onTweenComplete);
-
-    this.interactive = true;
-};
-
-/**
- * Enable actions
- */
-App.Header.prototype.enableActions = function enableActions()
-{
-    this._actionEnabled = true;
-};
-
-/**
- * Disable actions
- */
-App.Header.prototype.disableActions = function disableActions()
-{
-    this._actionEnabled = false;
-};
-
-/**
- * On screen change
- * @private
- */
-App.Header.prototype._onScreenChange = function _onScreenChange()
-{
-    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._tween.restart();
-};
-
-/**
- * Change
- * @param {number} leftAction
- * @param {number} rightAction
- * @param {string} name
- * @private
- */
-App.Header.prototype.change = function change(leftAction,rightAction,name)
-{
-    this._leftIcon.change(leftAction);
-    this._title.change(name);
-    this._rightIcon.change(rightAction);
-};
-
-/**
- * On RAF Tick
- * @private
- */
-App.Header.prototype._onTick = function _onTick()
-{
-    this._onTweenUpdate();
-};
-
-/**
- * On tween update
- * @private
- */
-App.Header.prototype._onTweenUpdate = function _onTweenUpdate()
-{
-    var progress = this._tween.progress;
-    //TODO offset each segment for effect
-    this._leftIcon.update(progress);
-    this._title.update(progress);
-    this._rightIcon.update(progress);
-};
-
-/**
- * On tween complete
- * @private
- */
-App.Header.prototype._onTweenComplete = function _onTweenComplete()
-{
-    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._onTweenUpdate();
-};
-
-/**
- * On click
- * @param {InteractionData} data
- * @private
- */
-App.Header.prototype._onClick = function _onClick(data)
-{
-    if (this._actionEnabled)
-    {
-        var position = data.getLocalPosition(this).x,
-            HeaderAction = App.HeaderAction,
-            action = HeaderAction.NONE;
-
-        if (position <= this._iconSize) action = this._leftIcon.getAction();
-        else if (position >= this._layout.width - this._iconSize) action = this._rightIcon.getAction();
-
-        if (action !== HeaderAction.NONE) this._eventDispatcher.dispatchEvent(App.EventType.CLICK,action);
-    }
-};
-
-/**
- * Add event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.Header.prototype.addEventListener = function addEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.addEventListener(eventType,scope,listener);
-};
-
-/**
- * Remove event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.Header.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.removeEventListener(eventType,scope,listener);
-};
-
 /**
  * @class ScrollIndicator
  * @extends Graphics
@@ -3536,7 +2689,6 @@ App.ScrollIndicator.prototype.destroy = function destroy()
 
     this.clear();
 };
-
 /**
  * @class Input
  * @extends Graphics
@@ -3945,370 +3097,67 @@ App.Input.prototype.hitTest = function hitTest(position)
 {
     return position >= this.y && position < this.y + this.boundingBox.height;
 };
-
 /**
- * @class TimeInput
- * @extends Input
- * @param {string} placeholder
- * @param {number} fontSize
- * @param {number} width
- * @param {number} height
- * @param {number} pixelRatio
- * @param {boolean} displayIcon
+ * ScreenMode
+ * @type {{DEFAULT: number, ADD: number, EDIT: number, SELECT: number}}
+ */
+App.ScreenMode = {
+    DEFAULT:1,
+    ADD:2,
+    EDIT:3,
+    SELECT:4
+};
+/**
+ * @class CurrencyPair
+ * @param {Array} data
+ * @param {Collection} collection
+ * @param {*} parent
+ * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.TimeInput = function TimeInput(placeholder,fontSize,width,height,pixelRatio,displayIcon)
+App.CurrencyPair = function CurrencyPair(data,collection,parent,eventListenerPool)
 {
-    App.Input.call(this,placeholder,fontSize,width,height,pixelRatio,displayIcon);
-
-    this._inputProxy = document.getElementById("timeInputProxy");
+    this.id = data[0];
+    this.base = data[1];
+    this.symbol = data[2];//quote symbol
+    this.rate = data[3];
 };
-
-App.TimeInput.prototype = Object.create(App.Input.prototype);
-App.TimeInput.prototype.constructor = App.TimeInput;
-
 /**
- * Render
- * @private
+ * ColorTheme
+ * @enum {number}
+ * @type {{
+ *      WHITE:number,
+ *      BLUE: number,
+ *      BLUE_DARK:number,
+ *      BLUE_LIGHT:number,
+ *      GREY: number,
+ *      GREY_DARK: number,
+ *      GREY_DARKER: number,
+ *      GREY_LIGHT: number,
+ *      RED:number,
+ *      RED_DARK:number,
+ *      RED_LIGHT:number,
+ *      GREEN:number,
+ *      INPUT_HIGHLIGHT:number,
+ *      BLACK:number
+ * }}
  */
-App.TimeInput.prototype._render = function _render()
-{
-    var r = this._pixelRatio;
-
-    this._renderBackground(false,r);
-
-    this._updateAlignment();
-
-    this._textField.y = Math.round(9 * r);
+App.ColorTheme = {
+    WHITE:0xfffffe,
+    BLUE:0x394264,
+    BLUE_DARK:0x252B44,
+    BLUE_LIGHT:0x50597B,
+    GREY:0xefefef,
+    GREY_DARK:0xcccccc,
+    GREY_DARKER:0x999999,
+    GREY_LIGHT:0xffffff,
+    RED:0xE53013,
+    RED_DARK:0x990000,
+    RED_LIGHT:0xFF3300,
+    GREEN:0x33CC33,
+    INPUT_HIGHLIGHT:0x0099ff,
+    BLACK:0x000000
 };
-
-/**
- * Update text
- * @param {boolean} [finish=false]
- * @private
- */
-App.TimeInput.prototype._updateText = function _updateText(finish)
-{
-    App.Input.prototype._updateText.call(this,finish);
-
-    this._updateAlignment();
-};
-
-/**
- * Format the text input
- * @param {boolean} [finish=false]
- * @private
- */
-App.TimeInput.prototype._format = function _format(finish)
-{
-    if (this._inputProxy.value.length === 0) return "";
-
-    var value = this._inputProxy.value.replace(/\D/g,""),
-        hours = value.substr(0,2),
-        minutes = value.substr(2,2);
-
-    if (hours.length === 2 && parseInt(hours,10) > 24) hours = "24";
-    else if (minutes.length === 1 && parseInt(minutes,10) > 5) minutes = "5";
-    else if (minutes.length >= 2 && parseInt(minutes,10) > 59) minutes = "59";
-
-    if (finish)
-    {
-        if (hours.length === 1) hours = "0" + hours;
-
-        if (minutes.length === 0) minutes += "00";
-        else if (minutes.length === 1) minutes += "0";
-    }
-
-    if (minutes.length > 0) value = hours + ":" + minutes;
-    else value = hours;
-
-    this._inputProxy.value = value;
-
-    return value;
-};
-
-/**
- * Update text's alignment
- * @private
- */
-App.TimeInput.prototype._updateAlignment = function _updateAlignment()
-{
-    this._textField.x = Math.round((this._width - this._textField.width) / 2);
-};
-
-/**
- * @class Button
- * @extend Graphics
- * @param {string} label
- * @param {{width:number,height:number,pixelRatio:number,style:Object,backgroundColor:number}} options
- * @constructor
- */
-App.Button = function Button(label,options)
-{
-    PIXI.Graphics.call(this);
-
-    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
-
-    this._pixelRatio = options.pixelRatio;
-    this._label = label;
-    this._style = options.style;
-    this._backgroundColor = options.backgroundColor;
-    this._labelField = new PIXI.Text(label,this._style);
-
-    this._render();
-
-    this.addChild(this._labelField);
-};
-
-App.Button.prototype = Object.create(PIXI.Graphics.prototype);
-App.Button.prototype.constructor = App.Button;
-
-/**
- * Render
- * @private
- */
-App.Button.prototype._render = function _render()
-{
-    var w = this.boundingBox.width,
-        h = this.boundingBox.height;
-
-    App.GraphicUtils.drawRoundedRect(this,this._backgroundColor,1,0,0,w,h,Math.round(5 * this._pixelRatio));
-
-    this._labelField.x = Math.round((w - this._labelField.width) / 2);
-    this._labelField.y = Math.round((h - this._labelField.height) / 2);
-};
-
-/**
- * Resize
- * @param {number} width
- * @param {number} height
- */
-App.Button.prototype.resize = function resize(width,height)
-{
-    this.boundingBox.width = width || this.boundingBox.width;
-    this.boundingBox.height = height || this.boundingBox.height;
-
-    this._render();
-};
-
-/**
- * Test if position passed in falls within this button bounds
- * @param {Point} position
- * @returns {boolean}
- */
-App.Button.prototype.hitTest = function hitTest(position)
-{
-    return position.x >= this.x && position.x < this.x + this.boundingBox.width && position.y >= this.y && position.y < this.y + this.boundingBox.height;
-};
-
-/**
- * @class CalendarWeekRow
- * @extend Graphics
- * @param {{font:string,fill:string}} weekTextStyle
- * @param {{font:string,fill:string}} weekSelectedStyle
- * @param {number} width
- * @param {number} pixelRatio
- * @constructor
- */
-App.CalendarWeekRow = function CalendarWeekRow(weekTextStyle,weekSelectedStyle,width,pixelRatio)
-{
-    PIXI.Graphics.call(this);
-
-    var FontStyle = App.FontStyle,
-        daysInWeek = 7,
-        Text = PIXI.Text,
-        index = 0,
-        i = 0;
-
-    this.boundingBox = new App.Rectangle(0,0,width,Math.round(40*pixelRatio));
-
-    this._week = null;
-    this._width = width;
-    this._pixelRatio = pixelRatio;
-
-    this._textStyle = weekTextStyle;
-    this._selectedStyle = weekSelectedStyle;
-    this._dateFields = new Array(7);
-    this._selectedDayIndex = -1;
-    this._highlightBackground = new PIXI.Graphics();
-
-    for (;i<daysInWeek;i++,index+=2) this._dateFields[i] = new Text("",this._textStyle);
-
-    this.addChild(this._highlightBackground);
-    for (i = 0;i<daysInWeek;) this.addChild(this._dateFields[i++]);
-};
-
-App.CalendarWeekRow.prototype = Object.create(PIXI.Graphics.prototype);
-App.CalendarWeekRow.prototype.constructor = App.CalendarWeekRow;
-
-/**
- * Render
- * @private
- */
-App.CalendarWeekRow.prototype._render = function _render()
-{
-    var ColorTheme = App.ColorTheme,
-        daysInWeek = this._week.length / 2,
-        cellWidth = Math.round(this._width / daysInWeek),
-        cellHeight = this.boundingBox.height,
-        textField = null,
-        otherBGStart = -1,
-        otherBGEnd = -1,
-        index = 0,
-        i = 0;
-
-    this.clear();
-    this.beginFill(ColorTheme.GREY_LIGHT);
-    this.drawRect(0,0,this._width,cellHeight);
-    this.beginFill(ColorTheme.GREY);
-
-    for (;i<daysInWeek;i++,index+=2)
-    {
-        textField = this._dateFields[i];
-        textField.x = Math.round((i * cellWidth) + (cellWidth - textField.width) / 2 + 1);
-        textField.y = Math.round((cellHeight - textField.height) / 2 + 1);
-
-        if (this._week[index+1])
-        {
-            if (otherBGStart === -1) otherBGStart = i;
-        }
-        else
-        {
-            if (otherBGEnd === -1 && otherBGStart > -1) otherBGEnd = i;
-            if (i) this.drawRect(Math.round(i * cellWidth),0,1,cellHeight);
-        }
-    }
-
-    // Highlight days from other months
-    if (otherBGStart > -1)
-    {
-        this.drawRect(
-            otherBGStart ? otherBGStart * cellWidth : 0,
-            0,
-            otherBGEnd === -1 ? this._width : otherBGEnd * cellWidth,
-            cellHeight);
-    }
-
-    this.endFill();
-
-    App.GraphicUtils.drawRect(this._highlightBackground,ColorTheme.BLUE,1,0,0,cellWidth-1,cellHeight);
-    this._highlightBackground.alpha = 0.0;
-};
-
-/**
- * Find and return day by date passed in
- * @param {number} day
- * @returns {{day:number,otherMonth:number,index:number}} position
- */
-App.CalendarWeekRow.prototype._getDayByDate = function _getDayByDate(day)
-{
-    var index = 0,
-        i = 0,
-        l = this._week.length / 2,
-        dayInWeek = -1;
-
-    for (;i<l;i++,index+=2)
-    {
-        dayInWeek = this._week[index];
-        if (dayInWeek === day) return {day:dayInWeek,otherMonth:this._week[index+1],index:i};
-    }
-    return null;
-};
-
-/**
- * Find and return day by position passed in
- * @param {number} position
- * @returns {{day:number,otherMonth:number,index:number}} position
- */
-App.CalendarWeekRow.prototype.getDayByPosition = function getDayByPosition(position)
-{
-    var index = 0,
-        i = 0,
-        l = this._week.length / 2,
-        cellWidth = Math.round(this._width / l);
-
-    for (;i<l;i++,index+=2)
-    {
-        if (position >= i * cellWidth && position <= i * cellWidth + cellWidth)
-        {
-            return {day:this._week[index],otherMonth:this._week[index+1],index:i};
-        }
-    }
-    return null;
-};
-
-/**
- * Select day
- * @param {{day:number,otherMonth:number,index:number}} day
- * @private
- */
-App.CalendarWeekRow.prototype._selectDay = function _selectDay(day)
-{
-    //TODO fade-in?
-    this._highlightBackground.x = day.index * Math.round(this._width / (this._week.length / 2)) + Math.round(this._pixelRatio);
-    this._highlightBackground.alpha = 1.0;
-
-    if (this._selectedDayIndex > -1) this._dateFields[this._selectedDayIndex].setStyle(this._textStyle);
-
-    this._selectedDayIndex = day.index;
-    this._dateFields[this._selectedDayIndex].setStyle(this._selectedStyle);
-};
-
-/**
- * Deselect day
- * @private
- */
-App.CalendarWeekRow.prototype._deselectDay = function _deselectDay()
-{
-    if (this._selectedDayIndex > -1)
-    {
-        this._dateFields[this._selectedDayIndex].setStyle(this._textStyle);
-
-        this._selectedDayIndex = -1;
-    }
-
-    //TODO fade-out?
-    this._highlightBackground.alpha = 0.0;
-};
-
-/**
- * Update selection
- * @param {number} date Day of a month to select
- */
-App.CalendarWeekRow.prototype.updateSelection = function updateSelection(date)
-{
-    var day = this._getDayByDate(date);
-
-    if (day && day.otherMonth === 0) this._selectDay(day);
-    else this._deselectDay();
-};
-
-/**
- * Change week
- * @param {Array.<Number>} week
- * @param {number} currentDay
- */
-App.CalendarWeekRow.prototype.change = function change(week,currentDay)
-{
-    this._week = week;
-
-    var daysInWeek = week.length / 2,
-        dayField = null,
-        index = 0,
-        i = 0;
-
-    for (;i<daysInWeek;i++,index+=2)
-    {
-        dayField = this._dateFields[i];
-        dayField.setText(week[index]);
-        dayField.setStyle(this._textStyle);
-    }
-
-    this._render();
-
-    if (currentDay > -1) this.updateSelection(currentDay);
-};
-
 /**
  * @class Calendar
  * @extend Graphic
@@ -4375,7 +3224,6 @@ App.Calendar.prototype._render = function _render()
         ColorTheme = App.ColorTheme,
         r = this._pixelRatio,
         w = this._width,
-        h = this.boundingBox.height,
         arrowResizeRatio = Math.round(12 * r) / this._prevButton.height,
         separatorPadding = Math.round(15 * r),
         separatorWidth = w - separatorPadding * 2,
@@ -4583,72 +3431,6 @@ App.Calendar.prototype._changeDate = function _changeDate(direction,selectDate)
 
     for (i = 0;i<weeksInMonth;i++) this._weekRows[i].change(month[i],selectedDate);
 };
-
-/**
- * @class Radio
- * @param {number} pixelRatio
- * @param {boolean} selected
- * @constructor
- */
-App.Radio = function Radio(pixelRatio,selected)
-{
-    PIXI.Graphics.call(this);
-
-    this._selected = selected;
-    this._size = Math.round(20 * pixelRatio);
-    this._pixelRatio = pixelRatio;
-    this._check = new PIXI.Graphics();
-
-    this.boundingBox = new App.Rectangle(0,0,this._size,this._size);
-
-    this._render();
-
-    this._check.alpha = selected ? 1.0 : 0.0;
-
-    this.addChild(this._check);
-};
-
-App.Radio.prototype = Object.create(PIXI.Graphics.prototype);
-App.Radio.prototype.constructor = App.Radio;
-
-/**
- * Render
- * @private
- */
-App.Radio.prototype._render = function _render()
-{
-    var drawArc = App.GraphicUtils.drawArc,
-        ColorTheme = App.ColorTheme,
-        size = this._size,
-        center = new PIXI.Point(Math.round(size/2),Math.round(size/2));
-
-    drawArc(this,center,size,size,Math.round(2*this._pixelRatio),0,360,20,0,0,0,ColorTheme.GREY,1);
-
-    size -= Math.round(8*this._pixelRatio);
-
-    drawArc(this._check,center,size,size,Math.round(6*this._pixelRatio),0,360,20,0,0,0,ColorTheme.BLUE,1);
-};
-
-/**
- * Select
- */
-App.Radio.prototype.select = function select()
-{
-    this._selected = true;
-
-    this._check.alpha = 1.0;
-};
-
-/**
- * Select
- */
-App.Radio.prototype.deselect = function deselect()
-{
-    this._selected = false;
-
-    this._check.alpha = 0.0;
-};
-
 /**
  * @class Pane
  * @extends {DisplayObjectContainer}
@@ -5337,7 +4119,1046 @@ App.Pane.prototype._checkPosition = function _checkPosition()
         if (this._content.y !== 0) this._updateY(0);
     }
 };
+/**
+ * Difference between VirtualList and InfiniteList is, that VirtualList doesn't repeat its items infinitely; it just scroll from first model to last.
+ * Also, if there are less models than items items would fill, then VirtualList will not fill whole size and will not scroll
+ *
+ * @class VirtualList
+ * @extends DisplayObjectContainer
+ * @param {App.ObjectPool} itemPool
+ * @param {string} direction
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.VirtualList = function VirtualList(itemPool,direction,width,height,pixelRatio)
+{
+    PIXI.DisplayObjectContainer.call(this);
 
+    var item = itemPool.allocate(),
+        itemSize = direction === App.Direction.X ? item.boundingBox.width : item.boundingBox.height;
+
+    this.boundingBox = new PIXI.Rectangle(0,0,width,height);
+
+    this._model = null;
+    this._itemPool = itemPool;
+    this._direction = direction;
+    this._width = width;
+    this._height = height;
+    this._pixelRatio = pixelRatio;
+    this._items = [];
+    this._itemSize = itemSize;
+    this._virtualX = 0;
+    this._virtualY = 0;
+
+    itemPool.release(item);
+};
+
+App.VirtualList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.VirtualList.prototype.constructor = App.VirtualList;
+
+/**
+ * Find and select item under point passed in
+ * @param {InteractionData} pointerData
+ */
+App.VirtualList.prototype.getItemUnderPoint = function getItemUnderPoint(pointerData)
+{
+    var position = pointerData.getLocalPosition(this).x,
+        Direction = App.Direction,
+        i = 0,
+        l = this._items.length,
+        size = 0,
+        itemPosition = 0,
+        item = null;
+
+    if (this._direction === Direction.X)
+    {
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            itemPosition = item.x;
+            size = item.boundingBox.width;
+            if (itemPosition <= position && itemPosition + size >= position)
+            {
+                return item;
+            }
+        }
+    }
+    else if (this._direction === Direction.Y)
+    {
+        position = pointerData.getLocalPosition(this).y;
+
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            itemPosition = item.y;
+            size = item.boundingBox.height;
+            if (itemPosition <= position && itemPosition + size >= position)
+            {
+                return item;
+            }
+        }
+    }
+
+    return null;
+};
+
+/**
+ * Update X position
+ * @param {number} position
+ * @private
+ */
+App.VirtualList.prototype.updateX = function updateX(position)
+{
+    position = Math.round(position);
+
+    var i = 0,
+        l = this._items.length,
+        positionDifference = position - this._virtualX,
+        virtualIndex = Math.floor(position / this._itemSize),
+        itemScreenIndex = 0,
+        xIndex = 0,
+        modelIndex = 0,
+        modelLength = this._model.length,
+        maxEnd = l - 2,
+        maxBeginning = modelLength - l,
+        moveToEnd = false,
+        moveToBeginning = false,
+        itemX = 0,
+        item = null;
+
+    this._virtualX = position;
+
+    for (;i<l;)
+    {
+        item = this._items[i++];
+        itemX = item.x + positionDifference;
+        moveToBeginning = itemX > this._width && positionDifference > 0;
+        moveToEnd = itemX + this._itemSize < 0 && positionDifference < 0;
+
+        if (moveToBeginning || moveToEnd)
+        {
+            itemScreenIndex = -Math.floor(itemX / this._width);
+            itemX += itemScreenIndex * l * this._itemSize;
+            xIndex = Math.floor(itemX / this._itemSize);
+
+            if (virtualIndex >= 0) modelIndex = (xIndex - (virtualIndex % modelLength)) % modelLength;
+            else modelIndex = (xIndex - virtualIndex) % modelLength;
+            if (modelIndex < 0) modelIndex = modelLength + modelIndex;
+            else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
+
+            if ((moveToEnd && modelIndex > maxEnd) || (moveToBeginning && modelIndex < maxBeginning))
+            {
+                item.setModel(this._model[modelIndex]);
+            }
+            else
+            {
+                itemX = item.x + positionDifference;
+            }
+        }
+
+        item.x = itemX;
+    }
+};
+
+/**
+ * Update Y position
+ * @param {number} position
+ * @private
+ */
+App.VirtualList.prototype.updateY = function updateY(position)
+{
+    position = Math.round(position);
+
+    var i = 0,
+        l = this._items.length,
+        positionDifference = position - this._virtualY,
+        virtualIndex = Math.floor(position / this._itemSize),
+        itemScreenIndex = 0,
+        yIndex = 0,
+        modelIndex = 0,
+        modelLength = this._model.length,
+        maxEnd = l - 2,
+        maxBeginning = modelLength - l,
+        moveToEnd = false,
+        moveToBeginning = false,
+        itemY = 0,
+        item = null;
+
+    this._virtualY = position;
+
+    for (;i<l;)
+    {
+        item = this._items[i++];
+        itemY = item.y + positionDifference;
+        moveToBeginning = itemY > this._height && positionDifference > 0;
+        moveToEnd = itemY + this._itemSize < 0 && positionDifference < 0;
+
+        if (moveToBeginning || moveToEnd)
+        {
+            itemScreenIndex = -Math.floor(itemY / this._height);
+            itemY += itemScreenIndex * l * this._itemSize;
+            yIndex = Math.floor(itemY / this._itemSize);
+
+            if (virtualIndex >= 0) modelIndex = (yIndex - (virtualIndex % modelLength)) % modelLength;
+            else modelIndex = (yIndex - virtualIndex) % modelLength;
+            if (modelIndex < 0) modelIndex = modelLength + modelIndex;
+            else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
+
+            if ((moveToEnd && modelIndex > maxEnd) || (moveToBeginning && modelIndex < maxBeginning))
+            {
+                item.setModel(this._model[modelIndex]);
+            }
+            else
+            {
+                itemY = item.y + positionDifference;
+            }
+        }
+
+        item.y = itemY;
+    }
+};
+
+/**
+ * Reset scroll position
+ */
+App.VirtualList.prototype.reset = function reset()
+{
+    var Direction = App.Direction,
+        position = 0,
+        item = null,
+        i = 0,
+        l = this._items.length;
+
+    if (this._direction === Direction.X)
+    {
+        for (;i<l;i++)
+        {
+            item = this._items[i];
+            item.x = position;
+            item.setModel(this._model[i]);
+            position = Math.round(position + this._itemSize);
+        }
+    }
+    else if (this._direction === Direction.Y)
+    {
+        for (;i<l;i++)
+        {
+            item = this._items[i];
+            item.y = position;
+            item.setModel(this._model[i]);
+            position = Math.round(position + this._itemSize);
+        }
+    }
+};
+
+/**
+ * Update
+ * @param {Array.<App.transaction>} model
+ */
+App.VirtualList.prototype.update = function update(model)
+{
+    this._model = model;
+
+    var Direction = App.Direction,
+        itemCount = Math.ceil(this._width / this._itemSize) + 1,
+        listSize = this._model.length * this._itemSize,
+        item = null,
+        position = 0,
+        l = this._items.length,
+        i = 0;
+
+    this.boundingBox.width = listSize;
+    this.boundingBox.height = this._height;
+
+    // Reset scroll
+    this._virtualX = 0;
+    this._virtualY = 0;
+
+    // Remove items
+    for (;i<l;i++)
+    {
+        this._itemPool.release(this.removeChild(this._items[i]));
+        this._items[i] = null;
+    }
+    this._items.length = 0;
+
+    // And add items again, according to model
+    if (this._direction === Direction.X)
+    {
+        if (itemCount > this._model.length) itemCount = this._model.length;
+
+        for (i=0,l=itemCount;i<l;i++)
+        {
+            item = this._itemPool.allocate();
+            item.x = position;
+            item.setModel(this._model[i]);
+            this._items.push(item);
+            this.addChild(item);
+            position = Math.round(position + this._itemSize);
+        }
+    }
+    else if (this._direction === Direction.Y)
+    {
+        itemCount = Math.ceil(this._height / this._itemSize) + 1;
+        this.boundingBox.width = this._width;
+        this.boundingBox.height = listSize;
+
+        if (itemCount > this._model.length) itemCount = this._model.length;
+
+        for (i=0,l=itemCount;i<l;i++)
+        {
+            item = this._itemPool.allocate();
+            item.y = position;
+            item.setModel(this._model[i]);
+            this._items.push(item);
+            this.addChild(item);
+            position = Math.round(position + this._itemSize);
+        }
+    }
+};
+
+/**
+ * Update layout
+ * @param {boolean} [updatePosition=false]
+ * @private
+ */
+App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
+{
+    var i = 0,
+        l = this._items.length,
+        item = null,
+        position = 0,
+        Direction = App.Direction;
+
+    if (this._direction === Direction.X)
+    {
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            item.x = position;
+            position = Math.round(position + this._itemSize);
+        }
+
+        if (updatePosition) this.updateX(this.x);
+    }
+    else if (this._direction === Direction.Y)
+    {
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            item.y = position;
+            position = Math.round(position + this._itemSize);
+        }
+
+        if (updatePosition) this.updateY(this.y);
+    }
+};
+
+/**
+ * Return virtual property instead of real one
+ *
+ * @property x
+ * @type Number
+ */
+Object.defineProperty(App.VirtualList.prototype,'x',{
+    get: function() {
+        return  this._virtualX;
+    }
+});
+
+/**
+ * Return virtual property instead of real one
+ *
+ * @property y
+ * @type Number
+ */
+Object.defineProperty(App.VirtualList.prototype,'y',{
+    get: function() {
+        return  this._virtualY;
+    }
+});
+/**
+ * @class CurrencySymbol
+ * @param {string} symbol
+ * @constructor
+ */
+App.CurrencySymbol = function CurrencySymbol(symbol)
+{
+    this.symbol = symbol;
+};
+/**
+ * @class Skin
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.Skin = function Skin(width,pixelRatio)
+{
+    var ColorTheme = App.ColorTheme,
+        defaultScaleMode = PIXI.scaleModes.DEFAULT,
+        padding = Math.round(10 * pixelRatio),
+        graphics = new PIXI.Graphics(),
+        w = width - padding * 2,
+        h = Math.round(40 * pixelRatio),
+        draw = App.GraphicUtils.drawRects,
+        color = ColorTheme.GREY,
+        lightColor = ColorTheme.GREY_LIGHT,
+        darkColor = ColorTheme.GREY_DARK;
+
+    draw(graphics,color,1,[0,0,width,h],true,false);
+    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
+    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
+
+    this.GREY_40 = graphics.generateTexture(1,defaultScaleMode);
+
+    draw(graphics,ColorTheme.WHITE,1,[0,0,width,h],true,false);
+    draw(graphics,color,1,[padding,h-1,w,1],false,true);
+
+    this.WHITE_40 = graphics.generateTexture(1,defaultScaleMode);
+
+    h = Math.round(50 * pixelRatio);
+
+    draw(graphics,color,1,[0,0,width,h],true,false);
+    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
+    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
+
+    this.GREY_50 = graphics.generateTexture(1,defaultScaleMode);
+
+    h = Math.round(60 * pixelRatio);
+
+    draw(graphics,color,1,[0,0,width,h],true,false);
+    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
+    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
+
+    this.GREY_60 = graphics.generateTexture(1,defaultScaleMode);
+
+    h = Math.round(70 * pixelRatio);
+
+    draw(graphics,color,1,[0,0,width,h],true,false);
+    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
+    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
+
+    this.GREY_70 = graphics.generateTexture(1,defaultScaleMode);
+
+    draw(graphics,ColorTheme.RED,1,[0,0,width,h],true,false);
+    draw(graphics,ColorTheme.RED_LIGHT,1,[padding,0,w,1],false,false);
+    draw(graphics,ColorTheme.RED_DARK,1,[padding,h-1,w,1],false,true);
+
+    this.RED_70 = graphics.generateTexture(1,defaultScaleMode);
+
+    w = Math.round(40 * pixelRatio);
+    h = w;
+
+    /*graphics.clear();
+    graphics.beginFill(ColorTheme.BLUE_DARK,1.0);
+    graphics.drawRect(0,0,w,h);
+    graphics.beginFill(ColorTheme.BLUE_LIGHT,1.0);
+    graphics.drawRect(0,h/2,w/2,h/2);
+    graphics.beginFill(ColorTheme.BLUE,1.0);
+    graphics.drawShape(new PIXI.Polygon([0,0,w,0,w,h,0,0]));
+    graphics.endFill();
+
+    this.BLUE_PATTERN = graphics.generateTexture(1,defaultScaleMode);*/
+
+    graphics.clear();
+    graphics.beginFill(ColorTheme.GREY_DARK,1.0);
+    graphics.drawRect(0,0,w,h);
+    graphics.beginFill(ColorTheme.GREY,1.0);
+    graphics.drawRect(0,h/2,w/2,h/2);
+    graphics.beginFill(0xdedede,1.0);
+    graphics.drawShape(new PIXI.Polygon([0,0,w,0,w,h,0,0]));
+    graphics.endFill();
+
+    this.GREY_PATTERN = graphics.generateTexture(1,defaultScaleMode);
+
+    w = width - padding * 4;
+    h = Math.round(40 * pixelRatio);
+
+    draw(graphics,color,1,[0,0,width,h],true,false);
+    draw(graphics,lightColor,1,[padding,0,w,1],false,false);
+    draw(graphics,darkColor,1,[padding,h-1,w,1],false,true);
+
+    this.NARROW_GREY_40 = graphics.generateTexture(1,defaultScaleMode);
+
+    draw(graphics,ColorTheme.WHITE,1,[0,0,width,h],true,false);
+    draw(graphics,color,1,[padding,h-1,w,1],false,true);
+
+    this.NARROW_WHITE_40 = graphics.generateTexture(1,defaultScaleMode);
+};
+/**
+ * @class CalendarWeekRow
+ * @extend Graphics
+ * @param {{font:string,fill:string}} weekTextStyle
+ * @param {{font:string,fill:string}} weekSelectedStyle
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.CalendarWeekRow = function CalendarWeekRow(weekTextStyle,weekSelectedStyle,width,pixelRatio)
+{
+    PIXI.Graphics.call(this);
+
+    var daysInWeek = 7,
+        Text = PIXI.Text,
+        index = 0,
+        i = 0;
+
+    this.boundingBox = new App.Rectangle(0,0,width,Math.round(40*pixelRatio));
+
+    this._week = null;
+    this._width = width;
+    this._pixelRatio = pixelRatio;
+
+    this._textStyle = weekTextStyle;
+    this._selectedStyle = weekSelectedStyle;
+    this._dateFields = new Array(7);
+    this._selectedDayIndex = -1;
+    this._highlightBackground = new PIXI.Graphics();
+
+    for (;i<daysInWeek;i++,index+=2) this._dateFields[i] = new Text("",this._textStyle);
+
+    this.addChild(this._highlightBackground);
+    for (i = 0;i<daysInWeek;) this.addChild(this._dateFields[i++]);
+};
+
+App.CalendarWeekRow.prototype = Object.create(PIXI.Graphics.prototype);
+App.CalendarWeekRow.prototype.constructor = App.CalendarWeekRow;
+
+/**
+ * Render
+ * @private
+ */
+App.CalendarWeekRow.prototype._render = function _render()
+{
+    var ColorTheme = App.ColorTheme,
+        daysInWeek = this._week.length / 2,
+        cellWidth = Math.round(this._width / daysInWeek),
+        cellHeight = this.boundingBox.height,
+        textField = null,
+        otherBGStart = -1,
+        otherBGEnd = -1,
+        index = 0,
+        i = 0;
+
+    this.clear();
+    this.beginFill(ColorTheme.GREY_LIGHT);
+    this.drawRect(0,0,this._width,cellHeight);
+    this.beginFill(ColorTheme.GREY);
+
+    for (;i<daysInWeek;i++,index+=2)
+    {
+        textField = this._dateFields[i];
+        textField.x = Math.round((i * cellWidth) + (cellWidth - textField.width) / 2 + 1);
+        textField.y = Math.round((cellHeight - textField.height) / 2 + 1);
+
+        if (this._week[index+1])
+        {
+            if (otherBGStart === -1) otherBGStart = i;
+        }
+        else
+        {
+            if (otherBGEnd === -1 && otherBGStart > -1) otherBGEnd = i;
+            if (i) this.drawRect(Math.round(i * cellWidth),0,1,cellHeight);
+        }
+    }
+
+    // Highlight days from other months
+    if (otherBGStart > -1)
+    {
+        this.drawRect(
+            otherBGStart ? otherBGStart * cellWidth : 0,
+            0,
+            otherBGEnd === -1 ? this._width : otherBGEnd * cellWidth,
+            cellHeight);
+    }
+
+    this.endFill();
+
+    App.GraphicUtils.drawRect(this._highlightBackground,ColorTheme.BLUE,1,0,0,cellWidth-1,cellHeight);
+    this._highlightBackground.alpha = 0.0;
+};
+
+/**
+ * Find and return day by date passed in
+ * @param {number} day
+ * @returns {{day:number,otherMonth:number,index:number}} position
+ */
+App.CalendarWeekRow.prototype._getDayByDate = function _getDayByDate(day)
+{
+    var index = 0,
+        i = 0,
+        l = this._week.length / 2,
+        dayInWeek = -1;
+
+    for (;i<l;i++,index+=2)
+    {
+        dayInWeek = this._week[index];
+        if (dayInWeek === day) return {day:dayInWeek,otherMonth:this._week[index+1],index:i};
+    }
+    return null;
+};
+
+/**
+ * Find and return day by position passed in
+ * @param {number} position
+ * @returns {{day:number,otherMonth:number,index:number}} position
+ */
+App.CalendarWeekRow.prototype.getDayByPosition = function getDayByPosition(position)
+{
+    var index = 0,
+        i = 0,
+        l = this._week.length / 2,
+        cellWidth = Math.round(this._width / l);
+
+    for (;i<l;i++,index+=2)
+    {
+        if (position >= i * cellWidth && position <= i * cellWidth + cellWidth)
+        {
+            return {day:this._week[index],otherMonth:this._week[index+1],index:i};
+        }
+    }
+    return null;
+};
+
+/**
+ * Select day
+ * @param {{day:number,otherMonth:number,index:number}} day
+ * @private
+ */
+App.CalendarWeekRow.prototype._selectDay = function _selectDay(day)
+{
+    //TODO fade-in?
+    this._highlightBackground.x = day.index * Math.round(this._width / (this._week.length / 2)) + Math.round(this._pixelRatio);
+    this._highlightBackground.alpha = 1.0;
+
+    if (this._selectedDayIndex > -1) this._dateFields[this._selectedDayIndex].setStyle(this._textStyle);
+
+    this._selectedDayIndex = day.index;
+    this._dateFields[this._selectedDayIndex].setStyle(this._selectedStyle);
+};
+
+/**
+ * Deselect day
+ * @private
+ */
+App.CalendarWeekRow.prototype._deselectDay = function _deselectDay()
+{
+    if (this._selectedDayIndex > -1)
+    {
+        this._dateFields[this._selectedDayIndex].setStyle(this._textStyle);
+
+        this._selectedDayIndex = -1;
+    }
+
+    //TODO fade-out?
+    this._highlightBackground.alpha = 0.0;
+};
+
+/**
+ * Update selection
+ * @param {number} date Day of a month to select
+ */
+App.CalendarWeekRow.prototype.updateSelection = function updateSelection(date)
+{
+    var day = this._getDayByDate(date);
+
+    if (day && day.otherMonth === 0) this._selectDay(day);
+    else this._deselectDay();
+};
+
+/**
+ * Change week
+ * @param {Array.<Number>} week
+ * @param {number} currentDay
+ */
+App.CalendarWeekRow.prototype.change = function change(week,currentDay)
+{
+    this._week = week;
+
+    var daysInWeek = week.length / 2,
+        dayField = null,
+        index = 0,
+        i = 0;
+
+    for (;i<daysInWeek;i++,index+=2)
+    {
+        dayField = this._dateFields[i];
+        dayField.setText(week[index]);
+        dayField.setStyle(this._textStyle);
+    }
+
+    this._render();
+
+    if (currentDay > -1) this.updateSelection(currentDay);
+};
+/**
+ * @class FontStyle
+ * @type {{init: Function, get: Function, WHITE: string, BLUE: string, BLUE_LIGHT: string, BLUE_DARK: string, GREY: string, GREY_DARK: string, GREY_DARKER: string,BLACK_LIGHT:string, RED_DARK: string}}
+ */
+App.FontStyle = {
+    /**
+     * @private
+     */
+    _pixelRatio:1,
+    _styles:[],
+    /**
+     * Init
+     * @param {number} pixelRatio
+     */
+    init:function init(pixelRatio)
+    {
+        this._pixelRatio = pixelRatio;
+
+        return this;
+    },
+
+    /**
+     * Construct and return font style object
+     * @param {number} fontSize
+     * @param {string} color
+     * @param {string} [align=null]
+     * @param {string} [font=null]
+     * @returns {{font: string, fill: string}}
+     */
+    get:function get(fontSize,color,align,font)
+    {
+        var i = 0,
+            l = this._styles.length,
+            style = null;
+
+        font = font || this.CONDENSED;
+
+        for (;i<l;)
+        {
+            style = this._styles[i++];
+            if (style.fontSize === fontSize && style.fill === color && style.fontName === font)
+            {
+                if (align)
+                {
+                    if (style.align === align)
+                    {
+                        return style;
+                    }
+                }
+                else
+                {
+                    return style;
+                }
+            }
+        }
+
+        style = {fontSize:fontSize,font:Math.round(fontSize * this._pixelRatio)+"px "+font,fill:color,align:align ? align : "left",fontName:font};
+        this._styles.push(style);
+
+        return style;
+    },
+
+    CONDENSED:"HelveticaNeueCond",
+    LIGHT_CONDENSED:"HelveticaNeueLightCond",
+
+    WHITE:"#ffffff",
+    BLUE:"#394264",
+    BLUE_LIGHT:"#50597B",
+    BLUE_DARK:"#252B44",
+    GREY:"#efefef",
+    GREY_DARK:"#cccccc",
+    GREY_DARKER:"#999999",
+    BLACK_LIGHT:"#333333",
+    RED_DARK:"#990000"
+};
+/**
+ * @class TimeInput
+ * @extends Input
+ * @param {string} placeholder
+ * @param {number} fontSize
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @param {boolean} displayIcon
+ * @constructor
+ */
+App.TimeInput = function TimeInput(placeholder,fontSize,width,height,pixelRatio,displayIcon)
+{
+    App.Input.call(this,placeholder,fontSize,width,height,pixelRatio,displayIcon);
+
+    this._inputProxy = document.getElementById("timeInputProxy");
+};
+
+App.TimeInput.prototype = Object.create(App.Input.prototype);
+App.TimeInput.prototype.constructor = App.TimeInput;
+
+/**
+ * Render
+ * @private
+ */
+App.TimeInput.prototype._render = function _render()
+{
+    var r = this._pixelRatio;
+
+    this._renderBackground(false,r);
+
+    this._updateAlignment();
+
+    this._textField.y = Math.round(9 * r);
+};
+
+/**
+ * Update text
+ * @param {boolean} [finish=false]
+ * @private
+ */
+App.TimeInput.prototype._updateText = function _updateText(finish)
+{
+    App.Input.prototype._updateText.call(this,finish);
+
+    this._updateAlignment();
+};
+
+/**
+ * Format the text input
+ * @param {boolean} [finish=false]
+ * @private
+ */
+App.TimeInput.prototype._format = function _format(finish)
+{
+    if (this._inputProxy.value.length === 0) return "";
+
+    var value = this._inputProxy.value.replace(/\D/g,""),
+        hours = value.substr(0,2),
+        minutes = value.substr(2,2);
+
+    if (hours.length === 2 && parseInt(hours,10) > 24) hours = "24";
+    else if (minutes.length === 1 && parseInt(minutes,10) > 5) minutes = "5";
+    else if (minutes.length >= 2 && parseInt(minutes,10) > 59) minutes = "59";
+
+    if (finish)
+    {
+        if (hours.length === 1) hours = "0" + hours;
+
+        if (minutes.length === 0) minutes += "00";
+        else if (minutes.length === 1) minutes += "0";
+    }
+
+    if (minutes.length > 0) value = hours + ":" + minutes;
+    else value = hours;
+
+    this._inputProxy.value = value;
+
+    return value;
+};
+
+/**
+ * Update text's alignment
+ * @private
+ */
+App.TimeInput.prototype._updateAlignment = function _updateAlignment()
+{
+    this._textField.x = Math.round((this._width - this._textField.width) / 2);
+};
+/**
+ * @class Header
+ * @extends Graphics
+ * @param {Object} layout
+ * @constructor
+ */
+App.Header = function Header(layout)
+{
+    PIXI.Graphics.call(this);
+
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        HeaderIcon = App.HeaderIcon,
+        HeaderAction = App.HeaderAction,
+        FontStyle = App.FontStyle,
+        r = layout.pixelRatio,
+        listenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
+
+    this._layout = layout;
+    this._iconSize = Math.round(50 * r);
+    this._leftIcon = new HeaderIcon(HeaderAction.ADD_TRANSACTION,this._iconSize,this._iconSize,r);
+    this._rightIcon = new HeaderIcon(HeaderAction.MENU,this._iconSize,this._iconSize,r);
+    this._title = new App.HeaderTitle("Cashius",this._layout.width-this._iconSize*2,this._iconSize,r,FontStyle.get(20,FontStyle.WHITE));
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._tween = new App.TweenProxy(0.7,App.Easing.outExpo,0,listenerPool);
+    this._eventDispatcher = new App.EventDispatcher(listenerPool);
+    this._actionEnabled = true;
+
+    this._render();
+
+    this.addChild(this._leftIcon);
+    this.addChild(this._title);
+    this.addChild(this._rightIcon);
+
+    this._registerEventListeners();
+};
+
+App.Header.prototype = Object.create(PIXI.Graphics.prototype);
+App.Header.prototype.constructor = App.Header;
+
+/**
+ * Render
+ * @private
+ */
+App.Header.prototype._render = function _render()
+{
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        r = this._layout.pixelRatio,
+        w = this._layout.width,
+        h = this._layout.headerHeight,
+        offset = h - this._iconSize,
+        padding = Math.round(10 * r);
+
+    this._title.x = this._iconSize;
+    this._rightIcon.x = w - this._iconSize;
+
+    GraphicUtils.drawRects(this,ColorTheme.BLUE,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this,ColorTheme.BLUE_LIGHT,1,[
+        this._iconSize+1,offset+padding,1,this._iconSize-padding*2,
+        w-this._iconSize,offset+padding,1,this._iconSize-padding*2
+    ],false,false);
+    GraphicUtils.drawRects(this,ColorTheme.BLUE_DARK,1,[
+        0,h-1,w,1,
+        this._iconSize,offset+padding,1,this._iconSize-padding*2,
+        w-this._iconSize-1,offset+padding,1,this._iconSize-padding*2
+    ],false,true);
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.Header.prototype._registerEventListeners = function _registerEventListeners()
+{
+    var EventType = App.EventType;
+
+    App.ViewLocator.getViewSegment(App.ViewName.SCREEN_STACK).addEventListener(EventType.CHANGE,this,this._onScreenChange);
+
+    if (App.Device.TOUCH_SUPPORTED) this.tap = this._onClick;
+    else this.click = this._onClick;
+
+    this._tween.addEventListener(EventType.COMPLETE,this,this._onTweenComplete);
+
+    this.interactive = true;
+};
+
+/**
+ * Enable actions
+ */
+App.Header.prototype.enableActions = function enableActions()
+{
+    this._actionEnabled = true;
+};
+
+/**
+ * Disable actions
+ */
+App.Header.prototype.disableActions = function disableActions()
+{
+    this._actionEnabled = false;
+};
+
+/**
+ * On screen change
+ * @private
+ */
+App.Header.prototype._onScreenChange = function _onScreenChange()
+{
+    this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._tween.restart();
+};
+
+/**
+ * Change
+ * @param {number} leftAction
+ * @param {number} rightAction
+ * @param {string} name
+ * @private
+ */
+App.Header.prototype.change = function change(leftAction,rightAction,name)
+{
+    this._leftIcon.change(leftAction);
+    this._title.change(name);
+    this._rightIcon.change(rightAction);
+};
+
+/**
+ * On RAF Tick
+ * @private
+ */
+App.Header.prototype._onTick = function _onTick()
+{
+    this._onTweenUpdate();
+};
+
+/**
+ * On tween update
+ * @private
+ */
+App.Header.prototype._onTweenUpdate = function _onTweenUpdate()
+{
+    var progress = this._tween.progress;
+    //TODO offset each segment for effect
+    this._leftIcon.update(progress);
+    this._title.update(progress);
+    this._rightIcon.update(progress);
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.Header.prototype._onTweenComplete = function _onTweenComplete()
+{
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._onTweenUpdate();
+};
+
+/**
+ * On click
+ * @param {InteractionData} data
+ * @private
+ */
+App.Header.prototype._onClick = function _onClick(data)
+{
+    if (this._actionEnabled)
+    {
+        var position = data.getLocalPosition(this).x,
+            HeaderAction = App.HeaderAction,
+            action = HeaderAction.NONE;
+
+        if (position <= this._iconSize) action = this._leftIcon.getAction();
+        else if (position >= this._layout.width - this._iconSize) action = this._rightIcon.getAction();
+
+        if (action !== HeaderAction.NONE) this._eventDispatcher.dispatchEvent(App.EventType.CLICK,action);
+    }
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Header.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Header.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
+};
 /**
  * @class InfiniteList
  * @extends DisplayObjectContainer
@@ -5781,1494 +5602,6 @@ App.InfiniteList.prototype.hitTest = function hitTest(position)
 {
     return position >= this.y && position < this.y + this.boundingBox.height;
 };
-
-/**
- * Difference between VirtualList and InfiniteList is, that VirtualList doesn't repeat its items infinitely; it just scroll from first model to last.
- * Also, if there are less models than items items would fill, then VirtualList will not fill whole size and will not scroll
- *
- * @class VirtualList
- * @extends DisplayObjectContainer
- * @param {App.ObjectPool} itemPool
- * @param {string} direction
- * @param {number} width
- * @param {number} height
- * @param {number} pixelRatio
- * @constructor
- */
-App.VirtualList = function VirtualList(itemPool,direction,width,height,pixelRatio)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    var item = itemPool.allocate(),
-        itemSize = direction === App.Direction.X ? item.boundingBox.width : item.boundingBox.height;
-
-    this.boundingBox = new PIXI.Rectangle(0,0,width,height);
-
-    this._model = null;
-    this._itemPool = itemPool;
-    this._direction = direction;
-    this._width = width;
-    this._height = height;
-    this._pixelRatio = pixelRatio;
-    this._items = [];
-    this._itemSize = itemSize;
-    this._virtualX = 0;
-    this._virtualY = 0;
-
-    itemPool.release(item);
-};
-
-App.VirtualList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.VirtualList.prototype.constructor = App.VirtualList;
-
-/**
- * Find and select item under point passed in
- * @param {InteractionData} pointerData
- */
-App.VirtualList.prototype.getItemUnderPoint = function getItemUnderPoint(pointerData)
-{
-    var position = pointerData.getLocalPosition(this).x,
-        Direction = App.Direction,
-        i = 0,
-        l = this._items.length,
-        size = 0,
-        itemPosition = 0,
-        item = null;
-
-    if (this._direction === Direction.X)
-    {
-        for (;i<l;)
-        {
-            item = this._items[i++];
-            itemPosition = item.x;
-            size = item.boundingBox.width;
-            if (itemPosition <= position && itemPosition + size >= position)
-            {
-                return item;
-            }
-        }
-    }
-    else if (this._direction === Direction.Y)
-    {
-        position = pointerData.getLocalPosition(this).y;
-
-        for (;i<l;)
-        {
-            item = this._items[i++];
-            itemPosition = item.y;
-            size = item.boundingBox.height;
-            if (itemPosition <= position && itemPosition + size >= position)
-            {
-                return item;
-            }
-        }
-    }
-
-    return null;
-};
-
-/**
- * Update X position
- * @param {number} position
- * @private
- */
-App.VirtualList.prototype.updateX = function updateX(position)
-{
-    position = Math.round(position);
-
-    var i = 0,
-        l = this._items.length,
-        positionDifference = position - this._virtualX,
-        virtualIndex = Math.floor(position / this._itemSize),
-        itemScreenIndex = 0,
-        xIndex = 0,
-        modelIndex = 0,
-        modelLength = this._model.length,
-        maxEnd = l - 2,
-        maxBeginning = modelLength - l,
-        moveToEnd = false,
-        moveToBeginning = false,
-        itemX = 0,
-        item = null;
-
-    this._virtualX = position;
-
-    for (;i<l;)
-    {
-        item = this._items[i++];
-        itemX = item.x + positionDifference;
-        moveToBeginning = itemX > this._width && positionDifference > 0;
-        moveToEnd = itemX + this._itemSize < 0 && positionDifference < 0;
-
-        if (moveToBeginning || moveToEnd)
-        {
-            itemScreenIndex = -Math.floor(itemX / this._width);
-            itemX += itemScreenIndex * l * this._itemSize;
-            xIndex = Math.floor(itemX / this._itemSize);
-
-            if (virtualIndex >= 0) modelIndex = (xIndex - (virtualIndex % modelLength)) % modelLength;
-            else modelIndex = (xIndex - virtualIndex) % modelLength;
-            if (modelIndex < 0) modelIndex = modelLength + modelIndex;
-            else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
-
-            if ((moveToEnd && modelIndex > maxEnd) || (moveToBeginning && modelIndex < maxBeginning))
-            {
-                item.setModel(this._model[modelIndex]);
-            }
-            else
-            {
-                itemX = item.x + positionDifference;
-            }
-        }
-
-        item.x = itemX;
-    }
-};
-
-/**
- * Update Y position
- * @param {number} position
- * @private
- */
-App.VirtualList.prototype.updateY = function updateY(position)
-{
-    position = Math.round(position);
-
-    var i = 0,
-        l = this._items.length,
-        positionDifference = position - this._virtualY,
-        virtualIndex = Math.floor(position / this._itemSize),
-        itemScreenIndex = 0,
-        yIndex = 0,
-        modelIndex = 0,
-        modelLength = this._model.length,
-        maxEnd = l - 2,
-        maxBeginning = modelLength - l,
-        moveToEnd = false,
-        moveToBeginning = false,
-        itemY = 0,
-        item = null;
-
-    this._virtualY = position;
-
-    for (;i<l;)
-    {
-        item = this._items[i++];
-        itemY = item.y + positionDifference;
-        moveToBeginning = itemY > this._height && positionDifference > 0;
-        moveToEnd = itemY + this._itemSize < 0 && positionDifference < 0;
-
-        if (moveToBeginning || moveToEnd)
-        {
-            itemScreenIndex = -Math.floor(itemY / this._height);
-            itemY += itemScreenIndex * l * this._itemSize;
-            yIndex = Math.floor(itemY / this._itemSize);
-
-            if (virtualIndex >= 0) modelIndex = (yIndex - (virtualIndex % modelLength)) % modelLength;
-            else modelIndex = (yIndex - virtualIndex) % modelLength;
-            if (modelIndex < 0) modelIndex = modelLength + modelIndex;
-            else if (modelIndex >= modelLength) modelIndex = modelLength - 1;
-
-            if ((moveToEnd && modelIndex > maxEnd) || (moveToBeginning && modelIndex < maxBeginning))
-            {
-                item.setModel(this._model[modelIndex]);
-            }
-            else
-            {
-                itemY = item.y + positionDifference;
-            }
-        }
-
-        item.y = itemY;
-    }
-};
-
-/**
- * Reset scroll position
- */
-App.VirtualList.prototype.reset = function reset()
-{
-    var Direction = App.Direction,
-        position = 0,
-        item = null,
-        i = 0,
-        l = this._items.length;
-
-    if (this._direction === Direction.X)
-    {
-        for (;i<l;i++)
-        {
-            item = this._items[i];
-            item.x = position;
-            item.setModel(this._model[i]);
-            position = Math.round(position + this._itemSize);
-        }
-    }
-    else if (this._direction === Direction.Y)
-    {
-        for (;i<l;i++)
-        {
-            item = this._items[i];
-            item.y = position;
-            item.setModel(this._model[i]);
-            position = Math.round(position + this._itemSize);
-        }
-    }
-};
-
-/**
- * Update
- * @param {Array.<App.transaction>} model
- */
-App.VirtualList.prototype.update = function update(model)
-{
-    this._model = model;
-
-    var Direction = App.Direction,
-        itemCount = Math.ceil(this._width / this._itemSize) + 1,
-        listSize = this._model.length * this._itemSize,
-        item = null,
-        position = 0,
-        l = this._items.length,
-        i = 0;
-
-    this.boundingBox.width = listSize;
-    this.boundingBox.height = this._height;
-
-    // Reset scroll
-    this._virtualX = 0;
-    this._virtualY = 0;
-
-    // Remove items
-    for (;i<l;i++)
-    {
-        this._itemPool.release(this.removeChild(this._items[i]));
-        this._items[i] = null;
-    }
-    this._items.length = 0;
-
-    // And add items again, according to model
-    if (this._direction === Direction.X)
-    {
-        if (itemCount > this._model.length) itemCount = this._model.length;
-
-        for (i=0,l=itemCount;i<l;i++)
-        {
-            item = this._itemPool.allocate();
-            item.x = position;
-            item.setModel(this._model[i]);
-            this._items.push(item);
-            this.addChild(item);
-            position = Math.round(position + this._itemSize);
-        }
-    }
-    else if (this._direction === Direction.Y)
-    {
-        itemCount = Math.ceil(this._height / this._itemSize) + 1;
-        this.boundingBox.width = this._width;
-        this.boundingBox.height = listSize;
-
-        if (itemCount > this._model.length) itemCount = this._model.length;
-
-        for (i=0,l=itemCount;i<l;i++)
-        {
-            item = this._itemPool.allocate();
-            item.y = position;
-            item.setModel(this._model[i]);
-            this._items.push(item);
-            this.addChild(item);
-            position = Math.round(position + this._itemSize);
-        }
-    }
-};
-
-/**
- * Update layout
- * @param {boolean} [updatePosition=false]
- * @private
- */
-App.VirtualList.prototype._updateLayout = function _updateLayout(updatePosition)
-{
-    var i = 0,
-        l = this._items.length,
-        item = null,
-        position = 0,
-        Direction = App.Direction;
-
-    if (this._direction === Direction.X)
-    {
-        for (;i<l;)
-        {
-            item = this._items[i++];
-            item.x = position;
-            position = Math.round(position + this._itemSize);
-        }
-
-        if (updatePosition) this.updateX(this.x);
-    }
-    else if (this._direction === Direction.Y)
-    {
-        for (;i<l;)
-        {
-            item = this._items[i++];
-            item.y = position;
-            position = Math.round(position + this._itemSize);
-        }
-
-        if (updatePosition) this.updateY(this.y);
-    }
-};
-
-/**
- * Return virtual property instead of real one
- *
- * @property x
- * @type Number
- */
-Object.defineProperty(App.VirtualList.prototype,'x',{
-    get: function() {
-        return  this._virtualX;
-    }
-});
-
-/**
- * Return virtual property instead of real one
- *
- * @property y
- * @type Number
- */
-Object.defineProperty(App.VirtualList.prototype,'y',{
-    get: function() {
-        return  this._virtualY;
-    }
-});
-
-/**
- * @class List
- * @extends DisplayObjectContainer
- * @param {string} direction
- * @constructor
- */
-App.List = function List(direction)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    this.boundingBox = new App.Rectangle();
-
-    this._direction = direction;
-    this._items = [];
-};
-
-App.List.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.List.prototype.constructor = App.List;
-
-/**
- * Add item
- * @param {DisplayObject} item
- * @param {boolean} [updateLayout=false]
- * @returns {DisplayObject} returns item added
- */
-App.List.prototype.add = function add(item,updateLayout)
-{
-    this._items[this._items.length] = item;
-
-    this.addChild(item);
-
-    if (updateLayout) this.updateLayout();
-
-    return item;
-};
-
-/**
- * Remove item passed in
- * @param {DisplayObject} item
- */
-App.List.prototype.remove = function remove(item)
-{
-    this.removeItemAt(this._items.indexOf(item));
-};
-
-/**
- * Remove item at index passed in
- * @param {number} index
- */
-App.List.prototype.removeItemAt = function removeItemAt(index)
-{
-    var item = this._items.splice(index,1)[0];
-
-    this.removeChild(item);
-
-    return item;
-};
-
-/**
- * Return
- * @param {number} index
- */
-App.List.prototype.getItemAt = function getItemAt(index)
-{
-    return this._items[index];
-};
-
-/**
- * Update layout
- */
-App.List.prototype.updateLayout = function updateLayout()
-{
-    var i = 0,
-        l = this._items.length,
-        item = null,
-        position = 0,
-        Direction = App.Direction;
-
-    if (this._direction === Direction.X)
-    {
-        for (;i<l;)
-        {
-            item = this._items[i++];
-            item.x = position;
-            position = Math.round(position + item.boundingBox.width);
-        }
-
-        this.boundingBox.width = position;
-        this.boundingBox.height = item.boundingBox.height;
-    }
-    else if (this._direction === Direction.Y)
-    {
-        for (;i<l;)
-        {
-            item = this._items[i++];
-            item.y = position;
-            position = Math.round(position + item.boundingBox.height);
-        }
-
-        this.boundingBox.height = position;
-        this.boundingBox.width = item.boundingBox.width;
-    }
-};
-
-/**
- * Find and return item under point passed in
- * @param {InteractionData} data PointerData to get the position from
- */
-App.List.prototype.getItemUnderPoint = function getItemUnderPoint(data)
-{
-    var position = data.getLocalPosition(this).x,
-        boundsProperty = "width",
-        itemPosition = 0,
-        itemProperty = "x",
-        item = null,
-        i = 0,
-        l = this._items.length;
-
-    if (this._direction === App.Direction.Y)
-    {
-        position = data.getLocalPosition(this).y;
-        itemProperty = "y";
-        boundsProperty = "height";
-    }
-
-    for (;i<l;)
-    {
-        item = this._items[i++];
-        itemPosition = item[itemProperty];
-        if (itemPosition <= position && itemPosition + item.boundingBox[boundsProperty] >= position)
-        {
-            return item;
-        }
-    }
-
-    return null;
-};
-
-/**
- * Test if position passed in falls within this list boundaries
- * @param {number} position
- * @returns {boolean}
- */
-App.List.prototype.hitTest = function hitTest(position)
-{
-    return position >= this.y && position < this.y + this.boundingBox.height;
-};
-
-/**
- * @property length
- * @type number
- */
-Object.defineProperty(App.List.prototype,'length',{
-    get:function()
-    {
-        return this._items.length;
-    }
-});
-
-/**
- * @class TileList
- * @extends List
- * @param {string} direction
- * @param {number} windowSize
- * @constructor
- */
-App.TileList = function TileList(direction,windowSize)
-{
-    App.List.call(this,direction);
-
-    this._windowSize = windowSize;
-};
-
-App.TileList.prototype = Object.create(App.List.prototype);
-App.TileList.prototype.constructor = App.TileList;
-
-/**
- * Update X position
- * @param {number} position
- */
-App.TileList.prototype.updateX = function updateX(position)
-{
-    this.x = Math.round(position);
-
-    var i = 0,
-        l = this._items.length,
-        width = 0,
-        childX = 0,
-        child = null;
-
-    for (;i<l;)
-    {
-        child = this._items[i++];
-        width = child.boundingBox.width;
-        childX = this.x + child.x;
-
-        child.visible = childX + width > 0 && childX < this._windowSize;
-    }
-};
-
-/**
- * Update Y position
- * @param {number} position
- */
-App.TileList.prototype.updateY = function updateY(position)
-{
-    this.y = Math.round(position);
-
-    var i = 0,
-        l = this._items.length,
-        height = 0,
-        childY = 0,
-        child = null;
-
-    for (;i<l;)
-    {
-        child = this._items[i++];
-        height = child.boundingBox.height;
-        childY = this.y + child.y;
-
-        child.visible = childY + height > 0 && childY < this._windowSize;
-    }
-};
-
-/**
- * Update layout
- * @param {boolean} [updatePosition=false]
- */
-App.TileList.prototype.updateLayout = function updateLayout(updatePosition)
-{
-    App.List.prototype.updateLayout.call(this);
-
-    if (updatePosition)
-    {
-        if (this._direction === App.Direction.X) this.updateX(this.x);
-        else if (this._direction === App.Direction.Y) this.updateY(this.y);
-    }
-};
-
-/**
- * @class TilePane
- * @extends Pane
- * @param {string} xScrollPolicy
- * @param {string} yScrollPolicy
- * @param {number} width
- * @param {number} height
- * @param {number} pixelRatio
- * @param {boolean} useMask
- * @constructor
- */
-App.TilePane = function TilePane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio,useMask)
-{
-    App.Pane.call(this,xScrollPolicy,yScrollPolicy,width,height,pixelRatio,useMask);
-};
-
-App.TilePane.prototype = Object.create(App.Pane.prototype);
-App.TilePane.prototype.constructor = App.TilePane;
-
-/**
- * Set content of the pane
- *
- * @method setContent
- * @param {TileList} content
- */
-App.TilePane.prototype.setContent = function setContent(content)
-{
-    this.removeContent();
-
-    this._content = content;
-    this._contentHeight = Math.round(this._content.boundingBox.height);
-    this._contentWidth = Math.round(this._content.boundingBox.width);
-    this._contentBoundingBox.width = this._contentWidth;
-    this._contentBoundingBox.height = this._contentHeight;
-
-    this.addChildAt(this._content,0);
-
-    this._updateScrollers();
-    if (this._useMask) this._updateMask();
-};
-
-/**
- * Resize
- *
- * @param {number} width
- * @param {number} height
- */
-App.TilePane.prototype.resize = function resize(width,height)
-{
-    this.boundingBox.width = width || this.boundingBox.width;
-    this.boundingBox.height = height || this.boundingBox.height;
-
-    if (this._content)
-    {
-        this._contentHeight = Math.round(this._content.boundingBox.height);
-        this._contentWidth = Math.round(this._content.boundingBox.width);
-        this._contentBoundingBox.width = this._contentWidth;
-        this._contentBoundingBox.height = this._contentHeight;
-
-        this._checkPosition();
-
-        this._updateScrollers();
-        if (this._useMask) this._updateMask();
-    }
-};
-
-/**
- * Update content's x position
- * @param {number} position
- * @private
- */
-App.TilePane.prototype._updateX = function _updateX(position)
-{
-    this._content.updateX(position);
-};
-
-/**
- * Update content's y position
- * @param {number} position
- * @private
- */
-App.TilePane.prototype._updateY = function _updateY(position)
-{
-    this._content.updateY(position);
-};
-
-/**
- * @class ViewStack
- * @extends DisplayObjectContainer
- * @param {Array} children
- * @param {boolean} [addToStage=false]
- * @param {ObjectPool} eventListenerPool
- * @constructor
- */
-App.ViewStack = function ViewStack(children,addToStage,eventListenerPool)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    this._children = [];
-    this._selectedChild = null;
-    this._selectedIndex = -1;
-    this._childrenToHide = [];
-    this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
-
-    if (children)
-    {
-        var i = 0, l = children.length;
-        for (;i<l;) this.add(children[i++],addToStage);
-    }
-};
-
-App.ViewStack.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.ViewStack.prototype.constructor = App.ViewStack;
-
-/**
- * Add child to stack
- *
- * @param {Screen} child
- * @param {boolean} [addToStage=false]
- */
-App.ViewStack.prototype.add = function add(child,addToStage)
-{
-    this._children[this._children.length] = child;
-
-    if (addToStage) this.addChild(child);
-};
-
-/**
- * Select child
- *
- * @param {Screen} child
- */
-App.ViewStack.prototype.selectChild = function selectChild(child)
-{
-    if (this._selectedChild)
-    {
-        if (!child || this._selectedChild === child) return;
-
-        this._childrenToHide[this._childrenToHide.length] = this._selectedChild;
-    }
-
-    var i = 0, l = this._children.length;
-    for (;i<l;)
-    {
-        if (child === this._children[i++])
-        {
-            this._selectedChild = child;
-            this._selectedIndex = i - 1;
-            break;
-        }
-    }
-
-    this._eventDispatcher.dispatchEvent(App.EventType.CHANGE);
-};
-
-/**
- * Select child by index passed in
- *
- * @param {number} index
- */
-App.ViewStack.prototype.selectChildByIndex = function selectChildByIndex(index)
-{
-    if (index < 0 || index >= this._children.length) return;
-
-    if (this._selectedChild)
-    {
-        if (this._selectedChild === this._children[index]) return;
-
-        this._childrenToHide[this._childrenToHide.length] = this._selectedChild;
-    }
-
-    this._selectedChild = this._children[index];
-    this._selectedIndex = index;
-
-    this._eventDispatcher.dispatchEvent(App.EventType.CHANGE);
-};
-
-/**
- * Return selected child
- * @returns {Screen}
- */
-App.ViewStack.prototype.getSelectedChild = function getSelectedChild()
-{
-    return this._selectedChild;
-};
-
-/**
- * Return index of selected child
- * @returns {number}
- */
-App.ViewStack.prototype.getSelectedIndex = function getSelectedIndex()
-{
-    return this._selectedIndex;
-};
-
-/**
- * Return child by index passed in
- * @param {number} index
- * @returns {Screen|null}
- */
-App.ViewStack.prototype.getChildByIndex = function getChildByIndex(index)
-{
-    if (index < 0 || index >= this._children.length) return null;
-
-    return this._children[index];
-};
-
-/**
- * Show
- */
-App.ViewStack.prototype.show = function show()
-{
-    if (this._selectedChild)
-    {
-        // First check if the child to show is not actually hiding
-        var i = 0, l = this._childrenToHide.length;
-        for (;i<l;i++)
-        {
-            if (this._selectedChild === this._childrenToHide[i])
-            {
-                this._selectedChild.removeEventListener(App.EventType.COMPLETE,this,this._onHideComplete);
-                this._childrenToHide.splice(i,1);
-                break;
-            }
-        }
-
-        if (!this.contains(this._selectedChild)) this.addChild(this._selectedChild);
-
-        this._selectedChild.show();
-    }
-};
-
-/**
- * Hide
- */
-App.ViewStack.prototype.hide = function hide()
-{
-    var i = 0, l = this._childrenToHide.length, child = null, EventType = App.EventType;
-    for (;i<l;)
-    {
-        child = this._childrenToHide[i++];
-
-        child.addEventListener(EventType.COMPLETE,this,this._onHideComplete);
-        child.hide();
-    }
-};
-
-/**
- * On hide complete
- * @param {{target:Screen,state:string}} data
- * @private
- */
-App.ViewStack.prototype._onHideComplete = function _onHideComplete(data)
-{
-    if (data.state === App.TransitionState.HIDDEN)
-    {
-        /**@type Screen */
-        var screen = data.target;
-
-        screen.removeEventListener(App.EventType.COMPLETE,this,this._onHideComplete);
-
-        if (this.contains(screen)) this.removeChild(screen);
-
-        var i = 0, l = this._childrenToHide.length;
-        for (;i<l;i++)
-        {
-            if (screen === this._childrenToHide[i])
-            {
-                this._childrenToHide.splice(i,1);
-                break;
-            }
-        }
-    }
-};
-
-/**
- * Add event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.ViewStack.prototype.addEventListener = function addEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.addEventListener(eventType,scope,listener);
-};
-
-/**
- * Remove event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.ViewStack.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.removeEventListener(eventType,scope,listener);
-};
-
-/**
- * @class ListHeader
- * @param {string} label
- * @param {number} width
- * @param {number} pixelRatio
- * @constructor
- */
-App.ListHeader = function ListHeader(label,width,pixelRatio)
-{
-    PIXI.Graphics.call(this);
-
-    this._width = width;
-    this._pixelRatio = pixelRatio;
-    this._textField = new PIXI.Text(label,App.FontStyle.get(12,App.FontStyle.GREY_DARKER));
-
-    this._render();
-
-    this.addChild(this._textField);
-};
-
-App.ListHeader.prototype = Object.create(PIXI.Graphics.prototype);
-App.ListHeader.prototype.constructor = App.ListHeader;
-
-/**
- * Render
- * @private
- */
-App.ListHeader.prototype._render = function _render()
-{
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
-        r = this._pixelRatio,
-        h = Math.round(30 * this._pixelRatio);
-
-    GraphicUtils.drawRect(this,ColorTheme.GREY_DARK,1,0,0,this._width,h);
-
-    this._textField.x = Math.round((this._width - this._textField.width) / 2);
-    this._textField.y = Math.round((h - this._textField.height) / 2);
-};
-
-/**
- * @class AddNewButton
- * @extends DisplayObjectContainer
- * @param {string} label
- * @param {{font:string,fill:string}} fontStyle
- * @param {Texture} skin
- * @param {number} pixelRatio
- * @constructor
- */
-App.AddNewButton = function AddNewButton(label,fontStyle,skin,pixelRatio)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    this.boundingBox = new App.Rectangle(0,0,skin.width,skin.height);
-
-    this._label = label;
-    this._pixelRatio = pixelRatio;
-    this._skin = new PIXI.Sprite(skin);
-    this._icon = PIXI.Sprite.fromFrame("plus-app");
-    this._iconResizeRatio = Math.round(20 * pixelRatio) / this._icon.height;
-    this._labelField = new PIXI.Text(label,fontStyle);
-
-    this._render();
-
-    this.addChild(this._skin);
-    this.addChild(this._icon);
-    this.addChild(this._labelField);
-};
-
-App.AddNewButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.AddNewButton.prototype.constructor = App.AddNewButton;
-
-/**
- * Render
- * @private
- */
-App.AddNewButton.prototype._render = function _render()
-{
-    var gap = Math.round(10 * this._pixelRatio),
-        h = this.boundingBox.height,
-        position = 0;
-
-    this._icon.scale.x = this._iconResizeRatio;
-    this._icon.scale.y = this._iconResizeRatio;
-
-    position = Math.round((this.boundingBox.width - (this._labelField.width + gap + this._icon.width)) / 2);
-
-    this._icon.x = position;
-    this._icon.y = Math.round((h - this._icon.height) / 2);
-    this._icon.tint = App.ColorTheme.GREY_DARK;
-
-    this._labelField.x = position + this._icon.width + gap;
-    this._labelField.y = Math.round((h - this._labelField.height) / 2);
-};
-
-/**
- * @class SwipeButton
- * @extends DisplayObjectContainer
- * @param {number} width
- * @param {number} openOffset
- * @constructor
- */
-App.SwipeButton = function SwipeButton(width,openOffset)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    this._width = width;
-    this._interactionEnabled = false;
-    this._interactiveState = null;
-    this._dragFriction = 0.5;
-    this._snapForce = 0.5;
-    this._openOffset = openOffset;
-    this._isOpen = false;
-    this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
-};
-
-App.SwipeButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.SwipeButton.prototype.constructor = App.SwipeButton;
-
-/**
- * Disable
- */
-App.SwipeButton.prototype.disable = function disable()
-{
-    this._disableInteraction();
-    this.close(true);
-};
-
-/**
- * Enable interaction
- * @private
- */
-App.SwipeButton.prototype._enableInteraction = function _enableInteraction()
-{
-    if (!this._interactionEnabled)
-    {
-        this._interactionEnabled = true;
-
-        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-
-        this.interactive = true;
-    }
-};
-
-/**
- * Disable interaction
- * @private
- */
-App.SwipeButton.prototype._disableInteraction = function _disableInteraction()
-{
-    this.interactive = false;
-
-    this._interactiveState = null;
-
-    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._interactionEnabled = false;
-};
-
-/**
- * Tick handler
- * @private
- */
-App.SwipeButton.prototype._onTick = function _onTick()
-{
-    var InteractiveState = App.InteractiveState;
-    if (this._interactiveState === InteractiveState.SWIPING) this._swipe();
-    else if (this._interactiveState === InteractiveState.SNAPPING) this._snap();
-};
-
-/**
- * @method swipeStart
- * @param {string} direction
- */
-App.SwipeButton.prototype.swipeStart = function swipeStart(direction)
-{
-    var Direction = App.Direction,
-        InteractiveState = App.InteractiveState;
-
-    if (!this._interactiveState)
-    {
-        if (!this._isOpen && direction === Direction.LEFT)
-        {
-            this._interactiveState = InteractiveState.SWIPING;
-            this._enableInteraction();
-        }
-        else if (this._isOpen && direction === Direction.RIGHT)
-        {
-            this._interactiveState = InteractiveState.SNAPPING;
-            this._enableInteraction();
-        }
-    }
-};
-
-/**
- * @method swipeEnd
- */
-App.SwipeButton.prototype.swipeEnd = function swipeEnd()
-{
-    if (this._interactiveState === App.InteractiveState.SWIPING) this._interactiveState = App.InteractiveState.SNAPPING;
-};
-
-/**
- * @method _swipe
- * @private
- */
-App.SwipeButton.prototype._swipe = function _swipe()
-{
-    if (this.stage && !this._isOpen)
-    {
-        var x = this.stage.getTouchPosition().x;
-
-        if (x <= -10000) return;
-
-        this._updateSwipePosition(-Math.round(this._width * (1 - (x / this._width)) * this._dragFriction));
-    }
-};
-
-/**
- * @method _snap
- * @private
- */
-App.SwipeButton.prototype._snap = function _snap()
-{
-    var swipePosition = this._getSwipePosition(),
-        result = Math.round(swipePosition * this._snapForce);
-
-    // Snap to open
-    if (swipePosition < -this._openOffset)
-    {
-        if (result >= -this._openOffset)
-        {
-            this._isOpen = true;
-            this._disableInteraction();
-
-            this._updateSwipePosition(-this._openOffset);
-        }
-        else
-        {
-            this._updateSwipePosition(result);
-        }
-    }
-    // Snap to close
-    else
-    {
-        if (result >= -1)
-        {
-            this._isOpen = false;
-            this._disableInteraction();
-
-            this._updateSwipePosition(0);
-        }
-        else
-        {
-            this._updateSwipePosition(result);
-        }
-    }
-};
-
-/**
- * Close Edit button
- * @param {boolean} [immediate=false]
- */
-App.SwipeButton.prototype.close = function close(immediate)
-{
-    if (this._isOpen)
-    {
-        if (immediate)
-        {
-            this._updateSwipePosition(0);
-            this._isOpen = false;
-        }
-        else
-        {
-            this._interactiveState = App.InteractiveState.SNAPPING;
-            this._enableInteraction();
-        }
-    }
-};
-
-/**
- * Update swipe position
- * @param {number} position
- * @private
- */
-App.SwipeButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
-{
-    // Abstract
-};
-
-/**
- * Return swipe position
- * @private
- */
-App.SwipeButton.prototype._getSwipePosition = function _getSwipePosition()
-{
-    // Abstract
-};
-
-/**
- * @class ExpandButton
- * @extends DisplayObjectContainer
- * @param {number} width
- * @param {number} height
- * @param {boolean} useMask
- * @constructor
- */
-App.ExpandButton = function ExpandButton(width,height,useMask)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        eventListenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
-
-    this.boundingBox = new App.Rectangle(0,0,width,height);
-
-    this._content = null;
-    this._contentHeight = height;
-    this._buttonHeight = height;
-    this._useMask = useMask;
-    this._updateBoundsInTransition = false;
-
-    this._eventsRegistered = false;
-    this._transitionState = App.TransitionState.CLOSED;
-    this._expandTween = new App.TweenProxy(0.4,App.Easing.outExpo,0,eventListenerPool);
-    this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
-    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-
-    if (this._useMask)
-    {
-        this._mask = new PIXI.Graphics();
-        this.mask = this._mask;
-        this._updateMask();
-        this.addChild(this._mask);
-    }
-};
-
-App.ExpandButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.ExpandButton.prototype.constructor = App.ExpandButton;
-
-/**
- * Set content
- * @param {Object} content
- * @private
- */
-App.ExpandButton.prototype._setContent = function _setContent(content)
-{
-    this._content = content;
-    this._contentHeight = this._content.boundingBox ? this._content.boundingBox.height : this._content.height;
-
-    this._content.visible = false;
-    this._content.y = this._buttonHeight;
-};
-
-/**
- * Enable interaction
- * @private
- */
-App.ExpandButton.prototype._registerEventListeners = function _registerEventListeners()
-{
-    if (!this._eventsRegistered)
-    {
-        this._eventsRegistered = true;
-
-        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-
-        this._expandTween.addEventListener(App.EventType.COMPLETE,this,this._onTransitionComplete);
-    }
-};
-
-/**
- * Disable interaction
- * @private
- */
-App.ExpandButton.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
-{
-    this._expandTween.removeEventListener(App.EventType.COMPLETE,this,this._onTransitionComplete);
-
-    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._eventsRegistered = false;
-};
-
-/**
- * Tick handler
- * @private
- */
-App.ExpandButton.prototype._onTick = function _onTick()
-{
-    if (this._expandTween.isRunning()) this._updateTransition();
-};
-
-/**
- * Update transition
- * @private
- */
-App.ExpandButton.prototype._updateTransition = function _updateTransition()
-{
-    this._updateBounds(this._updateBoundsInTransition);
-    if (this._useMask) this._updateMask();
-};
-
-/**
- * On transition complete
- * @private
- */
-App.ExpandButton.prototype._onTransitionComplete = function _onTransitionComplete()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.OPENING)
-    {
-        this._transitionState = TransitionState.OPEN;
-    }
-    else if (this._transitionState === TransitionState.CLOSING)
-    {
-        this._transitionState = TransitionState.CLOSED;
-
-        this._content.visible = false;
-    }
-
-    this._unRegisterEventListeners();
-
-    this._updateBounds(this._updateBoundsInTransition);
-    if (this._useMask) this._updateMask();
-
-    if (!this.isInTransition())
-    {
-        this._updateBoundsInTransition = false;
-
-        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
-    }
-};
-
-/**
- * Update bounds
- * @param {boolean} [updateContent=false]
- * @private
- */
-App.ExpandButton.prototype._updateBounds = function _updateBounds(updateContent)
-{
-    var TransitionState = App.TransitionState;
-
-    if (updateContent)
-    {
-        this._contentHeight = this._content.boundingBox ? this._content.boundingBox.height : this._content.height;
-    }
-
-    if (this._transitionState === TransitionState.OPENING)
-    {
-        this.boundingBox.height = Math.round(this._buttonHeight + this._contentHeight * this._expandTween.progress);
-    }
-    else if (this._transitionState === TransitionState.OPEN)
-    {
-        this.boundingBox.height = this._buttonHeight + this._contentHeight;
-    }
-    else if (this._transitionState === TransitionState.CLOSING)
-    {
-        this.boundingBox.height = Math.round(this._buttonHeight + this._contentHeight * (1 - this._expandTween.progress));
-    }
-    else if (this._transitionState === TransitionState.CLOSED)
-    {
-        this.boundingBox.height = this._buttonHeight;
-    }
-};
-
-/**
- * Re-draw mask
- * @private
- */
-App.ExpandButton.prototype._updateMask = function _updateMask()
-{
-    App.GraphicUtils.drawRect(this._mask,0xff0000,1,0,0,this.boundingBox.width,this.boundingBox.height);
-};
-
-/**
- * Click handler
- * @param {Point} position
- */
-App.ExpandButton.prototype.onClick = function onClick(position)
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING) this.open();
-    else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING) this.close();
-};
-
-/**
- * Check if its open
- * @returns {boolean}
- */
-App.ExpandButton.prototype.isOpen = function isOpen()
-{
-    return this._transitionState !== App.TransitionState.CLOSED;
-};
-
-/**
- * Check if button is in transition
- * @returns {boolean}
- */
-App.ExpandButton.prototype.isInTransition = function isInTransition()
-{
-    return this._transitionState === App.TransitionState.OPENING || this._transitionState === App.TransitionState.CLOSING;
-};
-
-/**
- * Open
- * @param {boolean} [updateBounds=false]
- */
-App.ExpandButton.prototype.open = function open(updateBounds)
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
-    {
-        this._registerEventListeners();
-
-        this._content.visible = true;
-
-        this._transitionState = TransitionState.OPENING;
-
-        this._updateBoundsInTransition = updateBounds;
-
-        this._expandTween.restart();
-    }
-};
-
-/**
- * Close
- * @param {boolean} [immediate=false]
- * @param {boolean} [updateBounds=false]
- */
-App.ExpandButton.prototype.close = function close(immediate,updateBounds)
-{
-    var TransitionState = App.TransitionState,
-        EventType = App.EventType;
-
-    if (immediate)
-    {
-        this._transitionState = TransitionState.CLOSING;
-
-        this._updateBoundsInTransition = updateBounds;
-
-        this._expandTween.stop();
-
-        this._onTransitionComplete();
-    }
-    else
-    {
-        if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
-        {
-            this._registerEventListeners();
-
-            this._transitionState = TransitionState.CLOSING;
-
-            this._updateBoundsInTransition = updateBounds;
-
-            this._expandTween.start(true);
-        }
-        else
-        {
-            // Already closed - but dispatch event so parent can cancel its processes
-            this._eventDispatcher.dispatchEvent(EventType.COMPLETE,this);
-        }
-    }
-};
-
-/**
- * Add event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.ExpandButton.prototype.addEventListener = function addEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.addEventListener(eventType,scope,listener);
-};
-
-/**
- * Remove event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.ExpandButton.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.removeEventListener(eventType,scope,listener);
-};
-
 /**
  * @class PopUpButton
  * @extend DisplayObjectContainer
@@ -7656,1066 +5989,6 @@ App.PopUpButton.prototype.removeEventListener = function removeEventListener(eve
 {
     this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };
-
-/**
- * Abstract Screen
- *
- * @class Screen
- * @extends DisplayObjectContainer
- * @param {Object} layout
- * @param {number} tweenDuration
- * @constructor
- */
-App.Screen = function Screen(layout,tweenDuration)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        pixelRatio = layout.pixelRatio;
-
-    this._model = null;
-    this._layout = layout;
-    this._enabled = false;
-    this._eventsRegistered = App.EventLevel.NONE;
-
-    this._transitionState = App.TransitionState.HIDDEN;
-    this._interactiveState = null;
-    this._mouseDownPosition = null;
-    this._mouseX = 0.0;
-    this._mouseY = 0.0;
-    this._leftSwipeThreshold = 15 * pixelRatio;
-    this._rightSwipeThreshold = 5 * pixelRatio;
-    this._clickThreshold = 5 * pixelRatio;
-    this._swipeEnabled = false;
-    this._preferScroll = true;
-    this._mode = App.ScreenMode.DEFAULT;
-
-    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
-    this._showHideTween = new App.TweenProxy(tweenDuration,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
-
-    this.alpha = 0.0;
-};
-
-App.Screen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.Screen.prototype.constructor = App.Screen;
-
-/**
- * Show
- */
-App.Screen.prototype.show = function show()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.HIDDEN || this._transitionState === TransitionState.HIDING)
-    {
-        this.enable();
-
-        this._transitionState = TransitionState.SHOWING;
-
-        this._showHideTween.restart();
-
-        this.visible = true;
-    }
-};
-
-/**
- * Hide
- */
-App.Screen.prototype.hide = function hide()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.SHOWN || this._transitionState === TransitionState.SHOWING)
-    {
-        this.disable();
-
-        this._transitionState = TransitionState.HIDING;
-
-        this._showHideTween.start(true);
-    }
-};
-
-/**
- * Enable
- */
-App.Screen.prototype.enable = function enable()
-{
-    if (!this._enabled)
-    {
-        this._registerEventListeners(App.EventLevel.LEVEL_1);
-
-        this._enabled = true;
-    }
-};
-
-/**
- * Disable
- */
-App.Screen.prototype.disable = function disable()
-{
-    this._unRegisterEventListeners(App.EventLevel.LEVEL_2);
-
-    this._enabled = false;
-
-    this._interactiveState = null;
-};
-
-/**
- * Update
- */
-App.Screen.prototype.update = function update(data,mode)
-{
-    this._mode = mode;
-    //TODO mark layout/UI as 'dirty' and update/render on Tick event
-};
-
-/**
- * Add event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.Screen.prototype.addEventListener = function addEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.addEventListener(eventType,scope,listener);
-};
-
-/**
- * Remove event listener
- * @param {string} eventType
- * @param {Object} scope
- * @param {Function} listener
- */
-App.Screen.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
-{
-    this._eventDispatcher.removeEventListener(eventType,scope,listener);
-};
-
-/**
- * Register event listeners
- * @param {number} level
- * @private
- */
-App.Screen.prototype._registerEventListeners = function _registerEventListeners(level)
-{
-    var EventLevel = App.EventLevel;
-
-    if (level === EventLevel.LEVEL_1 && this._eventsRegistered !== EventLevel.LEVEL_1)
-    {
-        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-
-        this._showHideTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
-    }
-
-    if (level === EventLevel.LEVEL_2 && this._eventsRegistered !== EventLevel.LEVEL_2)
-    {
-        if (App.Device.TOUCH_SUPPORTED)
-        {
-            this.touchstart = this._onPointerDown;
-            this.touchend = this._onPointerUp;
-            this.touchendoutside = this._onPointerUp;
-        }
-        else
-        {
-            this.mousedown = this._onPointerDown;
-            this.mouseup = this._onPointerUp;
-            this.mouseupoutside = this._onPointerUp;
-        }
-
-        App.ViewLocator.getViewSegment(App.ViewName.HEADER).addEventListener(App.EventType.CLICK,this,this._onHeaderClick);
-
-        this.interactive = true;
-    }
-
-    this._eventsRegistered = level;
-};
-
-/**
- * UnRegister event listeners
- * @param {number} level
- * @private
- */
-App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListeners(level)
-{
-    var EventLevel = App.EventLevel;
-
-    if (level === EventLevel.LEVEL_1)
-    {
-        this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
-
-        this._showHideTween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
-
-        this._eventsRegistered = EventLevel.NONE;
-    }
-
-    if (level === EventLevel.LEVEL_2)
-    {
-        this.interactive = false;
-
-        App.ViewLocator.getViewSegment(App.ViewName.HEADER).removeEventListener(App.EventType.CLICK,this,this._onHeaderClick);
-
-        if (App.Device.TOUCH_SUPPORTED)
-        {
-            this.touchstart = null;
-            this.touchend = null;
-            this.touchendoutside = null;
-        }
-        else
-        {
-            this.mousedown = null;
-            this.mouseup = null;
-            this.mouseupoutside = null;
-        }
-
-        this._eventsRegistered = EventLevel.LEVEL_1;
-    }
-};
-
-/**
- * On tick
- * @private
- */
-App.Screen.prototype._onTick = function _onTick()
-{
-    if (this._showHideTween.isRunning())
-    {
-        var TransitionState = App.TransitionState;
-
-        if (this._transitionState === TransitionState.SHOWING) this.alpha = this._showHideTween.progress;
-        else if (this._transitionState === TransitionState.HIDING) this.alpha = 1.0 - this._showHideTween.progress;
-    }
-
-    if (this._swipeEnabled && this._interactiveState === App.InteractiveState.DRAGGING) this._drag();
-};
-
-/**
- * On tween complete
- * @private
- */
-App.Screen.prototype._onTweenComplete = function _onTweenComplete()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.SHOWING)
-    {
-        this._transitionState = TransitionState.SHOWN;
-
-        this.alpha = 1.0;
-
-        this._registerEventListeners(App.EventLevel.LEVEL_2);
-    }
-    else if (this._transitionState === TransitionState.HIDING)
-    {
-        this._transitionState = TransitionState.HIDDEN;
-
-        this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
-
-        this.alpha = 0.0;
-
-        this.visible = false;
-
-        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,{target:this,state:this._transitionState});
-    }
-};
-
-/**
- * On pointer down
- *
- * @param {Object} data
- * @private
- */
-App.Screen.prototype._onPointerDown = function _onPointerDown(data)
-{
-    if (this.stage)
-    {
-        this._mouseDownPosition = data.getLocalPosition(this.stage);
-        this._mouseX = this._mouseDownPosition.x;
-        this._mouseY = this._mouseDownPosition.y;
-    }
-
-    if (this._swipeEnabled) this._interactiveState = App.InteractiveState.DRAGGING;
-};
-
-/**
- * On pointer up
- * @param {Object} data
- * @private
- */
-App.Screen.prototype._onPointerUp = function _onPointerUp(data)
-{
-    if (this._swipeEnabled)
-    {
-        if (this._interactiveState === App.InteractiveState.SWIPING) this._swipeEnd();
-        this._interactiveState = null;
-    }
-
-    if (this.stage && this._mouseDownPosition && this._enabled)
-    {
-        var oldX = this._mouseDownPosition.x,
-            oldY = this._mouseDownPosition.y;
-
-        this._mouseDownPosition = data.getLocalPosition(this.stage,this._mouseDownPosition);
-
-        var dx = oldX - this._mouseDownPosition.x,
-            dy = oldY - this._mouseDownPosition.y,
-            dist = dx * dx - dy * dy,
-            TransitionState = App.TransitionState;
-
-        if (Math.abs(dist) < this._clickThreshold && (this._transitionState === TransitionState.SHOWING || this._transitionState === TransitionState.SHOWN)) this._onClick();
-
-        this._mouseDownPosition = null;
-    }
-};
-
-/**
- * Drag
- * @private
- */
-App.Screen.prototype._drag = function _drag()
-{
-    var InteractiveState = App.InteractiveState;
-
-    if (this._interactiveState === InteractiveState.DRAGGING)
-    {
-        if (this.stage && this._mouseX)
-        {
-            var position = this.stage.getTouchPosition(),
-                newX = position.x,
-                newY = position.y;
-
-            if (this._mouseX - newX > this._leftSwipeThreshold)
-            {
-                this._interactiveState = InteractiveState.SWIPING;
-                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll,App.Direction.LEFT);
-            }
-            else if (newX - this._mouseX > this._rightSwipeThreshold)
-            {
-                this._interactiveState = InteractiveState.SWIPING;
-                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll,App.Direction.RIGHT);
-            }
-
-            this._mouseX = newX;
-            this._mouseY = newY;
-        }
-    }
-};
-
-/**
- * Click handler
- * @private
- */
-App.Screen.prototype._onClick = function _onClick()
-{
-    this._eventDispatcher.dispatchEvent(App.EventType.CLICK);
-};
-
-/**
- * On Header click
- * @param {number} action
- * @private
- */
-App.Screen.prototype._onHeaderClick = function _onHeaderClick(action)
-{
-    // Abstract
-};
-
-/**
- * Called when swipe starts
- * @param {boolean} [preferScroll=false]
- * @private
- */
-App.Screen.prototype._swipeStart = function _swipeStart(preferScroll)
-{
-    // Abstract
-};
-
-/**
- * Called when swipe ends
- * @param {string} direction
- * @private
- */
-App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
-{
-    // Abstract
-};
-
-/**
- * @class EditScreen
- * @param {Object} layout
- * @constructor
- */
-App.EditScreen = function EditScreen(layout)
-{
-    App.Screen.call(this,layout,0.4);
-
-    var r = layout.pixelRatio,
-        inputWidth = layout.width - Math.round(20 * r),
-        inputHeight = Math.round(40 * r);
-
-    this._target = null;
-
-    this._background = this.addChild(new PIXI.Graphics());
-    this._input = this.addChild(new App.Input("",20,inputWidth,inputHeight,r,true));
-    this._deleteButton = new App.PopUpButton("Delete","",{
-        width:inputWidth,
-        height:inputHeight,
-        pixelRatio:r,
-        popUpLayout:{x:Math.round(10*r),y:0,width:Math.round(inputWidth-20*r),height:Math.round(layout.height/2),overlayWidth:layout.width,overlayHeight:0}
-    });
-    this._renderAll = true;
-};
-
-App.EditScreen.prototype = Object.create(App.Screen.prototype);
-App.EditScreen.prototype.constructor = App.EditScreen;
-
-/**
- * Render
- * @private
- */
-App.EditScreen.prototype._render = function _render()
-{
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
-        ScreenMode = App.ScreenMode,
-        r = this._layout.pixelRatio,
-        padding = Math.round(10 * r),
-        inputHeight = Math.round(60 * r),
-        w = this._layout.width - padding * 2;
-
-    if (this._renderAll)
-    {
-        this._renderAll = false;
-
-        this._input.x = padding;
-        this._input.y = padding;
-
-        this._deleteButton.setPosition(padding,inputHeight+padding);
-    }
-
-    if (this._mode === ScreenMode.EDIT)
-    {
-        if (!this.contains(this._deleteButton)) this.addChild(this._deleteButton);
-
-        //TODO use skin
-        GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w+padding*2,inputHeight*2],true,false);
-        GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,inputHeight-1,w,1],false,false);
-        GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,inputHeight,w,1],false,true);
-    }
-    else if (this._mode === ScreenMode.ADD)
-    {
-        if (this.contains(this._deleteButton)) this.removeChild(this._deleteButton);
-
-        GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w+padding*2,inputHeight);
-    }
-};
-
-/**
- * Hide
- */
-App.EditScreen.prototype.hide = function hide()
-{
-    this._unRegisterDeleteButtonListeners();
-
-    App.Screen.prototype.hide.call(this);
-};
-
-/**
- * Enable
- */
-App.EditScreen.prototype.enable = function enable()
-{
-    App.Screen.prototype.enable.call(this);
-
-    this._input.enable();
-};
-
-/**
- * Disable
- */
-App.EditScreen.prototype.disable = function disable()
-{
-    App.Screen.prototype.disable.call(this);
-
-    this._input.disable();
-};
-
-/**
- * Update
- * @param {{category:App.Category,subCategory:App.SubCategory}} model
- * @param {string} mode
- */
-App.EditScreen.prototype.update = function update(model,mode)
-{
-    this._model = model;
-    this._mode = mode;
-    this._target = this._model instanceof App.Account ? App.Account : App.SubCategory;
-
-    this._deleteButton.hidePopUp(true);
-
-    if (this._target === App.Account)
-    {
-        this._input.setValue(this._model.name);
-        this._deleteButton.setMessage("Are you sure you want to\ndelete this account with all its\ndata and categories?");
-    }
-    else if (this._target === App.SubCategory && this._model.subCategory)
-    {
-        this._input.setValue(this._model.subCategory.name);
-        this._deleteButton.setMessage("Are you sure you want to\ndelete this sub-category?");
-    }
-
-    this._render();
-};
-
-/**
- * Register delete button event listeners
- * @private
- */
-App.EditScreen.prototype._registerDeleteButtonListeners = function _registerDeleteButtonListeners()
-{
-    var EventType = App.EventType;
-
-    this._deleteButton.addEventListener(EventType.CANCEL,this,this._onDeleteCancel);
-    this._deleteButton.addEventListener(EventType.CONFIRM,this,this._onDeleteConfirm);
-    this._deleteButton.addEventListener(EventType.COMPLETE,this,this._onHidePopUpComplete);
-};
-
-/**
- * UnRegister delete button event listeners
- * @private
- */
-App.EditScreen.prototype._unRegisterDeleteButtonListeners = function _unRegisterDeleteButtonListeners()
-{
-    var EventType = App.EventType;
-
-    this._deleteButton.removeEventListener(EventType.CANCEL,this,this._onDeleteCancel);
-    this._deleteButton.removeEventListener(EventType.CONFIRM,this,this._onDeleteConfirm);
-    this._deleteButton.removeEventListener(EventType.COMPLETE,this,this._onHidePopUpComplete);
-};
-
-/**
- * On delete cancel
- * @private
- */
-App.EditScreen.prototype._onDeleteCancel = function _onDeleteCancel()
-{
-    this._deleteButton.hidePopUp();
-
-    App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
-};
-
-/**
- * On delete confirm
- * @private
- */
-App.EditScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
-{
-    var EventType = App.EventType,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
-
-    this._onHidePopUpComplete();
-    App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
-
-    changeScreenData.updateBackScreen = true;
-
-    if (this._target === App.Account)
-    {
-        App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
-            type:EventType.DELETE,
-            account:this._model,
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
-        });
-    }
-    else if (this._target === App.SubCategory)
-    {
-        App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
-            type:EventType.DELETE,
-            subCategory:this._model.subCategory,
-            category:this._model.category,
-            nextCommand:new App.ChangeCategory(),
-            nextCommandData:{
-                type:EventType.CHANGE,
-                category:this._model.category,
-                nextCommand:new App.ChangeScreen(),
-                nextCommandData:changeScreenData
-            }
-        });
-    }
-};
-
-/**
- * On Delete PopUp hide complete
- * @private
- */
-App.EditScreen.prototype._onHidePopUpComplete = function _onHidePopUpComplete()
-{
-    this._unRegisterDeleteButtonListeners();
-
-    this.enable();
-    this._registerEventListeners(App.EventLevel.LEVEL_2);
-};
-
-/**
- * Click handler
- * @private
- */
-App.EditScreen.prototype._onClick = function _onClick()
-{
-    if (this._deleteButton.hitTest(this.stage.getTouchData().getLocalPosition(this).y))
-    {
-        if (this._input.isFocused())
-        {
-            this._input.blur();
-        }
-        else
-        {
-            this.disable();
-            this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
-            App.ViewLocator.getViewSegment(App.ViewName.HEADER).disableActions();
-            this._registerDeleteButtonListeners();
-            this._deleteButton.setPopUpLayout(0,this._layout.headerHeight,0,this._layout.contentHeight > this._background.height ? this._layout.contentHeight : this._background.height);
-            this._deleteButton.showPopUp();
-        }
-    }
-};
-
-/**
- * On Header click
- * @param {number} action
- * @private
- */
-App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
-{
-    var EventType = App.EventType,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
-
-    this._input.blur();
-
-    //TODO check first if value is set
-
-    if (action === App.HeaderAction.CONFIRM)
-    {
-        changeScreenData.updateBackScreen = true;
-
-        if (this._target === App.Account)
-        {
-            App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
-                type:EventType.CHANGE,
-                account:this._model,
-                name:this._input.getValue(),
-                nextCommand:new App.ChangeScreen(),
-                nextCommandData:changeScreenData
-            });
-        }
-        else if (this._target === App.SubCategory)
-        {
-            App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
-                type:EventType.CHANGE,
-                subCategory:this._model.subCategory,
-                category:this._model.category,
-                name:this._input.getValue(),
-                nextCommand:new App.ChangeCategory(),
-                nextCommandData:{
-                    type:EventType.CHANGE,
-                    category:this._model.category,
-                    nextCommand:new App.ChangeScreen(),
-                    nextCommandData:changeScreenData
-                }
-            });
-        }
-    }
-    else if (action === App.HeaderAction.CANCEL)
-    {
-        App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData);
-    }
-};
-
-/**
- * @class InputScrollScreen
- * @extends Screen
- * @param {Object} layout
- * @constructor
- */
-App.InputScrollScreen = function InputScrollScreen(layout)
-{
-    App.Screen.call(this,layout,0.4);
-
-    //TODO also disable header actions if input is focused and soft keyboard shown
-
-    //TODO add other 'scroll-' properties into TweenProxy?
-    this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
-    this._scrollState = App.TransitionState.HIDDEN;
-    this._scrollInput = null;
-    this._scrollPosition = 0;
-    this._inputPadding = Math.round(10 * layout.pixelRatio);
-};
-
-App.InputScrollScreen.prototype = Object.create(App.Screen.prototype);
-App.InputScrollScreen.prototype.constructor = App.InputScrollScreen;
-
-/**
- * On tick
- * @private
- */
-App.InputScrollScreen.prototype._onTick = function _onTick()
-{
-    App.Screen.prototype._onTick.call(this);
-
-    if (this._scrollTween.isRunning()) this._onScrollTweenUpdate();
-};
-
-/**
- * On scroll tween update
- * @private
- */
-App.InputScrollScreen.prototype._onScrollTweenUpdate = function _onScrollTweenUpdate()
-{
-    var TransitionState = App.TransitionState;
-    if (this._scrollState === TransitionState.SHOWING)
-    {
-        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * this._scrollTween.progress);
-    }
-    else if (this._scrollState === TransitionState.HIDING)
-    {
-        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * (1 - this._scrollTween.progress));
-    }
-};
-
-/**
- * On scroll tween complete
- * @private
- */
-App.InputScrollScreen.prototype._onScrollTweenComplete = function _onScrollTweenComplete()
-{
-    var TransitionState = App.TransitionState;
-
-    this._onScrollTweenUpdate();
-
-    if (this._scrollState === TransitionState.SHOWING)
-    {
-        this._scrollState = TransitionState.SHOWN;
-
-        this._scrollInput.enable();
-        this._scrollInput.focus();
-    }
-    else if (this._scrollState === TransitionState.HIDING)
-    {
-        this._scrollState = TransitionState.HIDDEN;
-
-        this._pane.enable();
-
-        App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
-    }
-};
-
-/**
- * Focus budget
- * @param {boolean} [immediate=false] Flag if input should be focused immediately without tweening
- * @private
- */
-App.InputScrollScreen.prototype._focusInput = function _focusInput(immediate)
-{
-    var TransitionState = App.TransitionState;
-    if (this._scrollState === TransitionState.HIDDEN || this._scrollState === TransitionState.HIDING)
-    {
-        this._scrollState = TransitionState.SHOWING;
-
-        this._pane.disable();
-
-        if (immediate)
-        {
-            this._scrollPosition = 0;
-
-            this._onScrollTweenComplete();
-        }
-        else
-        {
-            this._scrollPosition = this._scrollInput.y - this._inputPadding;
-
-            this._scrollTween.start();
-        }
-    }
-};
-
-/**
- * On budget field blur
- * @private
- */
-App.InputScrollScreen.prototype._onInputBlur = function _onInputBlur()
-{
-    var TransitionState = App.TransitionState;
-    if (this._scrollState === TransitionState.SHOWN || this._scrollState === TransitionState.SHOWING)
-    {
-        this._scrollState = TransitionState.HIDING;
-
-        this._scrollInput.disable();
-
-        if (this._scrollPosition  > 0)
-        {
-            this._scrollTween.restart();
-        }
-        else
-        {
-            this._pane.resetScroll();
-            this._onScrollTweenComplete();
-        }
-    }
-};
-
-/**
- * Reset screen scroll
- */
-App.InputScrollScreen.prototype.resetScroll = function resetScroll()
-{
-    if (this._scrollInput) this._scrollInput.blur();
-
-    this._scrollTween.stop();
-
-    this._pane.y = 0;
-    this._pane.resetScroll();
-
-    App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
-};
-
-/**
- * @class TransactionToggleButton
- * @extends Button
- * @param {string} iconName
- * @param {string} label
- * @param {{width:number,height:number,pixelRatio:number,style:Object,toggleStyle:Object}} options
- * @param {{icon:string,label:string,toggleColor:boolean}} toggleOptions
- * @constructor
- */
-App.TransactionToggleButton = function TransactionToggleButton(iconName,label,options,toggleOptions)
-{
-    this._iconName = iconName;
-    this._toggleStyle = options.toggleStyle;
-    this._toggleOptions = toggleOptions;
-    this._icon = PIXI.Sprite.fromFrame(iconName);
-    this._selected = false;
-    this._iconResizeRatio = Math.round(20 * options.pixelRatio) / this._icon.height;
-
-    App.Button.call(this,label,options);
-
-    this._render(true);
-
-    this.addChild(this._icon);
-};
-
-App.TransactionToggleButton.prototype = Object.create(App.Button.prototype);
-App.TransactionToggleButton.prototype.constructor = App.TransactionToggleButton;
-
-/**
- * Render
- * @param {boolean} [updateAll=false]
- * @private
- */
-App.TransactionToggleButton.prototype._render = function _render(updateAll)
-{
-    var r = this._pixelRatio,
-        w = this.boundingBox.width,
-        h = this.boundingBox.height,
-        gap = Math.round(10 * r),
-        padding = Math.round(5 * r);
-
-    if (this._selected)
-    {
-        if (this._toggleOptions.icon) this._icon.setTexture(PIXI.TextureCache[this._toggleOptions.icon]);
-        if (this._toggleOptions.label) this._labelField.setText(this._toggleOptions.label);
-        if (this._toggleOptions.toggleColor)
-        {
-            this._icon.tint = 0xFFFFFE;
-            this._labelField.setStyle(this._toggleStyle);
-
-            this.clear();
-            this.beginFill(App.ColorTheme.BLUE);
-            this.drawRoundedRect(padding,padding,w-padding*2,h-padding*2,padding);
-            this.endFill();
-        }
-    }
-    else
-    {
-        if (this._toggleOptions.icon) this._icon.setTexture(PIXI.TextureCache[this._iconName]);
-        if (this._toggleOptions.label) this._labelField.setText(this._label);
-        if (this._toggleOptions.toggleColor)
-        {
-            this._icon.tint = App.ColorTheme.BLUE;
-            this._labelField.setStyle(this._style);
-
-            this.clear();
-        }
-    }
-
-    if (updateAll)
-    {
-        this._icon.scale.x = this._iconResizeRatio;
-        this._icon.scale.y = this._iconResizeRatio;
-        this._icon.y = Math.round((h - this._icon.height) / 2);
-        this._icon.tint = App.ColorTheme.BLUE;
-
-        this._labelField.y = Math.round((h - this._labelField.height) / 2);
-    }
-
-    this._icon.x = Math.round((w - this._icon.width - gap - this._labelField.width) / 2);
-    this._labelField.x = Math.round(this._icon.x + this._icon.width + gap);
-};
-
-/**
- * Toggle
- */
-App.TransactionToggleButton.prototype.toggle = function toggle()
-{
-    this._selected = !this._selected;
-
-    this._render(false);
-};
-
-/**
- * Set selection state
- * @param {boolean} value
- */
-App.TransactionToggleButton.prototype.setState = function setState(value)
-{
-    this._selected = value;
-
-    this._render(false);
-};
-
-/**
- * Is button selected?
- * @returns {boolean}
- */
-App.TransactionToggleButton.prototype.isSelected = function isSelected()
-{
-    return this._selected;
-};
-
-/**
- * @class TransactionOptionButton
- * @extends Graphics
- * @param {string} iconName
- * @param {string} name
- * @param {{width:number,height:number,pixelRatio:number,nameStyle:Object,valueStyle:Object,valueDetailStyle:Object}} options
- * @constructor
- */
-App.TransactionOptionButton = function TransactionOptionButton(iconName,name,options)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    var Text = PIXI.Text,
-        Sprite = PIXI.Sprite;
-
-    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
-
-    this._options = options;
-    this._value = null;
-    this._pixelRatio = options.pixelRatio;
-    this._skin = new Sprite(options.skin);
-    this._icon = new Sprite.fromFrame(iconName);
-    this._nameField = new Text(name,options.nameStyle);
-    this._valueField = new Text("",options.valueStyle);
-    this._valueDetailField = null;
-    this._arrow = new Sprite.fromFrame("arrow-app");
-    this._iconResizeRatio = Math.round(20 * this._pixelRatio) / this._icon.height;
-    this._arrowResizeRatio = Math.round(12 * this._pixelRatio) / this._arrow.height;
-
-    this._render();
-    this._update();
-
-    this.addChild(this._skin);
-    this.addChild(this._icon);
-    this.addChild(this._nameField);
-    this.addChild(this._valueField);
-    this.addChild(this._arrow);
-};
-
-App.TransactionOptionButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.TransactionOptionButton.prototype.constructor = App.TransactionOptionButton;
-
-/**
- * Render
- * @private
- */
-App.TransactionOptionButton.prototype._render = function _render()
-{
-    var ColorTheme = App.ColorTheme,
-        r = this._pixelRatio,
-        h = this.boundingBox.height;
-
-    this._icon.scale.x = this._iconResizeRatio;
-    this._icon.scale.y = this._iconResizeRatio;
-    this._icon.x = Math.round(15 * r);
-    this._icon.y = Math.round((h - this._icon.height) / 2);
-    this._icon.tint = ColorTheme.GREY_DARK;
-
-    this._nameField.x = Math.round(50 * r);
-    this._nameField.y = Math.round((h - this._nameField.height) / 2);
-
-    this._arrow.scale.x = this._arrowResizeRatio;
-    this._arrow.scale.y = this._arrowResizeRatio;
-    this._arrow.x = Math.round(this.boundingBox.width - 15 * r - this._arrow.width);
-    this._arrow.y = Math.round((h - this._arrow.height) / 2);
-    this._arrow.tint = ColorTheme.GREY_DARK;
-};
-
-/**
- * Update
- * @private
- */
-App.TransactionOptionButton.prototype._update = function _update()
-{
-    var r = this._pixelRatio,
-        offset = this.boundingBox.width - 35 * r;
-
-    this._valueField.x = Math.round(offset - this._valueField.width);
-    if (this._valueDetailField && this.contains(this._valueDetailField))
-    {
-        this._valueField.y = Math.round(9 * r);
-        this._valueDetailField.y = Math.round(30 * r);
-        this._valueDetailField.x = Math.round(offset - this._valueDetailField.width);
-    }
-    else
-    {
-        this._valueField.y = Math.round((this.boundingBox.height - this._valueField.height) / 2);
-    }
-};
-
-/**
- * Set value
- * @param {string} value
- * @param {string} [details=null]
- */
-App.TransactionOptionButton.prototype.setValue = function setValue(value,details)
-{
-    this._value = value;
-    this._valueField.setText(value);
-
-    if (details)
-    {
-        if (this._valueDetailField) this._valueDetailField.setText(details);
-        else this._valueDetailField = new PIXI.Text(details,this._options.valueDetailStyle);
-
-        if (!this.contains(this._valueDetailField)) this.addChild(this._valueDetailField);
-    }
-    else
-    {
-        if (this._valueDetailField && this.contains(this._valueDetailField)) this.removeChild(this._valueDetailField);
-    }
-
-    this._update();
-};
-
-/**
- * Return value
- * @returns {string}
- */
-App.TransactionOptionButton.prototype.getValue = function getValue()
-{
-    return this._value;
-};
-
 /**
  * @class AddTransactionScreen
  * @extends InputScrollScreen
@@ -9265,7 +6538,1328 @@ App.AddTransactionScreen.prototype._getChangeTransactionData = function _getChan
         )
     };
 };
+/**
+ * @class SwipeButton
+ * @extends DisplayObjectContainer
+ * @param {number} width
+ * @param {number} openOffset
+ * @constructor
+ */
+App.SwipeButton = function SwipeButton(width,openOffset)
+{
+    PIXI.DisplayObjectContainer.call(this);
 
+    this._width = width;
+    this._interactionEnabled = false;
+    this._interactiveState = null;
+    this._dragFriction = 0.5;
+    this._snapForce = 0.5;
+    this._openOffset = openOffset;
+    this._isOpen = false;
+    this._ticker = App.ModelLocator.getProxy(App.ModelName.TICKER);
+};
+
+App.SwipeButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.SwipeButton.prototype.constructor = App.SwipeButton;
+
+/**
+ * Disable
+ */
+App.SwipeButton.prototype.disable = function disable()
+{
+    this._disableInteraction();
+    this.close(true);
+};
+
+/**
+ * Enable interaction
+ * @private
+ */
+App.SwipeButton.prototype._enableInteraction = function _enableInteraction()
+{
+    if (!this._interactionEnabled)
+    {
+        this._interactionEnabled = true;
+
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this.interactive = true;
+    }
+};
+
+/**
+ * Disable interaction
+ * @private
+ */
+App.SwipeButton.prototype._disableInteraction = function _disableInteraction()
+{
+    this.interactive = false;
+
+    this._interactiveState = null;
+
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._interactionEnabled = false;
+};
+
+/**
+ * Tick handler
+ * @private
+ */
+App.SwipeButton.prototype._onTick = function _onTick()
+{
+    var InteractiveState = App.InteractiveState;
+    if (this._interactiveState === InteractiveState.SWIPING) this._swipe();
+    else if (this._interactiveState === InteractiveState.SNAPPING) this._snap();
+};
+
+/**
+ * @method swipeStart
+ * @param {string} direction
+ */
+App.SwipeButton.prototype.swipeStart = function swipeStart(direction)
+{
+    var Direction = App.Direction,
+        InteractiveState = App.InteractiveState;
+
+    if (!this._interactiveState)
+    {
+        if (!this._isOpen && direction === Direction.LEFT)
+        {
+            this._interactiveState = InteractiveState.SWIPING;
+            this._enableInteraction();
+        }
+        else if (this._isOpen && direction === Direction.RIGHT)
+        {
+            this._interactiveState = InteractiveState.SNAPPING;
+            this._enableInteraction();
+        }
+    }
+};
+
+/**
+ * @method swipeEnd
+ */
+App.SwipeButton.prototype.swipeEnd = function swipeEnd()
+{
+    if (this._interactiveState === App.InteractiveState.SWIPING) this._interactiveState = App.InteractiveState.SNAPPING;
+};
+
+/**
+ * @method _swipe
+ * @private
+ */
+App.SwipeButton.prototype._swipe = function _swipe()
+{
+    if (this.stage && !this._isOpen)
+    {
+        var x = this.stage.getTouchPosition().x;
+
+        if (x <= -10000) return;
+
+        this._updateSwipePosition(-Math.round(this._width * (1 - (x / this._width)) * this._dragFriction));
+    }
+};
+
+/**
+ * @method _snap
+ * @private
+ */
+App.SwipeButton.prototype._snap = function _snap()
+{
+    var swipePosition = this._getSwipePosition(),
+        result = Math.round(swipePosition * this._snapForce);
+
+    // Snap to open
+    if (swipePosition < -this._openOffset)
+    {
+        if (result >= -this._openOffset)
+        {
+            this._isOpen = true;
+            this._disableInteraction();
+
+            this._updateSwipePosition(-this._openOffset);
+        }
+        else
+        {
+            this._updateSwipePosition(result);
+        }
+    }
+    // Snap to close
+    else
+    {
+        if (result >= -1)
+        {
+            this._isOpen = false;
+            this._disableInteraction();
+
+            this._updateSwipePosition(0);
+        }
+        else
+        {
+            this._updateSwipePosition(result);
+        }
+    }
+};
+
+/**
+ * Close Edit button
+ * @param {boolean} [immediate=false]
+ */
+App.SwipeButton.prototype.close = function close(immediate)
+{
+    if (this._isOpen)
+    {
+        if (immediate)
+        {
+            this._updateSwipePosition(0);
+            this._isOpen = false;
+        }
+        else
+        {
+            this._interactiveState = App.InteractiveState.SNAPPING;
+            this._enableInteraction();
+        }
+    }
+};
+
+/**
+ * Update swipe position
+ * @param {number} position
+ * @private
+ */
+App.SwipeButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
+{
+    // Abstract
+};
+
+/**
+ * Return swipe position
+ * @private
+ */
+App.SwipeButton.prototype._getSwipePosition = function _getSwipePosition()
+{
+    // Abstract
+};
+/**
+ * @class ExpandButton
+ * @extends DisplayObjectContainer
+ * @param {number} width
+ * @param {number} height
+ * @param {boolean} useMask
+ * @constructor
+ */
+App.ExpandButton = function ExpandButton(width,height,useMask)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        eventListenerPool = ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL);
+
+    this.boundingBox = new App.Rectangle(0,0,width,height);
+
+    this._content = null;
+    this._contentHeight = height;
+    this._buttonHeight = height;
+    this._useMask = useMask;
+    this._updateBoundsInTransition = false;
+
+    this._eventsRegistered = false;
+    this._transitionState = App.TransitionState.CLOSED;
+    this._expandTween = new App.TweenProxy(0.4,App.Easing.outExpo,0,eventListenerPool);
+    this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+
+    if (this._useMask)
+    {
+        this._mask = new PIXI.Graphics();
+        this.mask = this._mask;
+        this._updateMask();
+        this.addChild(this._mask);
+    }
+};
+
+App.ExpandButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.ExpandButton.prototype.constructor = App.ExpandButton;
+
+/**
+ * Set content
+ * @param {Object} content
+ * @private
+ */
+App.ExpandButton.prototype._setContent = function _setContent(content)
+{
+    this._content = content;
+    this._contentHeight = this._content.boundingBox ? this._content.boundingBox.height : this._content.height;
+
+    this._content.visible = false;
+    this._content.y = this._buttonHeight;
+};
+
+/**
+ * Enable interaction
+ * @private
+ */
+App.ExpandButton.prototype._registerEventListeners = function _registerEventListeners()
+{
+    if (!this._eventsRegistered)
+    {
+        this._eventsRegistered = true;
+
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._expandTween.addEventListener(App.EventType.COMPLETE,this,this._onTransitionComplete);
+    }
+};
+
+/**
+ * Disable interaction
+ * @private
+ */
+App.ExpandButton.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    this._expandTween.removeEventListener(App.EventType.COMPLETE,this,this._onTransitionComplete);
+
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._eventsRegistered = false;
+};
+
+/**
+ * Tick handler
+ * @private
+ */
+App.ExpandButton.prototype._onTick = function _onTick()
+{
+    if (this._expandTween.isRunning()) this._updateTransition();
+};
+
+/**
+ * Update transition
+ * @private
+ */
+App.ExpandButton.prototype._updateTransition = function _updateTransition()
+{
+    this._updateBounds(this._updateBoundsInTransition);
+    if (this._useMask) this._updateMask();
+};
+
+/**
+ * On transition complete
+ * @private
+ */
+App.ExpandButton.prototype._onTransitionComplete = function _onTransitionComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.OPENING)
+    {
+        this._transitionState = TransitionState.OPEN;
+    }
+    else if (this._transitionState === TransitionState.CLOSING)
+    {
+        this._transitionState = TransitionState.CLOSED;
+
+        this._content.visible = false;
+    }
+
+    this._unRegisterEventListeners();
+
+    this._updateBounds(this._updateBoundsInTransition);
+    if (this._useMask) this._updateMask();
+
+    if (!this.isInTransition())
+    {
+        this._updateBoundsInTransition = false;
+
+        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this);
+    }
+};
+
+/**
+ * Update bounds
+ * @param {boolean} [updateContent=false]
+ * @private
+ */
+App.ExpandButton.prototype._updateBounds = function _updateBounds(updateContent)
+{
+    var TransitionState = App.TransitionState;
+
+    if (updateContent)
+    {
+        this._contentHeight = this._content.boundingBox ? this._content.boundingBox.height : this._content.height;
+    }
+
+    if (this._transitionState === TransitionState.OPENING)
+    {
+        this.boundingBox.height = Math.round(this._buttonHeight + this._contentHeight * this._expandTween.progress);
+    }
+    else if (this._transitionState === TransitionState.OPEN)
+    {
+        this.boundingBox.height = this._buttonHeight + this._contentHeight;
+    }
+    else if (this._transitionState === TransitionState.CLOSING)
+    {
+        this.boundingBox.height = Math.round(this._buttonHeight + this._contentHeight * (1 - this._expandTween.progress));
+    }
+    else if (this._transitionState === TransitionState.CLOSED)
+    {
+        this.boundingBox.height = this._buttonHeight;
+    }
+};
+
+/**
+ * Re-draw mask
+ * @private
+ */
+App.ExpandButton.prototype._updateMask = function _updateMask()
+{
+    App.GraphicUtils.drawRect(this._mask,0xff0000,1,0,0,this.boundingBox.width,this.boundingBox.height);
+};
+
+/**
+ * Click handler
+ * @param {Point} position
+ */
+App.ExpandButton.prototype.onClick = function onClick(position)
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING) this.open();
+    else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING) this.close();
+};
+
+/**
+ * Check if its open
+ * @returns {boolean}
+ */
+App.ExpandButton.prototype.isOpen = function isOpen()
+{
+    return this._transitionState !== App.TransitionState.CLOSED;
+};
+
+/**
+ * Check if button is in transition
+ * @returns {boolean}
+ */
+App.ExpandButton.prototype.isInTransition = function isInTransition()
+{
+    return this._transitionState === App.TransitionState.OPENING || this._transitionState === App.TransitionState.CLOSING;
+};
+
+/**
+ * Open
+ * @param {boolean} [updateBounds=false]
+ */
+App.ExpandButton.prototype.open = function open(updateBounds)
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
+    {
+        this._registerEventListeners();
+
+        this._content.visible = true;
+
+        this._transitionState = TransitionState.OPENING;
+
+        this._updateBoundsInTransition = updateBounds;
+
+        this._expandTween.restart();
+    }
+};
+
+/**
+ * Close
+ * @param {boolean} [immediate=false]
+ * @param {boolean} [updateBounds=false]
+ */
+App.ExpandButton.prototype.close = function close(immediate,updateBounds)
+{
+    var TransitionState = App.TransitionState,
+        EventType = App.EventType;
+
+    if (immediate)
+    {
+        this._transitionState = TransitionState.CLOSING;
+
+        this._updateBoundsInTransition = updateBounds;
+
+        this._expandTween.stop();
+
+        this._onTransitionComplete();
+    }
+    else
+    {
+        if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
+        {
+            this._registerEventListeners();
+
+            this._transitionState = TransitionState.CLOSING;
+
+            this._updateBoundsInTransition = updateBounds;
+
+            this._expandTween.start(true);
+        }
+        else
+        {
+            // Already closed - but dispatch event so parent can cancel its processes
+            this._eventDispatcher.dispatchEvent(EventType.COMPLETE,this);
+        }
+    }
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.ExpandButton.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.ExpandButton.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
+};
+/**
+ * @class EditScreen
+ * @param {Object} layout
+ * @constructor
+ */
+App.EditScreen = function EditScreen(layout)
+{
+    App.Screen.call(this,layout,0.4);
+
+    var r = layout.pixelRatio,
+        inputWidth = layout.width - Math.round(20 * r),
+        inputHeight = Math.round(40 * r);
+
+    this._target = null;
+
+    this._background = this.addChild(new PIXI.Graphics());
+    this._input = this.addChild(new App.Input("",20,inputWidth,inputHeight,r,true));
+    this._deleteButton = new App.PopUpButton("Delete","",{
+        width:inputWidth,
+        height:inputHeight,
+        pixelRatio:r,
+        popUpLayout:{x:Math.round(10*r),y:0,width:Math.round(inputWidth-20*r),height:Math.round(layout.height/2),overlayWidth:layout.width,overlayHeight:0}
+    });
+    this._renderAll = true;
+};
+
+App.EditScreen.prototype = Object.create(App.Screen.prototype);
+App.EditScreen.prototype.constructor = App.EditScreen;
+
+/**
+ * Render
+ * @private
+ */
+App.EditScreen.prototype._render = function _render()
+{
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        ScreenMode = App.ScreenMode,
+        r = this._layout.pixelRatio,
+        padding = Math.round(10 * r),
+        inputHeight = Math.round(60 * r),
+        w = this._layout.width - padding * 2;
+
+    if (this._renderAll)
+    {
+        this._renderAll = false;
+
+        this._input.x = padding;
+        this._input.y = padding;
+
+        this._deleteButton.setPosition(padding,inputHeight+padding);
+    }
+
+    if (this._mode === ScreenMode.EDIT)
+    {
+        if (!this.contains(this._deleteButton)) this.addChild(this._deleteButton);
+
+        //TODO use skin
+        GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w+padding*2,inputHeight*2],true,false);
+        GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,inputHeight-1,w,1],false,false);
+        GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,inputHeight,w,1],false,true);
+    }
+    else if (this._mode === ScreenMode.ADD)
+    {
+        if (this.contains(this._deleteButton)) this.removeChild(this._deleteButton);
+
+        GraphicUtils.drawRect(this._background,ColorTheme.GREY,1,0,0,w+padding*2,inputHeight);
+    }
+};
+
+/**
+ * Hide
+ */
+App.EditScreen.prototype.hide = function hide()
+{
+    this._unRegisterDeleteButtonListeners();
+
+    App.Screen.prototype.hide.call(this);
+};
+
+/**
+ * Enable
+ */
+App.EditScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._input.enable();
+};
+
+/**
+ * Disable
+ */
+App.EditScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._input.disable();
+};
+
+/**
+ * Update
+ * @param {{category:App.Category,subCategory:App.SubCategory}} model
+ * @param {string} mode
+ */
+App.EditScreen.prototype.update = function update(model,mode)
+{
+    this._model = model;
+    this._mode = mode;
+    this._target = this._model instanceof App.Account ? App.Account : App.SubCategory;
+
+    this._deleteButton.hidePopUp(true);
+
+    if (this._target === App.Account)
+    {
+        this._input.setValue(this._model.name);
+        this._deleteButton.setMessage("Are you sure you want to\ndelete this account with all its\ndata and categories?");
+    }
+    else if (this._target === App.SubCategory && this._model.subCategory)
+    {
+        this._input.setValue(this._model.subCategory.name);
+        this._deleteButton.setMessage("Are you sure you want to\ndelete this sub-category?");
+    }
+
+    this._render();
+};
+
+/**
+ * Register delete button event listeners
+ * @private
+ */
+App.EditScreen.prototype._registerDeleteButtonListeners = function _registerDeleteButtonListeners()
+{
+    var EventType = App.EventType;
+
+    this._deleteButton.addEventListener(EventType.CANCEL,this,this._onDeleteCancel);
+    this._deleteButton.addEventListener(EventType.CONFIRM,this,this._onDeleteConfirm);
+    this._deleteButton.addEventListener(EventType.COMPLETE,this,this._onHidePopUpComplete);
+};
+
+/**
+ * UnRegister delete button event listeners
+ * @private
+ */
+App.EditScreen.prototype._unRegisterDeleteButtonListeners = function _unRegisterDeleteButtonListeners()
+{
+    var EventType = App.EventType;
+
+    this._deleteButton.removeEventListener(EventType.CANCEL,this,this._onDeleteCancel);
+    this._deleteButton.removeEventListener(EventType.CONFIRM,this,this._onDeleteConfirm);
+    this._deleteButton.removeEventListener(EventType.COMPLETE,this,this._onHidePopUpComplete);
+};
+
+/**
+ * On delete cancel
+ * @private
+ */
+App.EditScreen.prototype._onDeleteCancel = function _onDeleteCancel()
+{
+    this._deleteButton.hidePopUp();
+
+    App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
+};
+
+/**
+ * On delete confirm
+ * @private
+ */
+App.EditScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
+{
+    var EventType = App.EventType,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
+
+    this._onHidePopUpComplete();
+    App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
+
+    changeScreenData.updateBackScreen = true;
+
+    if (this._target === App.Account)
+    {
+        App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
+            type:EventType.DELETE,
+            account:this._model,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
+    }
+    else if (this._target === App.SubCategory)
+    {
+        App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
+            type:EventType.DELETE,
+            subCategory:this._model.subCategory,
+            category:this._model.category,
+            nextCommand:new App.ChangeCategory(),
+            nextCommandData:{
+                type:EventType.CHANGE,
+                category:this._model.category,
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:changeScreenData
+            }
+        });
+    }
+};
+
+/**
+ * On Delete PopUp hide complete
+ * @private
+ */
+App.EditScreen.prototype._onHidePopUpComplete = function _onHidePopUpComplete()
+{
+    this._unRegisterDeleteButtonListeners();
+
+    this.enable();
+    this._registerEventListeners(App.EventLevel.LEVEL_2);
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.EditScreen.prototype._onClick = function _onClick()
+{
+    if (this._deleteButton.hitTest(this.stage.getTouchData().getLocalPosition(this).y))
+    {
+        if (this._input.isFocused())
+        {
+            this._input.blur();
+        }
+        else
+        {
+            this.disable();
+            this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
+            App.ViewLocator.getViewSegment(App.ViewName.HEADER).disableActions();
+            this._registerDeleteButtonListeners();
+            this._deleteButton.setPopUpLayout(0,this._layout.headerHeight,0,this._layout.contentHeight > this._background.height ? this._layout.contentHeight : this._background.height);
+            this._deleteButton.showPopUp();
+        }
+    }
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.EditScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var EventType = App.EventType,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
+
+    this._input.blur();
+
+    //TODO check first if value is set
+
+    if (action === App.HeaderAction.CONFIRM)
+    {
+        changeScreenData.updateBackScreen = true;
+
+        if (this._target === App.Account)
+        {
+            App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
+                type:EventType.CHANGE,
+                account:this._model,
+                name:this._input.getValue(),
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:changeScreenData
+            });
+        }
+        else if (this._target === App.SubCategory)
+        {
+            App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
+                type:EventType.CHANGE,
+                subCategory:this._model.subCategory,
+                category:this._model.category,
+                name:this._input.getValue(),
+                nextCommand:new App.ChangeCategory(),
+                nextCommandData:{
+                    type:EventType.CHANGE,
+                    category:this._model.category,
+                    nextCommand:new App.ChangeScreen(),
+                    nextCommandData:changeScreenData
+                }
+            });
+        }
+    }
+    else if (action === App.HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData);
+    }
+};
+/**
+ * Abstract Screen
+ *
+ * @class Screen
+ * @extends DisplayObjectContainer
+ * @param {Object} layout
+ * @param {number} tweenDuration
+ * @constructor
+ */
+App.Screen = function Screen(layout,tweenDuration)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        pixelRatio = layout.pixelRatio;
+
+    this._model = null;
+    this._layout = layout;
+    this._enabled = false;
+    this._eventsRegistered = App.EventLevel.NONE;
+
+    this._transitionState = App.TransitionState.HIDDEN;
+    this._interactiveState = null;
+    this._mouseDownPosition = null;
+    this._mouseX = 0.0;
+    this._mouseY = 0.0;
+    this._leftSwipeThreshold = 15 * pixelRatio;
+    this._rightSwipeThreshold = 5 * pixelRatio;
+    this._clickThreshold = 5 * pixelRatio;
+    this._swipeEnabled = false;
+    this._preferScroll = true;
+    this._mode = App.ScreenMode.DEFAULT;
+
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._eventDispatcher = new App.EventDispatcher(ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._showHideTween = new App.TweenProxy(tweenDuration,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+
+    this.alpha = 0.0;
+};
+
+App.Screen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.Screen.prototype.constructor = App.Screen;
+
+/**
+ * Show
+ */
+App.Screen.prototype.show = function show()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.HIDDEN || this._transitionState === TransitionState.HIDING)
+    {
+        this.enable();
+
+        this._transitionState = TransitionState.SHOWING;
+
+        this._showHideTween.restart();
+
+        this.visible = true;
+    }
+};
+
+/**
+ * Hide
+ */
+App.Screen.prototype.hide = function hide()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.SHOWN || this._transitionState === TransitionState.SHOWING)
+    {
+        this.disable();
+
+        this._transitionState = TransitionState.HIDING;
+
+        this._showHideTween.start(true);
+    }
+};
+
+/**
+ * Enable
+ */
+App.Screen.prototype.enable = function enable()
+{
+    if (!this._enabled)
+    {
+        this._registerEventListeners(App.EventLevel.LEVEL_1);
+
+        this._enabled = true;
+    }
+};
+
+/**
+ * Disable
+ */
+App.Screen.prototype.disable = function disable()
+{
+    this._unRegisterEventListeners(App.EventLevel.LEVEL_2);
+
+    this._enabled = false;
+
+    this._interactiveState = null;
+};
+
+/**
+ * Update
+ */
+App.Screen.prototype.update = function update(data,mode)
+{
+    this._mode = mode;
+    //TODO mark layout/UI as 'dirty' and update/render on Tick event
+};
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Screen.prototype.addEventListener = function addEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
+};
+
+/**
+ * Remove event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Screen.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
+{
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
+};
+
+/**
+ * Register event listeners
+ * @param {number} level
+ * @private
+ */
+App.Screen.prototype._registerEventListeners = function _registerEventListeners(level)
+{
+    var EventLevel = App.EventLevel;
+
+    if (level === EventLevel.LEVEL_1 && this._eventsRegistered !== EventLevel.LEVEL_1)
+    {
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._showHideTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+    }
+
+    if (level === EventLevel.LEVEL_2 && this._eventsRegistered !== EventLevel.LEVEL_2)
+    {
+        if (App.Device.TOUCH_SUPPORTED)
+        {
+            this.touchstart = this._onPointerDown;
+            this.touchend = this._onPointerUp;
+            this.touchendoutside = this._onPointerUp;
+        }
+        else
+        {
+            this.mousedown = this._onPointerDown;
+            this.mouseup = this._onPointerUp;
+            this.mouseupoutside = this._onPointerUp;
+        }
+
+        App.ViewLocator.getViewSegment(App.ViewName.HEADER).addEventListener(App.EventType.CLICK,this,this._onHeaderClick);
+
+        this.interactive = true;
+    }
+
+    this._eventsRegistered = level;
+};
+
+/**
+ * UnRegister event listeners
+ * @param {number} level
+ * @private
+ */
+App.Screen.prototype._unRegisterEventListeners = function _unRegisterEventListeners(level)
+{
+    var EventLevel = App.EventLevel;
+
+    if (level === EventLevel.LEVEL_1)
+    {
+        this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._showHideTween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+
+        this._eventsRegistered = EventLevel.NONE;
+    }
+
+    if (level === EventLevel.LEVEL_2)
+    {
+        this.interactive = false;
+
+        App.ViewLocator.getViewSegment(App.ViewName.HEADER).removeEventListener(App.EventType.CLICK,this,this._onHeaderClick);
+
+        if (App.Device.TOUCH_SUPPORTED)
+        {
+            this.touchstart = null;
+            this.touchend = null;
+            this.touchendoutside = null;
+        }
+        else
+        {
+            this.mousedown = null;
+            this.mouseup = null;
+            this.mouseupoutside = null;
+        }
+
+        this._eventsRegistered = EventLevel.LEVEL_1;
+    }
+};
+
+/**
+ * On tick
+ * @private
+ */
+App.Screen.prototype._onTick = function _onTick()
+{
+    if (this._showHideTween.isRunning())
+    {
+        var TransitionState = App.TransitionState;
+
+        if (this._transitionState === TransitionState.SHOWING) this.alpha = this._showHideTween.progress;
+        else if (this._transitionState === TransitionState.HIDING) this.alpha = 1.0 - this._showHideTween.progress;
+    }
+
+    if (this._swipeEnabled && this._interactiveState === App.InteractiveState.DRAGGING) this._drag();
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.Screen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.SHOWING)
+    {
+        this._transitionState = TransitionState.SHOWN;
+
+        this.alpha = 1.0;
+
+        this._registerEventListeners(App.EventLevel.LEVEL_2);
+    }
+    else if (this._transitionState === TransitionState.HIDING)
+    {
+        this._transitionState = TransitionState.HIDDEN;
+
+        this._unRegisterEventListeners(App.EventLevel.LEVEL_1);
+
+        this.alpha = 0.0;
+
+        this.visible = false;
+
+        this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,{target:this,state:this._transitionState});
+    }
+};
+
+/**
+ * On pointer down
+ *
+ * @param {Object} data
+ * @private
+ */
+App.Screen.prototype._onPointerDown = function _onPointerDown(data)
+{
+    if (this.stage)
+    {
+        this._mouseDownPosition = data.getLocalPosition(this.stage);
+        this._mouseX = this._mouseDownPosition.x;
+        this._mouseY = this._mouseDownPosition.y;
+    }
+
+    if (this._swipeEnabled) this._interactiveState = App.InteractiveState.DRAGGING;
+};
+
+/**
+ * On pointer up
+ * @param {Object} data
+ * @private
+ */
+App.Screen.prototype._onPointerUp = function _onPointerUp(data)
+{
+    if (this._swipeEnabled)
+    {
+        if (this._interactiveState === App.InteractiveState.SWIPING) this._swipeEnd();
+        this._interactiveState = null;
+    }
+
+    if (this.stage && this._mouseDownPosition && this._enabled)
+    {
+        var oldX = this._mouseDownPosition.x,
+            oldY = this._mouseDownPosition.y;
+
+        this._mouseDownPosition = data.getLocalPosition(this.stage,this._mouseDownPosition);
+
+        var dx = oldX - this._mouseDownPosition.x,
+            dy = oldY - this._mouseDownPosition.y,
+            dist = dx * dx - dy * dy,
+            TransitionState = App.TransitionState;
+
+        if (Math.abs(dist) < this._clickThreshold && (this._transitionState === TransitionState.SHOWING || this._transitionState === TransitionState.SHOWN)) this._onClick();
+
+        this._mouseDownPosition = null;
+    }
+};
+
+/**
+ * Drag
+ * @private
+ */
+App.Screen.prototype._drag = function _drag()
+{
+    var InteractiveState = App.InteractiveState;
+
+    if (this._interactiveState === InteractiveState.DRAGGING)
+    {
+        if (this.stage && this._mouseX)
+        {
+            var position = this.stage.getTouchPosition(),
+                newX = position.x,
+                newY = position.y;
+
+            if (this._mouseX - newX > this._leftSwipeThreshold)
+            {
+                this._interactiveState = InteractiveState.SWIPING;
+                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll,App.Direction.LEFT);
+            }
+            else if (newX - this._mouseX > this._rightSwipeThreshold)
+            {
+                this._interactiveState = InteractiveState.SWIPING;
+                this._swipeStart(Math.abs(this._mouseY-newY) > Math.abs(this._mouseX-newX) && this._preferScroll,App.Direction.RIGHT);
+            }
+
+            this._mouseX = newX;
+            this._mouseY = newY;
+        }
+    }
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.Screen.prototype._onClick = function _onClick()
+{
+    this._eventDispatcher.dispatchEvent(App.EventType.CLICK);
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.Screen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    // Abstract
+};
+
+/**
+ * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
+ * @private
+ */
+App.Screen.prototype._swipeStart = function _swipeStart(preferScroll)
+{
+    // Abstract
+};
+
+/**
+ * Called when swipe ends
+ * @param {string} direction
+ * @private
+ */
+App.Screen.prototype._swipeEnd = function _swipeEnd(direction)
+{
+    // Abstract
+};
+/**
+ * LifeCycle state
+ * @enum {number}
+ * @return {{CREATED:number,ACTIVE:number,DELETED:number}}
+ */
+App.LifeCycleState = {
+    CREATED:1,
+    ACTIVE:2,
+    DELETED:3
+};
+/**
+ * @class InputScrollScreen
+ * @extends Screen
+ * @param {Object} layout
+ * @constructor
+ */
+App.InputScrollScreen = function InputScrollScreen(layout)
+{
+    App.Screen.call(this,layout,0.4);
+
+    //TODO also disable header actions if input is focused and soft keyboard shown
+
+    //TODO add other 'scroll-' properties into TweenProxy?
+    this._scrollTween = new App.TweenProxy(0.5,App.Easing.outExpo,0,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
+    this._scrollState = App.TransitionState.HIDDEN;
+    this._scrollInput = null;
+    this._scrollPosition = 0;
+    this._inputPadding = Math.round(10 * layout.pixelRatio);
+};
+
+App.InputScrollScreen.prototype = Object.create(App.Screen.prototype);
+App.InputScrollScreen.prototype.constructor = App.InputScrollScreen;
+
+/**
+ * On tick
+ * @private
+ */
+App.InputScrollScreen.prototype._onTick = function _onTick()
+{
+    App.Screen.prototype._onTick.call(this);
+
+    if (this._scrollTween.isRunning()) this._onScrollTweenUpdate();
+};
+
+/**
+ * On scroll tween update
+ * @private
+ */
+App.InputScrollScreen.prototype._onScrollTweenUpdate = function _onScrollTweenUpdate()
+{
+    var TransitionState = App.TransitionState;
+    if (this._scrollState === TransitionState.SHOWING)
+    {
+        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * this._scrollTween.progress);
+    }
+    else if (this._scrollState === TransitionState.HIDING)
+    {
+        this._pane.y = -Math.round((this._scrollPosition + this._container.y) * (1 - this._scrollTween.progress));
+    }
+};
+
+/**
+ * On scroll tween complete
+ * @private
+ */
+App.InputScrollScreen.prototype._onScrollTweenComplete = function _onScrollTweenComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    this._onScrollTweenUpdate();
+
+    if (this._scrollState === TransitionState.SHOWING)
+    {
+        this._scrollState = TransitionState.SHOWN;
+
+        this._scrollInput.enable();
+        this._scrollInput.focus();
+    }
+    else if (this._scrollState === TransitionState.HIDING)
+    {
+        this._scrollState = TransitionState.HIDDEN;
+
+        this._pane.enable();
+
+        App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
+    }
+};
+
+/**
+ * Focus budget
+ * @param {boolean} [immediate=false] Flag if input should be focused immediately without tweening
+ * @private
+ */
+App.InputScrollScreen.prototype._focusInput = function _focusInput(immediate)
+{
+    var TransitionState = App.TransitionState;
+    if (this._scrollState === TransitionState.HIDDEN || this._scrollState === TransitionState.HIDING)
+    {
+        this._scrollState = TransitionState.SHOWING;
+
+        this._pane.disable();
+
+        if (immediate)
+        {
+            this._scrollPosition = 0;
+
+            this._onScrollTweenComplete();
+        }
+        else
+        {
+            this._scrollPosition = this._scrollInput.y - this._inputPadding;
+
+            this._scrollTween.start();
+        }
+    }
+};
+
+/**
+ * On budget field blur
+ * @private
+ */
+App.InputScrollScreen.prototype._onInputBlur = function _onInputBlur()
+{
+    var TransitionState = App.TransitionState;
+    if (this._scrollState === TransitionState.SHOWN || this._scrollState === TransitionState.SHOWING)
+    {
+        this._scrollState = TransitionState.HIDING;
+
+        this._scrollInput.disable();
+
+        if (this._scrollPosition  > 0)
+        {
+            this._scrollTween.restart();
+        }
+        else
+        {
+            this._pane.resetScroll();
+            this._onScrollTweenComplete();
+        }
+    }
+};
+
+/**
+ * Reset screen scroll
+ */
+App.InputScrollScreen.prototype.resetScroll = function resetScroll()
+{
+    if (this._scrollInput) this._scrollInput.blur();
+
+    this._scrollTween.stop();
+
+    this._pane.y = 0;
+    this._pane.resetScroll();
+
+    App.ViewLocator.getViewSegment(App.ViewName.APPLICATION_VIEW).scrollTo(0);
+};
 /**
  * @class SelectTimeScreen
  * @extends InputScrollScreen
@@ -9449,1536 +8043,6 @@ App.SelectTimeScreen.prototype._onHeaderClick = function _onHeaderClick(action)
         });
     }
 };
-
-/**
- * @class AccountButton
- * @extends SwipeButton
- * @param {number} poolIndex
- * @param {Object} options
- * @param {number} options.width
- * @param {number} options.height
- * @param {number} options.pixelRatio
- * @param {PIXI.Texture} options.skin
- * @param {{font:string,fill:string}} options.nameStyle
- * @param {{font:string,fill:string}} options.detailStyle
- * @param {{font:string,fill:string}} options.editStyle
- * @param {number} options.openOffset
- * @constructor
- */
-App.AccountButton = function AccountButton(poolIndex,options)
-{
-    App.SwipeButton.call(this,options.width,options.openOffset);
-
-    this.allocated = false;
-    this.poolIndex = poolIndex;
-    this.boundingBox = new PIXI.Rectangle(0,0,options.width,options.height);
-
-    this._model = null;
-    this._mode = App.ScreenMode.SELECT;
-    this._pixelRatio = options.pixelRatio;
-    this._background = this.addChild(new PIXI.Graphics());
-    this._editLabel = this.addChild(new PIXI.Text("Edit",options.editStyle));
-    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
-    this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
-    this._nameLabel = this._swipeSurface.addChild(new PIXI.Text("",options.nameStyle));
-    this._detailsLabel = this._swipeSurface.addChild(new PIXI.Text("Balance: 2.876, Expenses: -250, Income: 1.500",options.detailStyle));//TODO remove hard-coded data
-    this._renderAll = true;
-};
-
-App.AccountButton.prototype = Object.create(App.SwipeButton.prototype);
-App.AccountButton.prototype.constructor = App.AccountButton;
-
-/**
- * @method render
- * @private
- */
-App.AccountButton.prototype._render = function _render()
-{
-    if (this._renderAll)
-    {
-        var w = this.boundingBox.width,
-            h = this.boundingBox.height,
-            r = this._pixelRatio,
-            offset = Math.round(15 * r);
-
-        this._renderAll = false;
-
-        App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
-
-        this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
-        this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
-
-        this._nameLabel.x = offset;
-        this._nameLabel.y = offset;
-
-        this._detailsLabel.x = offset;
-        this._detailsLabel.y = Math.round(45 * r);
-    }
-};
-
-/**
- * Set model
- * @param {App.Account} model
- * @param {string} mode
- */
-App.AccountButton.prototype.setModel = function getModel(model,mode)
-{
-    this._model = model;
-    this._mode = mode;
-
-    this._nameLabel.setText(this._model.name);
-
-    this._render();
-};
-
-/**
- * Return model
- * @returns {Account}
- */
-App.AccountButton.prototype.getModel = function getModel()
-{
-    return this._model;
-};
-
-/**
- * Click handler
- * @param {InteractionData} data
- * @returns {number}
- */
-App.AccountButton.prototype.getClickMode = function getClickMode(data)
-{
-    if (this._isOpen && data.getLocalPosition(this).x >= this._width - this._openOffset) return App.ScreenMode.EDIT;
-    else return App.ScreenMode.SELECT;
-};
-
-/**
- * Update swipe position
- * @param {number} position
- * @private
- */
-App.AccountButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
-{
-    this._swipeSurface.x = position;
-};
-
-/**
- * Return swipe position
- * @private
- */
-App.AccountButton.prototype._getSwipePosition = function _getSwipePosition()
-{
-    return this._swipeSurface.x;
-};
-
-/**
- * @class AccountScreen
- * @extends Screen
- * @param {Object} layout
- * @constructor
- */
-App.AccountScreen = function AccountScreen(layout)
-{
-    App.Screen.call(this,layout,0.4);
-
-    var ScrollPolicy = App.ScrollPolicy,
-        FontStyle = App.FontStyle,
-        r = layout.pixelRatio,
-        h = layout.contentHeight;
-
-    this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
-
-    this._interactiveButton = null;
-    this._buttonList = new App.TileList(App.Direction.Y,h);
-    this._addNewButton = new App.AddNewButton("ADD ACCOUNT",FontStyle.get(16,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_60,r);
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,r,false);
-
-    this._pane.setContent(this._buttonList);
-    this.addChild(this._pane);
-};
-
-App.AccountScreen.prototype = Object.create(App.Screen.prototype);
-App.AccountScreen.prototype.constructor = App.AccountScreen;
-
-/**
- * Enable
- */
-App.AccountScreen.prototype.enable = function enable()
-{
-    App.Screen.prototype.enable.call(this);
-
-    this._pane.resetScroll();
-    this._pane.enable();
-};
-
-/**
- * Disable
- */
-App.AccountScreen.prototype.disable = function disable()
-{
-    App.Screen.prototype.disable.call(this);
-
-    this._pane.disable();
-};
-
-/**
- * Update
- * @param {App.Collection} data
- * @param {string} mode
- * @private
- */
-App.AccountScreen.prototype.update = function update(data,mode)
-{
-    this._buttonList.remove(this._addNewButton);
-
-    var buttonPool = App.ViewLocator.getViewSegment(App.ViewName.ACCOUNT_BUTTON_POOL),
-        i = 0,
-        l = this._buttonList.length,
-        deletedState = App.LifeCycleState.DELETED,
-        account = null,
-        button = null;
-
-    for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
-
-    for (i=0,l=this._model.length();i<l;)
-    {
-        account = this._model.getItemAt(i++);
-        if (account.lifeCycleState !== deletedState)
-        {
-            button = buttonPool.allocate();
-            button.setModel(account,mode);
-            this._buttonList.add(button);
-        }
-    }
-
-    this._buttonList.add(this._addNewButton);
-    this._buttonList.updateLayout(true);
-
-    this._pane.resize();
-
-    this._mode = mode;
-    this._swipeEnabled = mode === App.ScreenMode.EDIT;
-};
-
-/**
- * On tween complete
- * @private
- */
-App.AccountScreen.prototype._onTweenComplete = function _onTweenComplete()
-{
-    App.Screen.prototype._onTweenComplete.call(this);
-
-    if (this._transitionState === App.TransitionState.HIDDEN) this._closeButtons(true);
-};
-
-/**
- * Called when swipe starts
- * @param {boolean} [preferScroll=false]
- * @param {string} direction
- * @private
- */
-App.AccountScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
-{
-    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
-
-    if (button && !(button instanceof App.AddNewButton))
-    {
-        if (!preferScroll) this._pane.cancelScroll();
-
-        this._interactiveButton = button;
-        this._interactiveButton.swipeStart(direction);
-
-        this._closeButtons(false);
-    }
-};
-
-/**
- * Called when swipe ends
- * @private
- */
-App.AccountScreen.prototype._swipeEnd = function _swipeEnd()
-{
-    if (this._interactiveButton)
-    {
-        this._interactiveButton.swipeEnd();
-        this._interactiveButton = null;
-    }
-};
-
-/**
- * Close opened buttons
- * @private
- */
-App.AccountScreen.prototype._closeButtons = function _closeButtons(immediate)
-{
-    if (this._mode === App.ScreenMode.EDIT)
-    {
-        var i = 0,
-            l = this._buttonList.length - 1,// last button is 'AddNewButton'
-            button = null;
-
-        for (;i<l;)
-        {
-            button = this._buttonList.getItemAt(i++);
-            if (button !== this._interactiveButton) button.close(immediate);
-        }
-    }
-};
-
-/**
- * Click handler
- * @private
- */
-App.AccountScreen.prototype._onClick = function _onClick()
-{
-    var data = this.stage.getTouchData(),
-        button = this._buttonList.getItemUnderPoint(data);
-
-    if (button)
-    {
-        var EventType = App.EventType,
-            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT);
-
-        if (button instanceof App.AddNewButton)
-        {
-            changeScreenData.headerName = App.ScreenTitle.ADD_ACCOUNT;
-
-            App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
-                type:EventType.CREATE,
-                nextCommand:new App.ChangeScreen(),
-                nextCommandData:changeScreenData
-            });
-        }
-        else
-        {
-            var ScreenMode = App.ScreenMode,
-                HeaderAction = App.HeaderAction;
-
-            if (this._mode === ScreenMode.EDIT)
-            {
-                if (button.getClickMode(data) === ScreenMode.EDIT)
-                {
-                    App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
-                        App.ScreenName.EDIT,
-                        App.ScreenMode.EDIT,
-                        button.getModel(),
-                        0,
-                        0,
-                        App.ScreenTitle.EDIT_ACCOUNT
-                    ));
-                }
-                else
-                {
-                    App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
-                        App.ScreenName.CATEGORY,
-                        this._mode,
-                        button.getModel(),
-                        HeaderAction.MENU,
-                        HeaderAction.ADD_TRANSACTION,
-                        App.ScreenTitle.CATEGORIES
-                    ));
-                }
-            }
-            else
-            {
-                App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
-                    App.ScreenName.CATEGORY,
-                    this._mode,
-                    button.getModel(),
-                    0,
-                    HeaderAction.NONE,
-                    App.ScreenTitle.SELECT_CATEGORY
-                ));
-            }
-        }
-    }
-};
-
-/**
- * On Header click
- * @param {number} action
- * @private
- */
-App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
-{
-    var HeaderAction = App.HeaderAction,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
-
-    if (action === HeaderAction.ADD_TRANSACTION)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
-            type:App.EventType.CREATE,
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData.update()
-        });
-    }
-    else if (action === HeaderAction.MENU)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.MENU,0,null,HeaderAction.NONE,HeaderAction.CANCEL,App.ScreenTitle.MENU));
-    }
-    else if (action === HeaderAction.CANCEL)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.BACK));
-    }
-};
-
-/**
- * @class SubCategoryButton
- * @extends SwipeButton
- * @param {number} poolIndex
- * @param {Object} options
- * @param {number} options.width
- * @param {number} options.height
- * @param {number} options.pixelRatio
- * @param {number} options.openOffset
- * @param {Texture} options.whiteSkin
- * @param {Texture} options.greySkin
- * @param {{font:string,fill:string}} options.nameLabelStyle
- * @param {{font:string,fill:string}} options.editLabelStyle
- * @constructor
- */
-App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
-{
-    App.SwipeButton.call(this,options.width,options.openOffset);
-
-    this.allocated = false;
-    this.poolIndex = poolIndex;
-    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
-
-    this._model = null;
-    this._mode = null;
-    this._options = options;
-    this._pixelRatio = options.pixelRatio;
-    this._background = this.addChild(new PIXI.Graphics());
-    this._deleteLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));
-    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
-    this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.whiteSkin));
-    this._icon = PIXI.Sprite.fromFrame("subcategory-app");
-    this._nameLabel = this._swipeSurface.addChild(new PIXI.Text("",options.nameLabelStyle));
-    this._renderAll = true;
-};
-
-App.SubCategoryButton.prototype = Object.create(App.SwipeButton.prototype);
-App.SubCategoryButton.prototype.constructor = App.SubCategoryButton;
-
-/**
- * Render
- * @private
- */
-App.SubCategoryButton.prototype._render = function _render()
-{
-    this._nameLabel.setText(this._model.name);
-
-    if (this._renderAll)
-    {
-        this._renderAll = false;
-
-        var ColorTheme = App.ColorTheme,
-            r = this._pixelRatio,
-            w = this.boundingBox.width,
-            h = this.boundingBox.height,
-            offset = Math.round(25 * r),
-            iconResizeRatio = Math.round(20 * r) / this._icon.height;
-
-        App.GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
-
-        this._deleteLabel.x = Math.round(w - 50 * r);
-        this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
-
-        this._icon.scale.x = iconResizeRatio;
-        this._icon.scale.y = iconResizeRatio;
-        this._icon.x = offset;
-        this._icon.y = Math.round((h - this._icon.height) / 2);
-        this._icon.tint = ColorTheme.GREY;
-
-        this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
-    }
-
-    if (this._mode === App.ScreenMode.SELECT)
-    {
-        this._skin.setTexture(this._options.whiteSkin);
-
-        this._nameLabel.x = Math.round(64 * this._pixelRatio);
-
-        if (!this._swipeSurface.contains(this._icon)) this._swipeSurface.addChild(this._icon);
-    }
-    else if (this._mode === App.ScreenMode.EDIT)
-    {
-        this._skin.setTexture(this._options.greySkin);
-
-        this._nameLabel.x = this._icon.x;
-
-        if (this._swipeSurface.contains(this._icon)) this._swipeSurface.removeChild(this._icon);
-    }
-};
-
-/**
- * Disable
- */
-App.SubCategoryButton.prototype.disable = function disable()
-{
-    App.SwipeButton.prototype.disable.call(this);
-};
-
-/**
- * Update
- * @param {App.SubCategory} model
- * @param {string} mode
- */
-App.SubCategoryButton.prototype.update = function update(model,mode)
-{
-    this._model = model;
-    this._mode = mode;
-
-    this._render();
-
-    this.close(true);
-};
-
-/**
- * Return model
- * @returns {App.SubCategory}
- */
-App.SubCategoryButton.prototype.getModel = function getModel()
-{
-    return this._model;
-};
-
-/**
- * Click handler
- * @param {InteractionData} interactionData
- * @param {App.Category} category
- */
-App.SubCategoryButton.prototype.onClick = function onClick(interactionData,category)
-{
-    if (this._mode === App.ScreenMode.EDIT)
-    {
-        if (this._isOpen && interactionData.getLocalPosition(this).x >= this._width - this._openOffset)
-        {
-            this._model.saveState();
-
-            App.Controller.dispatchEvent(
-                App.EventType.CHANGE_SCREEN,
-                App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
-                    App.ScreenName.EDIT,
-                    App.ScreenMode.EDIT,
-                    {subCategory:this._model,category:category},
-                    0,
-                    0,
-                    App.ScreenTitle.EDIT_SUB_CATEGORY
-                )
-            );
-        }
-    }
-};
-
-/**
- * Update swipe position
- * @param {number} position
- * @private
- */
-App.SubCategoryButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
-{
-    this._swipeSurface.x = position;
-};
-
-/**
- * Return swipe position
- * @private
- */
-App.SubCategoryButton.prototype._getSwipePosition = function _getSwipePosition()
-{
-    return this._swipeSurface.x;
-};
-
-/**
- * @class SubCategoryList
- * @extends Graphics
- * @param {Object} options
- * @param {number} options.width
- * @param {number} options.height
- * @param {number} options.pixelRatio
- * @param {Texture} options.skin
- * @param {boolean} options.displayHeader
- * @param {{font:string,fill:string}} options.nameLabelStyle
- * @param {{font:string,fill:string}} options.deleteLabelStyle
- * @param {{font:string,fill:string}} options.addLabelStyle
- * @param {number} options.openOffset
- * @constructor
- */
-App.SubCategoryList = function SubCategoryList(options)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    this.boundingBox = new App.Rectangle(0,0,options.width,0);
-
-    this._model = null;
-    this._mode = null;
-    this._width = options.width;
-    this._pixelRatio = options.pixelRatio;
-    this._interactiveButton = null;
-    if (options.displayHeader) this._header = this.addChild(new App.ListHeader("Sub-Categories",this._width,this._pixelRatio));
-    this._buttonList = this.addChild(new App.List(App.Direction.Y));
-    this._addNewButton = new App.AddNewButton("ADD SUB-CATEGORY",options.addLabelStyle,options.addButtonSkin,this._pixelRatio);
-};
-
-App.SubCategoryList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.SubCategoryList.prototype.constructor = App.SubCategoryList;
-
-/**
- * Update layout
- * @private
- */
-App.SubCategoryList.prototype._render = function _render()
-{
-    if (this._header) this._buttonList.y = this._header.height;
-
-    this.boundingBox.height = this._buttonList.y + this._buttonList.boundingBox.height;
-};
-
-/**
- * @method update
- * @param {App.Category} model
- * @param {string} mode
- */
-App.SubCategoryList.prototype.update = function update(model,mode)
-{
-    this._model = model;
-
-    this._buttonList.remove(this._addNewButton);
-
-    var subCategories = model.subCategories,
-        buttonPool = App.ViewLocator.getViewSegment(App.ViewName.SUB_CATEGORY_BUTTON_POOL),
-        i = 0,
-        l = this._buttonList.length,
-        button = null;
-
-    for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
-
-    i = 0;
-    l = subCategories.length;
-
-    for (;i<l;)
-    {
-        button = buttonPool.allocate();
-        button.update(subCategories[i++],mode);
-        this._buttonList.add(button,false);
-    }
-
-    this._buttonList.add(this._addNewButton);
-
-    this._buttonList.updateLayout();
-
-    this._render();
-
-    this._mode = mode;
-};
-
-/**
- * Called when swipe starts
- * @param {string} direction
- * @private
- */
-App.SubCategoryList.prototype.swipeStart = function swipeStart(direction)
-{
-    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
-
-    if (button && !(button instanceof App.AddNewButton))
-    {
-        this._interactiveButton = button;
-        this._interactiveButton.swipeStart(direction);
-
-        this.closeButtons(false);
-    }
-};
-
-/**
- * Called when swipe ends
- * @private
- */
-App.SubCategoryList.prototype.swipeEnd = function swipeEnd()
-{
-    if (this._interactiveButton)
-    {
-        this._interactiveButton.swipeEnd();
-        this._interactiveButton = null;
-    }
-};
-
-/**
- * Close opened buttons
- * @private
- */
-App.SubCategoryList.prototype.closeButtons = function closeButtons(immediate)
-{
-    var i = 0,
-        l = this._buttonList.length - 1,// last button is 'AddNewButton'
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._buttonList.getItemAt(i++);
-        if (button !== this._interactiveButton) button.close(immediate);
-    }
-};
-
-/**
- * Find and return item under point passed in
- * @param {InteractionData} data PointerData to get the position from
- */
-App.SubCategoryList.prototype.getItemUnderPoint = function getItemUnderPoint(data)
-{
-    return this._buttonList.getItemUnderPoint(data);
-};
-
-/**
- * Test if position passed in falls within this list boundaries
- * @param {number} position
- * @returns {boolean}
- */
-App.SubCategoryList.prototype.hitTest = function hitTest(position)
-{
-    return position >= this.y && position < this.y + this.boundingBox.height;
-};
-
-/**
- * @class CategoryButtonSurface
- * @extends DisplayObjectContainer
- * @param {Object} options
- * @param {number} options.width
- * @param {number} options.height
- * @param {number} options.pixelRatio
- * @param {Texture} options.skin
- * @param {{font:string,fill:string}} options.nameLabelStyle
- * @constructor
- */
-App.CategoryButtonSurface = function CategoryButtonSurface(options)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    this._width = options.width;
-    this._height = options.height;
-    this._pixelRatio = options.pixelRatio;
-
-    this._skin = this.addChild(new PIXI.Sprite(options.skin));
-    this._colorStripe = this.addChild(new PIXI.Graphics());
-    this._icon = null;
-    this._nameLabel = this.addChild(new PIXI.Text("",options.nameLabelStyle));
-    this._renderAll = true;
-};
-
-App.CategoryButtonSurface.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.CategoryButtonSurface.prototype.constructor = App.CategoryButtonSurface;
-
-/**
- * Render
- * @param {string} label
- * @param {string} iconName
- * @param {string} color
- */
-App.CategoryButtonSurface.prototype.render = function render(label,iconName,color)
-{
-    this._nameLabel.setText(label);
-
-    if (this._icon) this._icon.setTexture(PIXI.TextureCache[iconName]);
-
-    App.GraphicUtils.drawRect(this._colorStripe,"0x"+color,1,0,0,Math.round(4 * this._pixelRatio),this._height);
-
-    if (this._renderAll)
-    {
-        this._renderAll = false;
-
-        this._icon = PIXI.Sprite.fromFrame(iconName);
-        this.addChild(this._icon);
-
-        this._icon.width = Math.round(20 * this._pixelRatio);
-        this._icon.height = Math.round(20 * this._pixelRatio);
-        this._icon.x = Math.round(25 * this._pixelRatio);
-        this._icon.y = Math.round((this._height - this._icon.height) / 2);
-
-        this._nameLabel.x = Math.round(64 * this._pixelRatio);
-        this._nameLabel.y = Math.round(18 * this._pixelRatio);
-    }
-
-    this._icon.tint = parseInt(color,16);
-};
-
-/**
- * @class CategoryButtonEdit
- * @extends SwipeButton
- * @param {number} poolIndex
- * @param {{width:number,height:number,pixelRatio:number,nameLabelStyle:{font:string,fill:string},editLabelStyle:{font:string,fill:string}}} options
- * @constructor
- */
-App.CategoryButtonEdit = function CategoryButtonEdit(poolIndex,options)
-{
-    App.SwipeButton.call(this,options.width,Math.round(80*options.pixelRatio));
-
-    this.allocated = false;
-    this.poolIndex = poolIndex;
-    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
-
-    this._model = null;
-    this._mode = null;
-    this._pixelRatio = options.pixelRatio;
-    this._background = this.addChild(new PIXI.Graphics());
-    this._editLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));
-    this._swipeSurface = this.addChild(new App.CategoryButtonSurface(options));
-    this._renderAll = true;
-};
-
-App.CategoryButtonEdit.prototype = Object.create(App.SwipeButton.prototype);
-App.CategoryButtonEdit.prototype.constructor = App.CategoryButtonEdit;
-
-/**
- * Render
- * @private
- */
-App.CategoryButtonEdit.prototype._render = function _render()
-{
-    var w = this.boundingBox.width,
-        h = this.boundingBox.height;
-
-    this._swipeSurface.render(this._model.name,this._model.icon,this._model.color);
-
-    if (this._renderAll)
-    {
-        this._renderAll = false;
-
-        App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
-
-        this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
-        this._editLabel.y = Math.round(18 * this._pixelRatio);
-    }
-};
-
-/**
- * Disable
- */
-App.CategoryButtonEdit.prototype.disable = function disable()
-{
-    App.SwipeButton.prototype.disable.call(this);
-};
-
-/**
- * Update
- * @param {App.Category} model
- * @param {string} mode
- */
-App.CategoryButtonEdit.prototype.update = function update(model,mode)
-{
-    this._model = model;
-    this._mode = mode;
-
-    this._render();
-
-    this.close(true);
-};
-
-/**
- * Click handler
- * @param {InteractionData} data
- */
-App.CategoryButtonEdit.prototype.onClick = function onClick(data)
-{
-    if (this._isOpen && data.getLocalPosition(this).x >= this._width - this._openOffset)
-    {
-        this._model.saveState();
-
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,
-            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
-                App.ScreenName.EDIT_CATEGORY,
-                App.ScreenMode.EDIT,
-                this._model,
-                0,
-                0,
-                App.ScreenTitle.EDIT_CATEGORY
-            )
-        );
-    }
-};
-
-/**
- * Update swipe position
- * @param {number} position
- * @private
- */
-App.CategoryButtonEdit.prototype._updateSwipePosition = function _updateSwipePosition(position)
-{
-    this._swipeSurface.x = position;
-};
-
-/**
- * Return swipe position
- * @private
- */
-App.CategoryButtonEdit.prototype._getSwipePosition = function _getSwipePosition()
-{
-    return this._swipeSurface.x;
-};
-
-/**
- * @class CategoryButtonExpand
- * @extends ExpandButton
- * @param {number} poolIndex
- * @param {Object} options
- * @param {number} options.width
- * @param {number} options.height
- * @param {number} options.pixelRatio
- * @param {Texture} options.skin
- * @param {{font:string,fill:string}} options.nameLabelStyle
- * @param {{font:string,fill:string}} options.deleteLabelStyle
- * @param {{font:string,fill:string}} options.addLabelStyle
- * @param {number} options.openOffset
- * @constructor
- */
-App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
-{
-    App.ExpandButton.call(this,options.width,options.height,true);
-
-    this.allocated = false;
-    this.poolIndex = poolIndex;
-
-    this._model = null;
-    this._mode = null;
-    this._pixelRatio = options.pixelRatio;
-    this._surface = new App.CategoryButtonSurface(options);
-    this._subCategoryList = new App.SubCategoryList(options);
-    this._layoutDirty = true;
-
-    this._setContent(this._subCategoryList);
-    this.addChild(this._subCategoryList);
-    this.addChild(this._surface);
-};
-
-App.CategoryButtonExpand.prototype = Object.create(App.ExpandButton.prototype);
-App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
-
-/**
- * Render
- * @private
- */
-App.CategoryButtonExpand.prototype._render = function _render()
-{
-    this._surface.render(this._model.name,this._model.icon,this._model.color);
-};
-
-/**
- * Update
- * @param {App.Category} model
- * @param {string} mode
- */
-App.CategoryButtonExpand.prototype.update = function update(model,mode)
-{
-    this._model = model;
-    this._mode = mode;
-
-    this._layoutDirty = true;
-
-    this._render();
-
-    this.close(true);
-};
-
-/**
- * Click handler
- * @param {InteractionData} data
- */
-App.CategoryButtonExpand.prototype.onClick = function onClick(data)
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
-    {
-        this.open();
-    }
-    else
-    {
-        if (data.getLocalPosition(this).y <= this._buttonHeight)
-        {
-            this.close();
-        }
-        else
-        {
-            this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this); // To cancel any parent's processes
-
-            var button = this._subCategoryList.getItemUnderPoint(data);
-
-            if (button)
-            {
-                var ModelLocator = App.ModelLocator,
-                    ModelName = App.ModelName,
-                    EventType = App.EventType,
-                    changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
-
-                if (button instanceof App.AddNewButton)
-                {
-                    changeScreenData.screenName = App.ScreenName.EDIT;
-                    changeScreenData.headerName = App.ScreenTitle.ADD_SUB_CATEGORY;
-
-                    App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
-                        type:EventType.CREATE,
-                        category:this._model,
-                        nextCommand:new App.ChangeScreen(),
-                        nextCommandData:changeScreenData
-                    });
-                }
-                else
-                {
-                    changeScreenData.backSteps = ModelLocator.getProxy(ModelName.SCREEN_HISTORY).peek(2).screenName === App.ScreenName.ACCOUNT ? 2 : 1;
-                    changeScreenData.updateBackScreen = true;
-
-                    App.Controller.dispatchEvent(EventType.CHANGE_TRANSACTION,{
-                        type:EventType.CHANGE,
-                        account:ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",this._model.account),
-                        category:this._model,
-                        subCategory:button.getModel(),
-                        nextCommand:new App.ChangeScreen(),
-                        nextCommandData:changeScreenData
-                    });
-                }
-            }
-        }
-    }
-};
-
-/**
- * Open
- */
-App.CategoryButtonExpand.prototype.open = function open()
-{
-    if (this._layoutDirty)
-    {
-        this._subCategoryList.update(this._model,this._mode);
-
-        this._contentHeight = this._subCategoryList.boundingBox.height;
-
-        this._layoutDirty = false;
-    }
-
-    App.ExpandButton.prototype.open.call(this);
-};
-
-/**
- * Disable
- */
-App.CategoryButtonExpand.prototype.disable = function disable()
-{
-    this.close(true);
-};
-
-/**
- * @class CategoryScreen
- * @extends Screen
- * @param {Object} layout
- * @constructor
- */
-App.CategoryScreen = function CategoryScreen(layout)
-{
-    App.Screen.call(this,layout,0.4);
-
-    var ScrollPolicy = App.ScrollPolicy,
-        FontStyle = App.FontStyle,
-        r = layout.pixelRatio,
-        h = layout.contentHeight;
-
-    this._interactiveButton = null;
-    this._buttonsInTransition = [];
-    this._layoutDirty = false;
-
-    this._buttonList = new App.TileList(App.Direction.Y,h);
-    this._addNewButton = new App.AddNewButton("ADD CATEGORY",FontStyle.get(14,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,r);
-    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,r,false);
-
-    this._pane.setContent(this._buttonList);
-    this.addChild(this._pane);
-};
-
-App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
-App.CategoryScreen.prototype.constructor = App.CategoryScreen;
-
-/**
- * Enable
- */
-App.CategoryScreen.prototype.enable = function enable()
-{
-    App.Screen.prototype.enable.call(this);
-
-    this._pane.resetScroll();
-    this._pane.enable();
-};
-
-/**
- * Disable
- */
-App.CategoryScreen.prototype.disable = function disable()
-{
-    App.Screen.prototype.disable.call(this);
-
-    this._layoutDirty = false;
-
-    this._pane.disable();
-
-    //TODO do I need disable buttons? They'll be updated on show anyway
-    /*var i = 0,
-        l = this._buttonList.length;
-
-    for (;i<l;) this._buttonList.getItemAt(i++).disable();*/
-};
-
-/**
- * Update
- * @param {App.Account} data
- * @param {string} mode
- * @private
- */
-App.CategoryScreen.prototype.update = function update(data,mode)
-{
-    this._model = data;
-
-    this._buttonList.remove(this._addNewButton);
-
-    var ScreenMode = App.ScreenMode,
-        ViewLocator = App.ViewLocator,
-        ViewName = App.ViewName,
-        expandButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EXPAND_POOL),
-        editButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL),
-        buttonPool = this._mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool,
-        categories = this._model.categories,
-        i = 0,
-        l = this._buttonList.length,
-        button = null;
-
-    for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
-
-    buttonPool = mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool;
-
-    for (i=0,l=categories.length;i<l;)
-    {
-        button = buttonPool.allocate();
-        button.update(categories[i++],mode);
-        this._buttonList.add(button,false);
-    }
-
-    this._buttonList.add(this._addNewButton);
-
-    this._updateLayout();
-
-    this._mode = mode;
-    this._swipeEnabled = mode === ScreenMode.EDIT;
-};
-
-/**
- * On tick
- * @private
- */
-App.CategoryScreen.prototype._onTick = function _onTick()
-{
-    App.Screen.prototype._onTick.call(this);
-
-    if (this._layoutDirty) this._updateLayout();
-};
-
-/**
- * On tween complete
- * @private
- */
-App.CategoryScreen.prototype._onTweenComplete = function _onTweenComplete()
-{
-    App.Screen.prototype._onTweenComplete.call(this);
-
-    if (this._transitionState === App.TransitionState.HIDDEN) this._closeButtons(true);
-};
-
-/**
- * Called when swipe starts
- * @param {boolean} [preferScroll=false]
- * @param {string} direction
- * @private
- */
-App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
-{
-    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
-
-    if (button && !(button instanceof App.AddNewButton))
-    {
-        if (!preferScroll) this._pane.cancelScroll();
-
-        this._interactiveButton = button;
-        this._interactiveButton.swipeStart(direction);
-
-        this._closeButtons(false);
-    }
-};
-
-/**
- * Called when swipe ends
- * @private
- */
-App.CategoryScreen.prototype._swipeEnd = function _swipeEnd()
-{
-    if (this._interactiveButton)
-    {
-        this._interactiveButton.swipeEnd();
-        this._interactiveButton = null;
-    }
-};
-
-/**
- * Close opened buttons
- * @private
- */
-App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
-{
-    var i = 0,
-        l = this._buttonList.length - 1,// last button is 'AddNewButton'
-        button = null,
-        ScreenMode = App.ScreenMode,
-        EventType = App.EventType;
-
-    if (this._mode === ScreenMode.SELECT)
-    {
-        for (;i<l;)
-        {
-            button = this._buttonList.getItemAt(i++);
-            if (button !== this._interactiveButton && button.isOpen())
-            {
-                if (this._buttonsInTransition.indexOf(button) === -1)
-                {
-                    this._buttonsInTransition.push(button);
-                    button.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
-
-                    this._layoutDirty = true;
-                }
-
-                button.close(immediate);
-            }
-        }
-    }
-    else if (this._mode === ScreenMode.EDIT)
-    {
-        for (;i<l;)
-        {
-            button = this._buttonList.getItemAt(i++);
-            if (button !== this._interactiveButton) button.close(immediate);
-        }
-    }
-};
-
-/**
- * Click handler
- * @private
- */
-App.CategoryScreen.prototype._onClick = function _onClick()
-{
-    var data = this.stage.getTouchData(),
-        button = this._buttonList.getItemUnderPoint(data);
-
-    if (button)
-    {
-        if (button instanceof App.AddNewButton)
-        {
-            var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT_CATEGORY);
-            changeScreenData.headerName = App.ScreenTitle.ADD_CATEGORY;
-
-            App.Controller.dispatchEvent(App.EventType.CHANGE_CATEGORY,{
-                type:App.EventType.CREATE,
-                account:this._model,
-                nextCommand:new App.ChangeScreen(),
-                nextCommandData:changeScreenData
-            });
-        }
-        else
-        {
-            if (this._mode === App.ScreenMode.SELECT)
-            {
-                this._interactiveButton = button;
-
-                if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
-                {
-                    this._buttonsInTransition.push(this._interactiveButton);
-                    this._interactiveButton.addEventListener(App.EventType.COMPLETE,this,this._onButtonTransitionComplete);
-
-                    this._layoutDirty = true;
-                }
-
-                this._interactiveButton.onClick(data);
-                this._pane.cancelScroll();
-            }
-            else if (this._mode === App.ScreenMode.EDIT)
-            {
-                button.onClick(data);
-            }
-        }
-    }
-};
-
-/**
- * On Header click
- * @param {number} action
- * @private
- */
-App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
-{
-    var HeaderAction = App.HeaderAction,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
-            App.ScreenName.MENU,
-            0,
-            null,
-            HeaderAction.NONE,
-            HeaderAction.CANCEL,
-            App.ScreenTitle.MENU
-        );
-
-    if (action === HeaderAction.ADD_TRANSACTION)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
-            type:App.EventType.CREATE,
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData.update()
-        });
-    }
-    else if (action === HeaderAction.MENU)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
-    }
-    else if (action === HeaderAction.CANCEL)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.BACK));
-    }
-};
-
-/**
- * On button transition complete
- * @param {App.ExpandButton} button
- * @private
- */
-App.CategoryScreen.prototype._onButtonTransitionComplete = function _onButtonTransitionComplete(button)
-{
-    var i = 0,
-        l = this._buttonsInTransition.length,
-        EventType = App.EventType;
-
-    button.removeEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
-
-    for (;i<l;i++)
-    {
-        if (button === this._buttonsInTransition[i])
-        {
-            this._buttonsInTransition.splice(i,1);
-            break;
-        }
-    }
-
-    if (this._buttonsInTransition.length === 0)
-    {
-        this._interactiveButton = null;
-
-        this._layoutDirty = false;
-        this._updateLayout();
-    }
-};
-
-/**
- * Update layout
- * @private
- */
-App.CategoryScreen.prototype._updateLayout = function _updateLayout()
-{
-    this._buttonList.updateLayout(true);
-
-    this._pane.resize();
-};
-
-/**
- * @class ColorSample
- * @extends Graphics
- * @param {number} modelIndex
- * @param {number} color
- * @param {number} pixelRatio
- * @constructor
- */
-App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
-{
-    PIXI.Graphics.call(this);
-
-    this.boundingBox = new App.Rectangle(0,0,Math.round(40*pixelRatio),Math.round(50*pixelRatio));
-
-    this._modelIndex = modelIndex;
-    this._pixelRatio = pixelRatio;
-    this._color = color.toString();
-    this._selected = false;
-
-    this._render();
-};
-
-App.ColorSample.prototype = Object.create(PIXI.Graphics.prototype);
-App.ColorSample.prototype.constructor = App.ColorSample;
-
-/**
- * Render
- * @private
- */
-App.ColorSample.prototype._render = function _render()
-{
-    var xPadding = Math.round((this._selected ? 0 : 5) * this._pixelRatio),
-        yPadding = Math.round((this._selected ? 5 : 10) * this._pixelRatio),
-        w = this.boundingBox.width,
-        h = this.boundingBox.height;
-
-    this.clear();
-    this.beginFill("0x"+this._color);
-    this.drawRoundedRect(xPadding,yPadding,w-xPadding*2,h-yPadding*2,Math.round(5*this._pixelRatio));
-    this.endFill();
-};
-
-/**
- * Set color
- * @param {number} index
- * @param {number} color
- * @param {number} selectedIndex
- */
-App.ColorSample.prototype.setModel = function setModel(index,color,selectedIndex)
-{
-    this._modelIndex = index;
-    this._color = color;
-
-    this._selected = selectedIndex === this._modelIndex;
-
-    this._render();
-};
-
-/**
- * Return model index
- * @return {number}
- */
-App.ColorSample.prototype.getModelIndex = function getModelIndex()
-{
-    return this._modelIndex;
-};
-
-/**
- * Return value
- * @returns {string}
- */
-App.ColorSample.prototype.getValue = function getValue()
-{
-    return this._color;
-};
-
-/**
- * Select
- * @param {number} selectedIndex Index of selected item in the collection
- */
-App.ColorSample.prototype.select = function select(selectedIndex)
-{
-    var selected = this._modelIndex === selectedIndex;
-
-    if (this._selected === selected) return;
-
-    this._selected = selected;
-
-    this._render();
-};
-
-/**
- * @class IconSample
- * @extends DisplayObjectContainer
- * @param {number} modelIndex
- * @param {string} model
- * @param {number} pixelRatio
- * @constructor
- */
-App.IconSample = function IconSample(modelIndex,model,pixelRatio)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    var size = Math.round(64 * pixelRatio);
-
-    this.boundingBox = new App.Rectangle(0,0,size,size);
-
-    this._modelIndex = modelIndex;
-    this._model = model;
-    this._pixelRatio = pixelRatio;
-    this._icon = PIXI.Sprite.fromFrame(model);
-    this._iconResizeRatio = Math.round(32 * pixelRatio) / this._icon.height;
-    this._selected = false;
-
-    this._render();
-
-    this.addChild(this._icon);
-};
-
-App.IconSample.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.IconSample.prototype.constructor = App.IconSample;
-
-/**
- * Render
- * @private
- */
-App.IconSample.prototype._render = function _render()
-{
-    var ColorTheme = App.ColorTheme,
-        size = this.boundingBox.width;
-
-    this._icon.scale.x = this._iconResizeRatio;
-    this._icon.scale.y = this._iconResizeRatio;
-    this._icon.x = Math.round((size - this._icon.width) / 2);
-    this._icon.y = Math.round((size - this._icon.height) / 2);
-    this._icon.tint = this._selected ? ColorTheme.BLUE : ColorTheme.GREY_DARK;
-};
-
-/**
- * Set color
- * @param {number} index
- * @param {string} model
- * @param {number} selectedIndex
- */
-App.IconSample.prototype.setModel = function setModel(index,model,selectedIndex)
-{
-    this._modelIndex = index;
-    this._model = model;
-
-    this._icon.setTexture(PIXI.TextureCache[model]);
-
-    this._selected = selectedIndex === this._modelIndex;
-
-    this._render();
-};
-
-/**
- * Return model index
- * @return {number}
- */
-App.IconSample.prototype.getModelIndex = function getModelIndex()
-{
-    return this._modelIndex;
-};
-
-/**
- * Return value
- * @returns {string}
- */
-App.IconSample.prototype.getValue = function getValue()
-{
-    return this._model;
-};
-
-/**
- * Select
- * @param {number} selectedIndex Index of selected item in the collection
- */
-App.IconSample.prototype.select = function select(selectedIndex)
-{
-    var selected = this._modelIndex === selectedIndex;
-
-    if (this._selected === selected) return;
-
-    this._selected = selected;
-
-    this._render();
-};
-
 /**
  * @class EditCategoryScreen
  * @extends InputScrollScreen
@@ -11530,7 +8594,835 @@ App.EditCategoryScreen.prototype._getColorSamples = function _getColorSamples()
     }
     return colorSamples;
 };
+/**
+ * @class TransactionScreen
+ * @extends Screen
+ * @param {Object} layout
+ * @constructor
+ */
+App.TransactionScreen = function TransactionScreen(layout)
+{
+    App.Screen.call(this,layout,0.4);
 
+    var ScrollPolicy = App.ScrollPolicy,
+        r = layout.pixelRatio,
+        w = layout.width,
+        h = layout.contentHeight;
+
+    this._interactiveButton = null;
+    this._buttonList = new App.VirtualList(App.ViewLocator.getViewSegment(App.ViewName.TRANSACTION_BUTTON_POOL),App.Direction.Y,w,h,r);
+    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,false));
+    this._pane.setContent(this._buttonList);
+};
+
+App.TransactionScreen.prototype = Object.create(App.Screen.prototype);
+App.TransactionScreen.prototype.constructor = App.TransactionScreen;
+
+/**
+ * Enable
+ */
+App.TransactionScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._pane.enable();
+
+    this._swipeEnabled = true;
+};
+
+/**
+ * Disable
+ */
+App.TransactionScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._pane.disable();
+
+    this._swipeEnabled = false;
+};
+
+/**
+ * Update
+ * @private
+ */
+App.TransactionScreen.prototype.update = function update(model)
+{
+    this._model = model;
+
+    this._buttonList.update(model);
+    this._pane.resize();
+};
+
+/**
+ * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
+ * @param {string} direction
+ * @private
+ */
+App.TransactionScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
+{
+    this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
+    if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
+
+    this._closeButtons(false);
+};
+
+/**
+ * Called when swipe ends
+ * @private
+ */
+App.TransactionScreen.prototype._swipeEnd = function _swipeEnd()
+{
+    if (this._interactiveButton)
+    {
+        this._interactiveButton.swipeEnd();
+        this._interactiveButton = null;
+    }
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate)
+{
+    var i = 0,
+        l = this._buttonList.children.length,
+        button = null;
+
+    for (;i<l;)
+    {
+        button = this._buttonList.getChildAt(i++);
+        if (button !== this._interactiveButton) button.close(immediate);
+    }
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.TransactionScreen.prototype._onClick = function _onClick()
+{
+    var data = this.stage.getTouchData(),
+        button = this._buttonList.getItemUnderPoint(data);
+
+    if (button) button.onClick(data);
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.TransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
+
+    if (action === HeaderAction.ADD_TRANSACTION)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CREATE,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData.update()
+        });
+    }
+    else if (action === HeaderAction.MENU)
+    {
+        changeScreenData.update(App.ScreenName.MENU,0,null,HeaderAction.NONE,HeaderAction.CANCEL,App.ScreenTitle.MENU);
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+    }
+};
+/**
+ * @class SubCategoryButton
+ * @extends SwipeButton
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {number} options.openOffset
+ * @param {Texture} options.whiteSkin
+ * @param {Texture} options.greySkin
+ * @param {{font:string,fill:string}} options.nameLabelStyle
+ * @param {{font:string,fill:string}} options.editLabelStyle
+ * @constructor
+ */
+App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
+{
+    App.SwipeButton.call(this,options.width,options.openOffset);
+
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
+
+    this._model = null;
+    this._mode = null;
+    this._options = options;
+    this._pixelRatio = options.pixelRatio;
+    this._background = this.addChild(new PIXI.Graphics());
+    this._deleteLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));
+    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
+    this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.whiteSkin));
+    this._icon = PIXI.Sprite.fromFrame("subcategory-app");
+    this._nameLabel = this._swipeSurface.addChild(new PIXI.Text("",options.nameLabelStyle));
+    this._renderAll = true;
+};
+
+App.SubCategoryButton.prototype = Object.create(App.SwipeButton.prototype);
+App.SubCategoryButton.prototype.constructor = App.SubCategoryButton;
+
+/**
+ * Render
+ * @private
+ */
+App.SubCategoryButton.prototype._render = function _render()
+{
+    this._nameLabel.setText(this._model.name);
+
+    if (this._renderAll)
+    {
+        this._renderAll = false;
+
+        var ColorTheme = App.ColorTheme,
+            r = this._pixelRatio,
+            w = this.boundingBox.width,
+            h = this.boundingBox.height,
+            offset = Math.round(25 * r),
+            iconResizeRatio = Math.round(20 * r) / this._icon.height;
+
+        App.GraphicUtils.drawRect(this._background,ColorTheme.RED,1,0,0,w,h);
+
+        this._deleteLabel.x = Math.round(w - 50 * r);
+        this._deleteLabel.y = Math.round((h - this._deleteLabel.height) / 2);
+
+        this._icon.scale.x = iconResizeRatio;
+        this._icon.scale.y = iconResizeRatio;
+        this._icon.x = offset;
+        this._icon.y = Math.round((h - this._icon.height) / 2);
+        this._icon.tint = ColorTheme.GREY;
+
+        this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
+    }
+
+    if (this._mode === App.ScreenMode.SELECT)
+    {
+        this._skin.setTexture(this._options.whiteSkin);
+
+        this._nameLabel.x = Math.round(64 * this._pixelRatio);
+
+        if (!this._swipeSurface.contains(this._icon)) this._swipeSurface.addChild(this._icon);
+    }
+    else if (this._mode === App.ScreenMode.EDIT)
+    {
+        this._skin.setTexture(this._options.greySkin);
+
+        this._nameLabel.x = this._icon.x;
+
+        if (this._swipeSurface.contains(this._icon)) this._swipeSurface.removeChild(this._icon);
+    }
+};
+
+/**
+ * Disable
+ */
+App.SubCategoryButton.prototype.disable = function disable()
+{
+    App.SwipeButton.prototype.disable.call(this);
+};
+
+/**
+ * Update
+ * @param {App.SubCategory} model
+ * @param {string} mode
+ */
+App.SubCategoryButton.prototype.update = function update(model,mode)
+{
+    this._model = model;
+    this._mode = mode;
+
+    this._render();
+
+    this.close(true);
+};
+
+/**
+ * Return model
+ * @returns {App.SubCategory}
+ */
+App.SubCategoryButton.prototype.getModel = function getModel()
+{
+    return this._model;
+};
+
+/**
+ * Click handler
+ * @param {InteractionData} interactionData
+ * @param {App.Category} category
+ */
+App.SubCategoryButton.prototype.onClick = function onClick(interactionData,category)
+{
+    if (this._mode === App.ScreenMode.EDIT)
+    {
+        if (this._isOpen && interactionData.getLocalPosition(this).x >= this._width - this._openOffset)
+        {
+            this._model.saveState();
+
+            App.Controller.dispatchEvent(
+                App.EventType.CHANGE_SCREEN,
+                App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+                    App.ScreenName.EDIT,
+                    App.ScreenMode.EDIT,
+                    {subCategory:this._model,category:category},
+                    0,
+                    0,
+                    App.ScreenTitle.EDIT_SUB_CATEGORY
+                )
+            );
+        }
+    }
+};
+
+/**
+ * Update swipe position
+ * @param {number} position
+ * @private
+ */
+App.SubCategoryButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
+{
+    this._swipeSurface.x = position;
+};
+
+/**
+ * Return swipe position
+ * @private
+ */
+App.SubCategoryButton.prototype._getSwipePosition = function _getSwipePosition()
+{
+    return this._swipeSurface.x;
+};
+/**
+ * @class CategoryScreen
+ * @extends Screen
+ * @param {Object} layout
+ * @constructor
+ */
+App.CategoryScreen = function CategoryScreen(layout)
+{
+    App.Screen.call(this,layout,0.4);
+
+    var ScrollPolicy = App.ScrollPolicy,
+        FontStyle = App.FontStyle,
+        r = layout.pixelRatio,
+        h = layout.contentHeight;
+
+    this._interactiveButton = null;
+    this._buttonsInTransition = [];
+    this._layoutDirty = false;
+
+    this._buttonList = new App.TileList(App.Direction.Y,h);
+    this._addNewButton = new App.AddNewButton("ADD CATEGORY",FontStyle.get(14,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,r);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,r,false);
+
+    this._pane.setContent(this._buttonList);
+    this.addChild(this._pane);
+};
+
+App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
+App.CategoryScreen.prototype.constructor = App.CategoryScreen;
+
+/**
+ * Enable
+ */
+App.CategoryScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._pane.resetScroll();
+    this._pane.enable();
+};
+
+/**
+ * Disable
+ */
+App.CategoryScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._layoutDirty = false;
+
+    this._pane.disable();
+
+    //TODO do I need disable buttons? They'll be updated on show anyway
+    /*var i = 0,
+        l = this._buttonList.length;
+
+    for (;i<l;) this._buttonList.getItemAt(i++).disable();*/
+};
+
+/**
+ * Update
+ * @param {App.Account} data
+ * @param {string} mode
+ * @private
+ */
+App.CategoryScreen.prototype.update = function update(data,mode)
+{
+    this._model = data;
+
+    this._buttonList.remove(this._addNewButton);
+
+    var ScreenMode = App.ScreenMode,
+        ViewLocator = App.ViewLocator,
+        ViewName = App.ViewName,
+        expandButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EXPAND_POOL),
+        editButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL),
+        buttonPool = this._mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool,
+        categories = this._model.categories,
+        i = 0,
+        l = this._buttonList.length,
+        button = null;
+
+    for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
+
+    buttonPool = mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool;
+
+    for (i=0,l=categories.length;i<l;)
+    {
+        button = buttonPool.allocate();
+        button.update(categories[i++],mode);
+        this._buttonList.add(button,false);
+    }
+
+    this._buttonList.add(this._addNewButton);
+
+    this._updateLayout();
+
+    this._mode = mode;
+    this._swipeEnabled = mode === ScreenMode.EDIT;
+};
+
+/**
+ * On tick
+ * @private
+ */
+App.CategoryScreen.prototype._onTick = function _onTick()
+{
+    App.Screen.prototype._onTick.call(this);
+
+    if (this._layoutDirty) this._updateLayout();
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.CategoryScreen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    App.Screen.prototype._onTweenComplete.call(this);
+
+    if (this._transitionState === App.TransitionState.HIDDEN) this._closeButtons(true);
+};
+
+/**
+ * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
+ * @param {string} direction
+ * @private
+ */
+App.CategoryScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
+{
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
+
+    if (button && !(button instanceof App.AddNewButton))
+    {
+        if (!preferScroll) this._pane.cancelScroll();
+
+        this._interactiveButton = button;
+        this._interactiveButton.swipeStart(direction);
+
+        this._closeButtons(false);
+    }
+};
+
+/**
+ * Called when swipe ends
+ * @private
+ */
+App.CategoryScreen.prototype._swipeEnd = function _swipeEnd()
+{
+    if (this._interactiveButton)
+    {
+        this._interactiveButton.swipeEnd();
+        this._interactiveButton = null;
+    }
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.CategoryScreen.prototype._closeButtons = function _closeButtons(immediate)
+{
+    var i = 0,
+        l = this._buttonList.length - 1,// last button is 'AddNewButton'
+        button = null,
+        ScreenMode = App.ScreenMode,
+        EventType = App.EventType;
+
+    if (this._mode === ScreenMode.SELECT)
+    {
+        for (;i<l;)
+        {
+            button = this._buttonList.getItemAt(i++);
+            if (button !== this._interactiveButton && button.isOpen())
+            {
+                if (this._buttonsInTransition.indexOf(button) === -1)
+                {
+                    this._buttonsInTransition.push(button);
+                    button.addEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+
+                    this._layoutDirty = true;
+                }
+
+                button.close(immediate);
+            }
+        }
+    }
+    else if (this._mode === ScreenMode.EDIT)
+    {
+        for (;i<l;)
+        {
+            button = this._buttonList.getItemAt(i++);
+            if (button !== this._interactiveButton) button.close(immediate);
+        }
+    }
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.CategoryScreen.prototype._onClick = function _onClick()
+{
+    var data = this.stage.getTouchData(),
+        button = this._buttonList.getItemUnderPoint(data);
+
+    if (button)
+    {
+        if (button instanceof App.AddNewButton)
+        {
+            var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT_CATEGORY);
+            changeScreenData.headerName = App.ScreenTitle.ADD_CATEGORY;
+
+            App.Controller.dispatchEvent(App.EventType.CHANGE_CATEGORY,{
+                type:App.EventType.CREATE,
+                account:this._model,
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:changeScreenData
+            });
+        }
+        else
+        {
+            if (this._mode === App.ScreenMode.SELECT)
+            {
+                this._interactiveButton = button;
+
+                if (this._buttonsInTransition.indexOf(this._interactiveButton) === -1)
+                {
+                    this._buttonsInTransition.push(this._interactiveButton);
+                    this._interactiveButton.addEventListener(App.EventType.COMPLETE,this,this._onButtonTransitionComplete);
+
+                    this._layoutDirty = true;
+                }
+
+                this._interactiveButton.onClick(data);
+                this._pane.cancelScroll();
+            }
+            else if (this._mode === App.ScreenMode.EDIT)
+            {
+                button.onClick(data);
+            }
+        }
+    }
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.CategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+            App.ScreenName.MENU,
+            0,
+            null,
+            HeaderAction.NONE,
+            HeaderAction.CANCEL,
+            App.ScreenTitle.MENU
+        );
+
+    if (action === HeaderAction.ADD_TRANSACTION)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CREATE,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData.update()
+        });
+    }
+    else if (action === HeaderAction.MENU)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+    }
+    else if (action === HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.BACK));
+    }
+};
+
+/**
+ * On button transition complete
+ * @param {App.ExpandButton} button
+ * @private
+ */
+App.CategoryScreen.prototype._onButtonTransitionComplete = function _onButtonTransitionComplete(button)
+{
+    var i = 0,
+        l = this._buttonsInTransition.length,
+        EventType = App.EventType;
+
+    button.removeEventListener(EventType.COMPLETE,this,this._onButtonTransitionComplete);
+
+    for (;i<l;i++)
+    {
+        if (button === this._buttonsInTransition[i])
+        {
+            this._buttonsInTransition.splice(i,1);
+            break;
+        }
+    }
+
+    if (this._buttonsInTransition.length === 0)
+    {
+        this._interactiveButton = null;
+
+        this._layoutDirty = false;
+        this._updateLayout();
+    }
+};
+
+/**
+ * Update layout
+ * @private
+ */
+App.CategoryScreen.prototype._updateLayout = function _updateLayout()
+{
+    this._buttonList.updateLayout(true);
+
+    this._pane.resize();
+};
+/**
+ * @class TilePane
+ * @extends Pane
+ * @param {string} xScrollPolicy
+ * @param {string} yScrollPolicy
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @param {boolean} useMask
+ * @constructor
+ */
+App.TilePane = function TilePane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio,useMask)
+{
+    App.Pane.call(this,xScrollPolicy,yScrollPolicy,width,height,pixelRatio,useMask);
+};
+
+App.TilePane.prototype = Object.create(App.Pane.prototype);
+App.TilePane.prototype.constructor = App.TilePane;
+
+/**
+ * Set content of the pane
+ *
+ * @method setContent
+ * @param {TileList} content
+ */
+App.TilePane.prototype.setContent = function setContent(content)
+{
+    this.removeContent();
+
+    this._content = content;
+    this._contentHeight = Math.round(this._content.boundingBox.height);
+    this._contentWidth = Math.round(this._content.boundingBox.width);
+    this._contentBoundingBox.width = this._contentWidth;
+    this._contentBoundingBox.height = this._contentHeight;
+
+    this.addChildAt(this._content,0);
+
+    this._updateScrollers();
+    if (this._useMask) this._updateMask();
+};
+
+/**
+ * Resize
+ *
+ * @param {number} width
+ * @param {number} height
+ */
+App.TilePane.prototype.resize = function resize(width,height)
+{
+    this.boundingBox.width = width || this.boundingBox.width;
+    this.boundingBox.height = height || this.boundingBox.height;
+
+    if (this._content)
+    {
+        this._contentHeight = Math.round(this._content.boundingBox.height);
+        this._contentWidth = Math.round(this._content.boundingBox.width);
+        this._contentBoundingBox.width = this._contentWidth;
+        this._contentBoundingBox.height = this._contentHeight;
+
+        this._checkPosition();
+
+        this._updateScrollers();
+        if (this._useMask) this._updateMask();
+    }
+};
+
+/**
+ * Update content's x position
+ * @param {number} position
+ * @private
+ */
+App.TilePane.prototype._updateX = function _updateX(position)
+{
+    this._content.updateX(position);
+};
+
+/**
+ * Update content's y position
+ * @param {number} position
+ * @private
+ */
+App.TilePane.prototype._updateY = function _updateY(position)
+{
+    this._content.updateY(position);
+};
+/**
+ * @class CategoryButtonEdit
+ * @extends SwipeButton
+ * @param {number} poolIndex
+ * @param {{width:number,height:number,pixelRatio:number,nameLabelStyle:{font:string,fill:string},editLabelStyle:{font:string,fill:string}}} options
+ * @constructor
+ */
+App.CategoryButtonEdit = function CategoryButtonEdit(poolIndex,options)
+{
+    App.SwipeButton.call(this,options.width,Math.round(80*options.pixelRatio));
+
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
+
+    this._model = null;
+    this._mode = null;
+    this._pixelRatio = options.pixelRatio;
+    this._background = this.addChild(new PIXI.Graphics());
+    this._editLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));
+    this._swipeSurface = this.addChild(new App.CategoryButtonSurface(options));
+    this._renderAll = true;
+};
+
+App.CategoryButtonEdit.prototype = Object.create(App.SwipeButton.prototype);
+App.CategoryButtonEdit.prototype.constructor = App.CategoryButtonEdit;
+
+/**
+ * Render
+ * @private
+ */
+App.CategoryButtonEdit.prototype._render = function _render()
+{
+    var w = this.boundingBox.width,
+        h = this.boundingBox.height;
+
+    this._swipeSurface.render(this._model.name,this._model.icon,this._model.color);
+
+    if (this._renderAll)
+    {
+        this._renderAll = false;
+
+        App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
+
+        this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
+        this._editLabel.y = Math.round(18 * this._pixelRatio);
+    }
+};
+
+/**
+ * Disable
+ */
+App.CategoryButtonEdit.prototype.disable = function disable()
+{
+    App.SwipeButton.prototype.disable.call(this);
+};
+
+/**
+ * Update
+ * @param {App.Category} model
+ * @param {string} mode
+ */
+App.CategoryButtonEdit.prototype.update = function update(model,mode)
+{
+    this._model = model;
+    this._mode = mode;
+
+    this._render();
+
+    this.close(true);
+};
+
+/**
+ * Click handler
+ * @param {InteractionData} data
+ */
+App.CategoryButtonEdit.prototype.onClick = function onClick(data)
+{
+    if (this._isOpen && data.getLocalPosition(this).x >= this._width - this._openOffset)
+    {
+        this._model.saveState();
+
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,
+            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+                App.ScreenName.EDIT_CATEGORY,
+                App.ScreenMode.EDIT,
+                this._model,
+                0,
+                0,
+                App.ScreenTitle.EDIT_CATEGORY
+            )
+        );
+    }
+};
+
+/**
+ * Update swipe position
+ * @param {number} position
+ * @private
+ */
+App.CategoryButtonEdit.prototype._updateSwipePosition = function _updateSwipePosition(position)
+{
+    this._swipeSurface.x = position;
+};
+
+/**
+ * Return swipe position
+ * @private
+ */
+App.CategoryButtonEdit.prototype._getSwipePosition = function _getSwipePosition()
+{
+    return this._swipeSurface.x;
+};
 /**
  * @class TransactionButton
  * @extends SwipeButton
@@ -11780,1929 +9672,6 @@ App.TransactionButton.prototype._getSwipePosition = function _getSwipePosition()
 {
     return this._swipeSurface.x;
 };
-
-/**
- * @class TransactionScreen
- * @extends Screen
- * @param {Object} layout
- * @constructor
- */
-App.TransactionScreen = function TransactionScreen(layout)
-{
-    App.Screen.call(this,layout,0.4);
-
-    var ScrollPolicy = App.ScrollPolicy,
-        r = layout.pixelRatio,
-        w = layout.width,
-        h = layout.contentHeight;
-
-    this._interactiveButton = null;
-    this._buttonList = new App.VirtualList(App.ViewLocator.getViewSegment(App.ViewName.TRANSACTION_BUTTON_POOL),App.Direction.Y,w,h,r);
-    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,false));
-    this._pane.setContent(this._buttonList);
-};
-
-App.TransactionScreen.prototype = Object.create(App.Screen.prototype);
-App.TransactionScreen.prototype.constructor = App.TransactionScreen;
-
-/**
- * Enable
- */
-App.TransactionScreen.prototype.enable = function enable()
-{
-    App.Screen.prototype.enable.call(this);
-
-    this._pane.enable();
-
-    this._swipeEnabled = true;
-};
-
-/**
- * Disable
- */
-App.TransactionScreen.prototype.disable = function disable()
-{
-    App.Screen.prototype.disable.call(this);
-
-    this._pane.disable();
-
-    this._swipeEnabled = false;
-};
-
-/**
- * Update
- * @private
- */
-App.TransactionScreen.prototype.update = function update(model)
-{
-    this._model = model;
-
-    this._buttonList.update(model);
-    this._pane.resize();
-};
-
-/**
- * Called when swipe starts
- * @param {boolean} [preferScroll=false]
- * @param {string} direction
- * @private
- */
-App.TransactionScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
-{
-    this._interactiveButton = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
-    if (this._interactiveButton) this._interactiveButton.swipeStart(direction);
-
-    this._closeButtons(false);
-};
-
-/**
- * Called when swipe ends
- * @private
- */
-App.TransactionScreen.prototype._swipeEnd = function _swipeEnd()
-{
-    if (this._interactiveButton)
-    {
-        this._interactiveButton.swipeEnd();
-        this._interactiveButton = null;
-    }
-};
-
-/**
- * Close opened buttons
- * @private
- */
-App.TransactionScreen.prototype._closeButtons = function _closeButtons(immediate)
-{
-    var i = 0,
-        l = this._buttonList.children.length,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._buttonList.getChildAt(i++);
-        if (button !== this._interactiveButton) button.close(immediate);
-    }
-};
-
-/**
- * Click handler
- * @private
- */
-App.TransactionScreen.prototype._onClick = function _onClick()
-{
-    var data = this.stage.getTouchData(),
-        button = this._buttonList.getItemUnderPoint(data);
-
-    if (button) button.onClick(data);
-};
-
-/**
- * On Header click
- * @param {number} action
- * @private
- */
-App.TransactionScreen.prototype._onHeaderClick = function _onHeaderClick(action)
-{
-    var HeaderAction = App.HeaderAction,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
-
-    if (action === HeaderAction.ADD_TRANSACTION)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
-            type:App.EventType.CREATE,
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData.update()
-        });
-    }
-    else if (action === HeaderAction.MENU)
-    {
-        changeScreenData.update(App.ScreenName.MENU,0,null,HeaderAction.NONE,HeaderAction.CANCEL,App.ScreenTitle.MENU);
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
-    }
-};
-
-/**
- * @class ReportSubCategoryButton
- * @extends DisplayObjectContainer
- * @param {number} poolIndex
- * @param {Object} options
- * @param {number} options.width
- * @param {number} options.height
- * @param {number} options.pixelRatio
- * @param {Texture} options.skin
- * @param {Object} options.labelStyles
- * @constructor
- */
-App.ReportSubCategoryButton = function ReportSubCategoryButton(poolIndex,options)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    this.allocated = false;
-    this.poolIndex = poolIndex;
-    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
-
-    this._model = null;
-    this._pixelRatio = options.pixelRatio;
-
-    this._background = this.addChild(new PIXI.Sprite(options.skin));
-    this._colorStripe = this.addChild(new PIXI.Graphics());
-    this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
-    this._percentField = this.addChild(new PIXI.Text("%",options.labelStyles.percent));
-    this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
-
-    this._render();
-};
-
-App.ReportSubCategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.ReportSubCategoryButton.prototype.constructor = App.ReportSubCategoryButton;
-
-/**
- * Render
- * @private
- */
-App.ReportSubCategoryButton.prototype._render = function _render()
-{
-    var padding = Math.round(10 * this._pixelRatio),
-        w = this.boundingBox.width,
-        h = this.boundingBox.height;
-
-    this._nameField.x = padding * 2;
-    this._nameField.y = Math.round((h - this._nameField.height) / 2);
-    this._percentField.x = Math.round(w * 0.7 - this._percentField.width);
-    this._percentField.y = Math.round((h - this._percentField.height) / 2);
-    this._amountField.x = Math.round(w - padding - this._amountField.width);
-    this._amountField.y = Math.round((h - this._amountField.height) / 2);
-};
-
-/**
- * Set model
- * @param {App.SubCategory} model
- * @param {string} color
- */
-App.ReportSubCategoryButton.prototype.setModel = function setModel(model,color)
-{
-    this._model = model;
-
-    this._update(color);
-};
-
-/**
- * Update
- * @param {string} color
- * @private
- */
-App.ReportSubCategoryButton.prototype._update = function _update(color)
-{
-    this._nameField.setText(this._model.name);
-
-    App.GraphicUtils.drawRect(this._colorStripe,color,1,0,0,Math.round(2 * this._pixelRatio),this.boundingBox.height);
-};
-
-/**
- * @class ReportCategoryButton
- * @extends ExpandButton
- * @param {number} poolIndex
- * @param {Object} options
- * @param {number} options.width
- * @param {number} options.height
- * @param {number} options.pixelRatio
- * @param {Texture} options.skin
- * @param {Object} options.labelStyles
- * @param {App.ObjectPool} options.subCategoryButtonPool
- * @constructor
- */
-App.ReportCategoryButton = function ReportCategoryButton(poolIndex,options)
-{
-    //TODO extend ReportAccountButton?
-    App.ExpandButton.call(this,options.width,options.height,false);
-
-    this.allocated = false;
-    this.poolIndex = poolIndex;
-
-    this._model = null;
-    this._pixelRatio = options.pixelRatio;
-    this._buttonPool = options.subCategoryButtonPool;
-
-    this._background = this.addChild(new PIXI.Sprite(options.skin));
-    this._colorStripe = this.addChild(new PIXI.Graphics());
-    this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
-    this._percentField = this.addChild(new PIXI.Text("%",options.labelStyles.percent));
-    this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
-    this._subCategoryList = new App.List(App.Direction.Y);
-    this._updated = false;
-
-    this._render();
-
-    this._setContent(this._subCategoryList);
-    this.addChild(this._subCategoryList);
-};
-
-App.ReportCategoryButton.prototype = Object.create(App.ExpandButton.prototype);
-App.ReportCategoryButton.prototype.constructor = App.ReportCategoryButton;
-
-/**
- * Render
- * @private
- */
-App.ReportCategoryButton.prototype._render = function _render()
-{
-    var padding = Math.round(10 * this._pixelRatio),
-        w = this.boundingBox.width,
-        h = this.boundingBox.height;
-
-    this._nameField.x = Math.round(15 * this._pixelRatio);
-    this._nameField.y = Math.round((h - this._nameField.height) / 2);
-    this._percentField.x = Math.round(w * 0.7 - this._percentField.width);
-    this._percentField.y = Math.round((h - this._percentField.height) / 2);
-    this._amountField.x = Math.round(w - padding - this._amountField.width);
-    this._amountField.y = Math.round((h - this._amountField.height) / 2);
-};
-
-/**
- * Set model
- * @param {App.Category} model
- */
-App.ReportCategoryButton.prototype.setModel = function setModel(model)
-{
-    this._updated = false;
-
-    this._model = model;
-
-    this.close(true);
-
-    this._nameField.setText(this._model.name);
-
-    App.GraphicUtils.drawRect(this._colorStripe,"0x" + this._model.color,1,0,0,Math.round(4 * this._pixelRatio),this.boundingBox.height);
-};
-
-/**
- * Update
- * @private
- */
-App.ReportCategoryButton.prototype._update = function _update()
-{
-    this._updated = true;
-
-    var i = 0,
-        l = this._subCategoryList.length,
-        subCategories = this._model.subCategories,
-        color = "0x" + this._model.color,
-        subCategory = null,
-        button = null;
-
-    for (;i<l;i++) this._buttonPool.release(this._subCategoryList.removeItemAt(0));
-
-    for (i=0,l=subCategories.length;i<l;)
-    {
-        subCategory = subCategories[i++];
-        button = this._buttonPool.allocate();
-        button.setModel(subCategory,color);
-        this._subCategoryList.add(button);
-    }
-    this._subCategoryList.updateLayout();
-};
-
-/**
- * Click handler
- * @param {Point} position
- */
-App.ReportCategoryButton.prototype.onClick = function onClick(position)
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
-    {
-        if (!this._updated) this._update();
-
-        this.open(true);
-    }
-    else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
-    {
-        this.close(false,true);
-    }
-};
-
-/**
- * @class ReportAccountButton
- * @extends ExpandButton
- * @param {number} poolIndex
- * @param {Object} options
- * @param {number} options.width
- * @param {number} options.height
- * @param {number} options.pixelRatio
- * @param {Object} options.labelStyles
- * @param {App.ObjectPool} options.categoryButtonPool
- * @constructor
- */
-App.ReportAccountButton = function ReportAccountButton(poolIndex,options)
-{
-    App.ExpandButton.call(this,options.width,options.height,true);
-
-    this.allocated = false;
-    this.poolIndex = poolIndex;
-
-    this._model = null;
-    this._height = options.height;
-    this._pixelRatio = options.pixelRatio;
-    this._buttonPool = options.categoryButtonPool;
-
-    this._background = this.addChild(new PIXI.Graphics());
-    this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
-    this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
-    this._categoryList = new App.List(App.Direction.Y);
-    this._updated = false;
-
-    this._render();
-
-    this._setContent(this._categoryList);
-    this.addChild(this._categoryList);
-};
-
-App.ReportAccountButton.prototype = Object.create(App.ExpandButton.prototype);
-App.ReportAccountButton.prototype.constructor = App.ReportAccountButton;
-
-/**
- * Render
- * @private
- */
-App.ReportAccountButton.prototype._render = function _render()
-{
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
-        w = this.boundingBox.width,
-        h = this.boundingBox.height;
-
-    GraphicUtils.drawRects(this._background,ColorTheme.BLUE,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.BLUE_DARK,1,[0,h-1,w,1],false,true);
-
-    this._nameField.x = Math.round(10 * this._pixelRatio);
-    this._nameField.y = Math.round((h - this._nameField.height) / 2);
-
-    this._amountField.x = Math.round(w - this._amountField.width - 10 * this._pixelRatio);
-    this._amountField.y = Math.round((h - this._amountField.height) / 2);
-};
-
-/**
- * Set model
- * @param {App.Account} model
- */
-App.ReportAccountButton.prototype.setModel = function setModel(model)
-{
-    this._updated = false;
-
-    this._model = model;
-
-    this.close(true);
-
-    this._nameField.setText(this._model.name);
-};
-
-/**
- * Update
- */
-App.ReportAccountButton.prototype._update = function _update()
-{
-    this._updated = true;
-
-    var i = 0,
-        l = this._categoryList.length,
-        categories = this._model.categories,
-        category = null,
-        button = null;
-
-    for (;i<l;i++) this._buttonPool.release(this._categoryList.removeItemAt(0));
-
-    for (i=0,l=categories.length;i<l;)
-    {
-        category = categories[i++];
-        button = this._buttonPool.allocate();
-        button.setModel(category);
-        this._categoryList.add(button);
-    }
-    this._categoryList.updateLayout();
-};
-
-/**
- * Click handler
- * @param {PIXI.InteractionData} pointerData
- */
-App.ReportAccountButton.prototype.onClick = function onClick(pointerData)
-{
-    var position = pointerData.getLocalPosition(this).y,
-        TransitionState = App.TransitionState,
-        interactiveButton = null;
-
-    // Click on button itself
-    if (position <= this._height)
-    {
-        if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
-        {
-            if (!this._updated) this._update();
-
-            this.open(true);
-        }
-        else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
-        {
-            this.close(false,true);
-        }
-    }
-    // Click on category sub-list
-    else if (position > this._height)
-    {
-        interactiveButton = this._categoryList.getItemUnderPoint(pointerData);
-        if (interactiveButton) interactiveButton.onClick(position);
-    }
-};
-
-/**
- * Update layout
- * @private
- */
-App.ReportAccountButton.prototype.updateLayout = function updateLayout()
-{
-    this._categoryList.updateLayout();
-    this._updateBounds(true);
-    this._updateMask();
-};
-
-/**
- * Check if button is in transition
- * @returns {boolean}
- */
-App.ReportAccountButton.prototype.isInTransition = function isInTransition()
-{
-    var inTransition = App.ExpandButton.prototype.isInTransition.call(this),
-        i = 0,
-        l = this._categoryList.children.length;
-
-    if (this.isOpen())
-    {
-        for (;i<l;)
-        {
-            if (this._categoryList.getChildAt(i++).isInTransition())
-            {
-                inTransition = true;
-                break;
-            }
-        }
-    }
-
-    return inTransition;
-};
-
-/**
- * @class ReportChartHighlight
- * @extends Graphics
- * @param {Point} center
- * @param {number} width
- * @param {number} height
- * @param {number} thickness
- * @constructor
- */
-App.ReportChartHighlight = function ReportChartHighlight(center,width,height,thickness)
-{
-    PIXI.Graphics.call(this);
-
-    this._width = width;
-    this._height = height;
-    this._center = center;
-    this._thickness = thickness;
-    this._oldStart = 0;
-    this._oldEnd = 0;
-    this._start = 0;
-    this._end = 0;
-    this._color = 0x000000;
-};
-
-App.ReportChartHighlight.prototype = Object.create(PIXI.Graphics.prototype);
-App.ReportChartHighlight.prototype.constructor = App.ReportChartHighlight;
-
-/**
- * Change
- * @param {number} start
- * @param {number} end
- * @param {number} color
- */
-App.ReportChartHighlight.prototype.change = function change(start,end,color)
-{
-    this._oldStart = this._start;
-    this._oldEnd = this._end;
-
-    this._start = start;
-    this._end = end;
-    this._color = color;
-};
-
-/**
- * Update change by progress passed in
- * @param {number} progress
- */
-App.ReportChartHighlight.prototype.update = function update(progress)
-{
-    var start = this._oldStart + (this._start - this._oldStart) * progress,
-        end = this._oldEnd + (this._end - this._oldEnd) * progress;
-
-    App.GraphicUtils.drawArc(this,this._center,this._width,this._height,this._thickness,start,end,20,0,0,0,this._color,1);
-};
-
-/**
- * @class ReportChart
- * @extends Graphics
- * @param {Collection} model
- * @param {number} width
- * @param {number} height
- * @param {number} pixelRatio
- * @constructor
- */
-App.ReportChart = function ReportChart(model,width,height,pixelRatio)
-{
-    //TODO if there is just 1 account segments should represent categories of that account; otherwise segment will represent accounts
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        Graphics = PIXI.Graphics,
-        colors = [0xff0000,0xc066cc,0x0000ff],
-        i = 0,
-        l = 3,//TODO number of segments calculated from accounts
-        segment = null;
-
-    Graphics.call(this);
-
-    this.boundingBox = new App.Rectangle(0,0,width,height);
-
-    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-    this._tween = new App.TweenProxy(1,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
-    this._transitionState = App.TransitionState.HIDDEN;
-    this._eventsRegistered = false;
-    this._center = new PIXI.Point(Math.round(width/2),Math.round(height/2));
-    this._thickness = Math.round(15 * pixelRatio);
-    this._chartSize = width - Math.round(5 * pixelRatio * 2);// 5px margin on sides for highlight line
-    this._segments = new Array(l);
-    this._highlight = new App.ReportChartHighlight(this._center,width,height,Math.round(3 * pixelRatio));
-    this._updateHighlight = false;
-    this._highlightSegment = void 0;
-
-    for (;i<l;i++)
-    {
-        segment = new Graphics();
-        this._segments[i] = {graphics:segment,progress:0,color:colors[i]};
-        this.addChild(segment);
-    }
-
-    this.addChild(this._highlight);
-};
-
-App.ReportChart.prototype = Object.create(PIXI.Graphics.prototype);
-App.ReportChart.prototype.constructor = App.ReportChart;
-
-/**
- * Show
- */
-App.ReportChart.prototype.show = function show()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.HIDDEN)
-    {
-        this._registerEventListeners();
-
-        this._transitionState = TransitionState.SHOWING;
-
-        this._tween.start();
-    }
-    else if (this._transitionState === TransitionState.HIDING)
-    {
-        this._transitionState = TransitionState.SHOWING;
-
-        this._tween.restart();
-    }
-};
-
-/**
- * Hide
- */
-App.ReportChart.prototype.hide = function hide()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.SHOWN)
-    {
-        this._registerEventListeners();
-
-        this._transitionState = TransitionState.HIDING;
-
-        this._tween.start();
-    }
-    else if (this._transitionState === TransitionState.SHOWING)
-    {
-        this._transitionState = TransitionState.HIDING;
-
-        this._tween.restart();
-    }
-};
-
-/**
- * Highlight segment
- * @param {number} segment Segment of the chart to highlight
- */
-App.ReportChart.prototype.highlightSegment = function highlightSegment(segment)
-{
-    if (segment === this._highlightSegment) return;
-
-    if (this._transitionState === App.TransitionState.SHOWN)
-    {
-        this._registerEventListeners();
-
-        this._highlight.change(
-            segment === 0 ? 0 : this._segments[segment-1].progress,
-            this._segments[segment].progress,
-            this._segments[segment].color
-        );
-
-        this._highlightSegment = segment;
-
-        this._updateHighlight = true;
-
-        this._tween.restart();
-    }
-};
-
-/**
- * Register event listeners
- * @private
- */
-App.ReportChart.prototype._registerEventListeners = function _registerEventListeners()
-{
-    if (!this._eventsRegistered)
-    {
-        this._eventsRegistered = true;
-
-        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
-
-        this._tween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
-    }
-};
-
-/**
- * UnRegister event listeners
- * @private
- */
-App.ReportChart.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
-{
-    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
-
-    this._tween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
-
-    this._eventsRegistered = false;
-};
-
-/**
- * RAF tick handler
- * @private
- */
-App.ReportChart.prototype._onTick = function _onTick()
-{
-    if (this._tween.isRunning())
-    {
-        if (this._updateHighlight) this._highlight.update(this._tween.progress);
-        else this._updateTween(false);
-    }
-};
-
-/**
- * Update show hide tween
- * @param {boolean} hiRes Indicate render chart in high-resolution
- * @private
- */
-App.ReportChart.prototype._updateTween = function _updateTween(hiRes)
-{
-    var GraphicUtils = App.GraphicUtils,
-        TransitionState = App.TransitionState,
-        progress = this._tween.progress,
-        i = 0,
-        l = this._segments.length,
-        steps = hiRes ? 20 : 10,
-        start = 0,
-        fraction = 0,
-        segment = null;
-
-    if (this._transitionState === TransitionState.HIDING || this._transitionState === TransitionState.HIDDEN)
-    {
-        progress = 1 - progress;
-    }
-
-    for (;i<l;i++)
-    {
-        segment = this._segments[i];
-        fraction = (i + 1) * (1 / l);
-        segment.progress = 360 * (progress < fraction ? progress : fraction);
-        start = i === 0 ? 0 : this._segments[i-1].progress;
-        GraphicUtils.drawArc(segment.graphics,this._center,this._chartSize,this._chartSize,this._thickness,start,segment.progress,steps,0,0,0,segment.color,1);
-    }
-};
-
-/**
- * On Show Hide tween complete
- * @private
- */
-App.ReportChart.prototype._onTweenComplete = function _onTweenComplete()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.SHOWING) this._transitionState = TransitionState.SHOWN;
-    else if (this._transitionState === TransitionState.HIDING) this._transitionState = TransitionState.HIDDEN;
-
-    this._updateTween(true);
-
-    this._unRegisterEventListeners();
-
-    if (this._updateHighlight)
-    {
-        this._updateHighlight = false;
-
-        this._highlight.update(1);
-    }
-};
-
-/**
- * @class ReportScreen
- * @extends Screen
- * @param {Object} layout
- * @constructor
- */
-App.ReportScreen = function ReportScreen(layout)
-{
-    App.Screen.call(this,layout,0.4);
-
-    var ScrollPolicy = App.ScrollPolicy,
-        FontStyle = App.FontStyle,
-        ObjectPool = App.ObjectPool,
-        h = layout.contentHeight,
-        r = layout.pixelRatio,
-        chartSize = Math.round(h * 0.3 - 20 * r),
-        listWidth = Math.round(layout.width - 20 * r),// 10pts padding on both sides
-        listHeight = Math.round(h * 0.7),
-        itemHeight = Math.round(40 * r),
-        skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
-        buttonOptions = {
-            width:listWidth,
-            height:itemHeight,
-            pixelRatio:r,
-            labelStyles:{
-                name:FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-                amount:FontStyle.get(16,FontStyle.WHITE)
-            },
-            categoryButtonPool:new ObjectPool(App.ReportCategoryButton,5,{
-                width:listWidth,
-                height:itemHeight,
-                pixelRatio:r,
-                skin:skin.NARROW_GREY_40,
-                labelStyles:{
-                    name:FontStyle.get(18,FontStyle.BLUE),
-                    percent:FontStyle.get(16,FontStyle.GREY_DARK),
-                    amount:FontStyle.get(16,FontStyle.BLUE)
-                },
-                subCategoryButtonPool:new ObjectPool(App.ReportSubCategoryButton,5,{
-                    width:listWidth,
-                    height:itemHeight,
-                    pixelRatio:r,
-                    skin:skin.NARROW_WHITE_40,
-                    labelStyles:{
-                        name:FontStyle.get(14,FontStyle.BLUE),
-                        percent:FontStyle.get(14,FontStyle.GREY_DARK),
-                        amount:FontStyle.get(14,FontStyle.BLUE)
-                    }
-                })
-            })
-        };
-
-    this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
-    this._buttonPool = new ObjectPool(App.ReportAccountButton,2,buttonOptions);
-
-    this._chart = this.addChild(new App.ReportChart(null,chartSize,chartSize,r));
-    this._buttonList = new App.TileList(App.Direction.Y,listHeight);
-    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,listWidth,listHeight,r,true));
-    this._pane.setContent(this._buttonList);
-
-    this._updateLayout();
-
-    this._interactiveButton = null;
-    this._layoutDirty = false;
-};
-
-App.ReportScreen.prototype = Object.create(App.Screen.prototype);
-App.ReportScreen.prototype.constructor = App.ReportScreen;
-
-/**
- * Enable
- */
-App.ReportScreen.prototype.enable = function enable()
-{
-    App.Screen.prototype.enable.call(this);
-
-    this._pane.enable();
-};
-
-/**
- * Disable
- */
-App.ReportScreen.prototype.disable = function disable()
-{
-    App.Screen.prototype.disable.call(this);
-
-    this._layoutDirty = false;
-
-    this._pane.disable();
-};
-
-/**
- * Update
- */
-App.ReportScreen.prototype.update = function update()
-{
-    var i = 0,
-        l = this._buttonList.length,
-        deletedState = App.LifeCycleState.DELETED,
-        account = null,
-        button = null;
-
-    for (;i<l;i++) this._buttonPool.release(this._buttonList.removeItemAt(0));
-
-    for (i=0,l=this._model.length();i<l;)
-    {
-        account = this._model.getItemAt(i++);
-        if (account.lifeCycleState !== deletedState)
-        {
-            button = this._buttonPool.allocate();
-            button.setModel(account);
-            this._buttonList.add(button);
-        }
-    }
-
-    this._buttonList.updateLayout(true);
-    this._pane.resize();
-};
-
-/**
- * On screen show/hide tween complete
- * @private
- */
-App.ReportScreen.prototype._onTweenComplete = function _onTweenComplete()
-{
-    App.Screen.prototype._onTweenComplete.call(this);
-
-    if (this._transitionState === App.TransitionState.SHOWN)
-    {
-        this._chart.show();
-    }
-};
-
-/**
- * Update layout
- * @private
- */
-App.ReportScreen.prototype._updateLayout = function _updateLayout()
-{
-    var w = this._layout.width,
-        padding = Math.round(10 * this._layout.pixelRatio),
-        chartBounds = this._chart.boundingBox;
-
-    this._chart.x = Math.round((w - chartBounds.width) / 2);
-    this._chart.y = padding;
-
-    this._pane.x = padding;
-    this._pane.y = Math.round(this._layout.contentHeight * 0.3);
-};
-
-/**
- * On tick
- * @private
- */
-App.ReportScreen.prototype._onTick = function _onTick()
-{
-    App.Screen.prototype._onTick.call(this);
-
-    if (this._layoutDirty)
-    {
-        this._layoutDirty = this._buttonsInTransition();
-
-        this._updateListLayout(false);
-    }
-};
-
-/**
- * Close opened buttons
- * @private
- */
-App.ReportScreen.prototype._closeButtons = function _closeButtons(immediate)
-{
-    var i = 0,
-        l = this._buttonList.children.length,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._buttonList.getChildAt(i++);
-        if (button !== this._interactiveButton && button.isOpen()) button.close(immediate);
-    }
-};
-
-/**
- * Click handler
- * @private
- */
-App.ReportScreen.prototype._onClick = function _onClick()
-{
-    var pointerData = this.stage.getTouchData();
-
-    this._interactiveButton = this._buttonList.getItemUnderPoint(pointerData);
-
-    if (this._interactiveButton)
-    {
-        this._interactiveButton.onClick(pointerData);
-        this._pane.cancelScroll();
-        this._closeButtons();
-
-        this._chart.highlightSegment(this._buttonList.getChildIndex(this._interactiveButton));
-
-        this._layoutDirty = true;
-    }
-};
-
-/**
- * On Header click
- * @param {number} action
- * @private
- */
-App.ReportScreen.prototype._onHeaderClick = function _onHeaderClick(action)
-{
-    var HeaderAction = App.HeaderAction,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
-
-    if (action === HeaderAction.ADD_TRANSACTION)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
-            type:App.EventType.CREATE,
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData.update()
-        });
-    }
-    else if (action === HeaderAction.MENU)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(
-            App.ScreenName.MENU,
-            0,
-            null,
-            HeaderAction.NONE,
-            HeaderAction.CANCEL,
-            App.ScreenTitle.MENU
-        ));
-    }
-};
-
-/**
- * Update list layout
- * @private
- */
-App.ReportScreen.prototype._updateListLayout = function _updateListLayout()
-{
-    if (this._interactiveButton) this._interactiveButton.updateLayout();
-    this._buttonList.updateLayout(true);
-    this._pane.resize();
-};
-
-/**
- * Check if buttons are in transition
- * @returns {boolean}
- * @private
- */
-App.ReportScreen.prototype._buttonsInTransition = function _buttonsInTransition()
-{
-    var i = 0,
-        l = this._buttonList.children.length,
-        inTransition = false;
-
-    for (;i<l;)
-    {
-        if (this._buttonList.getChildAt(i++).isInTransition())
-        {
-            inTransition = true;
-            break;
-        }
-    }
-
-    return inTransition;
-};
-
-/**
- * @class CurrencyButton
- * @extends DisplayObjectContainer
- * @param {number} poolIndex
- * @param {Object} options
- * @param {number} options.width
- * @param {number} options.height
- * @param {number} options.pixelRatio
- * @param {PIXI.Texture} options.skin
- * @param {{font:string,fill:string}} options.symbolLabelStyle
- * @constructor
- */
-App.CurrencyButton = function CurrencyButton(poolIndex,options)
-{
-    App.SwipeButton.call(this,options.width,options.openOffset);
-
-    this.allocated = false;
-    this.poolIndex = poolIndex;
-    this.boundingBox = new PIXI.Rectangle(0,0,options.width,options.height);
-
-    this._model = null;
-
-    this._pixelRatio = options.pixelRatio;
-    this._skin = this.addChild(new PIXI.Sprite(options.skin));
-    this._symbolLabel = this.addChild(new PIXI.Text("",options.symbolLabelStyle));
-    this._renderAll = true;
-
-    this._render();
-};
-
-App.CurrencyButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.CurrencyButton.prototype.constructor = App.CurrencyButton;
-
-/**
- * @method render
- * @private
- */
-App.CurrencyButton.prototype._render = function _render()
-{
-    if (this._renderAll)
-    {
-        this._renderAll = false;
-
-        this._symbolLabel.x = Math.round(20 * this._pixelRatio);
-        this._symbolLabel.y = Math.round((this.boundingBox.height - this._symbolLabel.height) / 2);
-    }
-};
-
-/**
- * Set model
- * @param {App.CurrencySymbol} model
- */
-App.CurrencyButton.prototype.setModel = function getModel(model)
-{
-    this._model = model;
-
-    this._symbolLabel.setText(this._model.symbol);
-};
-
-/**
- * Click handler
- */
-App.CurrencyButton.prototype.onClick = function onClick()
-{
-    var EventType = App.EventType,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
-
-    changeScreenData.updateBackScreen = true;
-
-    App.Controller.dispatchEvent(EventType.CHANGE_TRANSACTION,{
-        type:EventType.CHANGE,
-        currencyQuote:this._model.symbol,
-        nextCommand:new App.ChangeScreen(),
-        nextCommandData:changeScreenData
-    });
-};
-
-/**
- * @class CurrencyScreen
- * @extends Screen
- * @param {Object} layout
- * @constructor
- */
-App.CurrencyScreen = function CurrencyScreen(layout)
-{
-    App.Screen.call(this,layout,0.4);
-
-    var ScrollPolicy = App.ScrollPolicy,
-        FontStyle = App.FontStyle,
-        h = layout.contentHeight,
-        w = layout.width,
-        r = layout.pixelRatio,
-        buttonOptions = {
-            width:w,
-            height:Math.round(50 * r),
-            pixelRatio:r,
-            skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,
-            symbolLabelStyle:FontStyle.get(18,FontStyle.BLUE)
-        };
-
-    this._model = App.ModelLocator.getProxy(App.ModelName.CURRENCY_SYMBOLS);
-
-    this._interactiveButton = null;
-    this._buttonPool = new App.ObjectPool(App.CurrencyButton,4,buttonOptions);
-    this._buttonList = new App.VirtualList(this._buttonPool,App.Direction.Y,w,h,r);
-    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,false));
-    this._pane.setContent(this._buttonList);
-
-    this._initialized = false;
-};
-
-App.CurrencyScreen.prototype = Object.create(App.Screen.prototype);
-App.CurrencyScreen.prototype.constructor = App.CurrencyScreen;
-
-/**
- * Enable
- */
-App.CurrencyScreen.prototype.enable = function enable()
-{
-    App.Screen.prototype.enable.call(this);
-
-    this._pane.resetScroll();
-    this._pane.enable();
-};
-
-/**
- * Disable
- */
-App.CurrencyScreen.prototype.disable = function disable()
-{
-    App.Screen.prototype.disable.call(this);
-
-    this._pane.disable();
-};
-
-/**
- * Update
- * @param {App.Collection} data
- * @param {string} mode
- * @private
- */
-App.CurrencyScreen.prototype.update = function update(data,mode)
-{
-    if (this._initialized)
-    {
-        this._pane.resetScroll();
-        this._buttonList.reset();
-    }
-    else
-    {
-        this._initialized = true;
-
-        this._buttonList.update(this._model.copySource());
-        this._pane.resize();
-    }
-};
-
-/**
- * Click handler
- * @private
- */
-App.CurrencyScreen.prototype._onClick = function _onClick()
-{
-    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
-    if (button) button.onClick();
-};
-
-/**
- * On Header click
- * @param {number} action
- * @private
- */
-App.CurrencyScreen.prototype._onHeaderClick = function _onHeaderClick(action)
-{
-    if (action === App.HeaderAction.CANCEL)
-    {
-        App.Controller.dispatchEvent(
-            App.EventType.CHANGE_SCREEN,
-            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK)
-        );
-    }
-};
-
-/**
- * @class CurrencyPairButton
- * @extends SwipeButton
- * @param {number} poolIndex
- * @param {Object} options
- * @param {number} options.width
- * @param {number} options.height
- * @param {number} options.pixelRatio
- * @param {PIXI.Texture} options.skin
- * @param {{font:string,fill:string}} options.editLabelStyle
- * @param {{font:string,fill:string}} options.pairLabelStyle
- * @param {{font:string,fill:string}} options.rateLabelStyle
- * @param {number} options.openOffset
- * @constructor
- */
-App.CurrencyPairButton = function CurrencyPairButton(poolIndex,options)
-{
-    App.SwipeButton.call(this,options.width,options.openOffset);
-
-    this.allocated = false;
-    this.poolIndex = poolIndex;
-    this.boundingBox = new PIXI.Rectangle(0,0,options.width,options.height);
-
-    this._model = null;
-    //TODO add arrow to the right indicating Edit option
-    this._pixelRatio = options.pixelRatio;
-    this._background = this.addChild(new PIXI.Graphics());
-    this._editLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));
-    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
-    this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
-    this._pairLabel = this._swipeSurface.addChild(new PIXI.Text("EUR/USD",options.pairLabelStyle));
-    this._rateLabel = this._swipeSurface.addChild(new PIXI.Text("@ 1.0",options.rateLabelStyle));
-    this._renderAll = true;
-
-    this._render();
-};
-
-App.CurrencyPairButton.prototype = Object.create(App.SwipeButton.prototype);
-App.CurrencyPairButton.prototype.constructor = App.CurrencyPairButton;
-
-/**
- * @method render
- * @private
- */
-App.CurrencyPairButton.prototype._render = function _render()
-{
-    var w = this.boundingBox.width,
-        h = this.boundingBox.height,
-        r = this._pixelRatio,
-        offset = Math.round(15 * r);
-
-    App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
-
-    this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
-    this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
-
-    this._pairLabel.x = offset;
-    this._pairLabel.y = Math.round((h - this._pairLabel.height) / 2);
-
-    this._rateLabel.x = Math.round(offset + this._pairLabel.width + 5 * r);
-    this._rateLabel.y = Math.round((h - this._rateLabel.height) / 2);
-};
-
-/**
- * Set model
- * @param {App.CurrencyPair} model
- */
-App.CurrencyPairButton.prototype.setModel = function setModel(model)
-{
-    this._model = model;
-
-    this._pairLabel.setText(model.base+"/"+model.symbol);
-    this._rateLabel.setText("@ "+model.rate);
-};
-
-/**
- * Click handler
- * @param {InteractionData} interactionData
- */
-App.CurrencyPairButton.prototype.onClick = function onClick(interactionData)
-{
-    if (this._isOpen && interactionData.getLocalPosition(this).x >= this._width - this._openOffset)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
-            App.ScreenName.EDIT_CURRENCY_RATE,
-            App.ScreenMode.EDIT,
-            this._model,
-            0,
-            0,
-            App.ScreenTitle.EDIT_CURRENCY_RATE
-        ));
-    }
-};
-
-/**
- * Update swipe position
- * @param {number} position
- * @private
- */
-App.CurrencyPairButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
-{
-    this._swipeSurface.x = position;
-};
-
-/**
- * Return swipe position
- * @private
- */
-App.CurrencyPairButton.prototype._getSwipePosition = function _getSwipePosition()
-{
-    return this._swipeSurface.x;
-};
-
-/**
- * @class CurrencyPairScreen
- * @extends Screen
- * @param {Object} layout
- * @constructor
- */
-App.CurrencyPairScreen = function CurrencyPairScreen(layout)
-{
-    App.Screen.call(this,layout,0.4);
-
-    var ScrollPolicy = App.ScrollPolicy,
-        FontStyle = App.FontStyle,
-        r = layout.pixelRatio,
-        h = layout.contentHeight - Math.round(60 * r),
-        w = layout.width,
-        skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
-        buttonOptions = {
-            width:w,
-            height:Math.round(50 * r),
-            pixelRatio:r,
-            skin:skin.GREY_50,
-            editLabelStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-            pairLabelStyle:FontStyle.get(18,FontStyle.BLUE),
-            rateLabelStyle:FontStyle.get(18,FontStyle.BLUE,null,FontStyle.LIGHT_CONDENSED),
-            openOffset:Math.round(80 * r)
-        };
-
-    this._model = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS);
-
-    this._interactiveButton = null;
-    this._downloadButtonBackground = this.addChild(new PIXI.Sprite(skin.GREY_60));//TODO may not need this - I can use Screen BG
-    this._downloadButton = this.addChild(new App.Button("Update rates from internet",{
-        width:Math.round(w - 20 * r),
-        height:Math.round(40 * r),
-        pixelRatio:r,
-        style:FontStyle.get(18,FontStyle.BLACK_LIGHT,null,FontStyle.LIGHT_CONDENSED),
-        backgroundColor:App.ColorTheme.GREY_DARK
-    }));
-    this._buttonPool = new App.ObjectPool(App.CurrencyPairButton,4,buttonOptions);
-    this._buttonList = new App.VirtualList(this._buttonPool,App.Direction.Y,w,h,r);
-    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,true));
-    this._pane.setContent(this._buttonList);
-
-    this._swipeEnabled = true;
-    this._initialized = false;
-};
-
-App.CurrencyPairScreen.prototype = Object.create(App.Screen.prototype);
-App.CurrencyPairScreen.prototype.constructor = App.CurrencyPairScreen;
-
-/**
- * Render
- * @private
- */
-App.CurrencyPairScreen.prototype._render = function _render()
-{
-    var padding = Math.round(10 * this._layout.pixelRatio),
-        buttonHeight = this._downloadButton.boundingBox.height + padding * 2;
-
-    this._downloadButton.x = padding;
-    this._downloadButton.y = padding;
-
-    this._pane.y = buttonHeight;
-};
-
-/**
- * Enable
- */
-App.CurrencyPairScreen.prototype.enable = function enable()
-{
-    App.Screen.prototype.enable.call(this);
-
-    this._pane.resetScroll();
-    this._pane.enable();
-};
-
-/**
- * Disable
- */
-App.CurrencyPairScreen.prototype.disable = function disable()
-{
-    App.Screen.prototype.disable.call(this);
-
-    this._pane.disable();
-};
-
-/**
- * Update
- * @param {App.Collection} data
- * @param {string} mode
- * @private
- */
-App.CurrencyPairScreen.prototype.update = function update(data,mode)
-{
-    if (this._initialized)
-    {
-        this._pane.resetScroll();
-        this._buttonList.reset();
-    }
-    else
-    {
-        this._initialized = true;
-
-        this._render();
-
-        this._buttonList.update(this._model.copySource());
-        this._pane.resize();
-    }
-};
-
-/**
- * On tween complete
- * @private
- */
-App.CurrencyPairScreen.prototype._onTweenComplete = function _onTweenComplete()
-{
-    App.Screen.prototype._onTweenComplete.call(this);
-
-    if (this._transitionState === App.TransitionState.HIDDEN) this._closeButtons(true);
-};
-
-/**
- * Called when swipe starts
- * @param {boolean} [preferScroll=false]
- * @param {string} direction
- * @private
- */
-App.CurrencyPairScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
-{
-    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
-
-    if (button)
-    {
-        if (!preferScroll) this._pane.cancelScroll();
-
-        this._interactiveButton = button;
-        this._interactiveButton.swipeStart(direction);
-
-        this._closeButtons(false);
-    }
-};
-
-/**
- * Called when swipe ends
- * @private
- */
-App.CurrencyPairScreen.prototype._swipeEnd = function _swipeEnd()
-{
-    if (this._interactiveButton)
-    {
-        this._interactiveButton.swipeEnd();
-        this._interactiveButton = null;
-    }
-};
-
-/**
- * Close opened buttons
- * @private
- */
-App.CurrencyPairScreen.prototype._closeButtons = function _closeButtons(immediate)
-{
-    var i = 0,
-        l = this._buttonList.children.length,
-        button = null;
-
-    for (;i<l;)
-    {
-        button = this._buttonList.getChildAt(i++);
-        if (button !== this._interactiveButton) button.close(immediate);
-    }
-};
-
-/**
- * Click handler
- * @private
- */
-App.CurrencyPairScreen.prototype._onClick = function _onClick()
-{
-    var data = this.stage.getTouchData(),
-        button = this._buttonList.getItemUnderPoint(data);
-
-    if (button) button.onClick(data);
-};
-
-/**
- * On Header click
- * @param {number} action
- * @private
- */
-App.CurrencyPairScreen.prototype._onHeaderClick = function _onHeaderClick(action)
-{
-    var HeaderAction = App.HeaderAction,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
-
-    if (action === HeaderAction.ADD_TRANSACTION)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
-            type:App.EventType.CREATE,
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData.update()
-        });
-    }
-    else if (action === HeaderAction.MENU)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(
-            App.ScreenName.MENU,
-            0,
-            null,
-            HeaderAction.NONE,
-            HeaderAction.CANCEL,
-            App.ScreenTitle.MENU
-        ));
-    }
-};
-
-/**
- * @class EditCurrencyPairScreen
- * @param {Object} layout
- * @constructor
- */
-App.EditCurrencyPairScreen = function EditCurrencyPairScreen(layout)
-{
-    App.Screen.call(this,layout,0.4);
-
-    var FontStyle = App.FontStyle,
-        r = layout.pixelRatio,
-        w = layout.width;
-
-    this._background = this.addChild(new PIXI.Graphics());
-    this._pairLabel = this.addChild(new PIXI.Text("EUR / USD",App.FontStyle.get(24,App.FontStyle.BLUE)));
-    this._input = this.addChild(new App.Input("",20,Math.round(layout.width - this._pairLabel.width - Math.round(50 * r)),Math.round(40 * r),r));
-    this._downloadButton = this.addChild(new App.Button("Update rate from internet",{
-        width:Math.round(w - 20 * r),
-        height:Math.round(40 * r),
-        pixelRatio:r,
-        style:FontStyle.get(18,FontStyle.BLACK_LIGHT,null,FontStyle.LIGHT_CONDENSED),
-        backgroundColor:App.ColorTheme.GREY_DARK
-    }));
-
-    this._input.restrict(/\d{1,}(\.\d*){0,1}/g);
-
-    this._render();
-};
-
-App.EditCurrencyPairScreen.prototype = Object.create(App.Screen.prototype);
-App.EditCurrencyPairScreen.prototype.constructor = App.EditCurrencyPairScreen;
-
-/**
- * Render
- * @private
- */
-App.EditCurrencyPairScreen.prototype._render = function _render()
-{
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
-        r = this._layout.pixelRatio,
-        w = this._layout.width,
-        padding = Math.round(10 * r),
-        inputHeight = Math.round(60 * r);
-
-    this._pairLabel.x = padding * 2;
-    this._pairLabel.y = Math.round(22 * r);
-
-    this._input.x = Math.round(w - padding - this._input.width);
-    this._input.y = padding;
-
-    this._downloadButton.x = padding;
-    this._downloadButton.y = inputHeight + padding;
-
-    GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w,inputHeight*2],true,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,inputHeight-1,w-padding*2,1],false,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,inputHeight,w-padding*2,1],false,true);
-};
-
-/**
- * Enable
- */
-App.EditCurrencyPairScreen.prototype.enable = function enable()
-{
-    App.Screen.prototype.enable.call(this);
-
-    this._input.enable();
-};
-
-/**
- * Disable
- */
-App.EditCurrencyPairScreen.prototype.disable = function disable()
-{
-    App.Screen.prototype.disable.call(this);
-
-    this._input.disable();
-};
-
-/**
- * Update
- * @param {App.CurrencyPair} model
- * @param {string} mode
- */
-App.EditCurrencyPairScreen.prototype.update = function update(model,mode)
-{
-    this._model = model;
-
-    this._pairLabel.setText(this._model.base+" / "+this._model.symbol);
-    this._input.setValue(this._model.rate);
-};
-
-/**
- * On Header click
- * @param {number} action
- * @private
- */
-App.EditCurrencyPairScreen.prototype._onHeaderClick = function _onHeaderClick(action)
-{
-    var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
-    changeScreenData.updateBackScreen = true;
-
-    this._input.blur();
-
-    //TODO check first if value is set
-
-    if (action === App.HeaderAction.CONFIRM)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_CURRENCY_PAIR,{
-            currencyPair:this._model,
-            rate:this._input.getValue(),
-            nextCommand:new App.ChangeScreen(),
-            nextCommandData:changeScreenData
-        });
-    }
-    else if (action === App.HeaderAction.CANCEL)
-    {
-        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
-    }
-};
-
-/**
- * @class MenuItem
- * @extends Graphics
- * @param {string} label
- * @param {string} iconName
- * @param {number} screenName
- * @param {{width:number,height:number,pixelRatio:number,style:Object}} options
- * @constructor
- */
-App.MenuItem = function MenuItem(label,iconName,screenName,options)
-{
-    PIXI.Graphics.call(this);
-
-    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
-
-    this._screenName = screenName;
-    this._pixelRatio = options.pixelRatio;
-    this._icon = PIXI.Sprite.fromFrame(iconName);
-    this._iconResizeRatio = Math.round(22 * options.pixelRatio) / this._icon.height;
-    this._labelField = new PIXI.Text(label,options.style);
-
-    this._render();
-
-    this.addChild(this._icon);
-    this.addChild(this._labelField);
-};
-
-App.MenuItem.prototype = Object.create(PIXI.Graphics.prototype);
-App.MenuItem.prototype.constructor = App.MenuItem;
-
-/**
- * Render
- * @private
- */
-App.MenuItem.prototype._render = function _render()
-{
-    var ColorTheme = App.ColorTheme,
-        h = this.boundingBox.height;
-
-    this._icon.scale.x = this._iconResizeRatio;
-    this._icon.scale.y = this._iconResizeRatio;
-    this._icon.x = Math.round(15 * this._pixelRatio);
-    this._icon.y = Math.round((h - this._icon.height) / 2);
-    this._icon.tint = ColorTheme.WHITE;
-
-    this._labelField.x = Math.round(60 * this._pixelRatio);
-    this._labelField.y = Math.round((h - this._labelField.height) / 2);
-
-    App.GraphicUtils.drawRect(this,ColorTheme.BLUE,1.0,0,0,this.boundingBox.width,h);
-};
-
-/**
- * Return associated screen name
- * @returns {number}
- */
-App.MenuItem.prototype.getScreenName = function getScreenName()
-{
-    return this._screenName;
-};
-
-/**
- * @class Menu
- * @param {Object} layout
- * @constructor
- */
-App.Menu = function Menu(layout)
-{
-    App.Screen.call(this,layout);
-
-    var MenuItem = App.MenuItem,
-        ScreenName = App.ScreenName,
-        FontStyle = App.FontStyle,
-        r = layout.pixelRatio,
-        w = layout.width,
-        itemLabelStyle = FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-        itemOptions = {
-            width:w,
-            height:Math.round(40 * r),
-            pixelRatio:r,
-            style:itemLabelStyle
-        };
-
-    this._addTransactionItem = new MenuItem("Add Transaction","transactions",ScreenName.ADD_TRANSACTION,{width:w,height:Math.round(50*r),pixelRatio:r,style:itemLabelStyle});
-    this._accountsItem = new MenuItem("Accounts","account",ScreenName.ACCOUNT,itemOptions);
-    this._reportItem = new MenuItem("Report","chart",ScreenName.REPORT,itemOptions);
-    this._budgetItem = new MenuItem("Budgets","budget",-1,itemOptions);
-    this._transactionsItem = new MenuItem("Transactions","transactions",ScreenName.TRANSACTIONS,itemOptions);
-    this._currenciesItem = new MenuItem("Currency rates","currencies",ScreenName.CURRENCY_PAIRS,itemOptions);
-    this._settignsItem = new MenuItem("Settings","settings-app",ScreenName.SETTINGS,itemOptions);
-    this._container = new PIXI.Graphics();
-    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
-    this._background = new PIXI.Graphics();
-    this._items = [];
-
-    this._render();
-
-    this.addChild(this._background);
-    this._items.push(this._container.addChild(this._addTransactionItem));
-    this._items.push(this._container.addChild(this._accountsItem));
-    this._items.push(this._container.addChild(this._reportItem));
-    this._items.push(this._container.addChild(this._budgetItem));
-    this._items.push(this._container.addChild(this._transactionsItem));
-    this._items.push(this._container.addChild(this._currenciesItem));
-    this._items.push(this._container.addChild(this._settignsItem));
-    this._pane.setContent(this._container);
-    this.addChild(this._pane);
-};
-
-App.Menu.prototype = Object.create(App.Screen.prototype);
-App.Menu.prototype.constructor = App.Menu;
-
-/**
- * Render
- * @private
- */
-App.Menu.prototype._render = function _render()
-{
-    var r = this._layout.pixelRatio,
-        smallGap = Math.round(2 * r),
-        bigGap = Math.round(25 * r),
-        GraphicUtils = App.GraphicUtils,
-        bgColor = App.ColorTheme.BLUE_DARK;
-
-    this._accountsItem.y = this._addTransactionItem.boundingBox.height + bigGap;
-    this._reportItem.y = this._accountsItem.y + this._accountsItem.boundingBox.height + smallGap;
-    this._budgetItem.y = this._reportItem.y + this._reportItem.boundingBox.height + smallGap;
-    this._transactionsItem.y = this._budgetItem.y + this._budgetItem.boundingBox.height + smallGap;
-    this._currenciesItem.y = this._transactionsItem.y + this._transactionsItem.boundingBox.height + bigGap;
-    this._settignsItem.y = this._currenciesItem.y + this._currenciesItem.boundingBox.height + smallGap;
-
-    GraphicUtils.drawRect(this._container,bgColor,1,0,0,this._layout.width,this._settignsItem.y+this._settignsItem.boundingBox.height);
-    GraphicUtils.drawRect(this._background,bgColor,1,0,0,this._layout.width,this._layout.contentHeight);
-};
-
-/**
- * Enable
- */
-App.Menu.prototype.enable = function enable()
-{
-    if (!this._enabled)
-    {
-        this._registerEventListeners(App.EventLevel.LEVEL_1);
-        this._registerEventListeners(App.EventLevel.LEVEL_2);
-
-        this._pane.resetScroll();
-        this._pane.enable();
-
-        this._enabled = true;
-    }
-};
-
-/**
- * Disable
- */
-App.Menu.prototype.disable = function disable()
-{
-    App.Screen.prototype.disable.call(this);
-
-    this._pane.disable();
-};
-
-/**
- * Click handler
- * @private
- */
-App.Menu.prototype._onClick = function _onClick()
-{
-    this._pane.cancelScroll();
-
-    var ScreenName = App.ScreenName,
-        ScreenTitle = App.ScreenTitle,
-        HeaderAction = App.HeaderAction,
-        item = this._getItemByPosition(this.stage.getTouchData().getLocalPosition(this._container).y),
-        screenName = item ? item.getScreenName() : ScreenName.BACK,
-        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(screenName,0,null,HeaderAction.MENU,HeaderAction.ADD_TRANSACTION);
-
-    switch (screenName)
-    {
-        case ScreenName.ADD_TRANSACTION:
-            App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
-                type:App.EventType.CREATE,
-                nextCommand:new App.ChangeScreen(),
-                nextCommandData:changeScreenData.update()
-            });
-            break;
-
-        case ScreenName.ACCOUNT:
-            changeScreenData.screenMode = App.ScreenMode.EDIT;
-            changeScreenData.headerName = ScreenTitle.ACCOUNTS;
-            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
-            break;
-
-        case ScreenName.REPORT:
-            changeScreenData.headerName = ScreenTitle.REPORT;
-            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
-            break;
-
-        case ScreenName.TRANSACTIONS:
-            changeScreenData.headerName = ScreenTitle.TRANSACTIONS;
-            changeScreenData.updateData = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).copySource().reverse();
-            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
-            break;
-
-        case ScreenName.CURRENCY_PAIRS:
-            changeScreenData.screenMode = App.ScreenMode.EDIT;
-            changeScreenData.headerName = ScreenTitle.CURRENCY_RATES;
-            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
-            break;
-
-        case ScreenName.SETTINGS:
-            changeScreenData.headerName = ScreenTitle.SETTINGS;
-            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
-            break;
-    }
-};
-
-/**
- * Return item by position passed in
- * @param {number} position
- * @return {MenuItem}
- * @private
- */
-App.Menu.prototype._getItemByPosition = function _getItemByPosition(position)
-{
-    var i = 0,
-        l = this._items.length,
-        item = null;
-
-    for (;i<l;)
-    {
-        item = this._items[i++];
-        if (position >= item.y && position < item.y + item.boundingBox.height) return item;
-    }
-
-    return null;
-};
-
 /**
  * @class SettingScreen
  * @extends Screen
@@ -14080,7 +10049,6 @@ App.SettingScreen.prototype._getChangeTransactionData = function _getChangeTrans
         )
     };
 };
-
 /**
  * @class ApplicationView
  * @extends DisplayObjectContainer
@@ -14243,322 +10211,194 @@ App.ApplicationView.prototype.removeEventListener = function removeEventListener
 {
     this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };
-
 /**
- * Easing functions
- * @enum {Function}
- * @type {{
- *      linear: Function,
- *      inQuad: Function,
- *      outQuad: Function,
- *      inOutQuad: Function,
- *      inCubic: Function,
- *      outCubic: Function,
- *      inOutCubic: Function,
- *      inExpo: Function,
- *      outExpo: Function,
- *      inOutExpo: Function,
- *      inElastic: Function,
- *      outElastic: Function,
- *      inOutElastic: Function}}
- */
-App.Easing = {
-    linear: function(t) {
-        return t;
-    },
-    /**
-     * @property inQuad
-     * @static
-     */
-    inQuad: function(t) {
-        return t*t;
-    },
-
-    /**
-     * @property outQuad
-     * @static
-     */
-    outQuad: function(t) {
-        return -(t-=1)*t+1;
-    },
-
-    /**
-     * @property inOutQuad
-     * @static
-     */
-    inOutQuad: function(t) {
-        if ((t/=.5) < 1) return .5*t*t;
-        return -.5*((--t)*(t-2) - 1);
-    },
-
-    /**
-     * @property inCubic
-     * @static
-     */
-    inCubic: function(t) {
-        return t*t*t;
-    },
-
-    /**
-     * @property outCubic
-     * @static
-     */
-    outCubic: function(t) {
-        return ((--t)*t*t + 1);
-    },
-
-    /**
-     * @property inOutCubic
-     * @static
-     */
-    inOutCubic: function(t) {
-        if ((t/=.5) < 1) return .5*t*t*t;
-        return .5*((t-=2)*t*t + 2);
-    },
-
-    /**
-     * @property inExpo
-     * @static
-     */
-    inExpo: function(t) {
-        return (t===0) ? 0.0 : Math.pow(2, 10 * (t - 1));
-    },
-
-    /**
-     * @property outExpo
-     * @static
-     */
-    outExpo: function(t) {
-        return (t===1.0) ? 1.0 : (1-Math.pow(2, -10 * t));
-    },
-
-    /**
-     * @property inOutExpo
-     * @static
-     */
-    inOutExpo: function(t) {
-        if (t===0) return 0.0;
-        if (t===1.0) return 1.0;
-        if ((t/=.5) < 1) return .5 * Math.pow(2, 10 * (t - 1));
-        return .5 * (-Math.pow(2, -10 * --t) + 2);
-    },
-
-    /**
-     * @property inElastic
-     * @static
-     */
-    inElastic: function(t) {
-        var s=1.70158;var p=0;var a=1.0;
-        if (t===0) return 0.0;  if (t===1) return 1.0;  if (!p) p=.3;
-        s = p/(2*Math.PI) * Math.asin(1.0/a);
-        return -(a*Math.pow(2,10*(t-=1)) * Math.sin((t-s)*(2*Math.PI)/ p));
-    },
-
-    /**
-     * @property outElastic
-     * @static
-     */
-    outElastic: function(t) {
-        var s=1.70158;var p=0;var a=1.0;
-        if (t===0) return 0.0;  if (t===1) return 1.0;  if (!p) p=.3;
-        s = p/(2*Math.PI) * Math.asin(1.0/a);
-        return a*Math.pow(2,-10*t) * Math.sin((t-s)*(2*Math.PI)/p) + 1.0;
-    },
-
-    /**
-     * @property inOutElastic
-     * @static
-     */
-    inOutElastic: function(t) {
-        var s=1.70158;var p=0;var a=1.0;
-        if (t===0) return 0.0;  if ((t/=.5)===2) return 1.0;  if (!p) p=(.3*1.5);
-        s = p/(2*Math.PI) * Math.asin(1.0/a);
-        if (t < 1) return -.5*(a*Math.pow(2,10*(t-=1)) * Math.sin((t-s)*(2*Math.PI)/p));
-        return a*Math.pow(2,-10*(t-=1)) * Math.sin((t-s)*(2*Math.PI)/p)*.5 + 1.0;
-    }
-};
-
-/**
- * @class TweenProxy
- * @param {number} duration
- * @param {Function} ease
- * @param {number} defaultProgress
+ * @class ViewStack
+ * @extends DisplayObjectContainer
+ * @param {Array} children
+ * @param {boolean} [addToStage=false]
  * @param {ObjectPool} eventListenerPool
- * @extends {EventDispatcher}
  * @constructor
  */
-App.TweenProxy = function TweenProxy(duration,ease,defaultProgress,eventListenerPool)
+App.ViewStack = function ViewStack(children,addToStage,eventListenerPool)
 {
-    App.EventDispatcher.call(this,eventListenerPool);
+    PIXI.DisplayObjectContainer.call(this);
 
-    this.progress = defaultProgress || 0.0;
+    this._children = [];
+    this._selectedChild = null;
+    this._selectedIndex = -1;
+    this._childrenToHide = [];
+    this._eventDispatcher = new App.EventDispatcher(eventListenerPool);
 
-    this._interval = -1;
-    this._running = false;
-    this._reversed = false;
-
-    this._start = -1.0;
-    this._end = -1.0;
-    this._reversedEnd = -1.0;
-    this._now = -1.0;
-    this._duration = duration * 1000 || 1000;
-    this._ease = ease || App.Easing.linear;
-    this._timeStamp = window.performance && window.performance.now ? window.performance : Date;
-    this._intervalReference = this._tweenInterval.bind(this);
-};
-
-App.TweenProxy.prototype = Object.create(App.EventDispatcher.prototype);
-App.TweenProxy.prototype.constructor = App.TweenProxy;
-
-/**
- * Set easing function
- * @method setEase
- * @param {Function} value
- */
-App.TweenProxy.prototype.setEase = function setEase(value)
-{
-    this._ease = value;
-};
-
-/**
- * Start
- * @method start
- * @param {boolean} [reverseIfRunning=false] - reverse the tween if the tween is currently running
- * @param {Function} [ease=null] - set new ease
- */
-App.TweenProxy.prototype.start = function start(reverseIfRunning,ease)
-{
-    if (ease) this.setEase(ease);
-
-    if (!this._running)
+    if (children)
     {
-        this._running = true;
-        this._reversed = false;
-
-        this._tween();
+        var i = 0, l = children.length;
+        for (;i<l;) this.add(children[i++],addToStage);
     }
-    else
+};
+
+App.ViewStack.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.ViewStack.prototype.constructor = App.ViewStack;
+
+/**
+ * Add child to stack
+ *
+ * @param {Screen} child
+ * @param {boolean} [addToStage=false]
+ */
+App.ViewStack.prototype.add = function add(child,addToStage)
+{
+    this._children[this._children.length] = child;
+
+    if (addToStage) this.addChild(child);
+};
+
+/**
+ * Select child
+ *
+ * @param {Screen} child
+ */
+App.ViewStack.prototype.selectChild = function selectChild(child)
+{
+    if (this._selectedChild)
     {
-        if (reverseIfRunning)
+        if (!child || this._selectedChild === child) return;
+
+        this._childrenToHide[this._childrenToHide.length] = this._selectedChild;
+    }
+
+    var i = 0, l = this._children.length;
+    for (;i<l;)
+    {
+        if (child === this._children[i++])
         {
-            if (this._reversed)
+            this._selectedChild = child;
+            this._selectedIndex = i - 1;
+            break;
+        }
+    }
+
+    this._eventDispatcher.dispatchEvent(App.EventType.CHANGE);
+};
+
+/**
+ * Select child by index passed in
+ *
+ * @param {number} index
+ */
+App.ViewStack.prototype.selectChildByIndex = function selectChildByIndex(index)
+{
+    if (index < 0 || index >= this._children.length) return;
+
+    if (this._selectedChild)
+    {
+        if (this._selectedChild === this._children[index]) return;
+
+        this._childrenToHide[this._childrenToHide.length] = this._selectedChild;
+    }
+
+    this._selectedChild = this._children[index];
+    this._selectedIndex = index;
+
+    this._eventDispatcher.dispatchEvent(App.EventType.CHANGE);
+};
+
+/**
+ * Return selected child
+ * @returns {Screen}
+ */
+App.ViewStack.prototype.getSelectedChild = function getSelectedChild()
+{
+    return this._selectedChild;
+};
+
+/**
+ * Return index of selected child
+ * @returns {number}
+ */
+App.ViewStack.prototype.getSelectedIndex = function getSelectedIndex()
+{
+    return this._selectedIndex;
+};
+
+/**
+ * Return child by index passed in
+ * @param {number} index
+ * @returns {Screen|null}
+ */
+App.ViewStack.prototype.getChildByIndex = function getChildByIndex(index)
+{
+    if (index < 0 || index >= this._children.length) return null;
+
+    return this._children[index];
+};
+
+/**
+ * Show
+ */
+App.ViewStack.prototype.show = function show()
+{
+    if (this._selectedChild)
+    {
+        // First check if the child to show is not actually hiding
+        var i = 0, l = this._childrenToHide.length;
+        for (;i<l;i++)
+        {
+            if (this._selectedChild === this._childrenToHide[i])
             {
-                this._reversed = false;
+                this._selectedChild.removeEventListener(App.EventType.COMPLETE,this,this._onHideComplete);
+                this._childrenToHide.splice(i,1);
+                break;
             }
-            else
+        }
+
+        if (!this.contains(this._selectedChild)) this.addChild(this._selectedChild);
+
+        this._selectedChild.show();
+    }
+};
+
+/**
+ * Hide
+ */
+App.ViewStack.prototype.hide = function hide()
+{
+    var i = 0, l = this._childrenToHide.length, child = null, EventType = App.EventType;
+    for (;i<l;)
+    {
+        child = this._childrenToHide[i++];
+
+        child.addEventListener(EventType.COMPLETE,this,this._onHideComplete);
+        child.hide();
+    }
+};
+
+/**
+ * On hide complete
+ * @param {{target:Screen,state:string}} data
+ * @private
+ */
+App.ViewStack.prototype._onHideComplete = function _onHideComplete(data)
+{
+    if (data.state === App.TransitionState.HIDDEN)
+    {
+        /**@type Screen */
+        var screen = data.target;
+
+        screen.removeEventListener(App.EventType.COMPLETE,this,this._onHideComplete);
+
+        if (this.contains(screen)) this.removeChild(screen);
+
+        var i = 0, l = this._childrenToHide.length;
+        for (;i<l;i++)
+        {
+            if (screen === this._childrenToHide[i])
             {
-                this._reversed = true;
-                this._reversedEnd = this._start + (this._now - this._start) * 2;
+                this._childrenToHide.splice(i,1);
+                break;
             }
         }
     }
 };
-
-/**
- * Stop
- * @method stop
- */
-App.TweenProxy.prototype.stop = function stop()
-{
-    this._running = false;
-
-    clearInterval(this._interval);
-    this._interval = -1;
-};
-
-/**
- * Restart
- * @method restart
- */
-App.TweenProxy.prototype.restart = function restart()
-{
-    if (this._running) this.stop();
-
-    this.start();
-};
-
-/**
- * Is tween running?
- * @method isRunning
- * @returns {boolean}
- */
-App.TweenProxy.prototype.isRunning = function isRunning()
-{
-    return this._running;
-};
-
-/**
- * Tween
- * @method _tween
- * @private
- */
-App.TweenProxy.prototype._tween = function _tween()
-{
-    if (this._interval > 0)
-    {
-        clearInterval(this._interval);
-        this._interval = -1.0;
-    }
-
-    this.progress = 0.0;
-
-    this._start = this._timeStamp.now();
-    this._end = this._start + this._duration;
-    this._interval = setInterval(this._intervalReference,1000/120);
-};
-
-/**
- * Tween interval function
- * @method _tweenInterval
- * @private
- */
-App.TweenProxy.prototype._tweenInterval = function _tweenInterval()
-{
-    this._now = this._timeStamp.now();
-
-    var end = this._reversed ? this._reversedEnd : this._end;
-    var progress = (this._duration - (end - this._now)) / this._duration;
-    if (progress < 0) progress = 0.0;
-    else if (progress > 1) progress = 1.0;
-
-    this.progress = this._ease(progress);
-    if(this._now >= end)
-    {
-        this.progress = 1.0;
-        this.stop();
-
-        this.dispatchEvent(App.EventType.COMPLETE);
-    }
-};
-
-/**
- * Destroy
- */
-App.TweenProxy.prototype.destroy = function destroy()
-{
-    App.EventDispatcher.prototype.destroy.call(this);
-
-    this.stop();
-
-    this._intervalReference = null;
-    this._timeStamp = null;
-    this._ease = null;
-};
-/**
- * @class Ticker
- * @param {ObjectPool} eventListenerPool
- * @constructor
- */
-App.Ticker = function Ticker(eventListenerPool)
-{
-    App.EventDispatcher.call(this,eventListenerPool);
-
-    this._rafListener = this._raf.bind(this);
-    this._isRunning = false;
-};
-
-App.Ticker.prototype = Object.create(App.EventDispatcher.prototype);
-App.Ticker.prototype.constructor = App.Ticker;
 
 /**
  * Add event listener
@@ -14566,378 +10406,21 @@ App.Ticker.prototype.constructor = App.Ticker;
  * @param {Object} scope
  * @param {Function} listener
  */
-App.Ticker.prototype.addEventListener = function(eventType,scope,listener)
+App.ViewStack.prototype.addEventListener = function addEventListener(eventType,scope,listener)
 {
-    App.EventDispatcher.prototype.addEventListener.call(this,eventType,scope,listener);
-
-    if (!this._isRunning)
-    {
-        this._isRunning = true;
-
-        window.requestAnimationFrame(this._rafListener);
-    }
+    this._eventDispatcher.addEventListener(eventType,scope,listener);
 };
 
 /**
- * Remove event listeners
+ * Remove event listener
  * @param {string} eventType
  * @param {Object} scope
  * @param {Function} listener
  */
-App.Ticker.prototype.removeEventListener = function(eventType,scope,listener)
+App.ViewStack.prototype.removeEventListener = function removeEventListener(eventType,scope,listener)
 {
-    App.EventDispatcher.prototype.removeEventListener.call(this,eventType,scope,listener);
-
-    if (this._listeners.length === 0) this._isRunning = false;
+    this._eventDispatcher.removeEventListener(eventType,scope,listener);
 };
-
-/**
- * Remove all listeners
- */
-App.Ticker.prototype.removeAllListeners = function()
-{
-    App.EventDispatcher.prototype.removeAllListeners.call(this);
-
-    this._isRunning = false;
-};
-
-/**
- * Animation function
- * @private
- */
-App.Ticker.prototype._raf = function _raf()
-{
-    if (this._isRunning)
-    {
-        window.requestAnimationFrame(this._rafListener);
-
-        this.dispatchEvent(App.EventType.TICK);
-    }
-};
-
-/**
- * @class Controller
- * @type {{_eventListenerPool:ObjectPool,_eventCommandMap: {}, _commands: Array, _init: Function, _onCommandComplete: Function, _destroyCommand: Function, dispatchEvent: Function}}
- */
-App.Controller = {
-    _eventListenerPool:null,
-    _eventCommandMap:{},
-    /** @type {Array.<Command>} */
-    _commands:[],
-
-    /**
-     * Init
-     * @param {ObjectPool} eventListenerPool
-     * @param {Array.<>} eventMap
-     */
-    init:function init(eventListenerPool,eventMap)
-    {
-        this._eventListenerPool = eventListenerPool;
-
-        var i = 0,
-            l = eventMap.length;
-
-        for (;i<l;) this._eventCommandMap[eventMap[i++]] = {constructor:eventMap[i++]};
-    },
-
-    /**
-     * On command complete
-     * @param {*} data
-     * @private
-     */
-    _onCommandComplete:function _onCommandComplete(data)
-    {
-        this._destroyCommand(data);
-    },
-
-    /**
-     * Destroy command
-     * @param {Command} command
-     * @private
-     */
-    _destroyCommand:function _destroyCommand(command)
-    {
-        var i = 0, l = this._commands.length, cmd = null;
-        for (;i<l;)
-        {
-            cmd = this._commands[i++];
-            if (cmd === command)
-            {
-                cmd.removeEventListener(App.EventType.COMPLETE,this,this._onCommandComplete);
-                cmd.destroy();
-                this._commands.splice(i,1);
-                break;
-            }
-        }
-    },
-
-    /**
-     * Dispatch event passed in
-     * @param {string} eventType
-     * @param {*} [data=null] Defaults to null
-     * @param {boolean} [checkRunningInstances=false] Defaults to false
-     */
-    dispatchEvent:function dispatchEvent(eventType,data,checkRunningInstances)
-    {
-        /** @type {Function} */var commandConstructor = this._eventCommandMap[eventType].constructor;
-        if (commandConstructor)
-        {
-            /** @type {Command} */var cmd = null;
-
-            // First check, if multiple instances of this Command are allowed
-            // If not, destroy running instances, before executing new one
-            if (checkRunningInstances)
-            {
-                var i = 0, l = this._commands.length;
-                for (;i<l;)
-                {
-                    cmd = this._commands[i++];
-                    if (cmd instanceof commandConstructor && !cmd.allowMultipleInstances)
-                    {
-                        this._destroyCommand(cmd);
-                    }
-                }
-            }
-
-            // Execute command
-            cmd = /** @type {Command} */new commandConstructor(this._eventListenerPool);
-
-            this._commands.push(cmd);
-
-            cmd.addEventListener(App.EventType.COMPLETE,this,this._onCommandComplete);
-            cmd.execute(data);
-        }
-    }
-};
-
-/**
- * The Command
- * @class Command
- * @extends {EventDispatcher}
- * @param allowMultipleInstances {boolean}
- * @param eventListenerPool {ObjectPool}
- */
-App.Command = function Command(allowMultipleInstances,eventListenerPool)
-{
-    App.EventDispatcher.call(this,eventListenerPool);
-
-    this.allowMultipleInstances = allowMultipleInstances;
-};
-
-App.Command.prototype = Object.create(App.EventDispatcher.prototype);
-App.Command.prototype.constructor = App.Command;
-
-/**
- * Execute a command
- * @param {*=} data Defaults to null
- */
-App.Command.prototype.execute = function execute(data) {};
-
-/**
- * Destroy current instance
- *
- * @method destroy
- */
-App.Command.prototype.destroy = function destroy()
-{
-    App.EventDispatcher.prototype.destroy.call(this);
-};
-
-/**
- * @class SequenceCommand
- * @extends Command
- * @param {boolean} allowMultipleInstances
- * @param {ObjectPool} eventListenerPool
- * @constructor
- */
-App.SequenceCommand = function SequenceCommand(allowMultipleInstances,eventListenerPool)
-{
-    App.Command.call(this,allowMultipleInstances,eventListenerPool);
-
-    this._nextCommand = null;
-    this._nextCommandData = null;
-};
-
-App.SequenceCommand.prototype = Object.create(App.Command.prototype);
-App.SequenceCommand.prototype.constructor = App.SequenceCommand;
-
-/**
- * Execute next command
- * @param {*} [data=null]
- * @private
- */
-App.SequenceCommand.prototype._executeNextCommand = function _executeNextCommand(data)
-{
-    this._nextCommand.addEventListener(App.EventType.COMPLETE,this,this._onNextCommandComplete);
-    this._nextCommand.execute(data);
-};
-
-/**
- * On next command complete
- * @private
- */
-App.SequenceCommand.prototype._onNextCommandComplete = function _onNextCommandComplete()
-{
-    this._nextCommand.removeEventListener(App.EventType.COMPLETE,this,this._onNextCommandComplete);
-
-    this.dispatchEvent(App.EventType.COMPLETE,this);
-};
-
-/**
- * Destroy current instance
- *
- * @method destroy
- */
-App.SequenceCommand.prototype.destroy = function destroy()
-{
-    App.Command.prototype.destroy.call(this);
-
-    if (this._nextCommand)
-    {
-        this._nextCommand.destroy();
-        this._nextCommand = null;
-    }
-
-    this._nextCommandData = null;
-};
-
-/**
- * @class LoadData
- * @extends {Command}
- * @param {ObjectPool} pool
- * @constructor
- */
-App.LoadData = function LoadData(pool)
-{
-    App.Command.call(this,false,pool);
-
-    this._jsonLoader = null;
-    this._fontLoadingInterval = -1;
-    this._fontInfoElement = null;
-    this._icons = null;
-};
-
-App.LoadData.prototype = Object.create(App.Command.prototype);
-App.LoadData.prototype.constructor = App.LoadData;
-
-/**
- * Execute the command
- *
- * @method execute
- */
-App.LoadData.prototype.execute = function execute()
-{
-    this._loadAssets();
-};
-
-/**
- * Load image assets
- *
- * @method _loadAssets
- * @private
- */
-App.LoadData.prototype._loadAssets = function _loadAssets()
-{
-    this._jsonLoader = new PIXI.JsonLoader("./data/icons-big.json");
-
-    this._jsonLoader.on("loaded",function()
-    {
-        this._icons = this._jsonLoader.json.frames;
-        this._jsonLoader.removeAllListeners("loaded");
-        this._jsonLoader = null;
-
-        this._loadFont();
-    }.bind(this));
-
-    this._jsonLoader.load();
-};
-
-/**
- * Set app font and check if it is loaded
- *
- * @method _loadFont
- * @private
- */
-App.LoadData.prototype._loadFont = function _loadFont()
-{
-    this._fontInfoElement = document.getElementById("fontInfo");
-
-    var FontStyle = App.FontStyle,
-        fontInfoWidth = this._fontInfoElement.offsetWidth,
-        fontsLoaded = 0;
-
-    this._fontLoadingInterval = setInterval(function()
-    {
-        if (this._fontInfoElement.offsetWidth !== fontInfoWidth)
-        {
-            fontsLoaded++;
-
-            if (fontsLoaded === 1)
-            {
-                fontInfoWidth = this._fontInfoElement.offsetWidth;
-
-                this._fontInfoElement.style.fontFamily = FontStyle.LIGHT_CONDENSED;
-            }
-            else if (fontsLoaded === 2)
-            {
-                clearInterval(this._fontLoadingInterval);
-
-                document.body.removeChild(this._fontInfoElement);
-
-                this._loadData();
-            }
-        }
-    }.bind(this),100);
-
-    this._fontInfoElement.style.fontFamily = FontStyle.CONDENSED;
-};
-
-/**
- * Load locally stored app data
- *
- * @method _loadData
- * @private
- */
-App.LoadData.prototype._loadData = function _loadData()
-{
-    //TODO Access local storage
-
-    var request = new XMLHttpRequest();
-    request.open('GET','./data/data.json',true);
-
-    request.onload = function() {
-        if (request.status >= 200 && request.status < 400)
-        {
-            this.dispatchEvent(App.EventType.COMPLETE,{userData:request.responseText,icons:this._icons});
-        } else {
-            console.log("error");
-        }
-    }.bind(this);
-
-    request.onerror = function() {
-        console.log("on error");
-        this.dispatchEvent(App.EventType.COMPLETE);
-    };
-
-    request.send();
-};
-
-/**
- * Destroy the command
- *
- * @method destroy
- */
-App.LoadData.prototype.destroy = function destroy()
-{
-    App.Command.prototype.destroy.call(this);
-
-    this._jsonLoader = null;
-
-    clearInterval(this._fontLoadingInterval);
-
-    this._fontInfoElement = null;
-};
-
 /**
  * @class Initialize
  * @extends {Command}
@@ -15016,7 +10499,7 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
     App.ModelLocator.init([
         ModelName.EVENT_LISTENER_POOL,this._eventListenerPool,
         ModelName.TICKER,new App.Ticker(this._eventListenerPool),
-        ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}),
+        ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1;}),
         ModelName.PAYMENT_METHODS,new Collection([PaymentMethod.CASH,PaymentMethod.CREDIT_CARD],PaymentMethod,null,this._eventListenerPool),
         ModelName.CURRENCY_PAIRS,currencyPairs,
         ModelName.CURRENCY_SYMBOLS,new Collection(this._getCurrencySymbols(currencyPairs),App.CurrencySymbol,null,this._eventListenerPool),
@@ -15217,98 +10700,1533 @@ App.Initialize.prototype.destroy = function destroy()
 
     this._eventListenerPool = null;
 };
-
 /**
- * @class ChangeScreen
+ * Easing functions
+ * @enum {Function}
+ * @type {{
+ *      linear: Function,
+ *      inQuad: Function,
+ *      outQuad: Function,
+ *      inOutQuad: Function,
+ *      inCubic: Function,
+ *      outCubic: Function,
+ *      inOutCubic: Function,
+ *      inExpo: Function,
+ *      outExpo: Function,
+ *      inOutExpo: Function,
+ *      inElastic: Function,
+ *      outElastic: Function,
+ *      inOutElastic: Function}}
+ */
+App.Easing = {
+    linear: function(t) {
+        return t;
+    },
+    /**
+     * @property inQuad
+     * @static
+     */
+    inQuad: function(t) {
+        return t*t;
+    },
+
+    /**
+     * @property outQuad
+     * @static
+     */
+    outQuad: function(t) {
+        return -(t-=1)*t+1;
+    },
+
+    /**
+     * @property inOutQuad
+     * @static
+     */
+    inOutQuad: function(t) {
+        if ((t/=.5) < 1) return .5*t*t;
+        return -.5*((--t)*(t-2) - 1);
+    },
+
+    /**
+     * @property inCubic
+     * @static
+     */
+    inCubic: function(t) {
+        return t*t*t;
+    },
+
+    /**
+     * @property outCubic
+     * @static
+     */
+    outCubic: function(t) {
+        return ((--t)*t*t + 1);
+    },
+
+    /**
+     * @property inOutCubic
+     * @static
+     */
+    inOutCubic: function(t) {
+        if ((t/=.5) < 1) return .5*t*t*t;
+        return .5*((t-=2)*t*t + 2);
+    },
+
+    /**
+     * @property inExpo
+     * @static
+     */
+    inExpo: function(t) {
+        return (t===0) ? 0.0 : Math.pow(2, 10 * (t - 1));
+    },
+
+    /**
+     * @property outExpo
+     * @static
+     */
+    outExpo: function(t) {
+        return (t===1.0) ? 1.0 : (1-Math.pow(2, -10 * t));
+    },
+
+    /**
+     * @property inOutExpo
+     * @static
+     */
+    inOutExpo: function(t) {
+        if (t===0) return 0.0;
+        if (t===1.0) return 1.0;
+        if ((t/=.5) < 1) return .5 * Math.pow(2, 10 * (t - 1));
+        return .5 * (-Math.pow(2, -10 * --t) + 2);
+    },
+
+    /**
+     * @property inElastic
+     * @static
+     */
+    inElastic: function(t) {
+        var s=1.70158;var p=0;var a=1.0;
+        if (t===0) return 0.0;  if (t===1) return 1.0;  if (!p) p=.3;
+        s = p/(2*Math.PI) * Math.asin(1.0/a);
+        return -(a*Math.pow(2,10*(t-=1)) * Math.sin((t-s)*(2*Math.PI)/ p));
+    },
+
+    /**
+     * @property outElastic
+     * @static
+     */
+    outElastic: function(t) {
+        var s=1.70158;var p=0;var a=1.0;
+        if (t===0) return 0.0;  if (t===1) return 1.0;  if (!p) p=.3;
+        s = p/(2*Math.PI) * Math.asin(1.0/a);
+        return a*Math.pow(2,-10*t) * Math.sin((t-s)*(2*Math.PI)/p) + 1.0;
+    },
+
+    /**
+     * @property inOutElastic
+     * @static
+     */
+    inOutElastic: function(t) {
+        var s=1.70158;var p=0;var a=1.0;
+        if (t===0) return 0.0;  if ((t/=.5)===2) return 1.0;  if (!p) p=(.3*1.5);
+        s = p/(2*Math.PI) * Math.asin(1.0/a);
+        if (t < 1) return -.5*(a*Math.pow(2,10*(t-=1)) * Math.sin((t-s)*(2*Math.PI)/p));
+        return a*Math.pow(2,-10*(t-=1)) * Math.sin((t-s)*(2*Math.PI)/p)*.5 + 1.0;
+    }
+};
+/**
+ * @class LoadData
  * @extends {Command}
+ * @param {ObjectPool} pool
  * @constructor
  */
-App.ChangeScreen = function ChangeScreen()
+App.LoadData = function LoadData(pool)
 {
-    App.Command.call(this,false,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
+    App.Command.call(this,false,pool);
+
+    this._jsonLoader = null;
+    this._fontLoadingInterval = -1;
+    this._fontInfoElement = null;
+    this._icons = null;
 };
 
-App.ChangeScreen.prototype = Object.create(App.Command.prototype);
-App.ChangeScreen.prototype.constructor = App.ChangeScreen;
+App.LoadData.prototype = Object.create(App.Command.prototype);
+App.LoadData.prototype.constructor = App.LoadData;
 
 /**
  * Execute the command
  *
  * @method execute
- * @param {App.ChangeScreenData} data
  */
-App.ChangeScreen.prototype.execute = function execute(data)
+App.LoadData.prototype.execute = function execute()
 {
-    var ViewLocator = App.ViewLocator,
-        ViewName = App.ViewName,
-        ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        changeScreenDataPool = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL),
-        screenHistory = ModelLocator.getProxy(ModelName.SCREEN_HISTORY),
-        screenStack = ViewLocator.getViewSegment(ViewName.SCREEN_STACK),
-        screen = null;
-
-    if (data.screenName === App.ScreenName.BACK)
-    {
-        var updateBackScreen = data.updateBackScreen,
-            i = 0,
-            l = data.backSteps;
-
-        for (;i<l;i++) changeScreenDataPool.release(screenHistory.pop());
-        changeScreenDataPool.release(data);
-
-        data = screenHistory.peek();
-
-        screen = screenStack.getChildByIndex(data.screenName);
-        if (updateBackScreen) screen.update(data.updateData,data.screenMode);
-    }
-    else
-    {
-        if (data.headerLeftAction !== App.HeaderAction.CANCEL && data.headerRightAction !== App.HeaderAction.CANCEL && data.screenMode !== App.ScreenMode.SELECT)
-        {
-            this._clearHistory(screenHistory,changeScreenDataPool);
-        }
-
-        screen = screenStack.getChildByIndex(data.screenName);
-        screen.update(data.updateData,data.screenMode);
-
-        screenHistory.push(data);
-    }
-//    console.log("Stack: ",screenHistory._source);
-//    console.log("Pool: ",changeScreenDataPool._freeItems);
-    ViewLocator.getViewSegment(ViewName.HEADER).change(data.headerLeftAction,data.headerRightAction,data.headerName);
-
-    screenStack.selectChild(screen);
-
-    this.dispatchEvent(App.EventType.COMPLETE,this);
+    this._loadAssets();
 };
 
 /**
- * Clear history
- * @param {App.Stack} screenHistory
- * @param {App.ObjectPool} changeScreenDataPool
+ * Load image assets
+ *
+ * @method _loadAssets
  * @private
  */
-App.ChangeScreen.prototype._clearHistory = function _clearHistory(screenHistory,changeScreenDataPool)
+App.LoadData.prototype._loadAssets = function _loadAssets()
 {
-//    console.log("Before clear: ------------------");
-//    console.log("Stack: ",screenHistory._source);
-//    console.log("Pool: ",changeScreenDataPool._freeItems);
-    var item = screenHistory.pop();
+    this._jsonLoader = new PIXI.JsonLoader("./data/icons-big.json");
 
-    while (item)
+    this._jsonLoader.on("loaded",function()
     {
-        changeScreenDataPool.release(item);
+        this._icons = this._jsonLoader.json.frames;
+        this._jsonLoader.removeAllListeners("loaded");
+        this._jsonLoader = null;
 
-        item = screenHistory.pop();
-    }
-    screenHistory.clear();
-//    console.log("After clear: ------------------");
-//    console.log("Stack: ",screenHistory._source);
-//    console.log("Pool: ",changeScreenDataPool._freeItems);
-//    console.log("---------------------------------");
+        this._loadFont();
+    }.bind(this));
+
+    this._jsonLoader.load();
 };
 
+/**
+ * Set app font and check if it is loaded
+ *
+ * @method _loadFont
+ * @private
+ */
+App.LoadData.prototype._loadFont = function _loadFont()
+{
+    this._fontInfoElement = document.getElementById("fontInfo");
+
+    var FontStyle = App.FontStyle,
+        fontInfoWidth = this._fontInfoElement.offsetWidth,
+        fontsLoaded = 0;
+
+    this._fontLoadingInterval = setInterval(function()
+    {
+        if (this._fontInfoElement.offsetWidth !== fontInfoWidth)
+        {
+            fontsLoaded++;
+
+            if (fontsLoaded === 1)
+            {
+                fontInfoWidth = this._fontInfoElement.offsetWidth;
+
+                this._fontInfoElement.style.fontFamily = FontStyle.LIGHT_CONDENSED;
+            }
+            else if (fontsLoaded === 2)
+            {
+                clearInterval(this._fontLoadingInterval);
+
+                document.body.removeChild(this._fontInfoElement);
+
+                this._loadData();
+            }
+        }
+    }.bind(this),100);
+
+    this._fontInfoElement.style.fontFamily = FontStyle.CONDENSED;
+};
+
+/**
+ * Load locally stored app data
+ *
+ * @method _loadData
+ * @private
+ */
+App.LoadData.prototype._loadData = function _loadData()
+{
+    //TODO Access local storage
+
+    var request = new XMLHttpRequest();
+    request.open('GET','./data/data.json',true);
+
+    request.onload = function() {
+        if (request.status >= 200 && request.status < 400)
+        {
+            this.dispatchEvent(App.EventType.COMPLETE,{userData:request.responseText,icons:this._icons});
+        } else {
+            console.log("error");
+        }
+    }.bind(this);
+
+    request.onerror = function() {
+        console.log("on error");
+        this.dispatchEvent(App.EventType.COMPLETE);
+    };
+
+    request.send();
+};
+
+/**
+ * Destroy the command
+ *
+ * @method destroy
+ */
+App.LoadData.prototype.destroy = function destroy()
+{
+    App.Command.prototype.destroy.call(this);
+
+    this._jsonLoader = null;
+
+    clearInterval(this._fontLoadingInterval);
+
+    this._fontInfoElement = null;
+};
+/**
+ * @class AccountScreen
+ * @extends Screen
+ * @param {Object} layout
+ * @constructor
+ */
+App.AccountScreen = function AccountScreen(layout)
+{
+    App.Screen.call(this,layout,0.4);
+
+    var ScrollPolicy = App.ScrollPolicy,
+        FontStyle = App.FontStyle,
+        r = layout.pixelRatio,
+        h = layout.contentHeight;
+
+    this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
+
+    this._interactiveButton = null;
+    this._buttonList = new App.TileList(App.Direction.Y,h);
+    this._addNewButton = new App.AddNewButton("ADD ACCOUNT",FontStyle.get(16,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_60,r);
+    this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,r,false);
+
+    this._pane.setContent(this._buttonList);
+    this.addChild(this._pane);
+};
+
+App.AccountScreen.prototype = Object.create(App.Screen.prototype);
+App.AccountScreen.prototype.constructor = App.AccountScreen;
+
+/**
+ * Enable
+ */
+App.AccountScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._pane.resetScroll();
+    this._pane.enable();
+};
+
+/**
+ * Disable
+ */
+App.AccountScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._pane.disable();
+};
+
+/**
+ * Update
+ * @param {App.Collection} data
+ * @param {string} mode
+ * @private
+ */
+App.AccountScreen.prototype.update = function update(data,mode)
+{
+    this._buttonList.remove(this._addNewButton);
+
+    var buttonPool = App.ViewLocator.getViewSegment(App.ViewName.ACCOUNT_BUTTON_POOL),
+        i = 0,
+        l = this._buttonList.length,
+        deletedState = App.LifeCycleState.DELETED,
+        account = null,
+        button = null;
+
+    for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
+
+    for (i=0,l=this._model.length();i<l;)
+    {
+        account = this._model.getItemAt(i++);
+        if (account.lifeCycleState !== deletedState)
+        {
+            button = buttonPool.allocate();
+            button.setModel(account,mode);
+            this._buttonList.add(button);
+        }
+    }
+
+    this._buttonList.add(this._addNewButton);
+    this._buttonList.updateLayout(true);
+
+    this._pane.resize();
+
+    this._mode = mode;
+    this._swipeEnabled = mode === App.ScreenMode.EDIT;
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.AccountScreen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    App.Screen.prototype._onTweenComplete.call(this);
+
+    if (this._transitionState === App.TransitionState.HIDDEN) this._closeButtons(true);
+};
+
+/**
+ * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
+ * @param {string} direction
+ * @private
+ */
+App.AccountScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
+{
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
+
+    if (button && !(button instanceof App.AddNewButton))
+    {
+        if (!preferScroll) this._pane.cancelScroll();
+
+        this._interactiveButton = button;
+        this._interactiveButton.swipeStart(direction);
+
+        this._closeButtons(false);
+    }
+};
+
+/**
+ * Called when swipe ends
+ * @private
+ */
+App.AccountScreen.prototype._swipeEnd = function _swipeEnd()
+{
+    if (this._interactiveButton)
+    {
+        this._interactiveButton.swipeEnd();
+        this._interactiveButton = null;
+    }
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.AccountScreen.prototype._closeButtons = function _closeButtons(immediate)
+{
+    if (this._mode === App.ScreenMode.EDIT)
+    {
+        var i = 0,
+            l = this._buttonList.length - 1,// last button is 'AddNewButton'
+            button = null;
+
+        for (;i<l;)
+        {
+            button = this._buttonList.getItemAt(i++);
+            if (button !== this._interactiveButton) button.close(immediate);
+        }
+    }
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.AccountScreen.prototype._onClick = function _onClick()
+{
+    var data = this.stage.getTouchData(),
+        button = this._buttonList.getItemUnderPoint(data);
+
+    if (button)
+    {
+        var EventType = App.EventType,
+            changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.EDIT);
+
+        if (button instanceof App.AddNewButton)
+        {
+            changeScreenData.headerName = App.ScreenTitle.ADD_ACCOUNT;
+
+            App.Controller.dispatchEvent(EventType.CHANGE_ACCOUNT,{
+                type:EventType.CREATE,
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:changeScreenData
+            });
+        }
+        else
+        {
+            var ScreenMode = App.ScreenMode,
+                HeaderAction = App.HeaderAction;
+
+            if (this._mode === ScreenMode.EDIT)
+            {
+                if (button.getClickMode(data) === ScreenMode.EDIT)
+                {
+                    App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
+                        App.ScreenName.EDIT,
+                        App.ScreenMode.EDIT,
+                        button.getModel(),
+                        0,
+                        0,
+                        App.ScreenTitle.EDIT_ACCOUNT
+                    ));
+                }
+                else
+                {
+                    App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
+                        App.ScreenName.CATEGORY,
+                        this._mode,
+                        button.getModel(),
+                        HeaderAction.MENU,
+                        HeaderAction.ADD_TRANSACTION,
+                        App.ScreenTitle.CATEGORIES
+                    ));
+                }
+            }
+            else
+            {
+                App.Controller.dispatchEvent(EventType.CHANGE_SCREEN,changeScreenData.update(
+                    App.ScreenName.CATEGORY,
+                    this._mode,
+                    button.getModel(),
+                    0,
+                    HeaderAction.NONE,
+                    App.ScreenTitle.SELECT_CATEGORY
+                ));
+            }
+        }
+    }
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.AccountScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
+
+    if (action === HeaderAction.ADD_TRANSACTION)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CREATE,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData.update()
+        });
+    }
+    else if (action === HeaderAction.MENU)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.MENU,0,null,HeaderAction.NONE,HeaderAction.CANCEL,App.ScreenTitle.MENU));
+    }
+    else if (action === HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(App.ScreenName.BACK));
+    }
+};
+/**
+ * @class IconSample
+ * @extends DisplayObjectContainer
+ * @param {number} modelIndex
+ * @param {string} model
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.IconSample = function IconSample(modelIndex,model,pixelRatio)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    var size = Math.round(64 * pixelRatio);
+
+    this.boundingBox = new App.Rectangle(0,0,size,size);
+
+    this._modelIndex = modelIndex;
+    this._model = model;
+    this._pixelRatio = pixelRatio;
+    this._icon = PIXI.Sprite.fromFrame(model);
+    this._iconResizeRatio = Math.round(32 * pixelRatio) / this._icon.height;
+    this._selected = false;
+
+    this._render();
+
+    this.addChild(this._icon);
+};
+
+App.IconSample.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.IconSample.prototype.constructor = App.IconSample;
+
+/**
+ * Render
+ * @private
+ */
+App.IconSample.prototype._render = function _render()
+{
+    var ColorTheme = App.ColorTheme,
+        size = this.boundingBox.width;
+
+    this._icon.scale.x = this._iconResizeRatio;
+    this._icon.scale.y = this._iconResizeRatio;
+    this._icon.x = Math.round((size - this._icon.width) / 2);
+    this._icon.y = Math.round((size - this._icon.height) / 2);
+    this._icon.tint = this._selected ? ColorTheme.BLUE : ColorTheme.GREY_DARK;
+};
+
+/**
+ * Set color
+ * @param {number} index
+ * @param {string} model
+ * @param {number} selectedIndex
+ */
+App.IconSample.prototype.setModel = function setModel(index,model,selectedIndex)
+{
+    this._modelIndex = index;
+    this._model = model;
+
+    this._icon.setTexture(PIXI.TextureCache[model]);
+
+    this._selected = selectedIndex === this._modelIndex;
+
+    this._render();
+};
+
+/**
+ * Return model index
+ * @return {number}
+ */
+App.IconSample.prototype.getModelIndex = function getModelIndex()
+{
+    return this._modelIndex;
+};
+
+/**
+ * Return value
+ * @returns {string}
+ */
+App.IconSample.prototype.getValue = function getValue()
+{
+    return this._model;
+};
+
+/**
+ * Select
+ * @param {number} selectedIndex Index of selected item in the collection
+ */
+App.IconSample.prototype.select = function select(selectedIndex)
+{
+    var selected = this._modelIndex === selectedIndex;
+
+    if (this._selected === selected) return;
+
+    this._selected = selected;
+
+    this._render();
+};
+/**
+ * @class EditCurrencyPairScreen
+ * @param {Object} layout
+ * @constructor
+ */
+App.EditCurrencyPairScreen = function EditCurrencyPairScreen(layout)
+{
+    App.Screen.call(this,layout,0.4);
+
+    var FontStyle = App.FontStyle,
+        r = layout.pixelRatio,
+        w = layout.width;
+
+    this._background = this.addChild(new PIXI.Graphics());
+    this._pairLabel = this.addChild(new PIXI.Text("EUR / USD",App.FontStyle.get(24,App.FontStyle.BLUE)));
+    this._input = this.addChild(new App.Input("",20,Math.round(layout.width - this._pairLabel.width - Math.round(50 * r)),Math.round(40 * r),r));
+    this._downloadButton = this.addChild(new App.Button("Update rate from internet",{
+        width:Math.round(w - 20 * r),
+        height:Math.round(40 * r),
+        pixelRatio:r,
+        style:FontStyle.get(18,FontStyle.BLACK_LIGHT,null,FontStyle.LIGHT_CONDENSED),
+        backgroundColor:App.ColorTheme.GREY_DARK
+    }));
+
+    this._input.restrict(/\d{1,}(\.\d*){0,1}/g);
+
+    this._render();
+};
+
+App.EditCurrencyPairScreen.prototype = Object.create(App.Screen.prototype);
+App.EditCurrencyPairScreen.prototype.constructor = App.EditCurrencyPairScreen;
+
+/**
+ * Render
+ * @private
+ */
+App.EditCurrencyPairScreen.prototype._render = function _render()
+{
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        r = this._layout.pixelRatio,
+        w = this._layout.width,
+        padding = Math.round(10 * r),
+        inputHeight = Math.round(60 * r);
+
+    this._pairLabel.x = padding * 2;
+    this._pairLabel.y = Math.round(22 * r);
+
+    this._input.x = Math.round(w - padding - this._input.width);
+    this._input.y = padding;
+
+    this._downloadButton.x = padding;
+    this._downloadButton.y = inputHeight + padding;
+
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY,1,[0,0,w,inputHeight*2],true,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY_DARK,1,[padding,inputHeight-1,w-padding*2,1],false,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.GREY_LIGHT,1,[padding,inputHeight,w-padding*2,1],false,true);
+};
+
+/**
+ * Enable
+ */
+App.EditCurrencyPairScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._input.enable();
+};
+
+/**
+ * Disable
+ */
+App.EditCurrencyPairScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._input.disable();
+};
+
+/**
+ * Update
+ * @param {App.CurrencyPair} model
+ * @param {string} mode
+ */
+App.EditCurrencyPairScreen.prototype.update = function update(model,mode)
+{
+    this._model = model;
+
+    this._pairLabel.setText(this._model.base+" / "+this._model.symbol);
+    this._input.setValue(this._model.rate);
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.EditCurrencyPairScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
+    changeScreenData.updateBackScreen = true;
+
+    this._input.blur();
+
+    //TODO check first if value is set
+
+    if (action === App.HeaderAction.CONFIRM)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_CURRENCY_PAIR,{
+            currencyPair:this._model,
+            rate:this._input.getValue(),
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData
+        });
+    }
+    else if (action === App.HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+    }
+};
+/**
+ * @class ReportScreen
+ * @extends Screen
+ * @param {Object} layout
+ * @constructor
+ */
+App.ReportScreen = function ReportScreen(layout)
+{
+    App.Screen.call(this,layout,0.4);
+
+    var ScrollPolicy = App.ScrollPolicy,
+        FontStyle = App.FontStyle,
+        ObjectPool = App.ObjectPool,
+        h = layout.contentHeight,
+        r = layout.pixelRatio,
+        chartSize = Math.round(h * 0.3 - 20 * r),
+        listWidth = Math.round(layout.width - 20 * r),// 10pts padding on both sides
+        listHeight = Math.round(h * 0.7),
+        itemHeight = Math.round(40 * r),
+        skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
+        buttonOptions = {
+            width:listWidth,
+            height:itemHeight,
+            pixelRatio:r,
+            labelStyles:{
+                name:FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+                amount:FontStyle.get(16,FontStyle.WHITE)
+            },
+            categoryButtonPool:new ObjectPool(App.ReportCategoryButton,5,{
+                width:listWidth,
+                height:itemHeight,
+                pixelRatio:r,
+                skin:skin.NARROW_GREY_40,
+                labelStyles:{
+                    name:FontStyle.get(18,FontStyle.BLUE),
+                    percent:FontStyle.get(16,FontStyle.GREY_DARK),
+                    amount:FontStyle.get(16,FontStyle.BLUE)
+                },
+                subCategoryButtonPool:new ObjectPool(App.ReportSubCategoryButton,5,{
+                    width:listWidth,
+                    height:itemHeight,
+                    pixelRatio:r,
+                    skin:skin.NARROW_WHITE_40,
+                    labelStyles:{
+                        name:FontStyle.get(14,FontStyle.BLUE),
+                        percent:FontStyle.get(14,FontStyle.GREY_DARK),
+                        amount:FontStyle.get(14,FontStyle.BLUE)
+                    }
+                })
+            })
+        };
+
+    this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
+    this._buttonPool = new ObjectPool(App.ReportAccountButton,2,buttonOptions);
+
+    this._chart = this.addChild(new App.ReportChart(null,chartSize,chartSize,r));
+    this._buttonList = new App.TileList(App.Direction.Y,listHeight);
+    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,listWidth,listHeight,r,true));
+    this._pane.setContent(this._buttonList);
+
+    this._updateLayout();
+
+    this._interactiveButton = null;
+    this._layoutDirty = false;
+};
+
+App.ReportScreen.prototype = Object.create(App.Screen.prototype);
+App.ReportScreen.prototype.constructor = App.ReportScreen;
+
+/**
+ * Enable
+ */
+App.ReportScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._pane.enable();
+};
+
+/**
+ * Disable
+ */
+App.ReportScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._layoutDirty = false;
+
+    this._pane.disable();
+};
+
+/**
+ * Update
+ */
+App.ReportScreen.prototype.update = function update()
+{
+    var i = 0,
+        l = this._buttonList.length,
+        deletedState = App.LifeCycleState.DELETED,
+        account = null,
+        button = null;
+
+    for (;i<l;i++) this._buttonPool.release(this._buttonList.removeItemAt(0));
+
+    for (i=0,l=this._model.length();i<l;)
+    {
+        account = this._model.getItemAt(i++);
+        if (account.lifeCycleState !== deletedState)
+        {
+            button = this._buttonPool.allocate();
+            button.setModel(account);
+            this._buttonList.add(button);
+        }
+    }
+
+    this._buttonList.updateLayout(true);
+    this._pane.resize();
+};
+
+/**
+ * On screen show/hide tween complete
+ * @private
+ */
+App.ReportScreen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    App.Screen.prototype._onTweenComplete.call(this);
+
+    if (this._transitionState === App.TransitionState.SHOWN)
+    {
+        this._chart.show();
+    }
+};
+
+/**
+ * Update layout
+ * @private
+ */
+App.ReportScreen.prototype._updateLayout = function _updateLayout()
+{
+    var w = this._layout.width,
+        padding = Math.round(10 * this._layout.pixelRatio),
+        chartBounds = this._chart.boundingBox;
+
+    this._chart.x = Math.round((w - chartBounds.width) / 2);
+    this._chart.y = padding;
+
+    this._pane.x = padding;
+    this._pane.y = Math.round(this._layout.contentHeight * 0.3);
+};
+
+/**
+ * On tick
+ * @private
+ */
+App.ReportScreen.prototype._onTick = function _onTick()
+{
+    App.Screen.prototype._onTick.call(this);
+
+    if (this._layoutDirty)
+    {
+        this._layoutDirty = this._buttonsInTransition();
+
+        this._updateListLayout(false);
+    }
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.ReportScreen.prototype._closeButtons = function _closeButtons(immediate)
+{
+    var i = 0,
+        l = this._buttonList.children.length,
+        button = null;
+
+    for (;i<l;)
+    {
+        button = this._buttonList.getChildAt(i++);
+        if (button !== this._interactiveButton && button.isOpen()) button.close(immediate);
+    }
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.ReportScreen.prototype._onClick = function _onClick()
+{
+    var pointerData = this.stage.getTouchData();
+
+    this._interactiveButton = this._buttonList.getItemUnderPoint(pointerData);
+
+    if (this._interactiveButton)
+    {
+        this._interactiveButton.onClick(pointerData);
+        this._pane.cancelScroll();
+        this._closeButtons();
+
+        this._chart.highlightSegment(this._buttonList.getChildIndex(this._interactiveButton));
+
+        this._layoutDirty = true;
+    }
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.ReportScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
+
+    if (action === HeaderAction.ADD_TRANSACTION)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CREATE,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData.update()
+        });
+    }
+    else if (action === HeaderAction.MENU)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(
+            App.ScreenName.MENU,
+            0,
+            null,
+            HeaderAction.NONE,
+            HeaderAction.CANCEL,
+            App.ScreenTitle.MENU
+        ));
+    }
+};
+
+/**
+ * Update list layout
+ * @private
+ */
+App.ReportScreen.prototype._updateListLayout = function _updateListLayout()
+{
+    if (this._interactiveButton) this._interactiveButton.updateLayout();
+    this._buttonList.updateLayout(true);
+    this._pane.resize();
+};
+
+/**
+ * Check if buttons are in transition
+ * @returns {boolean}
+ * @private
+ */
+App.ReportScreen.prototype._buttonsInTransition = function _buttonsInTransition()
+{
+    var i = 0,
+        l = this._buttonList.children.length,
+        inTransition = false;
+
+    for (;i<l;)
+    {
+        if (this._buttonList.getChildAt(i++).isInTransition())
+        {
+            inTransition = true;
+            break;
+        }
+    }
+
+    return inTransition;
+};
+/**
+ * @class ChangeCategory
+ * @extends SequenceCommand
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.ChangeCategory = function ChangeCategory(eventListenerPool)
+{
+    App.SequenceCommand.call(this,false,eventListenerPool || App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
+};
+
+App.ChangeCategory.prototype = Object.create(App.SequenceCommand.prototype);
+App.ChangeCategory.prototype.constructor = App.ChangeCategory;
+
+/**
+ * Execute the command
+ *
+ * @method execute
+ * @param {Object} data
+ * @param {string} data.type
+ * @param {App.Category} data.category
+ * @param {string} data.name
+ * @param {string} data.color
+ * @param {string} data.icon
+ * @param {string} data.budget
+ * @param {App.Account} data.account
+ * @param {Command} data.nextCommand
+ * @param {Object} data.nextCommandData
+ */
+App.ChangeCategory.prototype.execute = function execute(data)
+{
+    var EventType = App.EventType,
+        category = data.category,
+        type = data.type;
+
+    this._nextCommand = data.nextCommand;
+    this._nextCommandData = data.nextCommandData;
+
+    if (type === EventType.CREATE)
+    {
+        category = new App.Category();
+        category.account = data.account.id;
+
+        this._nextCommandData.updateData = category;
+    }
+    else if (type === EventType.CHANGE)
+    {
+        category.name = data.name || category.name;
+        category.icon = data.icon || category.icon;
+        category.color = data.color || category.color;
+        category.budget = data.budget || category.budget;
+
+        this._registerSubCategories(category);
+    }
+    else if (type === EventType.CONFIRM)
+    {
+        category.name = data.name;
+        category.icon = data.icon;
+        category.color = data.color;
+        category.budget = data.budget;
+
+        this._registerSubCategories(category);
+        this._registerCategory(category);
+    }
+    else if (type === EventType.CANCEL)
+    {
+        this._cancelChanges(category);
+    }
+    else if (type === EventType.DELETE)
+    {
+        this._deleteCategory(category);
+    }
+
+    if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
+    else this.dispatchEvent(EventType.COMPLETE,this);
+};
+
+/**
+ * Add category to collection
+ * @param category
+ * @private
+ */
+App.ChangeCategory.prototype._registerCategory = function _registerCategory(category)
+{
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        categories = ModelLocator.getProxy(ModelName.CATEGORIES);
+
+    if (categories.indexOf(category) === -1)
+    {
+        categories.addItem(category);
+        ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).addCategory(category);
+    }
+};
+
+/**
+ * Add subCategories to collection
+ * @param category
+ * @private
+ */
+App.ChangeCategory.prototype._registerSubCategories = function _registerSubCategories(category)
+{
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        subCategoryCollection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES),
+        subCategories = category.subCategories,
+        subCategory = null,
+        i = 0,
+        l = subCategories.length;
+
+    for (;i<l;)
+    {
+        subCategory = subCategories[i++];
+        if (subCategoryCollection.indexOf(subCategory) === -1) subCategoryCollection.addItem(subCategory);
+    }
+};
+
+/**
+ * Cancel changes made to the category since last saved state
+ * @param {App.Category} category
+ * @private
+ */
+App.ChangeCategory.prototype._cancelChanges = function _cancelChanges(category)
+{
+    var subCategoryCollection = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES),
+        allSubCategories = category.subCategories,
+        i = 0,
+        l = allSubCategories.length;
+
+    category.revokeState();
+
+    var revokedSubCategories = category.subCategories;
+
+    for (;i<l;i++)
+    {
+        if (revokedSubCategories.indexOf(allSubCategories[i]) === -1 && subCategoryCollection.indexOf(allSubCategories[i]) > -1)
+        {
+            subCategoryCollection.removeItem(allSubCategories[i]);
+        }
+    }
+
+    i = 0;
+    l = revokedSubCategories.length;
+
+    for (;i<l;) revokedSubCategories[i++].revokeState();
+
+    //TODO destroy category if it was newly created and eventually cancelled?
+};
+
+/**
+ * Delete category
+ * @param {App.Category} category
+ * @private
+ */
+App.ChangeCategory.prototype._deleteCategory = function _deleteCategory(category)
+{
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        subCategoryCollection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES),
+        subCategories = category.subCategories,
+        i = 0,
+        l = subCategories.length;
+
+    //TODO may still be referenced in transaction(s)
+    //TODO keep the (sub)category in collection, but them completely remove if it's not referenced anywhere?
+    //for (;i<l;) subCategoryCollection.removeItem(subCategories[i++]);
+
+    ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).removeCategory(category);
+
+    //ModelLocator.getProxy(ModelName.CATEGORIES).removeItem(category);
+
+    category.destroy();
+};
+/**
+ * @class Menu
+ * @param {Object} layout
+ * @constructor
+ */
+App.Menu = function Menu(layout)
+{
+    App.Screen.call(this,layout);
+
+    var MenuItem = App.MenuItem,
+        ScreenName = App.ScreenName,
+        FontStyle = App.FontStyle,
+        r = layout.pixelRatio,
+        w = layout.width,
+        itemLabelStyle = FontStyle.get(20,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+        itemOptions = {
+            width:w,
+            height:Math.round(40 * r),
+            pixelRatio:r,
+            style:itemLabelStyle
+        };
+
+    this._addTransactionItem = new MenuItem("Add Transaction","transactions",ScreenName.ADD_TRANSACTION,{width:w,height:Math.round(50*r),pixelRatio:r,style:itemLabelStyle});
+    this._accountsItem = new MenuItem("Accounts","account",ScreenName.ACCOUNT,itemOptions);
+    this._reportItem = new MenuItem("Report","chart",ScreenName.REPORT,itemOptions);
+    this._budgetItem = new MenuItem("Budgets","budget",-1,itemOptions);
+    this._transactionsItem = new MenuItem("Transactions","transactions",ScreenName.TRANSACTIONS,itemOptions);
+    this._currenciesItem = new MenuItem("Currency rates","currencies",ScreenName.CURRENCY_PAIRS,itemOptions);
+    this._settignsItem = new MenuItem("Settings","settings-app",ScreenName.SETTINGS,itemOptions);
+    this._container = new PIXI.Graphics();
+    this._pane = new App.Pane(App.ScrollPolicy.OFF,App.ScrollPolicy.AUTO,w,layout.contentHeight,r,false);
+    this._background = new PIXI.Graphics();
+    this._items = [];
+
+    this._render();
+
+    this.addChild(this._background);
+    this._items.push(this._container.addChild(this._addTransactionItem));
+    this._items.push(this._container.addChild(this._accountsItem));
+    this._items.push(this._container.addChild(this._reportItem));
+    this._items.push(this._container.addChild(this._budgetItem));
+    this._items.push(this._container.addChild(this._transactionsItem));
+    this._items.push(this._container.addChild(this._currenciesItem));
+    this._items.push(this._container.addChild(this._settignsItem));
+    this._pane.setContent(this._container);
+    this.addChild(this._pane);
+};
+
+App.Menu.prototype = Object.create(App.Screen.prototype);
+App.Menu.prototype.constructor = App.Menu;
+
+/**
+ * Render
+ * @private
+ */
+App.Menu.prototype._render = function _render()
+{
+    var r = this._layout.pixelRatio,
+        smallGap = Math.round(2 * r),
+        bigGap = Math.round(25 * r),
+        GraphicUtils = App.GraphicUtils,
+        bgColor = App.ColorTheme.BLUE_DARK;
+
+    this._accountsItem.y = this._addTransactionItem.boundingBox.height + bigGap;
+    this._reportItem.y = this._accountsItem.y + this._accountsItem.boundingBox.height + smallGap;
+    this._budgetItem.y = this._reportItem.y + this._reportItem.boundingBox.height + smallGap;
+    this._transactionsItem.y = this._budgetItem.y + this._budgetItem.boundingBox.height + smallGap;
+    this._currenciesItem.y = this._transactionsItem.y + this._transactionsItem.boundingBox.height + bigGap;
+    this._settignsItem.y = this._currenciesItem.y + this._currenciesItem.boundingBox.height + smallGap;
+
+    GraphicUtils.drawRect(this._container,bgColor,1,0,0,this._layout.width,this._settignsItem.y+this._settignsItem.boundingBox.height);
+    GraphicUtils.drawRect(this._background,bgColor,1,0,0,this._layout.width,this._layout.contentHeight);
+};
+
+/**
+ * Enable
+ */
+App.Menu.prototype.enable = function enable()
+{
+    if (!this._enabled)
+    {
+        this._registerEventListeners(App.EventLevel.LEVEL_1);
+        this._registerEventListeners(App.EventLevel.LEVEL_2);
+
+        this._pane.resetScroll();
+        this._pane.enable();
+
+        this._enabled = true;
+    }
+};
+
+/**
+ * Disable
+ */
+App.Menu.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._pane.disable();
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.Menu.prototype._onClick = function _onClick()
+{
+    this._pane.cancelScroll();
+
+    var ScreenName = App.ScreenName,
+        ScreenTitle = App.ScreenTitle,
+        HeaderAction = App.HeaderAction,
+        item = this._getItemByPosition(this.stage.getTouchData().getLocalPosition(this._container).y),
+        screenName = item ? item.getScreenName() : ScreenName.BACK,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(screenName,0,null,HeaderAction.MENU,HeaderAction.ADD_TRANSACTION);
+
+    switch (screenName)
+    {
+        case ScreenName.ADD_TRANSACTION:
+            App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+                type:App.EventType.CREATE,
+                nextCommand:new App.ChangeScreen(),
+                nextCommandData:changeScreenData.update()
+            });
+            break;
+
+        case ScreenName.ACCOUNT:
+            changeScreenData.screenMode = App.ScreenMode.EDIT;
+            changeScreenData.headerName = ScreenTitle.ACCOUNTS;
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+            break;
+
+        case ScreenName.REPORT:
+            changeScreenData.headerName = ScreenTitle.REPORT;
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+            break;
+
+        case ScreenName.TRANSACTIONS:
+            changeScreenData.headerName = ScreenTitle.TRANSACTIONS;
+            changeScreenData.updateData = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).copySource().reverse();
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+            break;
+
+        case ScreenName.CURRENCY_PAIRS:
+            changeScreenData.screenMode = App.ScreenMode.EDIT;
+            changeScreenData.headerName = ScreenTitle.CURRENCY_RATES;
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+            break;
+
+        case ScreenName.SETTINGS:
+            changeScreenData.headerName = ScreenTitle.SETTINGS;
+            App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
+            break;
+    }
+};
+
+/**
+ * Return item by position passed in
+ * @param {number} position
+ * @return {MenuItem}
+ * @private
+ */
+App.Menu.prototype._getItemByPosition = function _getItemByPosition(position)
+{
+    var i = 0,
+        l = this._items.length,
+        item = null;
+
+    for (;i<l;)
+    {
+        item = this._items[i++];
+        if (position >= item.y && position < item.y + item.boundingBox.height) return item;
+    }
+
+    return null;
+};
+/**
+ * @class ReportChartHighlight
+ * @extends Graphics
+ * @param {Point} center
+ * @param {number} width
+ * @param {number} height
+ * @param {number} thickness
+ * @constructor
+ */
+App.ReportChartHighlight = function ReportChartHighlight(center,width,height,thickness)
+{
+    PIXI.Graphics.call(this);
+
+    this._width = width;
+    this._height = height;
+    this._center = center;
+    this._thickness = thickness;
+    this._oldStart = 0;
+    this._oldEnd = 0;
+    this._start = 0;
+    this._end = 0;
+    this._color = 0x000000;
+};
+
+App.ReportChartHighlight.prototype = Object.create(PIXI.Graphics.prototype);
+App.ReportChartHighlight.prototype.constructor = App.ReportChartHighlight;
+
+/**
+ * Change
+ * @param {number} start
+ * @param {number} end
+ * @param {number} color
+ */
+App.ReportChartHighlight.prototype.change = function change(start,end,color)
+{
+    this._oldStart = this._start;
+    this._oldEnd = this._end;
+
+    this._start = start;
+    this._end = end;
+    this._color = color;
+};
+
+/**
+ * Update change by progress passed in
+ * @param {number} progress
+ */
+App.ReportChartHighlight.prototype.update = function update(progress)
+{
+    var start = this._oldStart + (this._start - this._oldStart) * progress,
+        end = this._oldEnd + (this._end - this._oldEnd) * progress;
+
+    App.GraphicUtils.drawArc(this,this._center,this._width,this._height,this._thickness,start,end,20,0,0,0,this._color,1);
+};
+/**
+ * @class AccountButton
+ * @extends SwipeButton
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {PIXI.Texture} options.skin
+ * @param {{font:string,fill:string}} options.nameStyle
+ * @param {{font:string,fill:string}} options.detailStyle
+ * @param {{font:string,fill:string}} options.editStyle
+ * @param {number} options.openOffset
+ * @constructor
+ */
+App.AccountButton = function AccountButton(poolIndex,options)
+{
+    App.SwipeButton.call(this,options.width,options.openOffset);
+
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+    this.boundingBox = new PIXI.Rectangle(0,0,options.width,options.height);
+
+    this._model = null;
+    this._mode = App.ScreenMode.SELECT;
+    this._pixelRatio = options.pixelRatio;
+    this._background = this.addChild(new PIXI.Graphics());
+    this._editLabel = this.addChild(new PIXI.Text("Edit",options.editStyle));
+    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
+    this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
+    this._nameLabel = this._swipeSurface.addChild(new PIXI.Text("",options.nameStyle));
+    this._detailsLabel = this._swipeSurface.addChild(new PIXI.Text("Balance: 2.876, Expenses: -250, Income: 1.500",options.detailStyle));//TODO remove hard-coded data
+    this._renderAll = true;
+};
+
+App.AccountButton.prototype = Object.create(App.SwipeButton.prototype);
+App.AccountButton.prototype.constructor = App.AccountButton;
+
+/**
+ * @method render
+ * @private
+ */
+App.AccountButton.prototype._render = function _render()
+{
+    if (this._renderAll)
+    {
+        var w = this.boundingBox.width,
+            h = this.boundingBox.height,
+            r = this._pixelRatio,
+            offset = Math.round(15 * r);
+
+        this._renderAll = false;
+
+        App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
+
+        this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
+        this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
+
+        this._nameLabel.x = offset;
+        this._nameLabel.y = offset;
+
+        this._detailsLabel.x = offset;
+        this._detailsLabel.y = Math.round(45 * r);
+    }
+};
+
+/**
+ * Set model
+ * @param {App.Account} model
+ * @param {string} mode
+ */
+App.AccountButton.prototype.setModel = function getModel(model,mode)
+{
+    this._model = model;
+    this._mode = mode;
+
+    this._nameLabel.setText(this._model.name);
+
+    this._render();
+};
+
+/**
+ * Return model
+ * @returns {Account}
+ */
+App.AccountButton.prototype.getModel = function getModel()
+{
+    return this._model;
+};
+
+/**
+ * Click handler
+ * @param {InteractionData} data
+ * @returns {number}
+ */
+App.AccountButton.prototype.getClickMode = function getClickMode(data)
+{
+    if (this._isOpen && data.getLocalPosition(this).x >= this._width - this._openOffset) return App.ScreenMode.EDIT;
+    else return App.ScreenMode.SELECT;
+};
+
+/**
+ * Update swipe position
+ * @param {number} position
+ * @private
+ */
+App.AccountButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
+{
+    this._swipeSurface.x = position;
+};
+
+/**
+ * Return swipe position
+ * @private
+ */
+App.AccountButton.prototype._getSwipePosition = function _getSwipePosition()
+{
+    return this._swipeSurface.x;
+};
 /**
  * @class ChangeTransaction
  * @extends SequenceCommand
@@ -15499,181 +12417,1704 @@ App.ChangeTransaction.prototype._setCurrency = function _setCurrency(transaction
         settings.defaultCurrencyQuote = data.currencyQuote;
     }
 };
-
 /**
- * @class ChangeCategory
- * @extends SequenceCommand
- * @param {ObjectPool} eventListenerPool
+ * @class ChangeScreen
+ * @extends {Command}
  * @constructor
  */
-App.ChangeCategory = function ChangeCategory(eventListenerPool)
+App.ChangeScreen = function ChangeScreen()
 {
-    App.SequenceCommand.call(this,false,eventListenerPool || App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
+    App.Command.call(this,false,App.ModelLocator.getProxy(App.ModelName.EVENT_LISTENER_POOL));
 };
 
-App.ChangeCategory.prototype = Object.create(App.SequenceCommand.prototype);
-App.ChangeCategory.prototype.constructor = App.ChangeCategory;
+App.ChangeScreen.prototype = Object.create(App.Command.prototype);
+App.ChangeScreen.prototype.constructor = App.ChangeScreen;
 
 /**
  * Execute the command
  *
  * @method execute
- * @param {Object} data
- * @param {string} data.type
- * @param {App.Category} data.category
- * @param {string} data.name
- * @param {string} data.color
- * @param {string} data.icon
- * @param {string} data.budget
- * @param {App.Account} data.account
- * @param {Command} data.nextCommand
- * @param {Object} data.nextCommandData
+ * @param {App.ChangeScreenData} data
  */
-App.ChangeCategory.prototype.execute = function execute(data)
+App.ChangeScreen.prototype.execute = function execute(data)
 {
-    var EventType = App.EventType,
-        category = data.category,
-        type = data.type;
+    var ViewLocator = App.ViewLocator,
+        ViewName = App.ViewName,
+        ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        changeScreenDataPool = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL),
+        screenHistory = ModelLocator.getProxy(ModelName.SCREEN_HISTORY),
+        screenStack = ViewLocator.getViewSegment(ViewName.SCREEN_STACK),
+        screen = null;
 
-    this._nextCommand = data.nextCommand;
-    this._nextCommandData = data.nextCommandData;
-
-    if (type === EventType.CREATE)
+    if (data.screenName === App.ScreenName.BACK)
     {
-        category = new App.Category();
-        category.account = data.account.id;
+        var updateBackScreen = data.updateBackScreen,
+            i = 0,
+            l = data.backSteps;
 
-        this._nextCommandData.updateData = category;
-    }
-    else if (type === EventType.CHANGE)
-    {
-        category.name = data.name || category.name;
-        category.icon = data.icon || category.icon;
-        category.color = data.color || category.color;
-        category.budget = data.budget || category.budget;
+        for (;i<l;i++) changeScreenDataPool.release(screenHistory.pop());
+        changeScreenDataPool.release(data);
 
-        this._registerSubCategories(category);
-    }
-    else if (type === EventType.CONFIRM)
-    {
-        category.name = data.name;
-        category.icon = data.icon;
-        category.color = data.color;
-        category.budget = data.budget;
+        data = screenHistory.peek();
 
-        this._registerSubCategories(category);
-        this._registerCategory(category);
+        screen = screenStack.getChildByIndex(data.screenName);
+        if (updateBackScreen) screen.update(data.updateData,data.screenMode);
     }
-    else if (type === EventType.CANCEL)
+    else
     {
-        this._cancelChanges(category);
-    }
-    else if (type === EventType.DELETE)
-    {
-        this._deleteCategory(category);
-    }
+        if (data.headerLeftAction !== App.HeaderAction.CANCEL && data.headerRightAction !== App.HeaderAction.CANCEL && data.screenMode !== App.ScreenMode.SELECT)
+        {
+            this._clearHistory(screenHistory,changeScreenDataPool);
+        }
 
-    if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
-    else this.dispatchEvent(EventType.COMPLETE,this);
+        screen = screenStack.getChildByIndex(data.screenName);
+        screen.update(data.updateData,data.screenMode);
+
+        screenHistory.push(data);
+    }
+//    console.log("Stack: ",screenHistory._source);
+//    console.log("Pool: ",changeScreenDataPool._freeItems);
+    ViewLocator.getViewSegment(ViewName.HEADER).change(data.headerLeftAction,data.headerRightAction,data.headerName);
+
+    screenStack.selectChild(screen);
+
+    this.dispatchEvent(App.EventType.COMPLETE,this);
 };
 
 /**
- * Add category to collection
- * @param category
+ * Clear history
+ * @param {App.Stack} screenHistory
+ * @param {App.ObjectPool} changeScreenDataPool
  * @private
  */
-App.ChangeCategory.prototype._registerCategory = function _registerCategory(category)
+App.ChangeScreen.prototype._clearHistory = function _clearHistory(screenHistory,changeScreenDataPool)
 {
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        categories = ModelLocator.getProxy(ModelName.CATEGORIES);
+//    console.log("Before clear: ------------------");
+//    console.log("Stack: ",screenHistory._source);
+//    console.log("Pool: ",changeScreenDataPool._freeItems);
+    var item = screenHistory.pop();
 
-    if (categories.indexOf(category) === -1)
+    while (item)
     {
-        categories.addItem(category);
-        ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).addCategory(category);
+        changeScreenDataPool.release(item);
+
+        item = screenHistory.pop();
     }
+    screenHistory.clear();
+//    console.log("After clear: ------------------");
+//    console.log("Stack: ",screenHistory._source);
+//    console.log("Pool: ",changeScreenDataPool._freeItems);
+//    console.log("---------------------------------");
+};
+/**
+ * @class ReportCategoryButton
+ * @extends ExpandButton
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {Texture} options.skin
+ * @param {Object} options.labelStyles
+ * @param {App.ObjectPool} options.subCategoryButtonPool
+ * @constructor
+ */
+App.ReportCategoryButton = function ReportCategoryButton(poolIndex,options)
+{
+    App.ExpandButton.call(this,options.width,options.height,false);
+
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+
+    this._model = null;
+    this._pixelRatio = options.pixelRatio;
+    this._buttonPool = options.subCategoryButtonPool;
+
+    this._background = this.addChild(new PIXI.Sprite(options.skin));
+    this._colorStripe = this.addChild(new PIXI.Graphics());
+    this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
+    this._percentField = this.addChild(new PIXI.Text("%",options.labelStyles.percent));
+    this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
+    this._subCategoryList = new App.List(App.Direction.Y);
+    this._updated = false;
+
+    this._render();
+
+    this._setContent(this._subCategoryList);
+    this.addChild(this._subCategoryList);
+};
+
+App.ReportCategoryButton.prototype = Object.create(App.ExpandButton.prototype);
+App.ReportCategoryButton.prototype.constructor = App.ReportCategoryButton;
+
+/**
+ * Render
+ * @private
+ */
+App.ReportCategoryButton.prototype._render = function _render()
+{
+    var padding = Math.round(10 * this._pixelRatio),
+        w = this.boundingBox.width,
+        h = this.boundingBox.height;
+
+    this._nameField.x = Math.round(15 * this._pixelRatio);
+    this._nameField.y = Math.round((h - this._nameField.height) / 2);
+    this._percentField.x = Math.round(w * 0.7 - this._percentField.width);
+    this._percentField.y = Math.round((h - this._percentField.height) / 2);
+    this._amountField.x = Math.round(w - padding - this._amountField.width);
+    this._amountField.y = Math.round((h - this._amountField.height) / 2);
 };
 
 /**
- * Add subCategories to collection
- * @param category
+ * Set model
+ * @param {App.Category} model
+ */
+App.ReportCategoryButton.prototype.setModel = function setModel(model)
+{
+    this._updated = false;
+
+    this._model = model;
+
+    this.close(true);
+
+    this._nameField.setText(this._model.name);
+
+    App.GraphicUtils.drawRect(this._colorStripe,"0x" + this._model.color,1,0,0,Math.round(4 * this._pixelRatio),this.boundingBox.height);
+};
+
+/**
+ * Update
  * @private
  */
-App.ChangeCategory.prototype._registerSubCategories = function _registerSubCategories(category)
+App.ReportCategoryButton.prototype._update = function _update()
 {
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        subCategoryCollection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES),
-        subCategories = category.subCategories,
+    this._updated = true;
+
+    var i = 0,
+        l = this._subCategoryList.length,
+        subCategories = this._model.subCategories,
+        color = "0x" + this._model.color,
         subCategory = null,
-        i = 0,
-        l = subCategories.length;
+        button = null;
+
+    for (;i<l;i++) this._buttonPool.release(this._subCategoryList.removeItemAt(0));
+
+    for (i=0,l=subCategories.length;i<l;)
+    {
+        subCategory = subCategories[i++];
+        button = this._buttonPool.allocate();
+        button.setModel(subCategory,color);
+        this._subCategoryList.add(button);
+    }
+    this._subCategoryList.updateLayout();
+};
+
+/**
+ * Click handler
+ * @param {Point} position
+ */
+App.ReportCategoryButton.prototype.onClick = function onClick(position)
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
+    {
+        if (!this._updated) this._update();
+
+        this.open(true);
+    }
+    else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
+    {
+        this.close(false,true);
+    }
+};
+/**
+ * @class TransactionOptionButton
+ * @extends Graphics
+ * @param {string} iconName
+ * @param {string} name
+ * @param {{width:number,height:number,pixelRatio:number,nameStyle:Object,valueStyle:Object,valueDetailStyle:Object}} options
+ * @constructor
+ */
+App.TransactionOptionButton = function TransactionOptionButton(iconName,name,options)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    var Text = PIXI.Text,
+        Sprite = PIXI.Sprite;
+
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
+
+    this._options = options;
+    this._value = null;
+    this._pixelRatio = options.pixelRatio;
+    this._skin = new Sprite(options.skin);
+    this._icon = new Sprite.fromFrame(iconName);
+    this._nameField = new Text(name,options.nameStyle);
+    this._valueField = new Text("",options.valueStyle);
+    this._valueDetailField = null;
+    this._arrow = new Sprite.fromFrame("arrow-app");
+    this._iconResizeRatio = Math.round(20 * this._pixelRatio) / this._icon.height;
+    this._arrowResizeRatio = Math.round(12 * this._pixelRatio) / this._arrow.height;
+
+    this._render();
+    this._update();
+
+    this.addChild(this._skin);
+    this.addChild(this._icon);
+    this.addChild(this._nameField);
+    this.addChild(this._valueField);
+    this.addChild(this._arrow);
+};
+
+App.TransactionOptionButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.TransactionOptionButton.prototype.constructor = App.TransactionOptionButton;
+
+/**
+ * Render
+ * @private
+ */
+App.TransactionOptionButton.prototype._render = function _render()
+{
+    var ColorTheme = App.ColorTheme,
+        r = this._pixelRatio,
+        h = this.boundingBox.height;
+
+    this._icon.scale.x = this._iconResizeRatio;
+    this._icon.scale.y = this._iconResizeRatio;
+    this._icon.x = Math.round(15 * r);
+    this._icon.y = Math.round((h - this._icon.height) / 2);
+    this._icon.tint = ColorTheme.GREY_DARK;
+
+    this._nameField.x = Math.round(50 * r);
+    this._nameField.y = Math.round((h - this._nameField.height) / 2);
+
+    this._arrow.scale.x = this._arrowResizeRatio;
+    this._arrow.scale.y = this._arrowResizeRatio;
+    this._arrow.x = Math.round(this.boundingBox.width - 15 * r - this._arrow.width);
+    this._arrow.y = Math.round((h - this._arrow.height) / 2);
+    this._arrow.tint = ColorTheme.GREY_DARK;
+};
+
+/**
+ * Update
+ * @private
+ */
+App.TransactionOptionButton.prototype._update = function _update()
+{
+    var r = this._pixelRatio,
+        offset = this.boundingBox.width - 35 * r;
+
+    this._valueField.x = Math.round(offset - this._valueField.width);
+    if (this._valueDetailField && this.contains(this._valueDetailField))
+    {
+        this._valueField.y = Math.round(9 * r);
+        this._valueDetailField.y = Math.round(30 * r);
+        this._valueDetailField.x = Math.round(offset - this._valueDetailField.width);
+    }
+    else
+    {
+        this._valueField.y = Math.round((this.boundingBox.height - this._valueField.height) / 2);
+    }
+};
+
+/**
+ * Set value
+ * @param {string} value
+ * @param {string} [details=null]
+ */
+App.TransactionOptionButton.prototype.setValue = function setValue(value,details)
+{
+    this._value = value;
+    this._valueField.setText(value);
+
+    if (details)
+    {
+        if (this._valueDetailField) this._valueDetailField.setText(details);
+        else this._valueDetailField = new PIXI.Text(details,this._options.valueDetailStyle);
+
+        if (!this.contains(this._valueDetailField)) this.addChild(this._valueDetailField);
+    }
+    else
+    {
+        if (this._valueDetailField && this.contains(this._valueDetailField)) this.removeChild(this._valueDetailField);
+    }
+
+    this._update();
+};
+
+/**
+ * Return value
+ * @returns {string}
+ */
+App.TransactionOptionButton.prototype.getValue = function getValue()
+{
+    return this._value;
+};
+/**
+ * @class CurrencyPairScreen
+ * @extends Screen
+ * @param {Object} layout
+ * @constructor
+ */
+App.CurrencyPairScreen = function CurrencyPairScreen(layout)
+{
+    App.Screen.call(this,layout,0.4);
+
+    var ScrollPolicy = App.ScrollPolicy,
+        FontStyle = App.FontStyle,
+        r = layout.pixelRatio,
+        h = layout.contentHeight - Math.round(60 * r),
+        w = layout.width,
+        skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
+        buttonOptions = {
+            width:w,
+            height:Math.round(50 * r),
+            pixelRatio:r,
+            skin:skin.GREY_50,
+            editLabelStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+            pairLabelStyle:FontStyle.get(18,FontStyle.BLUE),
+            rateLabelStyle:FontStyle.get(18,FontStyle.BLUE,null,FontStyle.LIGHT_CONDENSED),
+            openOffset:Math.round(80 * r)
+        };
+
+    this._model = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS);
+
+    this._interactiveButton = null;
+    this._downloadButtonBackground = this.addChild(new PIXI.Sprite(skin.GREY_60));//TODO may not need this - I can use Screen BG
+    this._downloadButton = this.addChild(new App.Button("Update rates from internet",{
+        width:Math.round(w - 20 * r),
+        height:Math.round(40 * r),
+        pixelRatio:r,
+        style:FontStyle.get(18,FontStyle.BLACK_LIGHT,null,FontStyle.LIGHT_CONDENSED),
+        backgroundColor:App.ColorTheme.GREY_DARK
+    }));
+    this._buttonPool = new App.ObjectPool(App.CurrencyPairButton,4,buttonOptions);
+    this._buttonList = new App.VirtualList(this._buttonPool,App.Direction.Y,w,h,r);
+    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,true));
+    this._pane.setContent(this._buttonList);
+
+    this._swipeEnabled = true;
+    this._initialized = false;
+};
+
+App.CurrencyPairScreen.prototype = Object.create(App.Screen.prototype);
+App.CurrencyPairScreen.prototype.constructor = App.CurrencyPairScreen;
+
+/**
+ * Render
+ * @private
+ */
+App.CurrencyPairScreen.prototype._render = function _render()
+{
+    var padding = Math.round(10 * this._layout.pixelRatio),
+        buttonHeight = this._downloadButton.boundingBox.height + padding * 2;
+
+    this._downloadButton.x = padding;
+    this._downloadButton.y = padding;
+
+    this._pane.y = buttonHeight;
+};
+
+/**
+ * Enable
+ */
+App.CurrencyPairScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._pane.resetScroll();
+    this._pane.enable();
+};
+
+/**
+ * Disable
+ */
+App.CurrencyPairScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._pane.disable();
+};
+
+/**
+ * Update
+ * @param {App.Collection} data
+ * @param {string} mode
+ * @private
+ */
+App.CurrencyPairScreen.prototype.update = function update(data,mode)
+{
+    if (this._initialized)
+    {
+        this._pane.resetScroll();
+        this._buttonList.reset();
+    }
+    else
+    {
+        this._initialized = true;
+
+        this._render();
+
+        this._buttonList.update(this._model.copySource());
+        this._pane.resize();
+    }
+};
+
+/**
+ * On tween complete
+ * @private
+ */
+App.CurrencyPairScreen.prototype._onTweenComplete = function _onTweenComplete()
+{
+    App.Screen.prototype._onTweenComplete.call(this);
+
+    if (this._transitionState === App.TransitionState.HIDDEN) this._closeButtons(true);
+};
+
+/**
+ * Called when swipe starts
+ * @param {boolean} [preferScroll=false]
+ * @param {string} direction
+ * @private
+ */
+App.CurrencyPairScreen.prototype._swipeStart = function _swipeStart(preferScroll,direction)
+{
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
+
+    if (button)
+    {
+        if (!preferScroll) this._pane.cancelScroll();
+
+        this._interactiveButton = button;
+        this._interactiveButton.swipeStart(direction);
+
+        this._closeButtons(false);
+    }
+};
+
+/**
+ * Called when swipe ends
+ * @private
+ */
+App.CurrencyPairScreen.prototype._swipeEnd = function _swipeEnd()
+{
+    if (this._interactiveButton)
+    {
+        this._interactiveButton.swipeEnd();
+        this._interactiveButton = null;
+    }
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.CurrencyPairScreen.prototype._closeButtons = function _closeButtons(immediate)
+{
+    var i = 0,
+        l = this._buttonList.children.length,
+        button = null;
 
     for (;i<l;)
     {
-        subCategory = subCategories[i++];
-        if (subCategoryCollection.indexOf(subCategory) === -1) subCategoryCollection.addItem(subCategory);
+        button = this._buttonList.getChildAt(i++);
+        if (button !== this._interactiveButton) button.close(immediate);
     }
 };
 
 /**
- * Cancel changes made to the category since last saved state
- * @param {App.Category} category
+ * Click handler
  * @private
  */
-App.ChangeCategory.prototype._cancelChanges = function _cancelChanges(category)
+App.CurrencyPairScreen.prototype._onClick = function _onClick()
 {
-    var subCategoryCollection = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES),
-        allSubCategories = category.subCategories,
+    var data = this.stage.getTouchData(),
+        button = this._buttonList.getItemUnderPoint(data);
+
+    if (button) button.onClick(data);
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.CurrencyPairScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    var HeaderAction = App.HeaderAction,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate();
+
+    if (action === HeaderAction.ADD_TRANSACTION)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,{
+            type:App.EventType.CREATE,
+            nextCommand:new App.ChangeScreen(),
+            nextCommandData:changeScreenData.update()
+        });
+    }
+    else if (action === HeaderAction.MENU)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData.update(
+            App.ScreenName.MENU,
+            0,
+            null,
+            HeaderAction.NONE,
+            HeaderAction.CANCEL,
+            App.ScreenTitle.MENU
+        ));
+    }
+};
+/**
+ * @class AddNewButton
+ * @extends DisplayObjectContainer
+ * @param {string} label
+ * @param {{font:string,fill:string}} fontStyle
+ * @param {Texture} skin
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.AddNewButton = function AddNewButton(label,fontStyle,skin,pixelRatio)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this.boundingBox = new App.Rectangle(0,0,skin.width,skin.height);
+
+    this._label = label;
+    this._pixelRatio = pixelRatio;
+    this._skin = new PIXI.Sprite(skin);
+    this._icon = PIXI.Sprite.fromFrame("plus-app");
+    this._iconResizeRatio = Math.round(20 * pixelRatio) / this._icon.height;
+    this._labelField = new PIXI.Text(label,fontStyle);
+
+    this._render();
+
+    this.addChild(this._skin);
+    this.addChild(this._icon);
+    this.addChild(this._labelField);
+};
+
+App.AddNewButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.AddNewButton.prototype.constructor = App.AddNewButton;
+
+/**
+ * Render
+ * @private
+ */
+App.AddNewButton.prototype._render = function _render()
+{
+    var gap = Math.round(10 * this._pixelRatio),
+        h = this.boundingBox.height,
+        position = 0;
+
+    this._icon.scale.x = this._iconResizeRatio;
+    this._icon.scale.y = this._iconResizeRatio;
+
+    position = Math.round((this.boundingBox.width - (this._labelField.width + gap + this._icon.width)) / 2);
+
+    this._icon.x = position;
+    this._icon.y = Math.round((h - this._icon.height) / 2);
+    this._icon.tint = App.ColorTheme.GREY_DARK;
+
+    this._labelField.x = position + this._icon.width + gap;
+    this._labelField.y = Math.round((h - this._labelField.height) / 2);
+};
+/**
+ * @class TileList
+ * @extends List
+ * @param {string} direction
+ * @param {number} windowSize
+ * @constructor
+ */
+App.TileList = function TileList(direction,windowSize)
+{
+    App.List.call(this,direction);
+
+    this._windowSize = windowSize;
+};
+
+App.TileList.prototype = Object.create(App.List.prototype);
+App.TileList.prototype.constructor = App.TileList;
+
+/**
+ * Update X position
+ * @param {number} position
+ */
+App.TileList.prototype.updateX = function updateX(position)
+{
+    this.x = Math.round(position);
+
+    var i = 0,
+        l = this._items.length,
+        width = 0,
+        childX = 0,
+        child = null;
+
+    for (;i<l;)
+    {
+        child = this._items[i++];
+        width = child.boundingBox.width;
+        childX = this.x + child.x;
+
+        child.visible = childX + width > 0 && childX < this._windowSize;
+    }
+};
+
+/**
+ * Update Y position
+ * @param {number} position
+ */
+App.TileList.prototype.updateY = function updateY(position)
+{
+    this.y = Math.round(position);
+
+    var i = 0,
+        l = this._items.length,
+        height = 0,
+        childY = 0,
+        child = null;
+
+    for (;i<l;)
+    {
+        child = this._items[i++];
+        height = child.boundingBox.height;
+        childY = this.y + child.y;
+
+        child.visible = childY + height > 0 && childY < this._windowSize;
+    }
+};
+
+/**
+ * Update layout
+ * @param {boolean} [updatePosition=false]
+ */
+App.TileList.prototype.updateLayout = function updateLayout(updatePosition)
+{
+    App.List.prototype.updateLayout.call(this);
+
+    if (updatePosition)
+    {
+        if (this._direction === App.Direction.X) this.updateX(this.x);
+        else if (this._direction === App.Direction.Y) this.updateY(this.y);
+    }
+};
+/**
+ * @class ReportChart
+ * @extends Graphics
+ * @param {Collection} model
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.ReportChart = function ReportChart(model,width,height,pixelRatio)
+{
+    //TODO if there is just 1 account segments should represent categories of that account; otherwise segment will represent accounts
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        Graphics = PIXI.Graphics,
+        colors = [0xff0000,0xc066cc,0x0000ff],
         i = 0,
-        l = allSubCategories.length;
+        l = 3,//TODO number of segments calculated from accounts
+        segment = null;
 
-    category.revokeState();
+    Graphics.call(this);
 
-    var revokedSubCategories = category.subCategories;
+    this.boundingBox = new App.Rectangle(0,0,width,height);
+
+    this._ticker = ModelLocator.getProxy(ModelName.TICKER);
+    this._tween = new App.TweenProxy(1,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._transitionState = App.TransitionState.HIDDEN;
+    this._eventsRegistered = false;
+    this._center = new PIXI.Point(Math.round(width/2),Math.round(height/2));
+    this._thickness = Math.round(15 * pixelRatio);
+    this._chartSize = width - Math.round(5 * pixelRatio * 2);// 5px margin on sides for highlight line
+    this._segments = new Array(l);
+    this._highlight = new App.ReportChartHighlight(this._center,width,height,Math.round(3 * pixelRatio));
+    this._updateHighlight = false;
+    this._highlightSegment = void 0;
 
     for (;i<l;i++)
     {
-        if (revokedSubCategories.indexOf(allSubCategories[i]) === -1 && subCategoryCollection.indexOf(allSubCategories[i]) > -1)
-        {
-            subCategoryCollection.removeItem(allSubCategories[i]);
-        }
+        segment = new Graphics();
+        this._segments[i] = {graphics:segment,progress:0,color:colors[i]};
+        this.addChild(segment);
     }
 
-    i = 0;
-    l = revokedSubCategories.length;
+    this.addChild(this._highlight);
+};
 
-    for (;i<l;) revokedSubCategories[i++].revokeState();
+App.ReportChart.prototype = Object.create(PIXI.Graphics.prototype);
+App.ReportChart.prototype.constructor = App.ReportChart;
 
-    //TODO destroy category if it was newly created and eventually cancelled?
+/**
+ * Show
+ */
+App.ReportChart.prototype.show = function show()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.HIDDEN)
+    {
+        this._registerEventListeners();
+
+        this._transitionState = TransitionState.SHOWING;
+
+        this._tween.start();
+    }
+    else if (this._transitionState === TransitionState.HIDING)
+    {
+        this._transitionState = TransitionState.SHOWING;
+
+        this._tween.restart();
+    }
 };
 
 /**
- * Delete category
- * @param {App.Category} category
- * @private
+ * Hide
  */
-App.ChangeCategory.prototype._deleteCategory = function _deleteCategory(category)
+App.ReportChart.prototype.hide = function hide()
 {
-    var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        subCategoryCollection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES),
-        subCategories = category.subCategories,
-        i = 0,
-        l = subCategories.length;
+    var TransitionState = App.TransitionState;
 
-    //TODO may still be referenced in transaction(s)
-    //TODO keep the (sub)category in collection, but them completely remove if it's not referenced anywhere?
-    //for (;i<l;) subCategoryCollection.removeItem(subCategories[i++]);
+    if (this._transitionState === TransitionState.SHOWN)
+    {
+        this._registerEventListeners();
 
-    ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",category.account).removeCategory(category);
+        this._transitionState = TransitionState.HIDING;
 
-    //ModelLocator.getProxy(ModelName.CATEGORIES).removeItem(category);
+        this._tween.start();
+    }
+    else if (this._transitionState === TransitionState.SHOWING)
+    {
+        this._transitionState = TransitionState.HIDING;
 
-    category.destroy();
+        this._tween.restart();
+    }
 };
 
+/**
+ * Highlight segment
+ * @param {number} segment Segment of the chart to highlight
+ */
+App.ReportChart.prototype.highlightSegment = function highlightSegment(segment)
+{
+    if (segment === this._highlightSegment) return;
+
+    if (this._transitionState === App.TransitionState.SHOWN)
+    {
+        this._registerEventListeners();
+
+        this._highlight.change(
+            segment === 0 ? 0 : this._segments[segment-1].progress,
+            this._segments[segment].progress,
+            this._segments[segment].color
+        );
+
+        this._highlightSegment = segment;
+
+        this._updateHighlight = true;
+
+        this._tween.restart();
+    }
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.ReportChart.prototype._registerEventListeners = function _registerEventListeners()
+{
+    if (!this._eventsRegistered)
+    {
+        this._eventsRegistered = true;
+
+        this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
+
+        this._tween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+    }
+};
+
+/**
+ * UnRegister event listeners
+ * @private
+ */
+App.ReportChart.prototype._unRegisterEventListeners = function _unRegisterEventListeners()
+{
+    this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
+
+    this._tween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+
+    this._eventsRegistered = false;
+};
+
+/**
+ * RAF tick handler
+ * @private
+ */
+App.ReportChart.prototype._onTick = function _onTick()
+{
+    if (this._tween.isRunning())
+    {
+        if (this._updateHighlight) this._highlight.update(this._tween.progress);
+        else this._updateTween(false);
+    }
+};
+
+/**
+ * Update show hide tween
+ * @param {boolean} hiRes Indicate render chart in high-resolution
+ * @private
+ */
+App.ReportChart.prototype._updateTween = function _updateTween(hiRes)
+{
+    var GraphicUtils = App.GraphicUtils,
+        TransitionState = App.TransitionState,
+        progress = this._tween.progress,
+        i = 0,
+        l = this._segments.length,
+        steps = hiRes ? 20 : 10,
+        start = 0,
+        fraction = 0,
+        segment = null;
+
+    if (this._transitionState === TransitionState.HIDING || this._transitionState === TransitionState.HIDDEN)
+    {
+        progress = 1 - progress;
+    }
+
+    for (;i<l;i++)
+    {
+        segment = this._segments[i];
+        fraction = (i + 1) * (1 / l);
+        segment.progress = 360 * (progress < fraction ? progress : fraction);
+        start = i === 0 ? 0 : this._segments[i-1].progress;
+        GraphicUtils.drawArc(segment.graphics,this._center,this._chartSize,this._chartSize,this._thickness,start,segment.progress,steps,0,0,0,segment.color,1);
+    }
+};
+
+/**
+ * On Show Hide tween complete
+ * @private
+ */
+App.ReportChart.prototype._onTweenComplete = function _onTweenComplete()
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.SHOWING) this._transitionState = TransitionState.SHOWN;
+    else if (this._transitionState === TransitionState.HIDING) this._transitionState = TransitionState.HIDDEN;
+
+    this._updateTween(true);
+
+    this._unRegisterEventListeners();
+
+    if (this._updateHighlight)
+    {
+        this._updateHighlight = false;
+
+        this._highlight.update(1);
+    }
+};
+/**
+ * @class ViewLocator
+ * @type {{_viewSegments:Object,init:Function, addViewSegment: Function, hasViewSegment: Function, getViewSegment: Function}}
+ */
+App.ViewLocator = {
+    _viewSegments:{},
+
+    /**
+     * Initialize with array of segments passed in
+     * @param {Array.<>} segments
+     */
+    init:function init(segments)
+    {
+        var i = 0,
+            l = segments.length;
+
+        for (;i<l;) this._viewSegments[segments[i++]] = segments[i++];
+    },
+
+    /**
+     * Add view segment
+     * @param {string} segmentName
+     * @param {*} segment
+     */
+    addViewSegment:function addViewSegment(segmentName,segment)
+    {
+        if (this._viewSegments[segmentName]) throw Error("View segment "+segmentName+" already exist");
+
+        this._viewSegments[segmentName] = segment;
+
+        return segment;
+    },
+
+    /**
+     * Check if view segment already exist
+     * @param {string} segmentName
+     * @return {boolean}
+     */
+    hasViewSegment:function hasViewSegment(segmentName)
+    {
+        return this._viewSegments[segmentName];
+    },
+
+    /**
+     * Return view segment by name passed in
+     * @param {string} segmentName
+     * @return {*}
+     */
+    getViewSegment:function getViewSegment(segmentName)
+    {
+        return this._viewSegments[segmentName];
+    }
+};
+/**
+ * @class Button
+ * @extend Graphics
+ * @param {string} label
+ * @param {{width:number,height:number,pixelRatio:number,style:Object,backgroundColor:number}} options
+ * @constructor
+ */
+App.Button = function Button(label,options)
+{
+    PIXI.Graphics.call(this);
+
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
+
+    this._pixelRatio = options.pixelRatio;
+    this._label = label;
+    this._style = options.style;
+    this._backgroundColor = options.backgroundColor;
+    this._labelField = new PIXI.Text(label,this._style);
+
+    this._render();
+
+    this.addChild(this._labelField);
+};
+
+App.Button.prototype = Object.create(PIXI.Graphics.prototype);
+App.Button.prototype.constructor = App.Button;
+
+/**
+ * Render
+ * @private
+ */
+App.Button.prototype._render = function _render()
+{
+    var w = this.boundingBox.width,
+        h = this.boundingBox.height;
+
+    App.GraphicUtils.drawRoundedRect(this,this._backgroundColor,1,0,0,w,h,Math.round(5 * this._pixelRatio));
+
+    this._labelField.x = Math.round((w - this._labelField.width) / 2);
+    this._labelField.y = Math.round((h - this._labelField.height) / 2);
+};
+
+/**
+ * Resize
+ * @param {number} width
+ * @param {number} height
+ */
+App.Button.prototype.resize = function resize(width,height)
+{
+    this.boundingBox.width = width || this.boundingBox.width;
+    this.boundingBox.height = height || this.boundingBox.height;
+
+    this._render();
+};
+
+/**
+ * Test if position passed in falls within this button bounds
+ * @param {Point} position
+ * @returns {boolean}
+ */
+App.Button.prototype.hitTest = function hitTest(position)
+{
+    return position.x >= this.x && position.x < this.x + this.boundingBox.width && position.y >= this.y && position.y < this.y + this.boundingBox.height;
+};
+/**
+ * @class CategoryButtonExpand
+ * @extends ExpandButton
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {Texture} options.skin
+ * @param {{font:string,fill:string}} options.nameLabelStyle
+ * @param {{font:string,fill:string}} options.deleteLabelStyle
+ * @param {{font:string,fill:string}} options.addLabelStyle
+ * @param {number} options.openOffset
+ * @constructor
+ */
+App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
+{
+    App.ExpandButton.call(this,options.width,options.height,true);
+
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+
+    this._model = null;
+    this._mode = null;
+    this._pixelRatio = options.pixelRatio;
+    this._surface = new App.CategoryButtonSurface(options);
+    this._subCategoryList = new App.SubCategoryList(options);
+    this._layoutDirty = true;
+
+    this._setContent(this._subCategoryList);
+    this.addChild(this._subCategoryList);
+    this.addChild(this._surface);
+};
+
+App.CategoryButtonExpand.prototype = Object.create(App.ExpandButton.prototype);
+App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
+
+/**
+ * Render
+ * @private
+ */
+App.CategoryButtonExpand.prototype._render = function _render()
+{
+    this._surface.render(this._model.name,this._model.icon,this._model.color);
+};
+
+/**
+ * Update
+ * @param {App.Category} model
+ * @param {string} mode
+ */
+App.CategoryButtonExpand.prototype.update = function update(model,mode)
+{
+    this._model = model;
+    this._mode = mode;
+
+    this._layoutDirty = true;
+
+    this._render();
+
+    this.close(true);
+};
+
+/**
+ * Click handler
+ * @param {InteractionData} data
+ */
+App.CategoryButtonExpand.prototype.onClick = function onClick(data)
+{
+    var TransitionState = App.TransitionState;
+
+    if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
+    {
+        this.open();
+    }
+    else
+    {
+        if (data.getLocalPosition(this).y <= this._buttonHeight)
+        {
+            this.close();
+        }
+        else
+        {
+            this._eventDispatcher.dispatchEvent(App.EventType.COMPLETE,this); // To cancel any parent's processes
+
+            var button = this._subCategoryList.getItemUnderPoint(data);
+
+            if (button)
+            {
+                var ModelLocator = App.ModelLocator,
+                    ModelName = App.ModelName,
+                    EventType = App.EventType,
+                    changeScreenData = ModelLocator.getProxy(ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
+
+                if (button instanceof App.AddNewButton)
+                {
+                    changeScreenData.screenName = App.ScreenName.EDIT;
+                    changeScreenData.headerName = App.ScreenTitle.ADD_SUB_CATEGORY;
+
+                    App.Controller.dispatchEvent(EventType.CHANGE_SUB_CATEGORY,{
+                        type:EventType.CREATE,
+                        category:this._model,
+                        nextCommand:new App.ChangeScreen(),
+                        nextCommandData:changeScreenData
+                    });
+                }
+                else
+                {
+                    changeScreenData.backSteps = ModelLocator.getProxy(ModelName.SCREEN_HISTORY).peek(2).screenName === App.ScreenName.ACCOUNT ? 2 : 1;
+                    changeScreenData.updateBackScreen = true;
+
+                    App.Controller.dispatchEvent(EventType.CHANGE_TRANSACTION,{
+                        type:EventType.CHANGE,
+                        account:ModelLocator.getProxy(ModelName.ACCOUNTS).find("id",this._model.account),
+                        category:this._model,
+                        subCategory:button.getModel(),
+                        nextCommand:new App.ChangeScreen(),
+                        nextCommandData:changeScreenData
+                    });
+                }
+            }
+        }
+    }
+};
+
+/**
+ * Open
+ */
+App.CategoryButtonExpand.prototype.open = function open()
+{
+    if (this._layoutDirty)
+    {
+        this._subCategoryList.update(this._model,this._mode);
+
+        this._contentHeight = this._subCategoryList.boundingBox.height;
+
+        this._layoutDirty = false;
+    }
+
+    App.ExpandButton.prototype.open.call(this);
+};
+
+/**
+ * Disable
+ */
+App.CategoryButtonExpand.prototype.disable = function disable()
+{
+    this.close(true);
+};
+/**
+ * @class Controller
+ * @type {{_eventListenerPool:ObjectPool,_eventCommandMap: {}, _commands: Array, _init: Function, _onCommandComplete: Function, _destroyCommand: Function, dispatchEvent: Function}}
+ */
+App.Controller = {
+    _eventListenerPool:null,
+    _eventCommandMap:{},
+    /** @type {Array.<Command>} */
+    _commands:[],
+
+    /**
+     * Init
+     * @param {ObjectPool} eventListenerPool
+     * @param {Array.<>} eventMap
+     */
+    init:function init(eventListenerPool,eventMap)
+    {
+        this._eventListenerPool = eventListenerPool;
+
+        var i = 0,
+            l = eventMap.length;
+
+        for (;i<l;) this._eventCommandMap[eventMap[i++]] = {constructor:eventMap[i++]};
+    },
+
+    /**
+     * On command complete
+     * @param {*} data
+     * @private
+     */
+    _onCommandComplete:function _onCommandComplete(data)
+    {
+        this._destroyCommand(data);
+    },
+
+    /**
+     * Destroy command
+     * @param {Command} command
+     * @private
+     */
+    _destroyCommand:function _destroyCommand(command)
+    {
+        var i = 0, l = this._commands.length, cmd = null;
+        for (;i<l;)
+        {
+            cmd = this._commands[i++];
+            if (cmd === command)
+            {
+                cmd.removeEventListener(App.EventType.COMPLETE,this,this._onCommandComplete);
+                cmd.destroy();
+                this._commands.splice(i,1);
+                break;
+            }
+        }
+    },
+
+    /**
+     * Dispatch event passed in
+     * @param {string} eventType
+     * @param {*} [data=null] Defaults to null
+     * @param {boolean} [checkRunningInstances=false] Defaults to false
+     */
+    dispatchEvent:function dispatchEvent(eventType,data,checkRunningInstances)
+    {
+        /** @type {Function} */var commandConstructor = this._eventCommandMap[eventType].constructor;
+        if (commandConstructor)
+        {
+            /** @type {Command} */var cmd = null;
+
+            // First check, if multiple instances of this Command are allowed
+            // If not, destroy running instances, before executing new one
+            if (checkRunningInstances)
+            {
+                var i = 0, l = this._commands.length;
+                for (;i<l;)
+                {
+                    cmd = this._commands[i++];
+                    if (cmd instanceof commandConstructor && !cmd.allowMultipleInstances)
+                    {
+                        this._destroyCommand(cmd);
+                    }
+                }
+            }
+
+            // Execute command
+            cmd = /** @type {Command} */new commandConstructor(this._eventListenerPool);
+
+            this._commands.push(cmd);
+
+            cmd.addEventListener(App.EventType.COMPLETE,this,this._onCommandComplete);
+            cmd.execute(data);
+        }
+    }
+};
+/**
+ * @class SubCategoryList
+ * @extends Graphics
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {Texture} options.skin
+ * @param {boolean} options.displayHeader
+ * @param {{font:string,fill:string}} options.nameLabelStyle
+ * @param {{font:string,fill:string}} options.deleteLabelStyle
+ * @param {{font:string,fill:string}} options.addLabelStyle
+ * @param {number} options.openOffset
+ * @constructor
+ */
+App.SubCategoryList = function SubCategoryList(options)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this.boundingBox = new App.Rectangle(0,0,options.width,0);
+
+    this._model = null;
+    this._mode = null;
+    this._width = options.width;
+    this._pixelRatio = options.pixelRatio;
+    this._interactiveButton = null;
+    if (options.displayHeader) this._header = this.addChild(new App.ListHeader("Sub-Categories",this._width,this._pixelRatio));
+    this._buttonList = this.addChild(new App.List(App.Direction.Y));
+    this._addNewButton = new App.AddNewButton("ADD SUB-CATEGORY",options.addLabelStyle,options.addButtonSkin,this._pixelRatio);
+};
+
+App.SubCategoryList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.SubCategoryList.prototype.constructor = App.SubCategoryList;
+
+/**
+ * Update layout
+ * @private
+ */
+App.SubCategoryList.prototype._render = function _render()
+{
+    if (this._header) this._buttonList.y = this._header.height;
+
+    this.boundingBox.height = this._buttonList.y + this._buttonList.boundingBox.height;
+};
+
+/**
+ * @method update
+ * @param {App.Category} model
+ * @param {string} mode
+ */
+App.SubCategoryList.prototype.update = function update(model,mode)
+{
+    this._model = model;
+
+    this._buttonList.remove(this._addNewButton);
+
+    var subCategories = model.subCategories,
+        buttonPool = App.ViewLocator.getViewSegment(App.ViewName.SUB_CATEGORY_BUTTON_POOL),
+        i = 0,
+        l = this._buttonList.length,
+        button = null;
+
+    for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
+
+    i = 0;
+    l = subCategories.length;
+
+    for (;i<l;)
+    {
+        button = buttonPool.allocate();
+        button.update(subCategories[i++],mode);
+        this._buttonList.add(button,false);
+    }
+
+    this._buttonList.add(this._addNewButton);
+
+    this._buttonList.updateLayout();
+
+    this._render();
+
+    this._mode = mode;
+};
+
+/**
+ * Called when swipe starts
+ * @param {string} direction
+ * @private
+ */
+App.SubCategoryList.prototype.swipeStart = function swipeStart(direction)
+{
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
+
+    if (button && !(button instanceof App.AddNewButton))
+    {
+        this._interactiveButton = button;
+        this._interactiveButton.swipeStart(direction);
+
+        this.closeButtons(false);
+    }
+};
+
+/**
+ * Called when swipe ends
+ * @private
+ */
+App.SubCategoryList.prototype.swipeEnd = function swipeEnd()
+{
+    if (this._interactiveButton)
+    {
+        this._interactiveButton.swipeEnd();
+        this._interactiveButton = null;
+    }
+};
+
+/**
+ * Close opened buttons
+ * @private
+ */
+App.SubCategoryList.prototype.closeButtons = function closeButtons(immediate)
+{
+    var i = 0,
+        l = this._buttonList.length - 1,// last button is 'AddNewButton'
+        button = null;
+
+    for (;i<l;)
+    {
+        button = this._buttonList.getItemAt(i++);
+        if (button !== this._interactiveButton) button.close(immediate);
+    }
+};
+
+/**
+ * Find and return item under point passed in
+ * @param {InteractionData} data PointerData to get the position from
+ */
+App.SubCategoryList.prototype.getItemUnderPoint = function getItemUnderPoint(data)
+{
+    return this._buttonList.getItemUnderPoint(data);
+};
+
+/**
+ * Test if position passed in falls within this list boundaries
+ * @param {number} position
+ * @returns {boolean}
+ */
+App.SubCategoryList.prototype.hitTest = function hitTest(position)
+{
+    return position >= this.y && position < this.y + this.boundingBox.height;
+};
+/**
+ * @class Radio
+ * @param {number} pixelRatio
+ * @param {boolean} selected
+ * @constructor
+ */
+App.Radio = function Radio(pixelRatio,selected)
+{
+    PIXI.Graphics.call(this);
+
+    this._selected = selected;
+    this._size = Math.round(20 * pixelRatio);
+    this._pixelRatio = pixelRatio;
+    this._check = new PIXI.Graphics();
+
+    this.boundingBox = new App.Rectangle(0,0,this._size,this._size);
+
+    this._render();
+
+    this._check.alpha = selected ? 1.0 : 0.0;
+
+    this.addChild(this._check);
+};
+
+App.Radio.prototype = Object.create(PIXI.Graphics.prototype);
+App.Radio.prototype.constructor = App.Radio;
+
+/**
+ * Render
+ * @private
+ */
+App.Radio.prototype._render = function _render()
+{
+    var drawArc = App.GraphicUtils.drawArc,
+        ColorTheme = App.ColorTheme,
+        size = this._size,
+        center = new PIXI.Point(Math.round(size/2),Math.round(size/2));
+
+    drawArc(this,center,size,size,Math.round(2*this._pixelRatio),0,360,20,0,0,0,ColorTheme.GREY,1);
+
+    size -= Math.round(8*this._pixelRatio);
+
+    drawArc(this._check,center,size,size,Math.round(6*this._pixelRatio),0,360,20,0,0,0,ColorTheme.BLUE,1);
+};
+
+/**
+ * Select
+ */
+App.Radio.prototype.select = function select()
+{
+    this._selected = true;
+
+    this._check.alpha = 1.0;
+};
+
+/**
+ * Select
+ */
+App.Radio.prototype.deselect = function deselect()
+{
+    this._selected = false;
+
+    this._check.alpha = 0.0;
+};
+/**
+ * @class ReportAccountButton
+ * @extends ExpandButton
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {Object} options.labelStyles
+ * @param {App.ObjectPool} options.categoryButtonPool
+ * @constructor
+ */
+App.ReportAccountButton = function ReportAccountButton(poolIndex,options)
+{
+    App.ExpandButton.call(this,options.width,options.height,true);
+
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+
+    this._model = null;
+    this._height = options.height;
+    this._pixelRatio = options.pixelRatio;
+    this._buttonPool = options.categoryButtonPool;
+
+    this._background = this.addChild(new PIXI.Graphics());
+    this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
+    this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
+    this._categoryList = new App.List(App.Direction.Y);
+    this._updated = false;
+
+    this._render();
+
+    this._setContent(this._categoryList);
+    this.addChild(this._categoryList);
+};
+
+App.ReportAccountButton.prototype = Object.create(App.ExpandButton.prototype);
+App.ReportAccountButton.prototype.constructor = App.ReportAccountButton;
+
+/**
+ * Render
+ * @private
+ */
+App.ReportAccountButton.prototype._render = function _render()
+{
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height;
+
+    GraphicUtils.drawRects(this._background,ColorTheme.BLUE,1,[0,0,w,h],true,false);
+    GraphicUtils.drawRects(this._background,ColorTheme.BLUE_DARK,1,[0,h-1,w,1],false,true);
+
+    this._nameField.x = Math.round(10 * this._pixelRatio);
+    this._nameField.y = Math.round((h - this._nameField.height) / 2);
+
+    this._amountField.x = Math.round(w - this._amountField.width - 10 * this._pixelRatio);
+    this._amountField.y = Math.round((h - this._amountField.height) / 2);
+};
+
+/**
+ * Set model
+ * @param {App.Account} model
+ */
+App.ReportAccountButton.prototype.setModel = function setModel(model)
+{
+    this._updated = false;
+
+    this._model = model;
+
+    this.close(true);
+
+    this._nameField.setText(this._model.name);
+};
+
+/**
+ * Update
+ */
+App.ReportAccountButton.prototype._update = function _update()
+{
+    this._updated = true;
+
+    var i = 0,
+        l = this._categoryList.length,
+        categories = this._model.categories,
+        category = null,
+        button = null;
+
+    for (;i<l;i++) this._buttonPool.release(this._categoryList.removeItemAt(0));
+
+    for (i=0,l=categories.length;i<l;)
+    {
+        category = categories[i++];
+        button = this._buttonPool.allocate();
+        button.setModel(category);
+        this._categoryList.add(button);
+    }
+    this._categoryList.updateLayout();
+};
+
+/**
+ * Click handler
+ * @param {PIXI.InteractionData} pointerData
+ */
+App.ReportAccountButton.prototype.onClick = function onClick(pointerData)
+{
+    var position = pointerData.getLocalPosition(this).y,
+        TransitionState = App.TransitionState,
+        interactiveButton = null;
+
+    // Click on button itself
+    if (position <= this._height)
+    {
+        if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
+        {
+            if (!this._updated) this._update();
+
+            this.open(true);
+        }
+        else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
+        {
+            this.close(false,true);
+        }
+    }
+    // Click on category sub-list
+    else if (position > this._height)
+    {
+        interactiveButton = this._categoryList.getItemUnderPoint(pointerData);
+        if (interactiveButton) interactiveButton.onClick(position);
+    }
+};
+
+/**
+ * Update layout
+ * @private
+ */
+App.ReportAccountButton.prototype.updateLayout = function updateLayout()
+{
+    this._categoryList.updateLayout();
+    this._updateBounds(true);
+    this._updateMask();
+};
+
+/**
+ * Check if button is in transition
+ * @returns {boolean}
+ */
+App.ReportAccountButton.prototype.isInTransition = function isInTransition()
+{
+    var inTransition = App.ExpandButton.prototype.isInTransition.call(this),
+        i = 0,
+        l = this._categoryList.children.length;
+
+    if (this.isOpen())
+    {
+        for (;i<l;)
+        {
+            if (this._categoryList.getChildAt(i++).isInTransition())
+            {
+                inTransition = true;
+                break;
+            }
+        }
+    }
+
+    return inTransition;
+};
+/**
+ * @class MenuItem
+ * @extends Graphics
+ * @param {string} label
+ * @param {string} iconName
+ * @param {number} screenName
+ * @param {{width:number,height:number,pixelRatio:number,style:Object}} options
+ * @constructor
+ */
+App.MenuItem = function MenuItem(label,iconName,screenName,options)
+{
+    PIXI.Graphics.call(this);
+
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
+
+    this._screenName = screenName;
+    this._pixelRatio = options.pixelRatio;
+    this._icon = PIXI.Sprite.fromFrame(iconName);
+    this._iconResizeRatio = Math.round(22 * options.pixelRatio) / this._icon.height;
+    this._labelField = new PIXI.Text(label,options.style);
+
+    this._render();
+
+    this.addChild(this._icon);
+    this.addChild(this._labelField);
+};
+
+App.MenuItem.prototype = Object.create(PIXI.Graphics.prototype);
+App.MenuItem.prototype.constructor = App.MenuItem;
+
+/**
+ * Render
+ * @private
+ */
+App.MenuItem.prototype._render = function _render()
+{
+    var ColorTheme = App.ColorTheme,
+        h = this.boundingBox.height;
+
+    this._icon.scale.x = this._iconResizeRatio;
+    this._icon.scale.y = this._iconResizeRatio;
+    this._icon.x = Math.round(15 * this._pixelRatio);
+    this._icon.y = Math.round((h - this._icon.height) / 2);
+    this._icon.tint = ColorTheme.WHITE;
+
+    this._labelField.x = Math.round(60 * this._pixelRatio);
+    this._labelField.y = Math.round((h - this._labelField.height) / 2);
+
+    App.GraphicUtils.drawRect(this,ColorTheme.BLUE,1.0,0,0,this.boundingBox.width,h);
+};
+
+/**
+ * Return associated screen name
+ * @returns {number}
+ */
+App.MenuItem.prototype.getScreenName = function getScreenName()
+{
+    return this._screenName;
+};
 /**
  * @class ChangeSubCategory
  * @extends SequenceCommand
@@ -15727,7 +14168,329 @@ App.ChangeSubCategory.prototype.execute = function execute(data)
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(EventType.COMPLETE,this);
 };
+/**
+ * @class TweenProxy
+ * @param {number} duration
+ * @param {Function} ease
+ * @param {number} defaultProgress
+ * @param {ObjectPool} eventListenerPool
+ * @extends {EventDispatcher}
+ * @constructor
+ */
+App.TweenProxy = function TweenProxy(duration,ease,defaultProgress,eventListenerPool)
+{
+    App.EventDispatcher.call(this,eventListenerPool);
 
+    this.progress = defaultProgress || 0.0;
+
+    this._interval = -1;
+    this._running = false;
+    this._reversed = false;
+
+    this._start = -1.0;
+    this._end = -1.0;
+    this._reversedEnd = -1.0;
+    this._now = -1.0;
+    this._duration = duration * 1000 || 1000;
+    this._ease = ease || App.Easing.linear;
+    this._timeStamp = window.performance && window.performance.now ? window.performance : Date;
+    this._intervalReference = this._tweenInterval.bind(this);
+};
+
+App.TweenProxy.prototype = Object.create(App.EventDispatcher.prototype);
+App.TweenProxy.prototype.constructor = App.TweenProxy;
+
+/**
+ * Set easing function
+ * @method setEase
+ * @param {Function} value
+ */
+App.TweenProxy.prototype.setEase = function setEase(value)
+{
+    this._ease = value;
+};
+
+/**
+ * Start
+ * @method start
+ * @param {boolean} [reverseIfRunning=false] - reverse the tween if the tween is currently running
+ * @param {Function} [ease=null] - set new ease
+ */
+App.TweenProxy.prototype.start = function start(reverseIfRunning,ease)
+{
+    if (ease) this.setEase(ease);
+
+    if (!this._running)
+    {
+        this._running = true;
+        this._reversed = false;
+
+        this._tween();
+    }
+    else
+    {
+        if (reverseIfRunning)
+        {
+            if (this._reversed)
+            {
+                this._reversed = false;
+            }
+            else
+            {
+                this._reversed = true;
+                this._reversedEnd = this._start + (this._now - this._start) * 2;
+            }
+        }
+    }
+};
+
+/**
+ * Stop
+ * @method stop
+ */
+App.TweenProxy.prototype.stop = function stop()
+{
+    this._running = false;
+
+    clearInterval(this._interval);
+    this._interval = -1;
+};
+
+/**
+ * Restart
+ * @method restart
+ */
+App.TweenProxy.prototype.restart = function restart()
+{
+    if (this._running) this.stop();
+
+    this.start();
+};
+
+/**
+ * Is tween running?
+ * @method isRunning
+ * @returns {boolean}
+ */
+App.TweenProxy.prototype.isRunning = function isRunning()
+{
+    return this._running;
+};
+
+/**
+ * Tween
+ * @method _tween
+ * @private
+ */
+App.TweenProxy.prototype._tween = function _tween()
+{
+    if (this._interval > 0)
+    {
+        clearInterval(this._interval);
+        this._interval = -1.0;
+    }
+
+    this.progress = 0.0;
+
+    this._start = this._timeStamp.now();
+    this._end = this._start + this._duration;
+    this._interval = setInterval(this._intervalReference,1000/120);
+};
+
+/**
+ * Tween interval function
+ * @method _tweenInterval
+ * @private
+ */
+App.TweenProxy.prototype._tweenInterval = function _tweenInterval()
+{
+    this._now = this._timeStamp.now();
+
+    var end = this._reversed ? this._reversedEnd : this._end;
+    var progress = (this._duration - (end - this._now)) / this._duration;
+    if (progress < 0) progress = 0.0;
+    else if (progress > 1) progress = 1.0;
+
+    this.progress = this._ease(progress);
+    if(this._now >= end)
+    {
+        this.progress = 1.0;
+        this.stop();
+
+        this.dispatchEvent(App.EventType.COMPLETE);
+    }
+};
+
+/**
+ * Destroy
+ */
+App.TweenProxy.prototype.destroy = function destroy()
+{
+    App.EventDispatcher.prototype.destroy.call(this);
+
+    this.stop();
+
+    this._intervalReference = null;
+    this._timeStamp = null;
+    this._ease = null;
+};/**
+ * @class List
+ * @extends DisplayObjectContainer
+ * @param {string} direction
+ * @constructor
+ */
+App.List = function List(direction)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this.boundingBox = new App.Rectangle();
+
+    this._direction = direction;
+    this._items = [];
+};
+
+App.List.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.List.prototype.constructor = App.List;
+
+/**
+ * Add item
+ * @param {DisplayObject} item
+ * @param {boolean} [updateLayout=false]
+ * @returns {DisplayObject} returns item added
+ */
+App.List.prototype.add = function add(item,updateLayout)
+{
+    this._items[this._items.length] = item;
+
+    this.addChild(item);
+
+    if (updateLayout) this.updateLayout();
+
+    return item;
+};
+
+/**
+ * Remove item passed in
+ * @param {DisplayObject} item
+ */
+App.List.prototype.remove = function remove(item)
+{
+    this.removeItemAt(this._items.indexOf(item));
+};
+
+/**
+ * Remove item at index passed in
+ * @param {number} index
+ */
+App.List.prototype.removeItemAt = function removeItemAt(index)
+{
+    var item = this._items.splice(index,1)[0];
+
+    this.removeChild(item);
+
+    return item;
+};
+
+/**
+ * Return
+ * @param {number} index
+ */
+App.List.prototype.getItemAt = function getItemAt(index)
+{
+    return this._items[index];
+};
+
+/**
+ * Update layout
+ */
+App.List.prototype.updateLayout = function updateLayout()
+{
+    var i = 0,
+        l = this._items.length,
+        item = null,
+        position = 0,
+        Direction = App.Direction;
+
+    if (this._direction === Direction.X)
+    {
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            item.x = position;
+            position = Math.round(position + item.boundingBox.width);
+        }
+
+        this.boundingBox.width = position;
+        this.boundingBox.height = item.boundingBox.height;
+    }
+    else if (this._direction === Direction.Y)
+    {
+        for (;i<l;)
+        {
+            item = this._items[i++];
+            item.y = position;
+            position = Math.round(position + item.boundingBox.height);
+        }
+
+        this.boundingBox.height = position;
+        this.boundingBox.width = item.boundingBox.width;
+    }
+};
+
+/**
+ * Find and return item under point passed in
+ * @param {InteractionData} data PointerData to get the position from
+ */
+App.List.prototype.getItemUnderPoint = function getItemUnderPoint(data)
+{
+    var position = data.getLocalPosition(this).x,
+        boundsProperty = "width",
+        itemPosition = 0,
+        itemProperty = "x",
+        item = null,
+        i = 0,
+        l = this._items.length;
+
+    if (this._direction === App.Direction.Y)
+    {
+        position = data.getLocalPosition(this).y;
+        itemProperty = "y";
+        boundsProperty = "height";
+    }
+
+    for (;i<l;)
+    {
+        item = this._items[i++];
+        itemPosition = item[itemProperty];
+        if (itemPosition <= position && itemPosition + item.boundingBox[boundsProperty] >= position)
+        {
+            return item;
+        }
+    }
+
+    return null;
+};
+
+/**
+ * Test if position passed in falls within this list boundaries
+ * @param {number} position
+ * @returns {boolean}
+ */
+App.List.prototype.hitTest = function hitTest(position)
+{
+    return position >= this.y && position < this.y + this.boundingBox.height;
+};
+
+/**
+ * @property length
+ * @type number
+ */
+Object.defineProperty(App.List.prototype,'length',{
+    get:function()
+    {
+        return this._items.length;
+    }
+});
 /**
  * @class ChangeAccount
  * @extends SequenceCommand
@@ -15783,7 +14546,1126 @@ App.ChangeAccount.prototype.execute = function execute(data)
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(EventType.COMPLETE,this);
 };
+/**
+ * @class HeaderSegment
+ * @extends DisplayObjectContainer
+ * @param {number} value
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.HeaderSegment = function HeaderSegment(value,width,height,pixelRatio)
+{
+    PIXI.DisplayObjectContainer.call(this);
 
+    this._action = value;
+    this._width = width;
+    this._height = height;
+    this._pixelRatio = pixelRatio;
+    this._frontElement = null;
+    this._backElement = null;
+    this._middlePosition = Math.round(15 * pixelRatio);
+    this._needsUpdate = true;
+    this._mask = new PIXI.Graphics();
+    this.mask = this._mask;
+
+    this.addChild(this._mask);
+};
+
+App.HeaderSegment.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.HeaderSegment.prototype.constructor = App.HeaderSegment;
+
+/**
+ * Render
+ * @private
+ */
+App.HeaderSegment.prototype._render = function _render()
+{
+    var padding = Math.round(10 * this._pixelRatio);
+
+    App.GraphicUtils.drawRect(this._mask,0xff0000,0.5,0,0,this._width,this._height-padding*2);
+    this._mask.y = padding;
+};
+
+/**
+ * Change
+ * @param {number} action
+ */
+App.HeaderSegment.prototype.change = function change(action)
+{
+    if (this._action === action)
+    {
+        this._needsUpdate = false;
+    }
+    else
+    {
+        var tempIcon = this._frontElement;
+        this._frontElement = this._backElement;
+        this._backElement = tempIcon;
+
+        this._needsUpdate = true;
+    }
+
+    this._action = action;
+};
+
+/**
+ * Update
+ * @param {number} progress
+ */
+App.HeaderSegment.prototype.update = function update(progress)
+{
+    if (this._needsUpdate)
+    {
+        this._frontElement.y = Math.round((this._middlePosition + this._frontElement.height) * progress - this._frontElement.height);
+        this._backElement.y = Math.round(this._middlePosition + (this._height - this._middlePosition) * progress);
+    }
+};
+
+/**
+ * Return action
+ * @returns {number}
+ */
+App.HeaderSegment.prototype.getAction = function getAction()
+{
+    return this._action;
+};
+/**
+ * @class SubCategory
+ * @param {Array} data
+ * @param {Collection} collection
+ * @param {*} parent
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
+{
+    if (data)
+    {
+        if (parseInt(data[0],10) >= App.SubCategory._UID) App.SubCategory._UID = parseInt(data[0],10);
+
+        this.id = data[0];
+        this.name = data[1];
+        this.category = data[2];
+    }
+    else
+    {
+        this.id = String(++App.SubCategory._UID);
+        this.name = "SubCategory" + this.id;
+        this.category = null;
+    }
+
+    this._state = null;
+};
+
+App.SubCategory._UID = 0;
+
+/**
+ * Save current state
+ */
+App.SubCategory.prototype.saveState = function saveState()
+{
+    if (!this._state) this._state = this.name;
+};
+
+/**
+ * Revoke last state
+ */
+App.SubCategory.prototype.revokeState = function revokeState()
+{
+    if (this._state) this.name = this._state;
+};
+
+/**
+ * Clear saved state
+ */
+App.SubCategory.prototype.clearSavedState = function clearSavedState()
+{
+    this._state = null;
+};
+/**
+ * @class ColorSample
+ * @extends Graphics
+ * @param {number} modelIndex
+ * @param {number} color
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
+{
+    PIXI.Graphics.call(this);
+
+    this.boundingBox = new App.Rectangle(0,0,Math.round(40*pixelRatio),Math.round(50*pixelRatio));
+
+    this._modelIndex = modelIndex;
+    this._pixelRatio = pixelRatio;
+    this._color = color.toString();
+    this._selected = false;
+
+    this._render();
+};
+
+App.ColorSample.prototype = Object.create(PIXI.Graphics.prototype);
+App.ColorSample.prototype.constructor = App.ColorSample;
+
+/**
+ * Render
+ * @private
+ */
+App.ColorSample.prototype._render = function _render()
+{
+    var xPadding = Math.round((this._selected ? 0 : 5) * this._pixelRatio),
+        yPadding = Math.round((this._selected ? 5 : 10) * this._pixelRatio),
+        w = this.boundingBox.width,
+        h = this.boundingBox.height;
+
+    this.clear();
+    this.beginFill("0x"+this._color);
+    this.drawRoundedRect(xPadding,yPadding,w-xPadding*2,h-yPadding*2,Math.round(5*this._pixelRatio));
+    this.endFill();
+};
+
+/**
+ * Set color
+ * @param {number} index
+ * @param {number} color
+ * @param {number} selectedIndex
+ */
+App.ColorSample.prototype.setModel = function setModel(index,color,selectedIndex)
+{
+    this._modelIndex = index;
+    this._color = color;
+
+    this._selected = selectedIndex === this._modelIndex;
+
+    this._render();
+};
+
+/**
+ * Return model index
+ * @return {number}
+ */
+App.ColorSample.prototype.getModelIndex = function getModelIndex()
+{
+    return this._modelIndex;
+};
+
+/**
+ * Return value
+ * @returns {string}
+ */
+App.ColorSample.prototype.getValue = function getValue()
+{
+    return this._color;
+};
+
+/**
+ * Select
+ * @param {number} selectedIndex Index of selected item in the collection
+ */
+App.ColorSample.prototype.select = function select(selectedIndex)
+{
+    var selected = this._modelIndex === selectedIndex;
+
+    if (this._selected === selected) return;
+
+    this._selected = selected;
+
+    this._render();
+};
+/**
+ * @class TransactionToggleButton
+ * @extends Button
+ * @param {string} iconName
+ * @param {string} label
+ * @param {{width:number,height:number,pixelRatio:number,style:Object,toggleStyle:Object}} options
+ * @param {{icon:string,label:string,toggleColor:boolean}} toggleOptions
+ * @constructor
+ */
+App.TransactionToggleButton = function TransactionToggleButton(iconName,label,options,toggleOptions)
+{
+    this._iconName = iconName;
+    this._toggleStyle = options.toggleStyle;
+    this._toggleOptions = toggleOptions;
+    this._icon = PIXI.Sprite.fromFrame(iconName);
+    this._selected = false;
+    this._iconResizeRatio = Math.round(20 * options.pixelRatio) / this._icon.height;
+
+    App.Button.call(this,label,options);
+
+    this._render(true);
+
+    this.addChild(this._icon);
+};
+
+App.TransactionToggleButton.prototype = Object.create(App.Button.prototype);
+App.TransactionToggleButton.prototype.constructor = App.TransactionToggleButton;
+
+/**
+ * Render
+ * @param {boolean} [updateAll=false]
+ * @private
+ */
+App.TransactionToggleButton.prototype._render = function _render(updateAll)
+{
+    var r = this._pixelRatio,
+        w = this.boundingBox.width,
+        h = this.boundingBox.height,
+        gap = Math.round(10 * r),
+        padding = Math.round(5 * r);
+
+    if (this._selected)
+    {
+        if (this._toggleOptions.icon) this._icon.setTexture(PIXI.TextureCache[this._toggleOptions.icon]);
+        if (this._toggleOptions.label) this._labelField.setText(this._toggleOptions.label);
+        if (this._toggleOptions.toggleColor)
+        {
+            this._icon.tint = 0xFFFFFE;
+            this._labelField.setStyle(this._toggleStyle);
+
+            this.clear();
+            this.beginFill(App.ColorTheme.BLUE);
+            this.drawRoundedRect(padding,padding,w-padding*2,h-padding*2,padding);
+            this.endFill();
+        }
+    }
+    else
+    {
+        if (this._toggleOptions.icon) this._icon.setTexture(PIXI.TextureCache[this._iconName]);
+        if (this._toggleOptions.label) this._labelField.setText(this._label);
+        if (this._toggleOptions.toggleColor)
+        {
+            this._icon.tint = App.ColorTheme.BLUE;
+            this._labelField.setStyle(this._style);
+
+            this.clear();
+        }
+    }
+
+    if (updateAll)
+    {
+        this._icon.scale.x = this._iconResizeRatio;
+        this._icon.scale.y = this._iconResizeRatio;
+        this._icon.y = Math.round((h - this._icon.height) / 2);
+        this._icon.tint = App.ColorTheme.BLUE;
+
+        this._labelField.y = Math.round((h - this._labelField.height) / 2);
+    }
+
+    this._icon.x = Math.round((w - this._icon.width - gap - this._labelField.width) / 2);
+    this._labelField.x = Math.round(this._icon.x + this._icon.width + gap);
+};
+
+/**
+ * Toggle
+ */
+App.TransactionToggleButton.prototype.toggle = function toggle()
+{
+    this._selected = !this._selected;
+
+    this._render(false);
+};
+
+/**
+ * Set selection state
+ * @param {boolean} value
+ */
+App.TransactionToggleButton.prototype.setState = function setState(value)
+{
+    this._selected = value;
+
+    this._render(false);
+};
+
+/**
+ * Is button selected?
+ * @returns {boolean}
+ */
+App.TransactionToggleButton.prototype.isSelected = function isSelected()
+{
+    return this._selected;
+};
+/**
+ * @class CategoryButtonSurface
+ * @extends DisplayObjectContainer
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {Texture} options.skin
+ * @param {{font:string,fill:string}} options.nameLabelStyle
+ * @constructor
+ */
+App.CategoryButtonSurface = function CategoryButtonSurface(options)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this._width = options.width;
+    this._height = options.height;
+    this._pixelRatio = options.pixelRatio;
+
+    this._skin = this.addChild(new PIXI.Sprite(options.skin));
+    this._colorStripe = this.addChild(new PIXI.Graphics());
+    this._icon = null;
+    this._nameLabel = this.addChild(new PIXI.Text("",options.nameLabelStyle));
+    this._renderAll = true;
+};
+
+App.CategoryButtonSurface.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.CategoryButtonSurface.prototype.constructor = App.CategoryButtonSurface;
+
+/**
+ * Render
+ * @param {string} label
+ * @param {string} iconName
+ * @param {string} color
+ */
+App.CategoryButtonSurface.prototype.render = function render(label,iconName,color)
+{
+    this._nameLabel.setText(label);
+
+    if (this._icon) this._icon.setTexture(PIXI.TextureCache[iconName]);
+
+    App.GraphicUtils.drawRect(this._colorStripe,"0x"+color,1,0,0,Math.round(4 * this._pixelRatio),this._height);
+
+    if (this._renderAll)
+    {
+        this._renderAll = false;
+
+        this._icon = PIXI.Sprite.fromFrame(iconName);
+        this.addChild(this._icon);
+
+        this._icon.width = Math.round(20 * this._pixelRatio);
+        this._icon.height = Math.round(20 * this._pixelRatio);
+        this._icon.x = Math.round(25 * this._pixelRatio);
+        this._icon.y = Math.round((this._height - this._icon.height) / 2);
+
+        this._nameLabel.x = Math.round(64 * this._pixelRatio);
+        this._nameLabel.y = Math.round(18 * this._pixelRatio);
+    }
+
+    this._icon.tint = parseInt(color,16);
+};
+/**
+ * @class CurrencyButton
+ * @extends DisplayObjectContainer
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {PIXI.Texture} options.skin
+ * @param {{font:string,fill:string}} options.symbolLabelStyle
+ * @constructor
+ */
+App.CurrencyButton = function CurrencyButton(poolIndex,options)
+{
+    App.SwipeButton.call(this,options.width,options.openOffset);
+
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+    this.boundingBox = new PIXI.Rectangle(0,0,options.width,options.height);
+
+    this._model = null;
+
+    this._pixelRatio = options.pixelRatio;
+    this._skin = this.addChild(new PIXI.Sprite(options.skin));
+    this._symbolLabel = this.addChild(new PIXI.Text("",options.symbolLabelStyle));
+    this._renderAll = true;
+
+    this._render();
+};
+
+App.CurrencyButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.CurrencyButton.prototype.constructor = App.CurrencyButton;
+
+/**
+ * @method render
+ * @private
+ */
+App.CurrencyButton.prototype._render = function _render()
+{
+    if (this._renderAll)
+    {
+        this._renderAll = false;
+
+        this._symbolLabel.x = Math.round(20 * this._pixelRatio);
+        this._symbolLabel.y = Math.round((this.boundingBox.height - this._symbolLabel.height) / 2);
+    }
+};
+
+/**
+ * Set model
+ * @param {App.CurrencySymbol} model
+ */
+App.CurrencyButton.prototype.setModel = function getModel(model)
+{
+    this._model = model;
+
+    this._symbolLabel.setText(this._model.symbol);
+};
+
+/**
+ * Click handler
+ */
+App.CurrencyButton.prototype.onClick = function onClick()
+{
+    var EventType = App.EventType,
+        changeScreenData = App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK);
+
+    changeScreenData.updateBackScreen = true;
+
+    App.Controller.dispatchEvent(EventType.CHANGE_TRANSACTION,{
+        type:EventType.CHANGE,
+        currencyQuote:this._model.symbol,
+        nextCommand:new App.ChangeScreen(),
+        nextCommandData:changeScreenData
+    });
+};
+/**
+ * @class CurrencyScreen
+ * @extends Screen
+ * @param {Object} layout
+ * @constructor
+ */
+App.CurrencyScreen = function CurrencyScreen(layout)
+{
+    App.Screen.call(this,layout,0.4);
+
+    var ScrollPolicy = App.ScrollPolicy,
+        FontStyle = App.FontStyle,
+        h = layout.contentHeight,
+        w = layout.width,
+        r = layout.pixelRatio,
+        buttonOptions = {
+            width:w,
+            height:Math.round(50 * r),
+            pixelRatio:r,
+            skin:App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,
+            symbolLabelStyle:FontStyle.get(18,FontStyle.BLUE)
+        };
+
+    this._model = App.ModelLocator.getProxy(App.ModelName.CURRENCY_SYMBOLS);
+
+    this._interactiveButton = null;
+    this._buttonPool = new App.ObjectPool(App.CurrencyButton,4,buttonOptions);
+    this._buttonList = new App.VirtualList(this._buttonPool,App.Direction.Y,w,h,r);
+    this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,false));
+    this._pane.setContent(this._buttonList);
+
+    this._initialized = false;
+};
+
+App.CurrencyScreen.prototype = Object.create(App.Screen.prototype);
+App.CurrencyScreen.prototype.constructor = App.CurrencyScreen;
+
+/**
+ * Enable
+ */
+App.CurrencyScreen.prototype.enable = function enable()
+{
+    App.Screen.prototype.enable.call(this);
+
+    this._pane.resetScroll();
+    this._pane.enable();
+};
+
+/**
+ * Disable
+ */
+App.CurrencyScreen.prototype.disable = function disable()
+{
+    App.Screen.prototype.disable.call(this);
+
+    this._pane.disable();
+};
+
+/**
+ * Update
+ * @param {App.Collection} data
+ * @param {string} mode
+ * @private
+ */
+App.CurrencyScreen.prototype.update = function update(data,mode)
+{
+    if (this._initialized)
+    {
+        this._pane.resetScroll();
+        this._buttonList.reset();
+    }
+    else
+    {
+        this._initialized = true;
+
+        this._buttonList.update(this._model.copySource());
+        this._pane.resize();
+    }
+};
+
+/**
+ * Click handler
+ * @private
+ */
+App.CurrencyScreen.prototype._onClick = function _onClick()
+{
+    var button = this._buttonList.getItemUnderPoint(this.stage.getTouchData());
+    if (button) button.onClick();
+};
+
+/**
+ * On Header click
+ * @param {number} action
+ * @private
+ */
+App.CurrencyScreen.prototype._onHeaderClick = function _onHeaderClick(action)
+{
+    if (action === App.HeaderAction.CANCEL)
+    {
+        App.Controller.dispatchEvent(
+            App.EventType.CHANGE_SCREEN,
+            App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(App.ScreenName.BACK)
+        );
+    }
+};
+/**
+ * @class HeaderTitle
+ * @extends HeaderSegment
+ * @param {string} value
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @param {{font:string,fill:string}} fontStyle
+ * @constructor
+ */
+App.HeaderTitle = function HeaderTitle(value,width,height,pixelRatio,fontStyle)
+{
+    App.HeaderSegment.call(this,value,width,height,pixelRatio);
+
+    this._frontElement = new PIXI.Text(value,fontStyle);
+    this._backElement = new PIXI.Text(value,fontStyle);
+
+    this._render();
+
+    this.addChild(this._frontElement);
+    this.addChild(this._backElement);
+};
+
+App.HeaderTitle.prototype = Object.create(App.HeaderSegment.prototype);
+App.HeaderTitle.prototype.constructor = App.HeaderTitle;
+
+/**
+ * Render
+ * @private
+ */
+App.HeaderTitle.prototype._render = function _render()
+{
+    App.HeaderSegment.prototype._render.call(this);
+
+    this._middlePosition = Math.round(18 * this._pixelRatio);
+
+    this._frontElement.x = Math.round((this._width - this._frontElement.width) / 2);
+    this._frontElement.y = this._height;
+    this._frontElement.alpha = 0.0;
+
+    this._backElement.x = Math.round((this._width - this._backElement.width) / 2);
+    this._backElement.y = this._height;
+    this._backElement.alpha = 0.0;
+};
+
+/**
+ * Change
+ * @param {string} name
+ */
+App.HeaderTitle.prototype.change = function change(name)
+{
+    App.HeaderSegment.prototype.change.call(this,name);
+
+    this._frontElement.setText(name);
+    this._frontElement.x = Math.round((this._width - this._frontElement.width) / 2);
+    this._frontElement.alpha = 1.0;
+};
+/**
+ * @class ReportSubCategoryButton
+ * @extends DisplayObjectContainer
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {Texture} options.skin
+ * @param {Object} options.labelStyles
+ * @constructor
+ */
+App.ReportSubCategoryButton = function ReportSubCategoryButton(poolIndex,options)
+{
+    PIXI.DisplayObjectContainer.call(this);
+
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+    this.boundingBox = new App.Rectangle(0,0,options.width,options.height);
+
+    this._model = null;
+    this._pixelRatio = options.pixelRatio;
+
+    this._background = this.addChild(new PIXI.Sprite(options.skin));
+    this._colorStripe = this.addChild(new PIXI.Graphics());
+    this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
+    this._percentField = this.addChild(new PIXI.Text("%",options.labelStyles.percent));
+    this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
+
+    this._render();
+};
+
+App.ReportSubCategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+App.ReportSubCategoryButton.prototype.constructor = App.ReportSubCategoryButton;
+
+/**
+ * Render
+ * @private
+ */
+App.ReportSubCategoryButton.prototype._render = function _render()
+{
+    var padding = Math.round(10 * this._pixelRatio),
+        w = this.boundingBox.width,
+        h = this.boundingBox.height;
+
+    this._nameField.x = padding * 2;
+    this._nameField.y = Math.round((h - this._nameField.height) / 2);
+    this._percentField.x = Math.round(w * 0.7 - this._percentField.width);
+    this._percentField.y = Math.round((h - this._percentField.height) / 2);
+    this._amountField.x = Math.round(w - padding - this._amountField.width);
+    this._amountField.y = Math.round((h - this._amountField.height) / 2);
+};
+
+/**
+ * Set model
+ * @param {App.SubCategory} model
+ * @param {string} color
+ */
+App.ReportSubCategoryButton.prototype.setModel = function setModel(model,color)
+{
+    this._model = model;
+
+    this._update(color);
+};
+
+/**
+ * Update
+ * @param {string} color
+ * @private
+ */
+App.ReportSubCategoryButton.prototype._update = function _update(color)
+{
+    this._nameField.setText(this._model.name);
+
+    App.GraphicUtils.drawRect(this._colorStripe,color,1,0,0,Math.round(2 * this._pixelRatio),this.boundingBox.height);
+};
+/**
+ * @class HeaderIcon
+ * @extends HeaderSegment
+ * @param {number} value
+ * @param {number} width
+ * @param {number} height
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.HeaderIcon = function HeaderIcon(value,width,height,pixelRatio)
+{
+    App.HeaderSegment.call(this,value,width,height,pixelRatio);
+
+    this._frontElement = PIXI.Sprite.fromFrame(this._getIconByAction(value));
+    this._backElement = PIXI.Sprite.fromFrame(this._getIconByAction(value));
+    this._iconResizeRatio = Math.round(20 * pixelRatio) / this._frontElement.height;
+
+    this._render();
+
+    this.addChild(this._frontElement);
+    this.addChild(this._backElement);
+};
+
+App.HeaderIcon.prototype = Object.create(App.HeaderSegment.prototype);
+App.HeaderIcon.prototype.constructor = App.HeaderIcon;
+
+/**
+ * Render
+ * @private
+ */
+App.HeaderIcon.prototype._render = function _render()
+{
+    App.HeaderSegment.prototype._render.call(this);
+
+    var ColorTheme = App.ColorTheme;
+
+    this._frontElement.scale.x = this._iconResizeRatio;
+    this._frontElement.scale.y = this._iconResizeRatio;
+    this._frontElement.x = this._middlePosition;
+    this._frontElement.y = this._height;
+    this._frontElement.tint = ColorTheme.WHITE;
+    this._frontElement.alpha = 0.0;
+
+    this._backElement.scale.x = this._iconResizeRatio;
+    this._backElement.scale.y = this._iconResizeRatio;
+    this._backElement.x = this._middlePosition;
+    this._backElement.y = this._height;
+    this._backElement.tint = ColorTheme.WHITE;
+    this._backElement.alpha = 0.0;
+};
+
+/**
+ * Return icon name by action passed in
+ * @param {number} action
+ * @returns {string}
+ * @private
+ */
+App.HeaderIcon.prototype._getIconByAction = function _getIconByAction(action)
+{
+    var HeaderAction = App.HeaderAction,
+        iconName = null;
+
+    if (action === HeaderAction.MENU) iconName = "menu-app";
+    else if (action === HeaderAction.CANCEL) iconName = "close-app";
+    else if (action === HeaderAction.CONFIRM) iconName = "apply-app";
+    else if (action === HeaderAction.ADD_TRANSACTION) iconName = "plus-app";
+
+    return iconName;
+};
+
+/**
+ * Change
+ * @param {number} action
+ */
+App.HeaderIcon.prototype.change = function change(action)
+{
+    App.HeaderSegment.prototype.change.call(this,action);
+
+    var iconName = this._getIconByAction(action);
+
+    if (iconName === null)
+    {
+        this._frontElement.alpha = 0.0;
+    }
+    else
+    {
+        this._frontElement.setTexture(PIXI.TextureCache[iconName]);
+        this._frontElement.alpha = 1.0;
+    }
+};
+/**
+ * The Command
+ * @class Command
+ * @extends {EventDispatcher}
+ * @param allowMultipleInstances {boolean}
+ * @param eventListenerPool {ObjectPool}
+ */
+App.Command = function Command(allowMultipleInstances,eventListenerPool)
+{
+    App.EventDispatcher.call(this,eventListenerPool);
+
+    this.allowMultipleInstances = allowMultipleInstances;
+};
+
+App.Command.prototype = Object.create(App.EventDispatcher.prototype);
+App.Command.prototype.constructor = App.Command;
+
+/**
+ * Execute a command
+ * @param {*=} data Defaults to null
+ */
+App.Command.prototype.execute = function execute(data) {};
+
+/**
+ * Destroy current instance
+ *
+ * @method destroy
+ */
+App.Command.prototype.destroy = function destroy()
+{
+    App.EventDispatcher.prototype.destroy.call(this);
+};
+/**
+ * @class Ticker
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.Ticker = function Ticker(eventListenerPool)
+{
+    App.EventDispatcher.call(this,eventListenerPool);
+
+    this._rafListener = this._raf.bind(this);
+    this._isRunning = false;
+};
+
+App.Ticker.prototype = Object.create(App.EventDispatcher.prototype);
+App.Ticker.prototype.constructor = App.Ticker;
+
+/**
+ * Add event listener
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Ticker.prototype.addEventListener = function(eventType,scope,listener)
+{
+    App.EventDispatcher.prototype.addEventListener.call(this,eventType,scope,listener);
+
+    if (!this._isRunning)
+    {
+        this._isRunning = true;
+
+        window.requestAnimationFrame(this._rafListener);
+    }
+};
+
+/**
+ * Remove event listeners
+ * @param {string} eventType
+ * @param {Object} scope
+ * @param {Function} listener
+ */
+App.Ticker.prototype.removeEventListener = function(eventType,scope,listener)
+{
+    App.EventDispatcher.prototype.removeEventListener.call(this,eventType,scope,listener);
+
+    if (this._listeners.length === 0) this._isRunning = false;
+};
+
+/**
+ * Remove all listeners
+ */
+App.Ticker.prototype.removeAllListeners = function()
+{
+    App.EventDispatcher.prototype.removeAllListeners.call(this);
+
+    this._isRunning = false;
+};
+
+/**
+ * Animation function
+ * @private
+ */
+App.Ticker.prototype._raf = function _raf()
+{
+    if (this._isRunning)
+    {
+        window.requestAnimationFrame(this._rafListener);
+
+        this.dispatchEvent(App.EventType.TICK);
+    }
+};
+/**
+ * @class ListHeader
+ * @param {string} label
+ * @param {number} width
+ * @param {number} pixelRatio
+ * @constructor
+ */
+App.ListHeader = function ListHeader(label,width,pixelRatio)
+{
+    PIXI.Graphics.call(this);
+
+    this._width = width;
+    this._pixelRatio = pixelRatio;
+    this._textField = new PIXI.Text(label,App.FontStyle.get(12,App.FontStyle.GREY_DARKER));
+
+    this._render();
+
+    this.addChild(this._textField);
+};
+
+App.ListHeader.prototype = Object.create(PIXI.Graphics.prototype);
+App.ListHeader.prototype.constructor = App.ListHeader;
+
+/**
+ * Render
+ * @private
+ */
+App.ListHeader.prototype._render = function _render()
+{
+    var GraphicUtils = App.GraphicUtils,
+        ColorTheme = App.ColorTheme,
+        h = Math.round(30 * this._pixelRatio);
+
+    GraphicUtils.drawRect(this,ColorTheme.GREY_DARK,1,0,0,this._width,h);
+
+    this._textField.x = Math.round((this._width - this._textField.width) / 2);
+    this._textField.y = Math.round((h - this._textField.height) / 2);
+};
+/**
+ * @class SequenceCommand
+ * @extends Command
+ * @param {boolean} allowMultipleInstances
+ * @param {ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.SequenceCommand = function SequenceCommand(allowMultipleInstances,eventListenerPool)
+{
+    App.Command.call(this,allowMultipleInstances,eventListenerPool);
+
+    this._nextCommand = null;
+    this._nextCommandData = null;
+};
+
+App.SequenceCommand.prototype = Object.create(App.Command.prototype);
+App.SequenceCommand.prototype.constructor = App.SequenceCommand;
+
+/**
+ * Execute next command
+ * @param {*} [data=null]
+ * @private
+ */
+App.SequenceCommand.prototype._executeNextCommand = function _executeNextCommand(data)
+{
+    this._nextCommand.addEventListener(App.EventType.COMPLETE,this,this._onNextCommandComplete);
+    this._nextCommand.execute(data);
+};
+
+/**
+ * On next command complete
+ * @private
+ */
+App.SequenceCommand.prototype._onNextCommandComplete = function _onNextCommandComplete()
+{
+    this._nextCommand.removeEventListener(App.EventType.COMPLETE,this,this._onNextCommandComplete);
+
+    this.dispatchEvent(App.EventType.COMPLETE,this);
+};
+
+/**
+ * Destroy current instance
+ *
+ * @method destroy
+ */
+App.SequenceCommand.prototype.destroy = function destroy()
+{
+    App.Command.prototype.destroy.call(this);
+
+    if (this._nextCommand)
+    {
+        this._nextCommand.destroy();
+        this._nextCommand = null;
+    }
+
+    this._nextCommandData = null;
+};
+App.Filter = function Filter(startDate,endDate,categories)
+{
+    this.startDate = startDate;
+    this.endDate = endDate;
+    this.categories = categories;
+};
+/**
+ * @class CurrencyPairButton
+ * @extends SwipeButton
+ * @param {number} poolIndex
+ * @param {Object} options
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.pixelRatio
+ * @param {PIXI.Texture} options.skin
+ * @param {{font:string,fill:string}} options.editLabelStyle
+ * @param {{font:string,fill:string}} options.pairLabelStyle
+ * @param {{font:string,fill:string}} options.rateLabelStyle
+ * @param {number} options.openOffset
+ * @constructor
+ */
+App.CurrencyPairButton = function CurrencyPairButton(poolIndex,options)
+{
+    App.SwipeButton.call(this,options.width,options.openOffset);
+
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+    this.boundingBox = new PIXI.Rectangle(0,0,options.width,options.height);
+
+    this._model = null;
+    //TODO add arrow to the right indicating Edit option
+    this._pixelRatio = options.pixelRatio;
+    this._background = this.addChild(new PIXI.Graphics());
+    this._editLabel = this.addChild(new PIXI.Text("Edit",options.editLabelStyle));
+    this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
+    this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
+    this._pairLabel = this._swipeSurface.addChild(new PIXI.Text("EUR/USD",options.pairLabelStyle));
+    this._rateLabel = this._swipeSurface.addChild(new PIXI.Text("@ 1.0",options.rateLabelStyle));
+    this._renderAll = true;
+
+    this._render();
+};
+
+App.CurrencyPairButton.prototype = Object.create(App.SwipeButton.prototype);
+App.CurrencyPairButton.prototype.constructor = App.CurrencyPairButton;
+
+/**
+ * @method render
+ * @private
+ */
+App.CurrencyPairButton.prototype._render = function _render()
+{
+    var w = this.boundingBox.width,
+        h = this.boundingBox.height,
+        r = this._pixelRatio,
+        offset = Math.round(15 * r);
+
+    App.GraphicUtils.drawRect(this._background,App.ColorTheme.RED,1,0,0,w,h);
+
+    this._editLabel.x = Math.round(w - 50 * this._pixelRatio);
+    this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
+
+    this._pairLabel.x = offset;
+    this._pairLabel.y = Math.round((h - this._pairLabel.height) / 2);
+
+    this._rateLabel.x = Math.round(offset + this._pairLabel.width + 5 * r);
+    this._rateLabel.y = Math.round((h - this._rateLabel.height) / 2);
+};
+
+/**
+ * Set model
+ * @param {App.CurrencyPair} model
+ */
+App.CurrencyPairButton.prototype.setModel = function setModel(model)
+{
+    this._model = model;
+
+    this._pairLabel.setText(model.base+"/"+model.symbol);
+    this._rateLabel.setText("@ "+model.rate);
+};
+
+/**
+ * Click handler
+ * @param {InteractionData} interactionData
+ */
+App.CurrencyPairButton.prototype.onClick = function onClick(interactionData)
+{
+    if (this._isOpen && interactionData.getLocalPosition(this).x >= this._width - this._openOffset)
+    {
+        App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
+            App.ScreenName.EDIT_CURRENCY_RATE,
+            App.ScreenMode.EDIT,
+            this._model,
+            0,
+            0,
+            App.ScreenTitle.EDIT_CURRENCY_RATE
+        ));
+    }
+};
+
+/**
+ * Update swipe position
+ * @param {number} position
+ * @private
+ */
+App.CurrencyPairButton.prototype._updateSwipePosition = function _updateSwipePosition(position)
+{
+    this._swipeSurface.x = position;
+};
+
+/**
+ * Return swipe position
+ * @private
+ */
+App.CurrencyPairButton.prototype._getSwipePosition = function _getSwipePosition()
+{
+    return this._swipeSurface.x;
+};
 /**
  * @class ChangeCurrencyPair
  * @extends SequenceCommand
@@ -15814,7 +15696,6 @@ App.ChangeCurrencyPair.prototype.execute = function execute(data)
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);
 };
-
 (function()
 {
     //TODO move to index.html and also build simple pre-preloader

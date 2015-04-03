@@ -64,7 +64,6 @@ App.Calendar.prototype._render = function _render()
         ColorTheme = App.ColorTheme,
         r = this._pixelRatio,
         w = this._width,
-        h = this.boundingBox.height,
         arrowResizeRatio = Math.round(12 * r) / this._prevButton.height,
         separatorPadding = Math.round(15 * r),
         separatorWidth = w - separatorPadding * 2,

@@ -11,8 +11,7 @@ App.CalendarWeekRow = function CalendarWeekRow(weekTextStyle,weekSelectedStyle,w
 {
     PIXI.Graphics.call(this);
 
-    var FontStyle = App.FontStyle,
-        daysInWeek = 7,
+    var daysInWeek = 7,
         Text = PIXI.Text,
         index = 0,
         i = 0;

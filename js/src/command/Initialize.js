@@ -76,7 +76,7 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
     App.ModelLocator.init([
         ModelName.EVENT_LISTENER_POOL,this._eventListenerPool,
         ModelName.TICKER,new App.Ticker(this._eventListenerPool),
-        ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1}),
+        ModelName.ICONS,Object.keys(data.icons).filter(function(element) {return element.indexOf("-app") === -1;}),
         ModelName.PAYMENT_METHODS,new Collection([PaymentMethod.CASH,PaymentMethod.CREDIT_CARD],PaymentMethod,null,this._eventListenerPool),
         ModelName.CURRENCY_PAIRS,currencyPairs,
         ModelName.CURRENCY_SYMBOLS,new Collection(this._getCurrencySymbols(currencyPairs),App.CurrencySymbol,null,this._eventListenerPool),

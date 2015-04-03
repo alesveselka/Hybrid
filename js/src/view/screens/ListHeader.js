@@ -29,7 +29,6 @@ App.ListHeader.prototype._render = function _render()
 {
     var GraphicUtils = App.GraphicUtils,
         ColorTheme = App.ColorTheme,
-        r = this._pixelRatio,
         h = Math.round(30 * this._pixelRatio);
 
     GraphicUtils.drawRect(this,ColorTheme.GREY_DARK,1,0,0,this._width,h);

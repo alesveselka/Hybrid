@@ -1,0 +1,25 @@
+{
+    "name": "Cashius",
+    "main": "Gruntfile.js",
+    "version": "0.1.0",
+    "description": "Money management mobile hybrid app",
+    "destinationFolder": "./public/js/",
+    "destinationName": "cashius",
+    "author": "Ales Veselka",
+    "devDependencies": {
+        "jshint":"^2.5.1",
+        "concat-file-array":"^0.1.0",
+        "uglify-js":"2.4.19",
+        "grunt": "^0.4.5",
+        "grunt-contrib-concat": "^0.5.0",
+        "grunt-contrib-uglify": "^0.7.0"
+    },
+    "scripts":{
+        "env":"env",
+        "start":"node app",
+        "concat":"concat-file-array -n source.json,source -o public/js/cashius.js",
+        "uglify":"uglifyjs public/js/cashius.js -o public/js/cashius.min.js -m -c drop_console=true,warnings=false",
+        "build":"npm run concat && npm run uglify",
+        "min":"concat-file-array -n source.json,source -o public/js/cashius.js && uglifyjs public/js/cashius.js -o public/js/cashius.min.js -m -c drop_console=true,warnings=false"
+    }
+}

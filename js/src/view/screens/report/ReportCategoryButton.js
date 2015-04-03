@@ -13,7 +13,6 @@
  */
 App.ReportCategoryButton = function ReportCategoryButton(poolIndex,options)
 {
-    //TODO extend ReportAccountButton?
     App.ExpandButton.call(this,options.width,options.height,false);
 
     this.allocated = false;
