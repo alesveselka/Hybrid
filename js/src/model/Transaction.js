@@ -109,7 +109,7 @@ App.Transaction.prototype.serialize = function serialize()
         quote = this.currencyQuote,
         currency = base === quote ? quote : base + "/" + quote + "@" + App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(base,quote),
         data = [
-            parseInt(this.amount,10),
+            parseFloat(this.amount),
             this.type,
             this.pending ? 1 : 0,
             this.repeat ? 1 : 0,

@@ -7,7 +7,6 @@
     "destinationName": "cashius",
     "author": "Ales Veselka",
     "devDependencies": {
-        "jshint":"^2.5.1",
         "concat-file-array":"^0.1.0",
         "uglify-js":"2.4.19",
         "grunt": "^0.4.5",

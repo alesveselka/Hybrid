@@ -98,7 +98,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
  */
 App.ChangeTransaction.prototype._setInputs = function _setInputs(transaction,data,setDefault)
 {
-    transaction.amount = data.amount || transaction.amount;
+    transaction.amount = parseFloat(data.amount) || transaction.amount;
     transaction.note = data.note || transaction.note;
 
     if (setDefault && !transaction.amount) transaction.amount = "0";
