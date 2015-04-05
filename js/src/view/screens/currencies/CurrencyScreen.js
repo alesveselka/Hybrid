@@ -33,7 +33,6 @@ App.CurrencyScreen = function CurrencyScreen(layout)
 };
 
 App.CurrencyScreen.prototype = Object.create(App.Screen.prototype);
-App.CurrencyScreen.prototype.constructor = App.CurrencyScreen;
 
 /**
  * Enable

@@ -13,7 +13,6 @@ App.TileList = function TileList(direction,windowSize)
 };
 
 App.TileList.prototype = Object.create(App.List.prototype);
-App.TileList.prototype.constructor = App.TileList;
 
 /**
  * Update X position

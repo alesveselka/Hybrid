@@ -25,7 +25,6 @@ App.Collection = function Collection(source,itemConstructor,parent,eventListener
 };
 
 App.Collection.prototype = Object.create(App.EventDispatcher.prototype);
-App.Collection.prototype.constructor = App.Collection;
 
 /**
  * @method addItem Add item into collection

@@ -51,7 +51,6 @@ App.Calendar = function Calendar(width,pixelRatio)
 };
 
 App.Calendar.prototype = Object.create(PIXI.Graphics.prototype);
-App.Calendar.prototype.constructor = App.Calendar;
 
 /**
  * Render

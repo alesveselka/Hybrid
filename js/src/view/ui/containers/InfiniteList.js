@@ -57,7 +57,6 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
 };
 
 App.InfiniteList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.InfiniteList.prototype.constructor = App.InfiniteList;
 
 /**
  * Enable

@@ -26,7 +26,6 @@ App.CategoryScreen = function CategoryScreen(layout)
 };
 
 App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
-App.CategoryScreen.prototype.constructor = App.CategoryScreen;
 
 /**
  * Enable

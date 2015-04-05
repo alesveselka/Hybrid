@@ -33,7 +33,6 @@ App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
 };
 
 App.CategoryButtonExpand.prototype = Object.create(App.ExpandButton.prototype);
-App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
 
 /**
  * Render

@@ -23,7 +23,6 @@ App.Button = function Button(label,options)
 };
 
 App.Button.prototype = Object.create(PIXI.Graphics.prototype);
-App.Button.prototype.constructor = App.Button;
 
 /**
  * Render

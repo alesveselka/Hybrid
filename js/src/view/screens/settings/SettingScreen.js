@@ -51,7 +51,6 @@ App.SettingScreen = function SettingScreen(layout)
 };
 
 App.SettingScreen.prototype = Object.create(App.Screen.prototype);
-App.SettingScreen.prototype.constructor = App.SettingScreen;
 
 /**
  * Render

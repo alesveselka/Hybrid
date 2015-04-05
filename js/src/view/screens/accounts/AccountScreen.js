@@ -25,7 +25,6 @@ App.AccountScreen = function AccountScreen(layout)
 };
 
 App.AccountScreen.prototype = Object.create(App.Screen.prototype);
-App.AccountScreen.prototype.constructor = App.AccountScreen;
 
 /**
  * Enable

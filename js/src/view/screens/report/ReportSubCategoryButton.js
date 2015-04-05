@@ -31,7 +31,6 @@ App.ReportSubCategoryButton = function ReportSubCategoryButton(poolIndex,options
 };
 
 App.ReportSubCategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.ReportSubCategoryButton.prototype.constructor = App.ReportSubCategoryButton;
 
 /**
  * Render

@@ -15,7 +15,6 @@ App.LoadData = function LoadData(pool)
 };
 
 App.LoadData.prototype = Object.create(App.Command.prototype);
-App.LoadData.prototype.constructor = App.LoadData;
 
 /**
  * Execute the command

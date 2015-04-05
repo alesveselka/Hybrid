@@ -23,7 +23,6 @@ App.ReportChartHighlight = function ReportChartHighlight(center,width,height,thi
 };
 
 App.ReportChartHighlight.prototype = Object.create(PIXI.Graphics.prototype);
-App.ReportChartHighlight.prototype.constructor = App.ReportChartHighlight;
 
 /**
  * Change

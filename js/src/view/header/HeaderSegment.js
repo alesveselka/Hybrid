@@ -26,7 +26,6 @@ App.HeaderSegment = function HeaderSegment(value,width,height,pixelRatio)
 };
 
 App.HeaderSegment.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.HeaderSegment.prototype.constructor = App.HeaderSegment;
 
 /**
  * Render

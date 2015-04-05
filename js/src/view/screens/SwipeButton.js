@@ -20,7 +20,6 @@ App.SwipeButton = function SwipeButton(width,openOffset)
 };
 
 App.SwipeButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.SwipeButton.prototype.constructor = App.SwipeButton;
 
 /**
  * Disable

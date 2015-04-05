@@ -41,7 +41,6 @@ App.TransactionButton = function TransactionButton(poolIndex,options)
 };
 
 App.TransactionButton.prototype = Object.create(App.SwipeButton.prototype);
-App.TransactionButton.prototype.constructor = App.TransactionButton;
 
 /**
  * Update

@@ -36,7 +36,6 @@ App.Header = function Header(layout)
 };
 
 App.Header.prototype = Object.create(PIXI.Graphics.prototype);
-App.Header.prototype.constructor = App.Header;
 
 /**
  * Render

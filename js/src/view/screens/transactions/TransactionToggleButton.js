@@ -24,7 +24,6 @@ App.TransactionToggleButton = function TransactionToggleButton(iconName,label,op
 };
 
 App.TransactionToggleButton.prototype = Object.create(App.Button.prototype);
-App.TransactionToggleButton.prototype.constructor = App.TransactionToggleButton;
 
 /**
  * Render

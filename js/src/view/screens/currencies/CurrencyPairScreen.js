@@ -46,7 +46,6 @@ App.CurrencyPairScreen = function CurrencyPairScreen(layout)
 };
 
 App.CurrencyPairScreen.prototype = Object.create(App.Screen.prototype);
-App.CurrencyPairScreen.prototype.constructor = App.CurrencyPairScreen;
 
 /**
  * Render

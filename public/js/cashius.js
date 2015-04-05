@@ -1477,7 +1477,6 @@ App.Collection = function Collection(source,itemConstructor,parent,eventListener
 };
 
 App.Collection.prototype = Object.create(App.EventDispatcher.prototype);
-App.Collection.prototype.constructor = App.Collection;
 
 /**
  * @method addItem Add item into collection
@@ -1882,7 +1881,6 @@ App.CurrencyPairCollection = function CurrencyPairCollection(source,eventListene
 };
 
 App.CurrencyPairCollection.prototype = Object.create(App.Collection.prototype);
-App.CurrencyPairCollection.prototype.constructor = App.CurrencyPairCollection;
 
 /**
  * Find and return rate between base and symbol(spent) currency symbols passed in
@@ -2911,7 +2909,6 @@ App.HeaderSegment = function HeaderSegment(value,width,height,pixelRatio)
 };
 
 App.HeaderSegment.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.HeaderSegment.prototype.constructor = App.HeaderSegment;
 
 /**
  * Render
@@ -2993,7 +2990,6 @@ App.HeaderIcon = function HeaderIcon(value,width,height,pixelRatio)
 };
 
 App.HeaderIcon.prototype = Object.create(App.HeaderSegment.prototype);
-App.HeaderIcon.prototype.constructor = App.HeaderIcon;
 
 /**
  * Render
@@ -3084,7 +3080,6 @@ App.HeaderTitle = function HeaderTitle(value,width,height,pixelRatio,fontStyle)
 };
 
 App.HeaderTitle.prototype = Object.create(App.HeaderSegment.prototype);
-App.HeaderTitle.prototype.constructor = App.HeaderTitle;
 
 /**
  * Render
@@ -3156,7 +3151,6 @@ App.Header = function Header(layout)
 };
 
 App.Header.prototype = Object.create(PIXI.Graphics.prototype);
-App.Header.prototype.constructor = App.Header;
 
 /**
  * Render
@@ -3350,7 +3344,6 @@ App.ScrollIndicator = function ScrollIndicator(direction,pixelRatio)
 };
 
 App.ScrollIndicator.prototype = Object.create(PIXI.Graphics.prototype);
-App.ScrollIndicator.prototype.constructor = App.ScrollIndicator;
 
 /**
  * Show
@@ -3588,7 +3581,6 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
 };
 
 App.Input.prototype = Object.create(PIXI.Graphics.prototype);
-App.Input.prototype.constructor = App.Input;
 
 /**
  * Render
@@ -3965,7 +3957,6 @@ App.TimeInput = function TimeInput(placeholder,fontSize,width,height,pixelRatio,
 };
 
 App.TimeInput.prototype = Object.create(App.Input.prototype);
-App.TimeInput.prototype.constructor = App.TimeInput;
 
 /**
  * Render
@@ -4061,7 +4052,6 @@ App.Button = function Button(label,options)
 };
 
 App.Button.prototype = Object.create(PIXI.Graphics.prototype);
-App.Button.prototype.constructor = App.Button;
 
 /**
  * Render
@@ -4138,7 +4128,6 @@ App.CalendarWeekRow = function CalendarWeekRow(weekTextStyle,weekSelectedStyle,w
 };
 
 App.CalendarWeekRow.prototype = Object.create(PIXI.Graphics.prototype);
-App.CalendarWeekRow.prototype.constructor = App.CalendarWeekRow;
 
 /**
  * Render
@@ -4361,7 +4350,6 @@ App.Calendar = function Calendar(width,pixelRatio)
 };
 
 App.Calendar.prototype = Object.create(PIXI.Graphics.prototype);
-App.Calendar.prototype.constructor = App.Calendar;
 
 /**
  * Render
@@ -4607,7 +4595,6 @@ App.Radio = function Radio(pixelRatio,selected)
 };
 
 App.Radio.prototype = Object.create(PIXI.Graphics.prototype);
-App.Radio.prototype.constructor = App.Radio;
 
 /**
  * Render
@@ -4702,7 +4689,6 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio,use
 };
 
 App.Pane.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.Pane.prototype.constructor = App.Pane;
 
 /**
  * Set content of the pane
@@ -5395,7 +5381,6 @@ App.InfiniteList = function InfiniteList(model,itemClass,direction,width,height,
 };
 
 App.InfiniteList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.InfiniteList.prototype.constructor = App.InfiniteList;
 
 /**
  * Enable
@@ -5817,7 +5802,6 @@ App.VirtualList = function VirtualList(itemPool,direction,width,height,pixelRati
 };
 
 App.VirtualList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.VirtualList.prototype.constructor = App.VirtualList;
 
 /**
  * Find and select item under point passed in
@@ -6158,7 +6142,6 @@ App.List = function List(direction)
 };
 
 App.List.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.List.prototype.constructor = App.List;
 
 /**
  * Add item
@@ -6315,7 +6298,6 @@ App.TileList = function TileList(direction,windowSize)
 };
 
 App.TileList.prototype = Object.create(App.List.prototype);
-App.TileList.prototype.constructor = App.TileList;
 
 /**
  * Update X position
@@ -6397,7 +6379,6 @@ App.TilePane = function TilePane(xScrollPolicy,yScrollPolicy,width,height,pixelR
 };
 
 App.TilePane.prototype = Object.create(App.Pane.prototype);
-App.TilePane.prototype.constructor = App.TilePane;
 
 /**
  * Set content of the pane
@@ -6492,7 +6473,6 @@ App.ViewStack = function ViewStack(children,addToStage,eventListenerPool)
 };
 
 App.ViewStack.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.ViewStack.prototype.constructor = App.ViewStack;
 
 /**
  * Add child to stack
@@ -6698,7 +6678,6 @@ App.ListHeader = function ListHeader(label,width,pixelRatio)
 };
 
 App.ListHeader.prototype = Object.create(PIXI.Graphics.prototype);
-App.ListHeader.prototype.constructor = App.ListHeader;
 
 /**
  * Render
@@ -6746,7 +6725,6 @@ App.AddNewButton = function AddNewButton(label,fontStyle,skin,pixelRatio)
 };
 
 App.AddNewButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.AddNewButton.prototype.constructor = App.AddNewButton;
 
 /**
  * Render
@@ -6793,7 +6771,6 @@ App.SwipeButton = function SwipeButton(width,openOffset)
 };
 
 App.SwipeButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.SwipeButton.prototype.constructor = App.SwipeButton;
 
 /**
  * Disable
@@ -7015,7 +6992,6 @@ App.ExpandButton = function ExpandButton(width,height,useMask)
 };
 
 App.ExpandButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.ExpandButton.prototype.constructor = App.ExpandButton;
 
 /**
  * Set content
@@ -7325,7 +7301,6 @@ App.PopUpButton = function PopUpButton(label,message,options)
 };
 
 App.PopUpButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.PopUpButton.prototype.constructor = App.PopUpButton;
 
 /**
  * Set position
@@ -7696,7 +7671,6 @@ App.Screen = function Screen(layout,tweenDuration)
 };
 
 App.Screen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.Screen.prototype.constructor = App.Screen;
 
 /**
  * Show
@@ -8065,7 +8039,6 @@ App.EditScreen = function EditScreen(layout)
 };
 
 App.EditScreen.prototype = Object.create(App.Screen.prototype);
-App.EditScreen.prototype.constructor = App.EditScreen;
 
 /**
  * Render
@@ -8350,7 +8323,6 @@ App.InputScrollScreen = function InputScrollScreen(layout)
 };
 
 App.InputScrollScreen.prototype = Object.create(App.Screen.prototype);
-App.InputScrollScreen.prototype.constructor = App.InputScrollScreen;
 
 /**
  * On tick
@@ -8502,7 +8474,6 @@ App.TransactionToggleButton = function TransactionToggleButton(iconName,label,op
 };
 
 App.TransactionToggleButton.prototype = Object.create(App.Button.prototype);
-App.TransactionToggleButton.prototype.constructor = App.TransactionToggleButton;
 
 /**
  * Render
@@ -8629,7 +8600,6 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,opt
 };
 
 App.TransactionOptionButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.TransactionOptionButton.prototype.constructor = App.TransactionOptionButton;
 
 /**
  * Render
@@ -8793,7 +8763,6 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
 };
 
 App.AddTransactionScreen.prototype = Object.create(App.InputScrollScreen.prototype);
-App.AddTransactionScreen.prototype.constructor = App.AddTransactionScreen;
 
 /**
  * Render
@@ -9297,7 +9266,6 @@ App.SelectTimeScreen = function SelectTimeScreen(layout)
 };
 
 App.SelectTimeScreen.prototype = Object.create(App.InputScrollScreen.prototype);
-App.SelectTimeScreen.prototype.constructor = App.SelectTimeScreen;
 
 /**
  * Render
@@ -9483,7 +9451,6 @@ App.AccountButton = function AccountButton(poolIndex,options)
 };
 
 App.AccountButton.prototype = Object.create(App.SwipeButton.prototype);
-App.AccountButton.prototype.constructor = App.AccountButton;
 
 /**
  * @method render
@@ -9594,7 +9561,6 @@ App.AccountScreen = function AccountScreen(layout)
 };
 
 App.AccountScreen.prototype = Object.create(App.Screen.prototype);
-App.AccountScreen.prototype.constructor = App.AccountScreen;
 
 /**
  * Enable
@@ -9855,7 +9821,6 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
 };
 
 App.SubCategoryButton.prototype = Object.create(App.SwipeButton.prototype);
-App.SubCategoryButton.prototype.constructor = App.SubCategoryButton;
 
 /**
  * Render
@@ -10019,7 +9984,6 @@ App.SubCategoryList = function SubCategoryList(options)
 };
 
 App.SubCategoryList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.SubCategoryList.prototype.constructor = App.SubCategoryList;
 
 /**
  * Update layout
@@ -10164,7 +10128,6 @@ App.CategoryButtonSurface = function CategoryButtonSurface(options)
 };
 
 App.CategoryButtonSurface.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.CategoryButtonSurface.prototype.constructor = App.CategoryButtonSurface;
 
 /**
  * Render
@@ -10224,7 +10187,6 @@ App.CategoryButtonEdit = function CategoryButtonEdit(poolIndex,options)
 };
 
 App.CategoryButtonEdit.prototype = Object.create(App.SwipeButton.prototype);
-App.CategoryButtonEdit.prototype.constructor = App.CategoryButtonEdit;
 
 /**
  * Render
@@ -10349,7 +10311,6 @@ App.CategoryButtonExpand = function CategoryButtonExpand(poolIndex,options)
 };
 
 App.CategoryButtonExpand.prototype = Object.create(App.ExpandButton.prototype);
-App.CategoryButtonExpand.prototype.constructor = App.CategoryButtonExpand;
 
 /**
  * Render
@@ -10492,7 +10453,6 @@ App.CategoryScreen = function CategoryScreen(layout)
 };
 
 App.CategoryScreen.prototype = Object.create(App.Screen.prototype);
-App.CategoryScreen.prototype.constructor = App.CategoryScreen;
 
 /**
  * Enable
@@ -10810,7 +10770,6 @@ App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
 };
 
 App.ColorSample.prototype = Object.create(PIXI.Graphics.prototype);
-App.ColorSample.prototype.constructor = App.ColorSample;
 
 /**
  * Render
@@ -10907,7 +10866,6 @@ App.IconSample = function IconSample(modelIndex,model,pixelRatio)
 };
 
 App.IconSample.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.IconSample.prototype.constructor = App.IconSample;
 
 /**
  * Render
@@ -11040,7 +10998,6 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
 };
 
 App.EditCategoryScreen.prototype = Object.create(App.InputScrollScreen.prototype);
-App.EditCategoryScreen.prototype.constructor = App.EditCategoryScreen;
 
 /**
  * Render
@@ -11571,7 +11528,6 @@ App.TransactionButton = function TransactionButton(poolIndex,options)
 };
 
 App.TransactionButton.prototype = Object.create(App.SwipeButton.prototype);
-App.TransactionButton.prototype.constructor = App.TransactionButton;
 
 /**
  * Update
@@ -11800,7 +11756,6 @@ App.TransactionScreen = function TransactionScreen(layout)
 };
 
 App.TransactionScreen.prototype = Object.create(App.Screen.prototype);
-App.TransactionScreen.prototype.constructor = App.TransactionScreen;
 
 /**
  * Enable
@@ -11952,7 +11907,6 @@ App.ReportSubCategoryButton = function ReportSubCategoryButton(poolIndex,options
 };
 
 App.ReportSubCategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.ReportSubCategoryButton.prototype.constructor = App.ReportSubCategoryButton;
 
 /**
  * Render
@@ -12035,7 +11989,6 @@ App.ReportCategoryButton = function ReportCategoryButton(poolIndex,options)
 };
 
 App.ReportCategoryButton.prototype = Object.create(App.ExpandButton.prototype);
-App.ReportCategoryButton.prototype.constructor = App.ReportCategoryButton;
 
 /**
  * Render
@@ -12156,7 +12109,6 @@ App.ReportAccountButton = function ReportAccountButton(poolIndex,options)
 };
 
 App.ReportAccountButton.prototype = Object.create(App.ExpandButton.prototype);
-App.ReportAccountButton.prototype.constructor = App.ReportAccountButton;
 
 /**
  * Render
@@ -12312,7 +12264,6 @@ App.ReportChartHighlight = function ReportChartHighlight(center,width,height,thi
 };
 
 App.ReportChartHighlight.prototype = Object.create(PIXI.Graphics.prototype);
-App.ReportChartHighlight.prototype.constructor = App.ReportChartHighlight;
 
 /**
  * Change
@@ -12389,7 +12340,6 @@ App.ReportChart = function ReportChart(model,width,height,pixelRatio)
 };
 
 App.ReportChart.prototype = Object.create(PIXI.Graphics.prototype);
-App.ReportChart.prototype.constructor = App.ReportChart;
 
 /**
  * Show
@@ -12627,7 +12577,6 @@ App.ReportScreen = function ReportScreen(layout)
 };
 
 App.ReportScreen.prototype = Object.create(App.Screen.prototype);
-App.ReportScreen.prototype.constructor = App.ReportScreen;
 
 /**
  * Enable
@@ -12861,7 +12810,6 @@ App.CurrencyButton = function CurrencyButton(poolIndex,options)
 };
 
 App.CurrencyButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.CurrencyButton.prototype.constructor = App.CurrencyButton;
 
 /**
  * @method render
@@ -12942,7 +12890,6 @@ App.CurrencyScreen = function CurrencyScreen(layout)
 };
 
 App.CurrencyScreen.prototype = Object.create(App.Screen.prototype);
-App.CurrencyScreen.prototype.constructor = App.CurrencyScreen;
 
 /**
  * Enable
@@ -13051,7 +12998,6 @@ App.CurrencyPairButton = function CurrencyPairButton(poolIndex,options)
 };
 
 App.CurrencyPairButton.prototype = Object.create(App.SwipeButton.prototype);
-App.CurrencyPairButton.prototype.constructor = App.CurrencyPairButton;
 
 /**
  * @method render
@@ -13174,7 +13120,6 @@ App.CurrencyPairScreen = function CurrencyPairScreen(layout)
 };
 
 App.CurrencyPairScreen.prototype = Object.create(App.Screen.prototype);
-App.CurrencyPairScreen.prototype.constructor = App.CurrencyPairScreen;
 
 /**
  * Render
@@ -13371,7 +13316,6 @@ App.EditCurrencyPairScreen = function EditCurrencyPairScreen(layout)
 };
 
 App.EditCurrencyPairScreen.prototype = Object.create(App.Screen.prototype);
-App.EditCurrencyPairScreen.prototype.constructor = App.EditCurrencyPairScreen;
 
 /**
  * Render
@@ -13490,7 +13434,6 @@ App.MenuItem = function MenuItem(label,iconName,screenName,options)
 };
 
 App.MenuItem.prototype = Object.create(PIXI.Graphics.prototype);
-App.MenuItem.prototype.constructor = App.MenuItem;
 
 /**
  * Render
@@ -13571,7 +13514,6 @@ App.Menu = function Menu(layout)
 };
 
 App.Menu.prototype = Object.create(App.Screen.prototype);
-App.Menu.prototype.constructor = App.Menu;
 
 /**
  * Render
@@ -13752,7 +13694,6 @@ App.SettingScreen = function SettingScreen(layout)
 };
 
 App.SettingScreen.prototype = Object.create(App.Screen.prototype);
-App.SettingScreen.prototype.constructor = App.SettingScreen;
 
 /**
  * Render
@@ -14144,7 +14085,6 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
 };
 
 App.ApplicationView.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.ApplicationView.prototype.constructor = App.ApplicationView;
 
 /**
  * Init
@@ -14404,7 +14344,6 @@ App.TweenProxy = function TweenProxy(duration,ease,defaultProgress,eventListener
 };
 
 App.TweenProxy.prototype = Object.create(App.EventDispatcher.prototype);
-App.TweenProxy.prototype.constructor = App.TweenProxy;
 
 /**
  * Set easing function
@@ -14554,7 +14493,6 @@ App.Ticker = function Ticker(eventListenerPool)
 };
 
 App.Ticker.prototype = Object.create(App.EventDispatcher.prototype);
-App.Ticker.prototype.constructor = App.Ticker;
 
 /**
  * Add event listener
@@ -14721,7 +14659,6 @@ App.Command = function Command(allowMultipleInstances,eventListenerPool)
 };
 
 App.Command.prototype = Object.create(App.EventDispatcher.prototype);
-App.Command.prototype.constructor = App.Command;
 
 /**
  * Execute a command
@@ -14755,7 +14692,6 @@ App.SequenceCommand = function SequenceCommand(allowMultipleInstances,eventListe
 };
 
 App.SequenceCommand.prototype = Object.create(App.Command.prototype);
-App.SequenceCommand.prototype.constructor = App.SequenceCommand;
 
 /**
  * Execute next command
@@ -14814,7 +14750,6 @@ App.LoadData = function LoadData(pool)
 };
 
 App.LoadData.prototype = Object.create(App.Command.prototype);
-App.LoadData.prototype.constructor = App.LoadData;
 
 /**
  * Execute the command
@@ -14949,7 +14884,6 @@ App.Initialize = function Initialize()
 };
 
 App.Initialize.prototype = Object.create(App.Command.prototype);
-App.Initialize.prototype.constructor = App.Initialize;
 
 /**
  * Execute the command
@@ -15225,7 +15159,6 @@ App.ChangeScreen = function ChangeScreen()
 };
 
 App.ChangeScreen.prototype = Object.create(App.Command.prototype);
-App.ChangeScreen.prototype.constructor = App.ChangeScreen;
 
 /**
  * Execute the command
@@ -15317,7 +15250,6 @@ App.ChangeTransaction = function ChangeTransaction(eventListenerPool)
 };
 
 App.ChangeTransaction.prototype = Object.create(App.SequenceCommand.prototype);
-App.ChangeTransaction.prototype.constructor = App.ChangeTransaction;
 
 /**
  * Execute the command
@@ -15508,7 +15440,6 @@ App.ChangeCategory = function ChangeCategory(eventListenerPool)
 };
 
 App.ChangeCategory.prototype = Object.create(App.SequenceCommand.prototype);
-App.ChangeCategory.prototype.constructor = App.ChangeCategory;
 
 /**
  * Execute the command
@@ -15682,7 +15613,6 @@ App.ChangeSubCategory = function ChangeSubCategory(eventListenerPool)
 };
 
 App.ChangeSubCategory.prototype = Object.create(App.SequenceCommand.prototype);
-App.ChangeSubCategory.prototype.constructor = App.ChangeSubCategory;
 
 /**
  * Execute the command
@@ -15736,7 +15666,6 @@ App.ChangeAccount = function ChangeAccount(eventListenerPool)
 };
 
 App.ChangeAccount.prototype = Object.create(App.SequenceCommand.prototype);
-App.ChangeAccount.prototype.constructor = App.ChangeAccount;
 
 /**
  * Execute the command
@@ -15792,7 +15721,6 @@ App.ChangeCurrencyPair = function ChangeCurrencyPair(eventListenerPool)
 };
 
 App.ChangeCurrencyPair.prototype = Object.create(App.SequenceCommand.prototype);
-App.ChangeCurrencyPair.prototype.constructor = App.ChangeCurrencyPair;
 
 /**
  * Execute the command

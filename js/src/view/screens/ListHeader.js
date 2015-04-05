@@ -19,7 +19,6 @@ App.ListHeader = function ListHeader(label,width,pixelRatio)
 };
 
 App.ListHeader.prototype = Object.create(PIXI.Graphics.prototype);
-App.ListHeader.prototype.constructor = App.ListHeader;
 
 /**
  * Render

@@ -15,7 +15,6 @@ App.TilePane = function TilePane(xScrollPolicy,yScrollPolicy,width,height,pixelR
 };
 
 App.TilePane.prototype = Object.create(App.Pane.prototype);
-App.TilePane.prototype.constructor = App.TilePane;
 
 /**
  * Set content of the pane

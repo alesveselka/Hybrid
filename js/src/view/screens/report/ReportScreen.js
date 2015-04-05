@@ -65,7 +65,6 @@ App.ReportScreen = function ReportScreen(layout)
 };
 
 App.ReportScreen.prototype = Object.create(App.Screen.prototype);
-App.ReportScreen.prototype.constructor = App.ReportScreen;
 
 /**
  * Enable

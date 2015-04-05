@@ -35,7 +35,6 @@ App.VirtualList = function VirtualList(itemPool,direction,width,height,pixelRati
 };
 
 App.VirtualList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.VirtualList.prototype.constructor = App.VirtualList;
 
 /**
  * Find and select item under point passed in

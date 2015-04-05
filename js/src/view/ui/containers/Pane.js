@@ -53,7 +53,6 @@ App.Pane = function Pane(xScrollPolicy,yScrollPolicy,width,height,pixelRatio,use
 };
 
 App.Pane.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.Pane.prototype.constructor = App.Pane;
 
 /**
  * Set content of the pane

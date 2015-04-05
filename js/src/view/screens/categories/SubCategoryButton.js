@@ -35,7 +35,6 @@ App.SubCategoryButton = function SubCategoryButton(poolIndex,options)
 };
 
 App.SubCategoryButton.prototype = Object.create(App.SwipeButton.prototype);
-App.SubCategoryButton.prototype.constructor = App.SubCategoryButton;
 
 /**
  * Render

@@ -27,7 +27,6 @@ App.ScrollIndicator = function ScrollIndicator(direction,pixelRatio)
 };
 
 App.ScrollIndicator.prototype = Object.create(PIXI.Graphics.prototype);
-App.ScrollIndicator.prototype.constructor = App.ScrollIndicator;
 
 /**
  * Show

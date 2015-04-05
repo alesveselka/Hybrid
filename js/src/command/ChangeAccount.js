@@ -10,7 +10,6 @@ App.ChangeAccount = function ChangeAccount(eventListenerPool)
 };
 
 App.ChangeAccount.prototype = Object.create(App.SequenceCommand.prototype);
-App.ChangeAccount.prototype.constructor = App.ChangeAccount;
 
 /**
  * Execute the command

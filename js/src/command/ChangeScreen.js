@@ -9,7 +9,6 @@ App.ChangeScreen = function ChangeScreen()
 };
 
 App.ChangeScreen.prototype = Object.create(App.Command.prototype);
-App.ChangeScreen.prototype.constructor = App.ChangeScreen;
 
 /**
  * Execute the command

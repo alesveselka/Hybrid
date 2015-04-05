@@ -35,7 +35,6 @@ App.ReportAccountButton = function ReportAccountButton(poolIndex,options)
 };
 
 App.ReportAccountButton.prototype = Object.create(App.ExpandButton.prototype);
-App.ReportAccountButton.prototype.constructor = App.ReportAccountButton;
 
 /**
  * Render

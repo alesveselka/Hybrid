@@ -57,7 +57,6 @@ App.PopUpButton = function PopUpButton(label,message,options)
 };
 
 App.PopUpButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.PopUpButton.prototype.constructor = App.PopUpButton;
 
 /**
  * Set position

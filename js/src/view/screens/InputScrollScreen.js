@@ -19,7 +19,6 @@ App.InputScrollScreen = function InputScrollScreen(layout)
 };
 
 App.InputScrollScreen.prototype = Object.create(App.Screen.prototype);
-App.InputScrollScreen.prototype.constructor = App.InputScrollScreen;
 
 /**
  * On tick

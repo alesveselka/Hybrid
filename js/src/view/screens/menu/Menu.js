@@ -47,7 +47,6 @@ App.Menu = function Menu(layout)
 };
 
 App.Menu.prototype = Object.create(App.Screen.prototype);
-App.Menu.prototype.constructor = App.Menu;
 
 /**
  * Render

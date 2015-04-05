@@ -10,7 +10,6 @@ App.CurrencyPairCollection = function CurrencyPairCollection(source,eventListene
 };
 
 App.CurrencyPairCollection.prototype = Object.create(App.Collection.prototype);
-App.CurrencyPairCollection.prototype.constructor = App.CurrencyPairCollection;
 
 /**
  * Find and return rate between base and symbol(spent) currency symbols passed in

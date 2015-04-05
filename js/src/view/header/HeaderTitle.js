@@ -22,7 +22,6 @@ App.HeaderTitle = function HeaderTitle(value,width,height,pixelRatio,fontStyle)
 };
 
 App.HeaderTitle.prototype = Object.create(App.HeaderSegment.prototype);
-App.HeaderTitle.prototype.constructor = App.HeaderTitle;
 
 /**
  * Render

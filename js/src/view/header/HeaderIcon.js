@@ -22,7 +22,6 @@ App.HeaderIcon = function HeaderIcon(value,width,height,pixelRatio)
 };
 
 App.HeaderIcon.prototype = Object.create(App.HeaderSegment.prototype);
-App.HeaderIcon.prototype.constructor = App.HeaderIcon;
 
 /**
  * Render

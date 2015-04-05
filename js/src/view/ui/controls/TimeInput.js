@@ -17,7 +17,6 @@ App.TimeInput = function TimeInput(placeholder,fontSize,width,height,pixelRatio,
 };
 
 App.TimeInput.prototype = Object.create(App.Input.prototype);
-App.TimeInput.prototype.constructor = App.TimeInput;
 
 /**
  * Render

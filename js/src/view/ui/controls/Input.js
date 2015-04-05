@@ -49,7 +49,6 @@ App.Input = function Input(placeholder,fontSize,width,height,pixelRatio,displayI
 };
 
 App.Input.prototype = Object.create(PIXI.Graphics.prototype);
-App.Input.prototype.constructor = App.Input;
 
 /**
  * Render

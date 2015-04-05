@@ -23,7 +23,6 @@ App.CategoryButtonEdit = function CategoryButtonEdit(poolIndex,options)
 };
 
 App.CategoryButtonEdit.prototype = Object.create(App.SwipeButton.prototype);
-App.CategoryButtonEdit.prototype.constructor = App.CategoryButtonEdit;
 
 /**
  * Render

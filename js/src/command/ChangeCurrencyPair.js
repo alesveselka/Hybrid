@@ -10,7 +10,6 @@ App.ChangeCurrencyPair = function ChangeCurrencyPair(eventListenerPool)
 };
 
 App.ChangeCurrencyPair.prototype = Object.create(App.SequenceCommand.prototype);
-App.ChangeCurrencyPair.prototype.constructor = App.ChangeCurrencyPair;
 
 /**
  * Execute the command

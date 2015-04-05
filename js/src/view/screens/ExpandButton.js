@@ -38,7 +38,6 @@ App.ExpandButton = function ExpandButton(width,height,useMask)
 };
 
 App.ExpandButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.ExpandButton.prototype.constructor = App.ExpandButton;
 
 /**
  * Set content

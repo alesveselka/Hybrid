@@ -10,7 +10,6 @@ App.ChangeTransaction = function ChangeTransaction(eventListenerPool)
 };
 
 App.ChangeTransaction.prototype = Object.create(App.SequenceCommand.prototype);
-App.ChangeTransaction.prototype.constructor = App.ChangeTransaction;
 
 /**
  * Execute the command

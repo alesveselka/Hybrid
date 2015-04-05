@@ -65,7 +65,6 @@ App.ApplicationView = function ApplicationView(stage,renderer,width,height,pixel
 };
 
 App.ApplicationView.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.ApplicationView.prototype.constructor = App.ApplicationView;
 
 /**
  * Init

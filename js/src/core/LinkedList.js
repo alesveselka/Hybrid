@@ -9,8 +9,6 @@ App.LinkedList = function LinkedList()
     this._length = 0;
 };
 
-App.LinkedList.prototype.constructor = App.LinkedList;
-
 /**
  * @method push Add item to the end of a list
  * @param {{previous:Object,next:Object}} item

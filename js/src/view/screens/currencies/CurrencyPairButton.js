@@ -36,7 +36,6 @@ App.CurrencyPairButton = function CurrencyPairButton(poolIndex,options)
 };
 
 App.CurrencyPairButton.prototype = Object.create(App.SwipeButton.prototype);
-App.CurrencyPairButton.prototype.constructor = App.CurrencyPairButton;
 
 /**
  * @method render

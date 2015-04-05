@@ -26,7 +26,6 @@ App.MenuItem = function MenuItem(label,iconName,screenName,options)
 };
 
 App.MenuItem.prototype = Object.create(PIXI.Graphics.prototype);
-App.MenuItem.prototype.constructor = App.MenuItem;
 
 /**
  * Render

@@ -28,7 +28,6 @@ App.AddNewButton = function AddNewButton(label,fontStyle,skin,pixelRatio)
 };
 
 App.AddNewButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.AddNewButton.prototype.constructor = App.AddNewButton;
 
 /**
  * Render

@@ -25,7 +25,6 @@ App.EditScreen = function EditScreen(layout)
 };
 
 App.EditScreen.prototype = Object.create(App.Screen.prototype);
-App.EditScreen.prototype.constructor = App.EditScreen;
 
 /**
  * Render

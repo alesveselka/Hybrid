@@ -34,7 +34,6 @@ App.AccountButton = function AccountButton(poolIndex,options)
 };
 
 App.AccountButton.prototype = Object.create(App.SwipeButton.prototype);
-App.AccountButton.prototype.constructor = App.AccountButton;
 
 /**
  * @method render

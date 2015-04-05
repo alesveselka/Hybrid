@@ -13,7 +13,6 @@ App.Command = function Command(allowMultipleInstances,eventListenerPool)
 };
 
 App.Command.prototype = Object.create(App.EventDispatcher.prototype);
-App.Command.prototype.constructor = App.Command;
 
 /**
  * Execute a command

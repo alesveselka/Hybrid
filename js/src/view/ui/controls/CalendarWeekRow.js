@@ -35,7 +35,6 @@ App.CalendarWeekRow = function CalendarWeekRow(weekTextStyle,weekSelectedStyle,w
 };
 
 App.CalendarWeekRow.prototype = Object.create(PIXI.Graphics.prototype);
-App.CalendarWeekRow.prototype.constructor = App.CalendarWeekRow;
 
 /**
  * Render

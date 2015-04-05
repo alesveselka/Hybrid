@@ -38,7 +38,6 @@ App.TransactionOptionButton = function TransactionOptionButton(iconName,name,opt
 };
 
 App.TransactionOptionButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.TransactionOptionButton.prototype.constructor = App.TransactionOptionButton;
 
 /**
  * Render

@@ -40,7 +40,6 @@ App.Screen = function Screen(layout,tweenDuration)
 };
 
 App.Screen.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.Screen.prototype.constructor = App.Screen;
 
 /**
  * Show

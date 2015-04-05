@@ -21,7 +21,6 @@ App.ColorSample = function ColorSample(modelIndex,color,pixelRatio)
 };
 
 App.ColorSample.prototype = Object.create(PIXI.Graphics.prototype);
-App.ColorSample.prototype.constructor = App.ColorSample;
 
 /**
  * Render

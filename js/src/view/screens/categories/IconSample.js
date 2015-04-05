@@ -27,7 +27,6 @@ App.IconSample = function IconSample(modelIndex,model,pixelRatio)
 };
 
 App.IconSample.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.IconSample.prototype.constructor = App.IconSample;
 
 /**
  * Render

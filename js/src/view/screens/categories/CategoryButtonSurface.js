@@ -25,7 +25,6 @@ App.CategoryButtonSurface = function CategoryButtonSurface(options)
 };
 
 App.CategoryButtonSurface.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.CategoryButtonSurface.prototype.constructor = App.CategoryButtonSurface;
 
 /**
  * Render

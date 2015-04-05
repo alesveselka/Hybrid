@@ -28,7 +28,6 @@ App.TweenProxy = function TweenProxy(duration,ease,defaultProgress,eventListener
 };
 
 App.TweenProxy.prototype = Object.create(App.EventDispatcher.prototype);
-App.TweenProxy.prototype.constructor = App.TweenProxy;
 
 /**
  * Set easing function

@@ -29,7 +29,6 @@ App.CurrencyButton = function CurrencyButton(poolIndex,options)
 };
 
 App.CurrencyButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.CurrencyButton.prototype.constructor = App.CurrencyButton;
 
 /**
  * @method render

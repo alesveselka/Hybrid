@@ -14,7 +14,6 @@ App.SequenceCommand = function SequenceCommand(allowMultipleInstances,eventListe
 };
 
 App.SequenceCommand.prototype = Object.create(App.Command.prototype);
-App.SequenceCommand.prototype.constructor = App.SequenceCommand;
 
 /**
  * Execute next command

@@ -78,7 +78,6 @@ App.AddTransactionScreen = function AddTransactionScreen(layout)
 };
 
 App.AddTransactionScreen.prototype = Object.create(App.InputScrollScreen.prototype);
-App.AddTransactionScreen.prototype.constructor = App.AddTransactionScreen;
 
 /**
  * Render

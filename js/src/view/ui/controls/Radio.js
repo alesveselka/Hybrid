@@ -23,7 +23,6 @@ App.Radio = function Radio(pixelRatio,selected)
 };
 
 App.Radio.prototype = Object.create(PIXI.Graphics.prototype);
-App.Radio.prototype.constructor = App.Radio;
 
 /**
  * Render

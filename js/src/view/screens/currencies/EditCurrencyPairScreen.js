@@ -28,7 +28,6 @@ App.EditCurrencyPairScreen = function EditCurrencyPairScreen(layout)
 };
 
 App.EditCurrencyPairScreen.prototype = Object.create(App.Screen.prototype);
-App.EditCurrencyPairScreen.prototype.constructor = App.EditCurrencyPairScreen;
 
 /**
  * Render

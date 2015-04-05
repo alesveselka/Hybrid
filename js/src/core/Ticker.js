@@ -12,7 +12,6 @@ App.Ticker = function Ticker(eventListenerPool)
 };
 
 App.Ticker.prototype = Object.create(App.EventDispatcher.prototype);
-App.Ticker.prototype.constructor = App.Ticker;
 
 /**
  * Add event listener

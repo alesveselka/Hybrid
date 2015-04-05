@@ -10,7 +10,6 @@ App.ChangeSubCategory = function ChangeSubCategory(eventListenerPool)
 };
 
 App.ChangeSubCategory.prototype = Object.create(App.SequenceCommand.prototype);
-App.ChangeSubCategory.prototype.constructor = App.ChangeSubCategory;
 
 /**
  * Execute the command

@@ -32,7 +32,6 @@ App.SelectTimeScreen = function SelectTimeScreen(layout)
 };
 
 App.SelectTimeScreen.prototype = Object.create(App.InputScrollScreen.prototype);
-App.SelectTimeScreen.prototype.constructor = App.SelectTimeScreen;
 
 /**
  * Render

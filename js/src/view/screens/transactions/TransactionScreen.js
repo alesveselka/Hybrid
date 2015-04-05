@@ -20,7 +20,6 @@ App.TransactionScreen = function TransactionScreen(layout)
 };
 
 App.TransactionScreen.prototype = Object.create(App.Screen.prototype);
-App.TransactionScreen.prototype.constructor = App.TransactionScreen;
 
 /**
  * Enable

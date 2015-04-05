@@ -62,7 +62,6 @@ App.EditCategoryScreen = function EditCategoryScreen(layout)
 };
 
 App.EditCategoryScreen.prototype = Object.create(App.InputScrollScreen.prototype);
-App.EditCategoryScreen.prototype.constructor = App.EditCategoryScreen;
 
 /**
  * Render

@@ -15,7 +15,6 @@ App.List = function List(direction)
 };
 
 App.List.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.List.prototype.constructor = App.List;
 
 /**
  * Add item

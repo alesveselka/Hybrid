@@ -37,7 +37,6 @@ App.ReportCategoryButton = function ReportCategoryButton(poolIndex,options)
 };
 
 App.ReportCategoryButton.prototype = Object.create(App.ExpandButton.prototype);
-App.ReportCategoryButton.prototype.constructor = App.ReportCategoryButton;
 
 /**
  * Render

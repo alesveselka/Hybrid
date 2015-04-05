@@ -30,7 +30,6 @@ App.SubCategoryList = function SubCategoryList(options)
 };
 
 App.SubCategoryList.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.SubCategoryList.prototype.constructor = App.SubCategoryList;
 
 /**
  * Update layout

@@ -45,7 +45,6 @@ App.ReportChart = function ReportChart(model,width,height,pixelRatio)
 };
 
 App.ReportChart.prototype = Object.create(PIXI.Graphics.prototype);
-App.ReportChart.prototype.constructor = App.ReportChart;
 
 /**
  * Show

@@ -24,7 +24,6 @@ App.ViewStack = function ViewStack(children,addToStage,eventListenerPool)
 };
 
 App.ViewStack.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-App.ViewStack.prototype.constructor = App.ViewStack;
 
 /**
  * Add child to stack

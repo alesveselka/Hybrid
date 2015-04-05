@@ -13,7 +13,6 @@ App.Initialize = function Initialize()
 };
 
 App.Initialize.prototype = Object.create(App.Command.prototype);
-App.Initialize.prototype.constructor = App.Initialize;
 
 /**
  * Execute the command
