@@ -203,7 +203,7 @@ App.SettingScreen.prototype._onClick = function _onClick()
 
     if (this._list.hitTest(position))
     {
-        var button = this._optionList.getItemUnderPoint(pointerData);
+        var button = this._list.getItemUnderPoint(pointerData);
         if (button === this._weekDayOption) this._onAccountOptionClick();
         else if (button === this._baseCurrencyOption) this._onCategoryOptionClick();
         else if (button === this._defaultCurrencyOption) this._onTimeOptionClick();
