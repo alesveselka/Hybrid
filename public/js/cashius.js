@@ -2084,6 +2084,77 @@ App.Transaction.prototype.copy = function copy()
 };
 
 /**
+ * @property savedAmount
+ * @type number
+ */
+Object.defineProperty(App.Transaction.prototype,'savedAmount',{
+    get:function()
+    {
+        if (this._data) return this._data[0];
+        else return 0.0;
+    }
+});
+
+/**
+ * @property savedType
+ * @type number
+ */
+Object.defineProperty(App.Transaction.prototype,'savedType',{
+    get:function()
+    {
+        if (this._data) return this._data[1];
+        else return 1;
+    }
+});
+
+/**
+ * @property savedPending
+ * @type boolean
+ */
+Object.defineProperty(App.Transaction.prototype,'savedPending',{
+    get:function()
+    {
+        if (this._data) return this._data[2] === 1;
+        else return false;
+    }
+});
+
+/**
+ * @property savedPending
+ * @type boolean
+ */
+Object.defineProperty(App.Transaction.prototype,'savedSubCategory',{
+    get:function()
+    {
+        return App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find("id",this._data[4].split(".")[2]);
+    }
+});
+
+/**
+ * @property savedPending
+ * @type boolean
+ */
+Object.defineProperty(App.Transaction.prototype,'savedCurrencyBase',{
+    get:function()
+    {
+        if (this._data[7].indexOf("@") === -1) return this._data[7];
+        else return this._data[7].split("@")[0].split("/")[0];
+    }
+});
+
+/**
+ * @property savedPending
+ * @type boolean
+ */
+Object.defineProperty(App.Transaction.prototype,'savedCurrencyQuote',{
+    get:function()
+    {
+        if (this._data[7].indexOf("@") === -1) return this._data[7];
+        else return this._data[7].split("@")[0].split("/")[1];
+    }
+});
+
+/**
  * @property account
  * @type Account
  */
@@ -2144,7 +2215,7 @@ Object.defineProperty(App.Transaction.prototype,'subCategory',{
     {
         if (!this._subCategory)
         {
-            if (this._data) this._subCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find("id",this._data[4].split(".")[2]);
+            if (this._data) this._subCategory = this.savedSubCategory;
             else this._subCategory = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultSubCategory;
         }
         return this._subCategory;
@@ -2204,15 +2275,8 @@ Object.defineProperty(App.Transaction.prototype,'currencyBase',{
     {
         if (!this._currencyBase)
         {
-            if (this._data)
-            {
-                if (this._data[7].indexOf("@") === -1) this._currencyBase = this._data[7];
-                else this._currencyBase = this._data[7].split("@")[0].split("/")[0];
-            }
-            else
-            {
-                this._currencyBase = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
-            }
+            if (this._data) this._currencyBase = this.savedCurrencyBase;
+            else this._currencyBase = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
         }
         return this._currencyBase;
     },
@@ -2231,15 +2295,8 @@ Object.defineProperty(App.Transaction.prototype,'currencyQuote',{
     {
         if (!this._currencyQuote)
         {
-            if (this._data)
-            {
-                if (this._data[7].indexOf("@") === -1) this._currencyQuote = this._data[7];
-                else this._currencyQuote = this._data[7].split("@")[0].split("/")[1];
-            }
-            else
-            {
-                this._currencyQuote = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultCurrencyQuote;
-            }
+            if (this._data) this._currencyQuote = this.savedCurrencyQuote;
+            else this._currencyQuote = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultCurrencyQuote;
         }
         return this._currencyQuote;
     },
@@ -2287,12 +2344,14 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
         this.id = data[0];
         this.name = data[1];
         this.category = data[2];
+        this.balance = data[3];//TODO use get/set-ers - to verify values before set?
     }
     else
     {
         this.id = String(++App.SubCategory._UID);
         this.name = "SubCategory" + this.id;
         this.category = null;
+        this.balance = 0.0;
     }
 
     this._state = null;
@@ -13846,7 +13905,7 @@ App.SettingScreen.prototype._onClick = function _onClick()
 
     if (this._list.hitTest(position))
     {
-        var button = this._optionList.getItemUnderPoint(pointerData);
+        var button = this._list.getItemUnderPoint(pointerData);
         if (button === this._weekDayOption) this._onAccountOptionClick();
         else if (button === this._baseCurrencyOption) this._onCategoryOptionClick();
         else if (button === this._defaultCurrencyOption) this._onTimeOptionClick();
@@ -15297,8 +15356,11 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.CONFIRM)
     {
-        this._setInputs(transaction,data,true);
+        // Update balances before saving
+        this._updateCategoryBalance(type,transaction,data,settings);
+
         this._setToggles(transaction,data);
+        this._setInputs(transaction,data,true);
         this._setMethod(transaction,data,settings);
 
         transaction.currencyBase = settings.baseCurrency;
@@ -15319,6 +15381,9 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.DELETE)
     {
+        // Update balances before deleting
+        this._updateCategoryBalance(type,transaction,data,settings);
+
         transactions.removeItem(transaction).destroy();
 
         data.nextCommandData.updateData = transactions.copySource().reverse();
@@ -15337,7 +15402,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
  */
 App.ChangeTransaction.prototype._setInputs = function _setInputs(transaction,data,setDefault)
 {
-    transaction.amount = parseFloat(data.amount) || transaction.amount;
+    transaction.amount = isNaN(parseFloat(data.amount)) ? transaction.amount : parseFloat(data.amount);
     transaction.note = data.note || transaction.note;
 
     if (setDefault && !transaction.amount) transaction.amount = "0";
@@ -15425,6 +15490,76 @@ App.ChangeTransaction.prototype._setCurrency = function _setCurrency(transaction
     {
         transaction.currencyQuote = data.currencyQuote;
         settings.defaultCurrencyQuote = data.currencyQuote;
+    }
+};
+
+/**
+ * Update subCategory balance
+ * @param {string} eventType
+ * @param {App.Transaction} transaction
+ * @param {Object} data
+ * @param {App.Settings} settings
+ * @private
+ */
+App.ChangeTransaction.prototype._updateCategoryBalance = function _updateCategoryBalance(eventType,transaction,data,settings)
+{
+    var currencyPairCollection = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS);
+
+    if (eventType === App.EventType.CONFIRM)
+    {
+        if (transaction.isSaved() && !transaction.savedPending) this._updateSavedBalance(transaction,currencyPairCollection);
+
+        if (!data.pending) this._updateCurrentBalance(transaction,currencyPairCollection,data,settings);
+    }
+    else if (eventType === App.EventType.DELETE)
+    {
+        this._updateSavedBalance(transaction,currencyPairCollection);
+    }
+};
+
+/**
+ * Update saved subCategory balance
+ * @param {App.Transaction} transaction
+ * @param {App.CurrencyPairCollection} currencyPairCollection
+ * @private
+ */
+App.ChangeTransaction.prototype._updateSavedBalance = function _updateSavedBalance(transaction,currencyPairCollection)
+{
+    var TransactionType = App.TransactionType,
+        savedSubCategory = transaction.savedSubCategory,
+        savedAmount = transaction.savedAmount / currencyPairCollection.findRate(transaction.savedCurrencyBase,transaction.savedCurrencyQuote);
+
+    if (transaction.savedType === TransactionType.EXPENSE)
+    {
+        savedSubCategory.balance = savedSubCategory.balance + savedAmount;
+    }
+    else if (transaction.savedType === TransactionType.INCOME)
+    {
+        savedSubCategory.balance = savedSubCategory.balance - savedAmount;
+    }
+};
+
+/**
+ * Update current subCategory balance
+ * @param {App.Transaction} transaction
+ * @param {App.CurrencyPairCollection} currencyPairCollection
+ * @param {Object} data
+ * @param {App.Settings} settings
+ * @private
+ */
+App.ChangeTransaction.prototype._updateCurrentBalance = function _updateCurrentBalance(transaction,currencyPairCollection,data,settings)
+{
+    var TransactionType = App.TransactionType,
+        subCategory = transaction.subCategory,
+        currentAmount = parseFloat(data.amount) / currencyPairCollection.findRate(settings.baseCurrency,transaction.currencyQuote);
+
+    if (data.transactionType === TransactionType.EXPENSE)
+    {
+        subCategory.balance = subCategory.balance - currentAmount;
+    }
+    else if (data.transactionType === TransactionType.INCOME)
+    {
+        subCategory.balance = subCategory.balance + currentAmount;
     }
 };
 

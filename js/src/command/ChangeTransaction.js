@@ -57,8 +57,11 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.CONFIRM)
     {
-        this._setInputs(transaction,data,true);
+        // Update balances before saving
+        this._updateCategoryBalance(type,transaction,data,settings);
+
         this._setToggles(transaction,data);
+        this._setInputs(transaction,data,true);
         this._setMethod(transaction,data,settings);
 
         transaction.currencyBase = settings.baseCurrency;
@@ -79,6 +82,9 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.DELETE)
     {
+        // Update balances before deleting
+        this._updateCategoryBalance(type,transaction,data,settings);
+
         transactions.removeItem(transaction).destroy();
 
         data.nextCommandData.updateData = transactions.copySource().reverse();
@@ -97,7 +103,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
  */
 App.ChangeTransaction.prototype._setInputs = function _setInputs(transaction,data,setDefault)
 {
-    transaction.amount = parseFloat(data.amount) || transaction.amount;
+    transaction.amount = isNaN(parseFloat(data.amount)) ? transaction.amount : parseFloat(data.amount);
     transaction.note = data.note || transaction.note;
 
     if (setDefault && !transaction.amount) transaction.amount = "0";
@@ -185,5 +191,75 @@ App.ChangeTransaction.prototype._setCurrency = function _setCurrency(transaction
     {
         transaction.currencyQuote = data.currencyQuote;
         settings.defaultCurrencyQuote = data.currencyQuote;
+    }
+};
+
+/**
+ * Update subCategory balance
+ * @param {string} eventType
+ * @param {App.Transaction} transaction
+ * @param {Object} data
+ * @param {App.Settings} settings
+ * @private
+ */
+App.ChangeTransaction.prototype._updateCategoryBalance = function _updateCategoryBalance(eventType,transaction,data,settings)
+{
+    var currencyPairCollection = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS);
+
+    if (eventType === App.EventType.CONFIRM)
+    {
+        if (transaction.isSaved() && !transaction.savedPending) this._updateSavedBalance(transaction,currencyPairCollection);
+
+        if (!data.pending) this._updateCurrentBalance(transaction,currencyPairCollection,data,settings);
+    }
+    else if (eventType === App.EventType.DELETE)
+    {
+        this._updateSavedBalance(transaction,currencyPairCollection);
+    }
+};
+
+/**
+ * Update saved subCategory balance
+ * @param {App.Transaction} transaction
+ * @param {App.CurrencyPairCollection} currencyPairCollection
+ * @private
+ */
+App.ChangeTransaction.prototype._updateSavedBalance = function _updateSavedBalance(transaction,currencyPairCollection)
+{
+    var TransactionType = App.TransactionType,
+        savedSubCategory = transaction.savedSubCategory,
+        savedAmount = transaction.savedAmount / currencyPairCollection.findRate(transaction.savedCurrencyBase,transaction.savedCurrencyQuote);
+
+    if (transaction.savedType === TransactionType.EXPENSE)
+    {
+        savedSubCategory.balance = savedSubCategory.balance + savedAmount;
+    }
+    else if (transaction.savedType === TransactionType.INCOME)
+    {
+        savedSubCategory.balance = savedSubCategory.balance - savedAmount;
+    }
+};
+
+/**
+ * Update current subCategory balance
+ * @param {App.Transaction} transaction
+ * @param {App.CurrencyPairCollection} currencyPairCollection
+ * @param {Object} data
+ * @param {App.Settings} settings
+ * @private
+ */
+App.ChangeTransaction.prototype._updateCurrentBalance = function _updateCurrentBalance(transaction,currencyPairCollection,data,settings)
+{
+    var TransactionType = App.TransactionType,
+        subCategory = transaction.subCategory,
+        currentAmount = parseFloat(data.amount) / currencyPairCollection.findRate(settings.baseCurrency,transaction.currencyQuote);
+
+    if (data.transactionType === TransactionType.EXPENSE)
+    {
+        subCategory.balance = subCategory.balance - currentAmount;
+    }
+    else if (data.transactionType === TransactionType.INCOME)
+    {
+        subCategory.balance = subCategory.balance + currentAmount;
     }
 };

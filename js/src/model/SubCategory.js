@@ -15,12 +15,14 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
         this.id = data[0];
         this.name = data[1];
         this.category = data[2];
+        this.balance = data[3];
     }
     else
     {
         this.id = String(++App.SubCategory._UID);
         this.name = "SubCategory" + this.id;
         this.category = null;
+        this.balance = 0.0;
     }
 
     this._state = null;

@@ -148,6 +148,77 @@ App.Transaction.prototype.copy = function copy()
 };
 
 /**
+ * @property savedAmount
+ * @type number
+ */
+Object.defineProperty(App.Transaction.prototype,'savedAmount',{
+    get:function()
+    {
+        if (this._data) return this._data[0];
+        else return 0.0;
+    }
+});
+
+/**
+ * @property savedType
+ * @type number
+ */
+Object.defineProperty(App.Transaction.prototype,'savedType',{
+    get:function()
+    {
+        if (this._data) return this._data[1];
+        else return 1;
+    }
+});
+
+/**
+ * @property savedPending
+ * @type boolean
+ */
+Object.defineProperty(App.Transaction.prototype,'savedPending',{
+    get:function()
+    {
+        if (this._data) return this._data[2] === 1;
+        else return false;
+    }
+});
+
+/**
+ * @property savedPending
+ * @type boolean
+ */
+Object.defineProperty(App.Transaction.prototype,'savedSubCategory',{
+    get:function()
+    {
+        return App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find("id",this._data[4].split(".")[2]);
+    }
+});
+
+/**
+ * @property savedPending
+ * @type boolean
+ */
+Object.defineProperty(App.Transaction.prototype,'savedCurrencyBase',{
+    get:function()
+    {
+        if (this._data[7].indexOf("@") === -1) return this._data[7];
+        else return this._data[7].split("@")[0].split("/")[0];
+    }
+});
+
+/**
+ * @property savedPending
+ * @type boolean
+ */
+Object.defineProperty(App.Transaction.prototype,'savedCurrencyQuote',{
+    get:function()
+    {
+        if (this._data[7].indexOf("@") === -1) return this._data[7];
+        else return this._data[7].split("@")[0].split("/")[1];
+    }
+});
+
+/**
  * @property account
  * @type Account
  */
@@ -208,7 +279,7 @@ Object.defineProperty(App.Transaction.prototype,'subCategory',{
     {
         if (!this._subCategory)
         {
-            if (this._data) this._subCategory = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find("id",this._data[4].split(".")[2]);
+            if (this._data) this._subCategory = this.savedSubCategory;
             else this._subCategory = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultSubCategory;
         }
         return this._subCategory;
@@ -268,15 +339,8 @@ Object.defineProperty(App.Transaction.prototype,'currencyBase',{
     {
         if (!this._currencyBase)
         {
-            if (this._data)
-            {
-                if (this._data[7].indexOf("@") === -1) this._currencyBase = this._data[7];
-                else this._currencyBase = this._data[7].split("@")[0].split("/")[0];
-            }
-            else
-            {
-                this._currencyBase = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
-            }
+            if (this._data) this._currencyBase = this.savedCurrencyBase;
+            else this._currencyBase = App.ModelLocator.getProxy(App.ModelName.SETTINGS).baseCurrency;
         }
         return this._currencyBase;
     },
@@ -295,15 +359,8 @@ Object.defineProperty(App.Transaction.prototype,'currencyQuote',{
     {
         if (!this._currencyQuote)
         {
-            if (this._data)
-            {
-                if (this._data[7].indexOf("@") === -1) this._currencyQuote = this._data[7];
-                else this._currencyQuote = this._data[7].split("@")[0].split("/")[1];
-            }
-            else
-            {
-                this._currencyQuote = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultCurrencyQuote;
-            }
+            if (this._data) this._currencyQuote = this.savedCurrencyQuote;
+            else this._currencyQuote = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultCurrencyQuote;
         }
         return this._currencyQuote;
     },
@@ -312,24 +369,3 @@ Object.defineProperty(App.Transaction.prototype,'currencyQuote',{
         this._currencyQuote = value;
     }
 });
-
-/**
- * @property currency
- * @type number
- */
-//TODO i may not need this and use something like 'getBaseValue' function that will automatically convert it
-/*Object.defineProperty(App.Transaction.prototype,'currencyRate',{
-    get:function()
-    {
-        if (!this._currencyRate)
-        {
-            if (this._data) this._currencyRate = parseFloat(this._data[7].split("@")[1]);
-            else this._currencyRate = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(this.currencyBase,this.currencyQuote);
-        }
-        return this._currencyRate;
-    },
-    set:function(value)
-    {
-        this._currencyRate = value;
-    }
-});*/
