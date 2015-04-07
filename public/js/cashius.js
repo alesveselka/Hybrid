@@ -2307,27 +2307,6 @@ Object.defineProperty(App.Transaction.prototype,'currencyQuote',{
 });
 
 /**
- * @property currency
- * @type number
- */
-//TODO i may not need this and use something like 'getBaseValue' function that will automatically convert it
-/*Object.defineProperty(App.Transaction.prototype,'currencyRate',{
-    get:function()
-    {
-        if (!this._currencyRate)
-        {
-            if (this._data) this._currencyRate = parseFloat(this._data[7].split("@")[1]);
-            else this._currencyRate = App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(this.currencyBase,this.currencyQuote);
-        }
-        return this._currencyRate;
-    },
-    set:function(value)
-    {
-        this._currencyRate = value;
-    }
-});*/
-
-/**
  * @class SubCategory
  * @param {Array} data
  * @param {Collection} collection
@@ -2344,7 +2323,7 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
         this.id = data[0];
         this.name = data[1];
         this.category = data[2];
-        this.balance = data[3];//TODO use get/set-ers - to verify values before set?
+        this.balance = data[3];
     }
     else
     {
@@ -15017,6 +14996,21 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         ModelName.CHANGE_SCREEN_DATA_POOL,changeScreenDataPool,
         ModelName.SCREEN_HISTORY,new App.Stack()
     ]);
+
+    var transactions = App.ModelLocator.getProxy(ModelName.TRANSACTIONS),
+        dictionary = Object.create(null),
+        transaction = null;
+
+    for (var i=0;i<transactions.length();i++)
+    {
+        transaction=  transactions.getItemAt(i);
+        dictionary[transaction.savedSubCategory.name] = dictionary[transaction.savedSubCategory.name] ? dictionary[transaction.savedSubCategory.name] + transaction.amount : transaction.amount;
+    }
+
+    for (var prop in dictionary)
+    {
+        console.log(prop+": "+dictionary[prop]);
+    }
 };
 
 /**

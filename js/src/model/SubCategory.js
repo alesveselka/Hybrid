@@ -15,7 +15,7 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
         this.id = data[0];
         this.name = data[1];
         this.category = data[2];
-        this.balance = data[3];
+        this.balance = isNaN(data[3]) ? 0.0 : parseFloat(data[3]);
     }
     else
     {
