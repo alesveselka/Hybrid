@@ -2323,7 +2323,7 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
         this.id = data[0];
         this.name = data[1];
         this.category = data[2];
-        this.balance = data[3];
+        this.balance = isNaN(data[3]) ? 0.0 : parseFloat(data[3]);
     }
     else
     {
@@ -14996,21 +14996,6 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         ModelName.CHANGE_SCREEN_DATA_POOL,changeScreenDataPool,
         ModelName.SCREEN_HISTORY,new App.Stack()
     ]);
-
-    var transactions = App.ModelLocator.getProxy(ModelName.TRANSACTIONS),
-        dictionary = Object.create(null),
-        transaction = null;
-
-    for (var i=0;i<transactions.length();i++)
-    {
-        transaction=  transactions.getItemAt(i);
-        dictionary[transaction.savedSubCategory.name] = dictionary[transaction.savedSubCategory.name] ? dictionary[transaction.savedSubCategory.name] + transaction.amount : transaction.amount;
-    }
-
-    for (var prop in dictionary)
-    {
-        console.log(prop+": "+dictionary[prop]);
-    }
 };
 
 /**
