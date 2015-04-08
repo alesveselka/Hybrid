@@ -27,6 +27,7 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
         this._categories = null;
     }
 
+    this.balance = 0.0;
     this.lifeCycleState = App.LifeCycleState.CREATED;
 };
 
@@ -61,6 +62,23 @@ App.Account.prototype.removeCategory = function removeCategory(category)
             break;
         }
     }
+};
+
+/**
+ * Calculate balance
+ * @returns {number}
+ */
+App.Account.prototype.calculateBalance = function calculateBalance()
+{
+    var collection = this.categories, // Inflate categories
+        i = 0,
+        l = this._categories.length;
+
+    this.balance = 0.0;
+
+    for (;i<l;) this.balance += this._categories[i++].calculateBalance();
+
+    return this.balance;
 };
 
 /**

@@ -2411,6 +2411,7 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
         this._subCategories = null;
     }
 
+    this.balance = 0.0;
 //    this._lifeCycleState = App.LifeCycleState.CREATED;
     this._states = null;
 };
@@ -2437,6 +2438,23 @@ App.Category.prototype.destroy = function destroy()
     }
 
     this._data = null;
+};
+
+/**
+ * Calculate balance
+ * @returns {number}
+ */
+App.Category.prototype.calculateBalance = function calculateBalance()
+{
+    var collection = this.subCategories, // Inflate subCategories
+        i = 0,
+        l = this._subCategories.length;
+
+    this.balance = 0.0;
+
+    for (;i<l;) this.balance += this._subCategories[i++].balance;
+
+    return this.balance;
 };
 
 /**
@@ -2605,6 +2623,7 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
         this._categories = null;
     }
 
+    this.balance = 0.0;
     this.lifeCycleState = App.LifeCycleState.CREATED;
 };
 
@@ -2639,6 +2658,23 @@ App.Account.prototype.removeCategory = function removeCategory(category)
             break;
         }
     }
+};
+
+/**
+ * Calculate balance
+ * @returns {number}
+ */
+App.Account.prototype.calculateBalance = function calculateBalance()
+{
+    var collection = this.categories, // Inflate categories
+        i = 0,
+        l = this._categories.length;
+
+    this.balance = 0.0;
+
+    for (;i<l;) this.balance += this._categories[i++].calculateBalance();
+
+    return this.balance;
 };
 
 /**
@@ -12343,10 +12379,33 @@ App.ReportChartHighlight.prototype.update = function update(progress)
     App.GraphicUtils.drawArc(this,this._center,this._width,this._height,this._thickness,start,end,20,0,0,0,this._color,1);
 };
 
+App.ReportChartSegment = function ReportChartSegment(poolIndex,options)
+{
+    PIXI.Graphics.call(this);
+
+    this.allocated = false;
+    this.poolIndex = poolIndex;
+
+    this._model = null;
+    //this._pixelRatio = options.pixelRatio;
+};
+
+App.ReportChartSegment.prototype = Object.create(PIXI.Graphics.prototype);
+
+/**
+ * Set model
+ * @param {App.Category} model
+ * @param {number} totalBalance
+ */
+App.ReportChartSegment.prototype.setModel = function setModel(model,totalBalance)
+{
+    this._model = model;
+};
+
 /**
  * @class ReportChart
  * @extends Graphics
- * @param {Collection} model
+ * @param {App.Collection} model
  * @param {number} width
  * @param {number} height
  * @param {number} pixelRatio
@@ -12354,42 +12413,86 @@ App.ReportChartHighlight.prototype.update = function update(progress)
  */
 App.ReportChart = function ReportChart(model,width,height,pixelRatio)
 {
-    //TODO if there is just 1 account segments should represent categories of that account; otherwise segment will represent accounts
     var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        Graphics = PIXI.Graphics,
-        colors = [0xff0000,0xc066cc,0x0000ff],
-        i = 0,
-        l = 3,//TODO number of segments calculated from accounts
-        segment = null;
+        ModelName = App.ModelName;
 
-    Graphics.call(this);
+    PIXI.Graphics.call(this);
 
     this.boundingBox = new App.Rectangle(0,0,width,height);
 
+    this._model = model;
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
     this._tween = new App.TweenProxy(1,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
     this._transitionState = App.TransitionState.HIDDEN;
     this._eventsRegistered = false;
+    this._segmentPool = new App.ObjectPool(App.ReportChartSegment,5);
+    this._segments = null;
     this._center = new PIXI.Point(Math.round(width/2),Math.round(height/2));
-    this._thickness = Math.round(15 * pixelRatio);
+    this._thickness = Math.round(width * 0.07 * pixelRatio);
     this._chartSize = width - Math.round(5 * pixelRatio * 2);// 5px margin on sides for highlight line
-    this._segments = new Array(l);
-    this._highlight = new App.ReportChartHighlight(this._center,width,height,Math.round(3 * pixelRatio));
+    this._highlight = this.addChild(new App.ReportChartHighlight(this._center,width,height,Math.round(3 * pixelRatio)));
     this._updateHighlight = false;
     this._highlightSegment = void 0;
-
-    for (;i<l;i++)
-    {
-        segment = new Graphics();
-        this._segments[i] = {graphics:segment,progress:0,color:colors[i]};
-        this.addChild(segment);
-    }
-
-    this.addChild(this._highlight);
 };
 
 App.ReportChart.prototype = Object.create(PIXI.Graphics.prototype);
+
+/**
+ * Generate chart segments
+ * @private
+ */
+App.ReportChart.prototype._generateSegments = function _generateSegments()
+{
+    var i = 0,
+        l = 0,
+        j = 0,
+        k = 0,
+        totalBalance = 0.0,
+        deletedState = App.LifeCycleState.DELETED,
+        segment = null,
+        account = null,
+        categories = null;
+
+    // Release segments back to pool
+    if (this._segments)
+    {
+        while (this._segments.length)
+        {
+            segment = this._segments.pop();
+            this.removeChild(segment);
+            this._segmentPool.release(segment);
+        }
+    }
+    else
+    {
+        this._segments = [];
+    }
+
+    // Calculate total balance
+    for (l=this._model.length();i<l;)
+    {
+        account = this._model.getItemAt(i++);
+        if (account.lifeCycleState !== deletedState) totalBalance += account.calculateBalance();
+        console.log(account.calculateBalance());
+    }
+    console.log(totalBalance);
+
+    // Populate segments again
+    for (i=0;i<l;)
+    {
+        account = this._model.getItemAt(i++);
+        if (account.lifeCycleState !== deletedState)
+        {
+            categories = account.categories;
+            for (j=0,k=categories.length;j<k;)
+            {
+                segment = this._segmentPool.allocate();
+                segment.setModel(categories[j++],totalBalance);
+                this.addChild(segment);
+            }
+        }
+    }
+};
 
 /**
  * Show
@@ -12401,6 +12504,8 @@ App.ReportChart.prototype.show = function show()
     if (this._transitionState === TransitionState.HIDDEN)
     {
         this._registerEventListeners();
+
+        this._generateSegments();
 
         this._transitionState = TransitionState.SHOWING;
 
@@ -12443,7 +12548,7 @@ App.ReportChart.prototype.hide = function hide()
  */
 App.ReportChart.prototype.highlightSegment = function highlightSegment(segment)
 {
-    if (segment === this._highlightSegment) return;
+    /*if (segment === this._highlightSegment) return;
 
     if (this._transitionState === App.TransitionState.SHOWN)
     {
@@ -12460,7 +12565,7 @@ App.ReportChart.prototype.highlightSegment = function highlightSegment(segment)
         this._updateHighlight = true;
 
         this._tween.restart();
-    }
+    }*/
 };
 
 /**
@@ -12517,7 +12622,7 @@ App.ReportChart.prototype._updateTween = function _updateTween(hiRes)
         progress = this._tween.progress,
         i = 0,
         l = this._segments.length,
-        steps = hiRes ? 20 : 10,
+        steps = 20,//hiRes ? 20 : 10,
         start = 0,
         fraction = 0,
         segment = null;
@@ -12615,7 +12720,7 @@ App.ReportScreen = function ReportScreen(layout)
     this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
     this._buttonPool = new ObjectPool(App.ReportAccountButton,2,buttonOptions);
 
-    this._chart = this.addChild(new App.ReportChart(null,chartSize,chartSize,r));
+    this._chart = this.addChild(new App.ReportChart(this._model,chartSize,chartSize,r));
     this._buttonList = new App.TileList(App.Direction.Y,listHeight);
     this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,listWidth,listHeight,r,true));
     this._pane.setContent(this._buttonList);
@@ -15520,7 +15625,7 @@ App.ChangeTransaction.prototype._updateSavedBalance = function _updateSavedBalan
         savedSubCategory = transaction.savedSubCategory,
         rate = transaction.savedCurrencyRate ? transaction.savedCurrencyRate : currencyPairCollection.findRate(transaction.savedCurrencyBase,transaction.savedCurrencyQuote),
         savedAmount = transaction.savedAmount / rate;
-    console.log(rate,savedAmount);
+
     if (transaction.savedType === TransactionType.EXPENSE)
     {
         savedSubCategory.balance = savedSubCategory.balance + savedAmount;
@@ -15543,7 +15648,7 @@ App.ChangeTransaction.prototype._updateCurrentBalance = function _updateCurrentB
 {
     var TransactionType = App.TransactionType,
         subCategory = transaction.subCategory,
-        currentAmount = parseFloat(data.amount) / currencyPairCollection.findRate(settings.baseCurrency,transaction.currencyQuote);//TODO also here, if transaction was saved with rate, use the rate (only in case the Quote didnt change)
+        currentAmount = parseFloat(data.amount) / currencyPairCollection.findRate(settings.baseCurrency,transaction.currencyQuote);
 
     if (data.transactionType === TransactionType.EXPENSE)
     {

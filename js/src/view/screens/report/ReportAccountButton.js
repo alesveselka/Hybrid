@@ -26,9 +26,8 @@ App.ReportAccountButton = function ReportAccountButton(poolIndex,options)
     this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
     this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
     this._categoryList = new App.List(App.Direction.Y);
+    this._renderAll = true;
     this._updated = false;
-
-    this._render();
 
     this._setContent(this._categoryList);
     this.addChild(this._categoryList);
@@ -42,19 +41,26 @@ App.ReportAccountButton.prototype = Object.create(App.ExpandButton.prototype);
  */
 App.ReportAccountButton.prototype._render = function _render()
 {
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
-        w = this.boundingBox.width,
-        h = this.boundingBox.height;
+    var w = this.boundingBox.width;
 
-    GraphicUtils.drawRects(this._background,ColorTheme.BLUE,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.BLUE_DARK,1,[0,h-1,w,1],false,true);
+    if (this._renderAll)
+    {
+        this._renderAll = false;
 
-    this._nameField.x = Math.round(10 * this._pixelRatio);
-    this._nameField.y = Math.round((h - this._nameField.height) / 2);
+        var GraphicUtils = App.GraphicUtils,
+            ColorTheme = App.ColorTheme,
+            h = this.boundingBox.height;
+
+        GraphicUtils.drawRects(this._background,ColorTheme.BLUE,1,[0,0,w,h],true,false);
+        GraphicUtils.drawRects(this._background,ColorTheme.BLUE_DARK,1,[0,h-1,w,1],false,true);
+
+        this._nameField.x = Math.round(10 * this._pixelRatio);
+        this._nameField.y = Math.round((h - this._nameField.height) / 2);
+
+        this._amountField.y = Math.round((h - this._amountField.height) / 2);
+    }
 
     this._amountField.x = Math.round(w - this._amountField.width - 10 * this._pixelRatio);
-    this._amountField.y = Math.round((h - this._amountField.height) / 2);
 };
 
 /**
@@ -70,6 +76,9 @@ App.ReportAccountButton.prototype.setModel = function setModel(model)
     this.close(true);
 
     this._nameField.setText(this._model.name);
+    this._amountField.setText(Math.abs(this._model.calculateBalance()));//TODO format number
+
+    this._render();
 };
 
 /**
@@ -81,6 +90,7 @@ App.ReportAccountButton.prototype._update = function _update()
 
     var i = 0,
         l = this._categoryList.length,
+        accountBalance = this._model.balance,
         categories = this._model.categories,
         category = null,
         button = null;
@@ -91,7 +101,7 @@ App.ReportAccountButton.prototype._update = function _update()
     {
         category = categories[i++];
         button = this._buttonPool.allocate();
-        button.setModel(category);
+        button.setModel(category,accountBalance);
         this._categoryList.add(button);
     }
     this._categoryList.updateLayout();

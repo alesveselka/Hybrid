@@ -35,6 +35,7 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
         this._subCategories = null;
     }
 
+    this.balance = 0.0;
 //    this._lifeCycleState = App.LifeCycleState.CREATED;
     this._states = null;
 };
@@ -61,6 +62,23 @@ App.Category.prototype.destroy = function destroy()
     }
 
     this._data = null;
+};
+
+/**
+ * Calculate balance
+ * @returns {number}
+ */
+App.Category.prototype.calculateBalance = function calculateBalance()
+{
+    var collection = this.subCategories, // Inflate subCategories
+        i = 0,
+        l = this._subCategories.length;
+
+    this.balance = 0.0;
+
+    for (;i<l;) this.balance += this._subCategories[i++].balance;
+
+    return this.balance;
 };
 
 /**
