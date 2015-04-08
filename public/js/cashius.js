@@ -2120,8 +2120,8 @@ Object.defineProperty(App.Transaction.prototype,'savedPending',{
 });
 
 /**
- * @property savedPending
- * @type boolean
+ * @property savedSubCategory
+ * @type App.SubCategory
  */
 Object.defineProperty(App.Transaction.prototype,'savedSubCategory',{
     get:function()
@@ -2131,8 +2131,8 @@ Object.defineProperty(App.Transaction.prototype,'savedSubCategory',{
 });
 
 /**
- * @property savedPending
- * @type boolean
+ * @property savedCurrencyBase
+ * @type string
  */
 Object.defineProperty(App.Transaction.prototype,'savedCurrencyBase',{
     get:function()
@@ -2143,14 +2143,26 @@ Object.defineProperty(App.Transaction.prototype,'savedCurrencyBase',{
 });
 
 /**
- * @property savedPending
- * @type boolean
+ * @property savedCurrencyQuote
+ * @type string
  */
 Object.defineProperty(App.Transaction.prototype,'savedCurrencyQuote',{
     get:function()
     {
         if (this._data[7].indexOf("@") === -1) return this._data[7];
         else return this._data[7].split("@")[0].split("/")[1];
+    }
+});
+
+/**
+ * @property savedCurrencyRate
+ * @type number
+ */
+Object.defineProperty(App.Transaction.prototype,'savedCurrencyRate',{
+    get:function()
+    {
+        if (this._data[7].indexOf("@") === -1) return null;
+        else return parseFloat(this._data[7].split("@")[1]);
     }
 });
 
@@ -15506,8 +15518,9 @@ App.ChangeTransaction.prototype._updateSavedBalance = function _updateSavedBalan
 {
     var TransactionType = App.TransactionType,
         savedSubCategory = transaction.savedSubCategory,
-        savedAmount = transaction.savedAmount / currencyPairCollection.findRate(transaction.savedCurrencyBase,transaction.savedCurrencyQuote);
-
+        rate = transaction.savedCurrencyRate ? transaction.savedCurrencyRate : currencyPairCollection.findRate(transaction.savedCurrencyBase,transaction.savedCurrencyQuote),
+        savedAmount = transaction.savedAmount / rate;
+    console.log(rate,savedAmount);
     if (transaction.savedType === TransactionType.EXPENSE)
     {
         savedSubCategory.balance = savedSubCategory.balance + savedAmount;
@@ -15530,7 +15543,7 @@ App.ChangeTransaction.prototype._updateCurrentBalance = function _updateCurrentB
 {
     var TransactionType = App.TransactionType,
         subCategory = transaction.subCategory,
-        currentAmount = parseFloat(data.amount) / currencyPairCollection.findRate(settings.baseCurrency,transaction.currencyQuote);
+        currentAmount = parseFloat(data.amount) / currencyPairCollection.findRate(settings.baseCurrency,transaction.currencyQuote);//TODO also here, if transaction was saved with rate, use the rate (only in case the Quote didnt change)
 
     if (data.transactionType === TransactionType.EXPENSE)
     {

@@ -228,7 +228,8 @@ App.ChangeTransaction.prototype._updateSavedBalance = function _updateSavedBalan
 {
     var TransactionType = App.TransactionType,
         savedSubCategory = transaction.savedSubCategory,
-        savedAmount = transaction.savedAmount / currencyPairCollection.findRate(transaction.savedCurrencyBase,transaction.savedCurrencyQuote);
+        rate = transaction.savedCurrencyRate ? transaction.savedCurrencyRate : currencyPairCollection.findRate(transaction.savedCurrencyBase,transaction.savedCurrencyQuote),
+        savedAmount = transaction.savedAmount / rate;
 
     if (transaction.savedType === TransactionType.EXPENSE)
     {
