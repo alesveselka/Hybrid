@@ -54,7 +54,7 @@ App.GraphicUtils = {
      * @param {number} height
      * @param {number} radius
      */
-    drawRoundedRect:function drawRect(graphics,color,alpha,x,y,width,height,radius)
+    drawRoundedRect:function drawRoundedRect(graphics,color,alpha,x,y,width,height,radius)
     {
         graphics.clear();
         graphics.beginFill(color,alpha);
