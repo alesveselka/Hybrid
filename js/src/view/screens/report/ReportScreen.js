@@ -53,7 +53,7 @@ App.ReportScreen = function ReportScreen(layout)
     this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
     this._buttonPool = new ObjectPool(App.ReportAccountButton,2,buttonOptions);
 
-    this._chart = this.addChild(new App.ReportChart(null,chartSize,chartSize,r));
+    this._chart = this.addChild(new App.ReportChart(this._model,chartSize,chartSize,r));
     this._buttonList = new App.TileList(App.Direction.Y,listHeight);
     this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,listWidth,listHeight,r,true));
     this._pane.setContent(this._buttonList);

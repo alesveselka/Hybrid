@@ -544,7 +544,7 @@ App.GraphicUtils = {
      * @param {number} height
      * @param {number} radius
      */
-    drawRoundedRect:function drawRect(graphics,color,alpha,x,y,width,height,radius)
+    drawRoundedRect:function drawRoundedRect(graphics,color,alpha,x,y,width,height,radius)
     {
         graphics.clear();
         graphics.beginFill(color,alpha);
@@ -11988,40 +11988,53 @@ App.ReportSubCategoryButton = function ReportSubCategoryButton(poolIndex,options
     this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
     this._percentField = this.addChild(new PIXI.Text("%",options.labelStyles.percent));
     this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
-
-    this._render();
+    this._renderAll = true;
 };
 
 App.ReportSubCategoryButton.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 
 /**
  * Render
+ * @param {number} color
  * @private
  */
-App.ReportSubCategoryButton.prototype._render = function _render()
+App.ReportSubCategoryButton.prototype._render = function _render(color)
 {
     var padding = Math.round(10 * this._pixelRatio),
         w = this.boundingBox.width,
         h = this.boundingBox.height;
 
-    this._nameField.x = padding * 2;
-    this._nameField.y = Math.round((h - this._nameField.height) / 2);
+    if (this._renderAll)
+    {
+        this._renderAll = false;
+
+        this._nameField.x = padding * 2;
+        this._nameField.y = Math.round((h - this._nameField.height) / 2);
+        this._percentField.y = Math.round((h - this._percentField.height) / 2);
+        this._amountField.y = Math.round((h - this._amountField.height) / 2);
+    }
+
+    App.GraphicUtils.drawRect(this._colorStripe,color,1,0,0,Math.round(2 * this._pixelRatio),h);
+
     this._percentField.x = Math.round(w * 0.7 - this._percentField.width);
-    this._percentField.y = Math.round((h - this._percentField.height) / 2);
     this._amountField.x = Math.round(w - padding - this._amountField.width);
-    this._amountField.y = Math.round((h - this._amountField.height) / 2);
 };
 
 /**
  * Set model
  * @param {App.SubCategory} model
+ * @param {number} accountBalance
  * @param {string} color
  */
-App.ReportSubCategoryButton.prototype.setModel = function setModel(model,color)
+App.ReportSubCategoryButton.prototype.setModel = function setModel(model,accountBalance,color)
 {
     this._model = model;
 
-    this._update(color);
+    this._nameField.setText(this._model.name);
+    this._percentField.setText(((this._model.balance / accountBalance) * 100).toFixed(1) + " %");
+    this._amountField.setText(Math.abs(this._model.balance));
+
+    this._render(color);
 };
 
 /**
@@ -12033,7 +12046,7 @@ App.ReportSubCategoryButton.prototype._update = function _update(color)
 {
     this._nameField.setText(this._model.name);
 
-    App.GraphicUtils.drawRect(this._colorStripe,color,1,0,0,Math.round(2 * this._pixelRatio),this.boundingBox.height);
+    this._render();
 };
 
 /**
@@ -12057,6 +12070,7 @@ App.ReportCategoryButton = function ReportCategoryButton(poolIndex,options)
     this.poolIndex = poolIndex;
 
     this._model = null;
+    this._accountBalance = 0.0;
     this._pixelRatio = options.pixelRatio;
     this._buttonPool = options.subCategoryButtonPool;
 
@@ -12066,9 +12080,8 @@ App.ReportCategoryButton = function ReportCategoryButton(poolIndex,options)
     this._percentField = this.addChild(new PIXI.Text("%",options.labelStyles.percent));
     this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
     this._subCategoryList = new App.List(App.Direction.Y);
+    this._renderAll = true;
     this._updated = false;
-
-    this._render();
 
     this._setContent(this._subCategoryList);
     this.addChild(this._subCategoryList);
@@ -12086,29 +12099,41 @@ App.ReportCategoryButton.prototype._render = function _render()
         w = this.boundingBox.width,
         h = this.boundingBox.height;
 
-    this._nameField.x = Math.round(15 * this._pixelRatio);
-    this._nameField.y = Math.round((h - this._nameField.height) / 2);
+    if (this._renderAll)
+    {
+        this._renderAll = false;
+
+        this._nameField.x = Math.round(15 * this._pixelRatio);
+        this._nameField.y = Math.round((h - this._nameField.height) / 2);
+        this._percentField.y = Math.round((h - this._percentField.height) / 2);
+        this._amountField.y = Math.round((h - this._amountField.height) / 2);
+    }
+
+    App.GraphicUtils.drawRect(this._colorStripe,"0x" + this._model.color,1,0,0,Math.round(4 * this._pixelRatio),h);
+
     this._percentField.x = Math.round(w * 0.7 - this._percentField.width);
-    this._percentField.y = Math.round((h - this._percentField.height) / 2);
     this._amountField.x = Math.round(w - padding - this._amountField.width);
-    this._amountField.y = Math.round((h - this._amountField.height) / 2);
 };
 
 /**
  * Set model
  * @param {App.Category} model
+ * @param {number} accountBalance
  */
-App.ReportCategoryButton.prototype.setModel = function setModel(model)
+App.ReportCategoryButton.prototype.setModel = function setModel(model,accountBalance)
 {
     this._updated = false;
 
     this._model = model;
+    this._accountBalance = accountBalance;
 
     this.close(true);
 
     this._nameField.setText(this._model.name);
+    this._percentField.setText(((this._model.balance / this._accountBalance) * 100).toFixed(1) + " %");
+    this._amountField.setText(Math.abs(this._model.balance));//TODO format number
 
-    App.GraphicUtils.drawRect(this._colorStripe,"0x" + this._model.color,1,0,0,Math.round(4 * this._pixelRatio),this.boundingBox.height);
+    this._render();
 };
 
 /**
@@ -12132,7 +12157,7 @@ App.ReportCategoryButton.prototype._update = function _update()
     {
         subCategory = subCategories[i++];
         button = this._buttonPool.allocate();
-        button.setModel(subCategory,color);
+        button.setModel(subCategory,this._accountBalance,color);
         this._subCategoryList.add(button);
     }
     this._subCategoryList.updateLayout();
@@ -12186,9 +12211,8 @@ App.ReportAccountButton = function ReportAccountButton(poolIndex,options)
     this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
     this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
     this._categoryList = new App.List(App.Direction.Y);
+    this._renderAll = true;
     this._updated = false;
-
-    this._render();
 
     this._setContent(this._categoryList);
     this.addChild(this._categoryList);
@@ -12202,19 +12226,26 @@ App.ReportAccountButton.prototype = Object.create(App.ExpandButton.prototype);
  */
 App.ReportAccountButton.prototype._render = function _render()
 {
-    var GraphicUtils = App.GraphicUtils,
-        ColorTheme = App.ColorTheme,
-        w = this.boundingBox.width,
-        h = this.boundingBox.height;
+    var w = this.boundingBox.width;
 
-    GraphicUtils.drawRects(this._background,ColorTheme.BLUE,1,[0,0,w,h],true,false);
-    GraphicUtils.drawRects(this._background,ColorTheme.BLUE_DARK,1,[0,h-1,w,1],false,true);
+    if (this._renderAll)
+    {
+        this._renderAll = false;
 
-    this._nameField.x = Math.round(10 * this._pixelRatio);
-    this._nameField.y = Math.round((h - this._nameField.height) / 2);
+        var GraphicUtils = App.GraphicUtils,
+            ColorTheme = App.ColorTheme,
+            h = this.boundingBox.height;
+
+        GraphicUtils.drawRects(this._background,ColorTheme.BLUE,1,[0,0,w,h],true,false);
+        GraphicUtils.drawRects(this._background,ColorTheme.BLUE_DARK,1,[0,h-1,w,1],false,true);
+
+        this._nameField.x = Math.round(10 * this._pixelRatio);
+        this._nameField.y = Math.round((h - this._nameField.height) / 2);
+
+        this._amountField.y = Math.round((h - this._amountField.height) / 2);
+    }
 
     this._amountField.x = Math.round(w - this._amountField.width - 10 * this._pixelRatio);
-    this._amountField.y = Math.round((h - this._amountField.height) / 2);
 };
 
 /**
@@ -12230,6 +12261,9 @@ App.ReportAccountButton.prototype.setModel = function setModel(model)
     this.close(true);
 
     this._nameField.setText(this._model.name);
+    this._amountField.setText(Math.abs(this._model.calculateBalance()));//TODO format number
+
+    this._render();
 };
 
 /**
@@ -12241,6 +12275,7 @@ App.ReportAccountButton.prototype._update = function _update()
 
     var i = 0,
         l = this._categoryList.length,
+        accountBalance = this._model.balance,
         categories = this._model.categories,
         category = null,
         button = null;
@@ -12251,7 +12286,7 @@ App.ReportAccountButton.prototype._update = function _update()
     {
         category = categories[i++];
         button = this._buttonPool.allocate();
-        button.setModel(category);
+        button.setModel(category,accountBalance);
         this._categoryList.add(button);
     }
     this._categoryList.updateLayout();
@@ -12388,6 +12423,11 @@ App.ReportChartSegment = function ReportChartSegment(poolIndex,options)
 
     this._model = null;
     //this._pixelRatio = options.pixelRatio;
+    this.color = 0;
+    this.fraction = 0.0;
+    this.startAngle = 0.0;
+    this.endAngle = 0.0;
+    this.fullyRendered = false;
 };
 
 App.ReportChartSegment.prototype = Object.create(PIXI.Graphics.prototype);
@@ -12396,10 +12436,16 @@ App.ReportChartSegment.prototype = Object.create(PIXI.Graphics.prototype);
  * Set model
  * @param {App.Category} model
  * @param {number} totalBalance
+ * @param {number} previousBalance
  */
-App.ReportChartSegment.prototype.setModel = function setModel(model,totalBalance)
+App.ReportChartSegment.prototype.setModel = function setModel(model,totalBalance,previousBalance)
 {
     this._model = model;
+    this.color = this._model.color;
+    this.fraction = (this._model.balance / totalBalance) ;
+    this.startAngle = Math.abs(previousBalance / totalBalance) * 360;
+    this.endAngle = this.startAngle + this.fraction * 360;
+    this.fullyRendered = false;
 };
 
 /**
@@ -12443,14 +12489,16 @@ App.ReportChart.prototype = Object.create(PIXI.Graphics.prototype);
  */
 App.ReportChart.prototype._generateSegments = function _generateSegments()
 {
-    var i = 0,
-        l = 0,
+    var i = 1,
+        l = this._model.length(),
         j = 0,
         k = 0,
         totalBalance = 0.0,
+        previousBalance = 0.0,
         deletedState = App.LifeCycleState.DELETED,
         segment = null,
         account = null,
+        category = null,
         categories = null;
 
     // Release segments back to pool
@@ -12469,13 +12517,11 @@ App.ReportChart.prototype._generateSegments = function _generateSegments()
     }
 
     // Calculate total balance
-    for (l=this._model.length();i<l;)
+    /*for (l=this._model.length();i<l;)
     {
         account = this._model.getItemAt(i++);
-        if (account.lifeCycleState !== deletedState) totalBalance += account.calculateBalance();
-        console.log(account.calculateBalance());
-    }
-    console.log(totalBalance);
+        if (account.lifeCycleState !== deletedState) totalBalance += account.balance;
+    }*/
 
     // Populate segments again
     for (i=0;i<l;)
@@ -12483,11 +12529,16 @@ App.ReportChart.prototype._generateSegments = function _generateSegments()
         account = this._model.getItemAt(i++);
         if (account.lifeCycleState !== deletedState)
         {
+            previousBalance = 0.0;
+            totalBalance = account.balance;
             categories = account.categories;
             for (j=0,k=categories.length;j<k;)
             {
+                if (category) previousBalance += category.balance;
+                category = categories[j++];
                 segment = this._segmentPool.allocate();
-                segment.setModel(categories[j++],totalBalance);
+                segment.setModel(category,totalBalance,previousBalance);
+                this._segments.push(segment);
                 this.addChild(segment);
             }
         }
@@ -12620,25 +12671,34 @@ App.ReportChart.prototype._updateTween = function _updateTween(hiRes)
     var GraphicUtils = App.GraphicUtils,
         TransitionState = App.TransitionState,
         progress = this._tween.progress,
+        progressAngle = progress * 360,
         i = 0,
         l = this._segments.length,
         steps = 20,//hiRes ? 20 : 10,
         start = 0,
-        fraction = 0,
+        end = 0,
         segment = null;
 
-    if (this._transitionState === TransitionState.HIDING || this._transitionState === TransitionState.HIDDEN)
+    /*if (this._transitionState === TransitionState.HIDING || this._transitionState === TransitionState.HIDDEN)
     {
         progress = 1 - progress;
-    }
+    }*/
 
     for (;i<l;i++)
     {
         segment = this._segments[i];
-        fraction = (i + 1) * (1 / l);
-        segment.progress = 360 * (progress < fraction ? progress : fraction);
-        start = i === 0 ? 0 : this._segments[i-1].progress;
-        GraphicUtils.drawArc(segment.graphics,this._center,this._chartSize,this._chartSize,this._thickness,start,segment.progress,steps,0,0,0,segment.color,1);
+        start = segment.startAngle;
+        if (progressAngle >= start && !segment.fullyRendered)
+        {
+            end = progressAngle;
+            if (end >= segment.endAngle)
+            {
+                end = segment.endAngle;
+                segment.fullyRendered = true;
+            }
+
+            GraphicUtils.drawArc(segment,this._center,this._chartSize,this._chartSize,this._thickness,start,end,steps,0,0,0,"0x"+segment.color,1);
+        }
     }
 };
 

@@ -1,7 +1,7 @@
 /**
  * @class ReportChart
  * @extends Graphics
- * @param {Collection} model
+ * @param {App.Collection} model
  * @param {number} width
  * @param {number} height
  * @param {number} pixelRatio
@@ -9,42 +9,91 @@
  */
 App.ReportChart = function ReportChart(model,width,height,pixelRatio)
 {
-    //TODO if there is just 1 account segments should represent categories of that account; otherwise segment will represent accounts
     var ModelLocator = App.ModelLocator,
-        ModelName = App.ModelName,
-        Graphics = PIXI.Graphics,
-        colors = [0xff0000,0xc066cc,0x0000ff],
-        i = 0,
-        l = 3,//TODO number of segments calculated from accounts
-        segment = null;
+        ModelName = App.ModelName;
 
-    Graphics.call(this);
+    PIXI.Graphics.call(this);
 
     this.boundingBox = new App.Rectangle(0,0,width,height);
 
+    this._model = model;
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
     this._tween = new App.TweenProxy(1,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
     this._transitionState = App.TransitionState.HIDDEN;
     this._eventsRegistered = false;
+    this._segmentPool = new App.ObjectPool(App.ReportChartSegment,5);
+    this._segments = null;
     this._center = new PIXI.Point(Math.round(width/2),Math.round(height/2));
-    this._thickness = Math.round(15 * pixelRatio);
+    this._thickness = Math.round(width * 0.07 * pixelRatio);
     this._chartSize = width - Math.round(5 * pixelRatio * 2);// 5px margin on sides for highlight line
-    this._segments = new Array(l);
-    this._highlight = new App.ReportChartHighlight(this._center,width,height,Math.round(3 * pixelRatio));
+    this._highlight = this.addChild(new App.ReportChartHighlight(this._center,width,height,Math.round(3 * pixelRatio)));
     this._updateHighlight = false;
     this._highlightSegment = void 0;
-
-    for (;i<l;i++)
-    {
-        segment = new Graphics();
-        this._segments[i] = {graphics:segment,progress:0,color:colors[i]};
-        this.addChild(segment);
-    }
-
-    this.addChild(this._highlight);
 };
 
 App.ReportChart.prototype = Object.create(PIXI.Graphics.prototype);
+
+/**
+ * Generate chart segments
+ * @private
+ */
+App.ReportChart.prototype._generateSegments = function _generateSegments()
+{
+    var i = 1,
+        l = this._model.length(),
+        j = 0,
+        k = 0,
+        totalBalance = 0.0,
+        previousBalance = 0.0,
+        deletedState = App.LifeCycleState.DELETED,
+        segment = null,
+        account = null,
+        category = null,
+        categories = null;
+
+    // Release segments back to pool
+    if (this._segments)
+    {
+        while (this._segments.length)
+        {
+            segment = this._segments.pop();
+            this.removeChild(segment);
+            this._segmentPool.release(segment);
+        }
+    }
+    else
+    {
+        this._segments = [];
+    }
+
+    // Calculate total balance
+    /*for (l=this._model.length();i<l;)
+    {
+        account = this._model.getItemAt(i++);
+        if (account.lifeCycleState !== deletedState) totalBalance += account.balance;
+    }*/
+
+    // Populate segments again
+    for (i=0;i<l;)
+    {
+        account = this._model.getItemAt(i++);
+        if (account.lifeCycleState !== deletedState)
+        {
+            previousBalance = 0.0;
+            totalBalance = account.balance;
+            categories = account.categories;
+            for (j=0,k=categories.length;j<k;)
+            {
+                if (category) previousBalance += category.balance;
+                category = categories[j++];
+                segment = this._segmentPool.allocate();
+                segment.setModel(category,totalBalance,previousBalance);
+                this._segments.push(segment);
+                this.addChild(segment);
+            }
+        }
+    }
+};
 
 /**
  * Show
@@ -56,6 +105,8 @@ App.ReportChart.prototype.show = function show()
     if (this._transitionState === TransitionState.HIDDEN)
     {
         this._registerEventListeners();
+
+        this._generateSegments();
 
         this._transitionState = TransitionState.SHOWING;
 
@@ -98,7 +149,7 @@ App.ReportChart.prototype.hide = function hide()
  */
 App.ReportChart.prototype.highlightSegment = function highlightSegment(segment)
 {
-    if (segment === this._highlightSegment) return;
+    /*if (segment === this._highlightSegment) return;
 
     if (this._transitionState === App.TransitionState.SHOWN)
     {
@@ -115,7 +166,7 @@ App.ReportChart.prototype.highlightSegment = function highlightSegment(segment)
         this._updateHighlight = true;
 
         this._tween.restart();
-    }
+    }*/
 };
 
 /**
@@ -170,25 +221,34 @@ App.ReportChart.prototype._updateTween = function _updateTween(hiRes)
     var GraphicUtils = App.GraphicUtils,
         TransitionState = App.TransitionState,
         progress = this._tween.progress,
+        progressAngle = progress * 360,
         i = 0,
         l = this._segments.length,
-        steps = hiRes ? 20 : 10,
+        steps = 20,//hiRes ? 20 : 10,
         start = 0,
-        fraction = 0,
+        end = 0,
         segment = null;
 
-    if (this._transitionState === TransitionState.HIDING || this._transitionState === TransitionState.HIDDEN)
+    /*if (this._transitionState === TransitionState.HIDING || this._transitionState === TransitionState.HIDDEN)
     {
         progress = 1 - progress;
-    }
+    }*/
 
     for (;i<l;i++)
     {
         segment = this._segments[i];
-        fraction = (i + 1) * (1 / l);
-        segment.progress = 360 * (progress < fraction ? progress : fraction);
-        start = i === 0 ? 0 : this._segments[i-1].progress;
-        GraphicUtils.drawArc(segment.graphics,this._center,this._chartSize,this._chartSize,this._thickness,start,segment.progress,steps,0,0,0,segment.color,1);
+        start = segment.startAngle;
+        if (progressAngle >= start && !segment.fullyRendered)
+        {
+            end = progressAngle;
+            if (end >= segment.endAngle)
+            {
+                end = segment.endAngle;
+                segment.fullyRendered = true;
+            }
+
+            GraphicUtils.drawArc(segment,this._center,this._chartSize,this._chartSize,this._thickness,start,end,steps,0,0,0,"0x"+segment.color,1);
+        }
     }
 };
 
