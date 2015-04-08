@@ -1,4 +1,9 @@
-App.ReportChartSegment = function ReportChartSegment(poolIndex,options)
+/**
+ * @class ReportChartSegment
+ * @param {number} poolIndex
+ * @constructor
+ */
+App.ReportChartSegment = function ReportChartSegment(poolIndex)
 {
     PIXI.Graphics.call(this);
 
@@ -6,7 +11,7 @@ App.ReportChartSegment = function ReportChartSegment(poolIndex,options)
     this.poolIndex = poolIndex;
 
     this._model = null;
-    //this._pixelRatio = options.pixelRatio;
+
     this.color = 0;
     this.fraction = 0.0;
     this.startAngle = 0.0;

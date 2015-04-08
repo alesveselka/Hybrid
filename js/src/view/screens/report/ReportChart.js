@@ -19,18 +19,17 @@ App.ReportChart = function ReportChart(model,width,height,pixelRatio)
     this._model = model;
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
     this._tween = new App.TweenProxy(1,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
-    this._transitionState = App.TransitionState.HIDDEN;
     this._eventsRegistered = false;
     this._segmentPool = new App.ObjectPool(App.ReportChartSegment,5);
     this._segments = null;
+    this._showSegments = void 0;
+    this._hideSegments = void 0;
+    this._highlightSegment = void 0;
     this._center = new PIXI.Point(Math.round(width/2),Math.round(height/2));
     this._thickness = Math.round(width * 0.07 * pixelRatio);
     this._chartSize = width - Math.round(5 * pixelRatio * 2);// 5px margin on sides for highlight line
     this._highlight = this.addChild(new App.ReportChartHighlight(this._center,width,height,Math.round(3 * pixelRatio)));
     this._updateHighlight = false;
-    this._highlightSegment = void 0;
-    this._showSegments = void 0;
-    this._hideSegments = void 0;
 };
 
 App.ReportChart.prototype = Object.create(PIXI.Graphics.prototype);
@@ -101,52 +100,6 @@ App.ReportChart.prototype.update = function update()
 };
 
 /**
- * Show
- */
-/*App.ReportChart.prototype.show = function show()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.HIDDEN)
-    {
-        this._registerEventListeners();
-
-        this._transitionState = TransitionState.SHOWING;
-
-        this._tween.start();
-    }
-    else if (this._transitionState === TransitionState.HIDING)
-    {
-        this._transitionState = TransitionState.SHOWING;
-
-        this._tween.restart();
-    }
-};*/
-
-/**
- * Hide
- */
-/*App.ReportChart.prototype.hide = function hide()
-{
-    var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.SHOWN)
-    {
-        this._registerEventListeners();
-
-        this._transitionState = TransitionState.HIDING;
-
-        this._tween.start();
-    }
-    else if (this._transitionState === TransitionState.SHOWING)
-    {
-        this._transitionState = TransitionState.HIDING;
-
-        this._tween.restart();
-    }
-};*/
-
-/**
  * Show segments associated with account passed in
  * @param {App.Account} account
  */
@@ -168,8 +121,6 @@ App.ReportChart.prototype.showSegments = function showSegments(account)
     for (var i=0,l=this._showSegments.length;i<l;) this._showSegments[i++].fullyRendered = false;
 
     this._registerEventListeners();
-
-    //this._transitionState = App.TransitionState.SHOWING;
 
     this._tween.restart();
 };
@@ -296,11 +247,6 @@ App.ReportChart.prototype._updateTween = function _updateTween()
  */
 App.ReportChart.prototype._onTweenComplete = function _onTweenComplete()
 {
-    /*var TransitionState = App.TransitionState;
-
-    if (this._transitionState === TransitionState.SHOWING) this._transitionState = TransitionState.SHOWN;
-    else if (this._transitionState === TransitionState.HIDING) this._transitionState = TransitionState.HIDDEN;*/
-
     this._updateTween();
 
     this._unRegisterEventListeners();
