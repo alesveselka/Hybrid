@@ -114,6 +114,8 @@ App.ReportScreen.prototype.update = function update()
 
     this._buttonList.updateLayout(true);
     this._pane.resize();
+
+    this._chart.update();
 };
 
 /**
@@ -126,7 +128,7 @@ App.ReportScreen.prototype._onTweenComplete = function _onTweenComplete()
 
     if (this._transitionState === App.TransitionState.SHOWN)
     {
-        this._chart.show();
+        this._chart.showSegments(this._buttonList.getItemAt(0).getModel());
     }
 };
 
@@ -196,7 +198,8 @@ App.ReportScreen.prototype._onClick = function _onClick()
         this._pane.cancelScroll();
         this._closeButtons();
 
-        this._chart.highlightSegment(this._buttonList.getChildIndex(this._interactiveButton));
+        //this._chart.highlightSegment(this._buttonList.getChildIndex(this._interactiveButton));
+        this._chart.showSegments(this._interactiveButton.getModel());
 
         this._layoutDirty = true;
     }

@@ -82,6 +82,15 @@ App.ReportAccountButton.prototype.setModel = function setModel(model)
 };
 
 /**
+ * Return button's model
+ * @returns {App.Account}
+ */
+App.ReportAccountButton.prototype.getModel = function getModel()
+{
+    return this._model;
+};
+
+/**
  * Update
  */
 App.ReportAccountButton.prototype._update = function _update()

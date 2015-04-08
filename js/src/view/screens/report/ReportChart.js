@@ -29,49 +29,51 @@ App.ReportChart = function ReportChart(model,width,height,pixelRatio)
     this._highlight = this.addChild(new App.ReportChartHighlight(this._center,width,height,Math.round(3 * pixelRatio)));
     this._updateHighlight = false;
     this._highlightSegment = void 0;
+    this._showSegments = void 0;
+    this._hideSegments = void 0;
 };
 
 App.ReportChart.prototype = Object.create(PIXI.Graphics.prototype);
 
 /**
- * Generate chart segments
- * @private
+ * Update
  */
-App.ReportChart.prototype._generateSegments = function _generateSegments()
+App.ReportChart.prototype.update = function update()
 {
-    var i = 1,
+    var i = 0,
         l = this._model.length(),
         j = 0,
         k = 0,
         totalBalance = 0.0,
         previousBalance = 0.0,
         deletedState = App.LifeCycleState.DELETED,
+        segmentArray = null,
         segment = null,
         account = null,
         category = null,
         categories = null;
 
+    this._showSegments = null;
+    this._hideSegments = null;
+
     // Release segments back to pool
     if (this._segments)
     {
-        while (this._segments.length)
+        for (var prop in this._segments)
         {
-            segment = this._segments.pop();
-            this.removeChild(segment);
-            this._segmentPool.release(segment);
+            segmentArray = this._segments[prop];
+            while (segmentArray.length)
+            {
+                segment = segmentArray.pop();
+                this.removeChild(segment);
+                this._segmentPool.release(segment);
+            }
         }
     }
     else
     {
-        this._segments = [];
+        this._segments = Object.create(null);
     }
-
-    // Calculate total balance
-    /*for (l=this._model.length();i<l;)
-    {
-        account = this._model.getItemAt(i++);
-        if (account.lifeCycleState !== deletedState) totalBalance += account.balance;
-    }*/
 
     // Populate segments again
     for (i=0;i<l;)
@@ -79,6 +81,9 @@ App.ReportChart.prototype._generateSegments = function _generateSegments()
         account = this._model.getItemAt(i++);
         if (account.lifeCycleState !== deletedState)
         {
+            if (!this._segments[account.id]) this._segments[account.id] = [];
+
+            segmentArray = this._segments[account.id];
             previousBalance = 0.0;
             totalBalance = account.balance;
             categories = account.categories;
@@ -88,7 +93,7 @@ App.ReportChart.prototype._generateSegments = function _generateSegments()
                 category = categories[j++];
                 segment = this._segmentPool.allocate();
                 segment.setModel(category,totalBalance,previousBalance);
-                this._segments.push(segment);
+                segmentArray.push(segment);
                 this.addChild(segment);
             }
         }
@@ -98,15 +103,13 @@ App.ReportChart.prototype._generateSegments = function _generateSegments()
 /**
  * Show
  */
-App.ReportChart.prototype.show = function show()
+/*App.ReportChart.prototype.show = function show()
 {
     var TransitionState = App.TransitionState;
 
     if (this._transitionState === TransitionState.HIDDEN)
     {
         this._registerEventListeners();
-
-        this._generateSegments();
 
         this._transitionState = TransitionState.SHOWING;
 
@@ -118,12 +121,12 @@ App.ReportChart.prototype.show = function show()
 
         this._tween.restart();
     }
-};
+};*/
 
 /**
  * Hide
  */
-App.ReportChart.prototype.hide = function hide()
+/*App.ReportChart.prototype.hide = function hide()
 {
     var TransitionState = App.TransitionState;
 
@@ -141,6 +144,34 @@ App.ReportChart.prototype.hide = function hide()
 
         this._tween.restart();
     }
+};*/
+
+/**
+ * Show segments associated with account passed in
+ * @param {App.Account} account
+ */
+App.ReportChart.prototype.showSegments = function showSegments(account)
+{
+    if (this._showSegments)
+    {
+        if (this._showSegments === this._segments[account.id]) return;
+
+        this._hideSegments = this._showSegments;
+    }
+    else
+    {
+        this._hideSegments = null;
+    }
+
+    this._showSegments = this._segments[account.id];
+
+    for (var i=0,l=this._showSegments.length;i<l;) this._showSegments[i++].fullyRendered = false;
+
+    this._registerEventListeners();
+
+    //this._transitionState = App.TransitionState.SHOWING;
+
+    this._tween.restart();
 };
 
 /**
@@ -207,47 +238,54 @@ App.ReportChart.prototype._onTick = function _onTick()
     if (this._tween.isRunning())
     {
         if (this._updateHighlight) this._highlight.update(this._tween.progress);
-        else this._updateTween(false);
+        else this._updateTween();
     }
 };
 
 /**
  * Update show hide tween
- * @param {boolean} hiRes Indicate render chart in high-resolution
  * @private
  */
-App.ReportChart.prototype._updateTween = function _updateTween(hiRes)
+App.ReportChart.prototype._updateTween = function _updateTween()
 {
     var GraphicUtils = App.GraphicUtils,
-        TransitionState = App.TransitionState,
         progress = this._tween.progress,
         progressAngle = progress * 360,
+        size = this._chartSize,
         i = 0,
-        l = this._segments.length,
-        steps = 20,//hiRes ? 20 : 10,
-        start = 0,
+        l = this._showSegments.length,
+        steps = 20,//hiRes ? 20 : 10,//TODO adjust steps to chart size
         end = 0,
         segment = null;
 
-    /*if (this._transitionState === TransitionState.HIDING || this._transitionState === TransitionState.HIDDEN)
+    if (this._showSegments)
+    {
+        for (;i<l;i++)
+        {
+            segment = this._showSegments[i];
+            if (progressAngle >= segment.startAngle && !segment.fullyRendered)
+            {
+                end = progressAngle;
+                if (end >= segment.endAngle)
+                {
+                    end = segment.endAngle;
+                    segment.fullyRendered = true;
+                }
+
+                GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,end,steps,0,0,0,"0x"+segment.color,1);
+            }
+        }
+    }
+
+    if (this._hideSegments)
     {
         progress = 1 - progress;
-    }*/
+        size = this._chartSize * progress;
 
-    for (;i<l;i++)
-    {
-        segment = this._segments[i];
-        start = segment.startAngle;
-        if (progressAngle >= start && !segment.fullyRendered)
+        for (i=0,l=this._hideSegments.length;i<l;i++)
         {
-            end = progressAngle;
-            if (end >= segment.endAngle)
-            {
-                end = segment.endAngle;
-                segment.fullyRendered = true;
-            }
-
-            GraphicUtils.drawArc(segment,this._center,this._chartSize,this._chartSize,this._thickness,start,end,steps,0,0,0,"0x"+segment.color,1);
+            segment = this._hideSegments[i];
+            GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,segment.endAngle,steps,0,0,0,"0x"+segment.color,progress);
         }
     }
 };
@@ -258,12 +296,12 @@ App.ReportChart.prototype._updateTween = function _updateTween(hiRes)
  */
 App.ReportChart.prototype._onTweenComplete = function _onTweenComplete()
 {
-    var TransitionState = App.TransitionState;
+    /*var TransitionState = App.TransitionState;
 
     if (this._transitionState === TransitionState.SHOWING) this._transitionState = TransitionState.SHOWN;
-    else if (this._transitionState === TransitionState.HIDING) this._transitionState = TransitionState.HIDDEN;
+    else if (this._transitionState === TransitionState.HIDING) this._transitionState = TransitionState.HIDDEN;*/
 
-    this._updateTween(true);
+    this._updateTween();
 
     this._unRegisterEventListeners();
 
