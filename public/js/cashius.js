@@ -654,6 +654,7 @@ App.LayoutUtils = {
  * @type {{encode: Function}}
  */
 App.StringUtils = {
+    _threeCharPattern:/.{1,3}/g,
     /**
      * Encode URI component
      * @param {string} str
@@ -673,6 +674,23 @@ App.StringUtils = {
     {
         if (value < 10) return '0' + value;
         return value;
+    },
+
+    /**
+     * Format number passed in
+     * @param {number} value
+     * @param {number} decimal Fixed number of decimal places
+     * @param {string} separator
+     */
+    formatNumber:function formatNumber(value,decimal,separator)
+    {
+        var num = String(value.toFixed(decimal)),
+            decimals = num.split("."),
+            integer = decimals[0],
+            reversed = integer.split("").reverse().join(""),
+            formatted = reversed.length > 3 ? reversed.match(this._threeCharPattern).join(separator) : reversed;
+
+        return formatted.split("").reverse().join("") + "." + decimals[1];
     }
 };
 
@@ -12041,7 +12059,7 @@ App.ReportSubCategoryButton.prototype.setModel = function setModel(model,account
 
     this._nameField.setText(this._model.name);
     this._percentField.setText(((this._model.balance / accountBalance) * 100).toFixed(1) + " %");
-    this._amountField.setText(Math.abs(this._model.balance));
+    this._amountField.setText(App.StringUtils.formatNumber(Math.abs(this._model.balance),2,","));
 
     this._render(color);
 };
@@ -12140,7 +12158,7 @@ App.ReportCategoryButton.prototype.setModel = function setModel(model,accountBal
 
     this._nameField.setText(this._model.name);
     this._percentField.setText(((this._model.balance / this._accountBalance) * 100).toFixed(1) + " %");
-    this._amountField.setText(Math.abs(this._model.balance));//TODO format number
+    this._amountField.setText(App.StringUtils.formatNumber(Math.abs(this._model.balance),2,","));
 
     this._render();
 };
@@ -12280,7 +12298,7 @@ App.ReportAccountButton.prototype.setModel = function setModel(model)
     this.close(true);
 
     this._nameField.setText(this._model.name);
-    this._amountField.setText(Math.abs(this._model.calculateBalance()));//TODO format number
+    this._amountField.setText(App.StringUtils.formatNumber(Math.abs(this._model.calculateBalance()),2,","));
 
     this._render();
 };
@@ -12622,7 +12640,7 @@ App.ReportChart.prototype.update = function update()
     for (i=0;i<l;)
     {
         account = this._model.getItemAt(i++);
-        if (account.lifeCycleState !== deletedState)
+        if (account.lifeCycleState !== deletedState)//TODO also check if account has any categories
         {
             if (!this._segments[account.id]) this._segments[account.id] = [];
 
@@ -12926,7 +12944,7 @@ App.ReportScreen.prototype.update = function update()
     for (i=0,l=this._model.length();i<l;)
     {
         account = this._model.getItemAt(i++);
-        if (account.lifeCycleState !== deletedState)
+        if (account.lifeCycleState !== deletedState)//TODO also check if account has any categories
         {
             button = this._buttonPool.allocate();
             button.setModel(account);

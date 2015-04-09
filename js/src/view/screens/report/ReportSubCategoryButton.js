@@ -70,7 +70,7 @@ App.ReportSubCategoryButton.prototype.setModel = function setModel(model,account
 
     this._nameField.setText(this._model.name);
     this._percentField.setText(((this._model.balance / accountBalance) * 100).toFixed(1) + " %");
-    this._amountField.setText(Math.abs(this._model.balance));
+    this._amountField.setText(App.StringUtils.formatNumber(Math.abs(this._model.balance),2,","));
 
     this._render(color);
 };

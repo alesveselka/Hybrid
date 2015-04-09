@@ -104,7 +104,7 @@ App.ReportScreen.prototype.update = function update()
     for (i=0,l=this._model.length();i<l;)
     {
         account = this._model.getItemAt(i++);
-        if (account.lifeCycleState !== deletedState)
+        if (account.lifeCycleState !== deletedState)//TODO also check if account has any categories
         {
             button = this._buttonPool.allocate();
             button.setModel(account);

@@ -77,7 +77,7 @@ App.ReportAccountButton.prototype.setModel = function setModel(model)
     this.close(true);
 
     this._nameField.setText(this._model.name);
-    this._amountField.setText(Math.abs(this._model.calculateBalance()));//TODO format number
+    this._amountField.setText(App.StringUtils.formatNumber(Math.abs(this._model.calculateBalance()),2,","));
 
     this._render();
 };
