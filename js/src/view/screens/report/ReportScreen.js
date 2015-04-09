@@ -33,8 +33,8 @@ App.ReportScreen = function ReportScreen(layout)
                 skin:skin.NARROW_GREY_40,
                 labelStyles:{
                     name:FontStyle.get(18,FontStyle.BLUE),
-                    percent:FontStyle.get(16,FontStyle.GREY_DARK),
-                    amount:FontStyle.get(16,FontStyle.BLUE)
+                    percent:FontStyle.get(14,FontStyle.GREY_DARK),
+                    amount:FontStyle.get(14,FontStyle.BLUE)
                 },
                 subCategoryButtonPool:new ObjectPool(App.ReportSubCategoryButton,5,{
                     width:listWidth,
