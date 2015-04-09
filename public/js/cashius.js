@@ -12462,8 +12462,10 @@ App.ReportChartHighlight = function ReportChartHighlight(center,width,height,thi
     this._thickness = thickness;
     this._oldStart = 0;
     this._oldEnd = 0;
+    this._oldSteps = 0;
     this._start = 0;
     this._end = 0;
+    this._steps = 10;
     this._color = 0x000000;
 };
 
@@ -12477,17 +12479,20 @@ App.ReportChartHighlight.prototype.change = function change(segment)
 {
     this._oldStart = this._start;
     this._oldEnd = this._end;
+    this._oldSteps = this._steps;
 
     if (segment)
     {
         this._start = segment.startAngle;
         this._end = segment.endAngle;
+        this._steps = segment.steps;
         this._color = "0x"+segment.color;
     }
     else
     {
         this._start = 0.0;
         this._end = 0.0;
+        this._steps = 10;
     }
 };
 
@@ -12499,9 +12504,10 @@ App.ReportChartHighlight.prototype.update = function update(progress)
 {
     var start = this._oldStart + (this._start - this._oldStart) * progress,
         end = this._oldEnd + (this._end - this._oldEnd) * progress,
-        alpha = this._end === this._start ? 1 - progress : 1.0;
+        alpha = this._end === this._start ? 1 - progress : 1.0,
+        steps = Math.round(this._oldSteps + (this._steps - this._oldSteps) * progress);
 
-    App.GraphicUtils.drawArc(this,this._center,this._width,this._height,this._thickness,start,end,30,0,0,0,this._color,alpha);
+    App.GraphicUtils.drawArc(this,this._center,this._width,this._height,this._thickness,start,end,steps,0,0,0,this._color,alpha);
 };
 
 /**
@@ -12522,6 +12528,7 @@ App.ReportChartSegment = function ReportChartSegment(poolIndex)
     this.fraction = 0.0;
     this.startAngle = 0.0;
     this.endAngle = 0.0;
+    this.steps = 10;
     this.fullyRendered = false;
 };
 
@@ -12541,6 +12548,7 @@ App.ReportChartSegment.prototype.setModel = function setModel(model,totalBalance
     this.fraction = (this._model.balance / totalBalance) ;
     this.startAngle = Math.abs(previousBalance / totalBalance) * 360;
     this.endAngle = this.startAngle + this.fraction * 360;
+    this.steps = Math.ceil(this.fraction * 60);
     this.fullyRendered = false;
 
     this.clear();
@@ -12800,7 +12808,7 @@ App.ReportChart.prototype._updateSegmentTween = function _updateSegmentTween()
                     segment.fullyRendered = true;
                 }
 
-                GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,end,24,0,0,0,"0x"+segment.color,1);
+                GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,end,segment.steps,0,0,0,"0x"+segment.color,1);
             }
         }
     }
@@ -12813,7 +12821,7 @@ App.ReportChart.prototype._updateSegmentTween = function _updateSegmentTween()
         for (i=0,l=this._hideSegments.length;i<l;i++)
         {
             segment = this._hideSegments[i];
-            GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,segment.endAngle,10,0,0,0,"0x"+segment.color,progress);
+            GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,segment.endAngle,20,0,0,0,"0x"+segment.color,progress);
         }
     }
 };

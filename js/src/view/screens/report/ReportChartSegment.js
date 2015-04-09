@@ -16,6 +16,7 @@ App.ReportChartSegment = function ReportChartSegment(poolIndex)
     this.fraction = 0.0;
     this.startAngle = 0.0;
     this.endAngle = 0.0;
+    this.steps = 10;
     this.fullyRendered = false;
 };
 
@@ -35,6 +36,7 @@ App.ReportChartSegment.prototype.setModel = function setModel(model,totalBalance
     this.fraction = (this._model.balance / totalBalance) ;
     this.startAngle = Math.abs(previousBalance / totalBalance) * 360;
     this.endAngle = this.startAngle + this.fraction * 360;
+    this.steps = Math.ceil(this.fraction * 60);
     this.fullyRendered = false;
 
     this.clear();

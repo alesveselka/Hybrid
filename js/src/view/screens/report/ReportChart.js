@@ -242,7 +242,7 @@ App.ReportChart.prototype._updateSegmentTween = function _updateSegmentTween()
                     segment.fullyRendered = true;
                 }
 
-                GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,end,24,0,0,0,"0x"+segment.color,1);
+                GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,end,segment.steps,0,0,0,"0x"+segment.color,1);
             }
         }
     }
@@ -255,7 +255,7 @@ App.ReportChart.prototype._updateSegmentTween = function _updateSegmentTween()
         for (i=0,l=this._hideSegments.length;i<l;i++)
         {
             segment = this._hideSegments[i];
-            GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,segment.endAngle,10,0,0,0,"0x"+segment.color,progress);
+            GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,segment.endAngle,20,0,0,0,"0x"+segment.color,progress);
         }
     }
 };
