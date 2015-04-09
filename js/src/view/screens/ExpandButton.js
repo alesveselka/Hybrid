@@ -196,6 +196,15 @@ App.ExpandButton.prototype.isOpen = function isOpen()
 };
 
 /**
+ * Check if its opening
+ * @returns {boolean}
+ */
+App.ExpandButton.prototype.isOpening = function isOpening()
+{
+    return this._transitionState === App.TransitionState.OPENING;
+};
+
+/**
  * Check if button is in transition
  * @returns {boolean}
  */
