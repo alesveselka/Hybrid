@@ -86,6 +86,15 @@ App.ReportCategoryButton.prototype.setModel = function setModel(model,accountBal
 };
 
 /**
+ * Return model
+ * @returns {App.Category}
+ */
+App.ReportCategoryButton.prototype.getModel = function getModel()
+{
+    return this._model;
+};
+
+/**
  * Update
  * @private
  */

@@ -188,18 +188,25 @@ App.ReportScreen.prototype._closeButtons = function _closeButtons(immediate)
  */
 App.ReportScreen.prototype._onClick = function _onClick()
 {
-    var pointerData = this.stage.getTouchData();
+    var pointerData = this.stage.getTouchData(),
+        categoryButton = null;
 
     this._interactiveButton = this._buttonList.getItemUnderPoint(pointerData);
 
     if (this._interactiveButton)
     {
-        this._interactiveButton.onClick(pointerData);
-        this._pane.cancelScroll();
-        this._closeButtons();
+        categoryButton = this._interactiveButton.onClick(pointerData);
+        if (categoryButton)
+        {
+            this._chart.highlightSegment(categoryButton.getModel());
+        }
+        else
+        {
+            this._closeButtons();
+            this._chart.showSegments(this._interactiveButton.getModel());
+        }
 
-        //this._chart.highlightSegment(this._buttonList.getChildIndex(this._interactiveButton));
-        this._chart.showSegments(this._interactiveButton.getModel());
+        this._pane.cancelScroll();
 
         this._layoutDirty = true;
     }

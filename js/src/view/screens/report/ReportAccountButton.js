@@ -26,6 +26,7 @@ App.ReportAccountButton = function ReportAccountButton(poolIndex,options)
     this._nameField = this.addChild(new PIXI.Text("",options.labelStyles.name));
     this._amountField = this.addChild(new PIXI.Text("",options.labelStyles.amount));
     this._categoryList = new App.List(App.Direction.Y);
+    this._interactiveButton = null;
     this._renderAll = true;
     this._updated = false;
 
@@ -117,14 +118,30 @@ App.ReportAccountButton.prototype._update = function _update()
 };
 
 /**
+ * Close opened buttons
+ * @private
+ */
+App.ReportAccountButton.prototype._closeButtons = function _closeButtons(immediate)
+{
+    var i = 0,
+        l = this._categoryList.children.length,
+        button = null;
+
+    for (;i<l;)
+    {
+        button = this._categoryList.getChildAt(i++);
+        if (button !== this._interactiveButton && button.isOpen()) button.close(immediate);
+    }
+};
+
+/**
  * Click handler
  * @param {PIXI.InteractionData} pointerData
  */
 App.ReportAccountButton.prototype.onClick = function onClick(pointerData)
 {
     var position = pointerData.getLocalPosition(this).y,
-        TransitionState = App.TransitionState,
-        interactiveButton = null;
+        TransitionState = App.TransitionState;
 
     // Click on button itself
     if (position <= this._height)
@@ -133,19 +150,31 @@ App.ReportAccountButton.prototype.onClick = function onClick(pointerData)
         {
             if (!this._updated) this._update();
 
+            this._interactiveButton = null;
+            this._closeButtons(true);
             this.open(true);
         }
         else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
         {
             this.close(false,true);
         }
+
+        return null;
     }
     // Click on category sub-list
     else if (position > this._height)
     {
-        interactiveButton = this._categoryList.getItemUnderPoint(pointerData);
-        if (interactiveButton) interactiveButton.onClick(position);
+        this._interactiveButton = this._categoryList.getItemUnderPoint(pointerData);
+        if (this._interactiveButton)
+        {
+            this._interactiveButton.onClick(position);
+            this._closeButtons();
+
+            return this._interactiveButton;
+        }
     }
+
+    return null;
 };
 
 /**

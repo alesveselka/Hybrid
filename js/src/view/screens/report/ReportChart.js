@@ -18,7 +18,7 @@ App.ReportChart = function ReportChart(model,width,height,pixelRatio)
 
     this._model = model;
     this._ticker = ModelLocator.getProxy(ModelName.TICKER);
-    this._tween = new App.TweenProxy(1,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
+    this._segmentTween = new App.TweenProxy(1,App.Easing.outExpo,0,ModelLocator.getProxy(ModelName.EVENT_LISTENER_POOL));
     this._eventsRegistered = false;
     this._segmentPool = new App.ObjectPool(App.ReportChartSegment,5);
     this._segments = null;
@@ -110,6 +110,7 @@ App.ReportChart.prototype.showSegments = function showSegments(account)
         if (this._showSegments === this._segments[account.id]) return;
 
         this._hideSegments = this._showSegments;
+        this._highlight.hide();
     }
     else
     {
@@ -122,33 +123,54 @@ App.ReportChart.prototype.showSegments = function showSegments(account)
 
     this._registerEventListeners();
 
-    this._tween.restart();
+    this._segmentTween.restart();
 };
 
 /**
  * Highlight segment
- * @param {number} segment Segment of the chart to highlight
+ * @param {App.Category} category
  */
-App.ReportChart.prototype.highlightSegment = function highlightSegment(segment)
+App.ReportChart.prototype.highlightSegment = function highlightSegment(category)
 {
-    /*if (segment === this._highlightSegment) return;
-
-    if (this._transitionState === App.TransitionState.SHOWN)
+    if (this._showSegments)
     {
+        var segment = this._getSegmentByCategory(category);
+
+        if (segment === this._highlightSegment)
+        {
+            this._highlight.hide();
+        }
+        else
+        {
+            this._highlightSegment = segment;
+            this._highlight.change(segment);
+        }
+
         this._registerEventListeners();
-
-        this._highlight.change(
-            segment === 0 ? 0 : this._segments[segment-1].progress,
-            this._segments[segment].progress,
-            this._segments[segment].color
-        );
-
-        this._highlightSegment = segment;
 
         this._updateHighlight = true;
 
-        this._tween.restart();
-    }*/
+        this._segmentTween.restart();
+    }
+};
+
+/**
+ * Find and return segment by category passed in
+ * @param {App.Category} category
+ * @returns {App.ReportChartSegment}
+ * @private
+ */
+App.ReportChart.prototype._getSegmentByCategory = function _getSegmentByCategory(category)
+{
+    var i = 0,
+        l = this._showSegments.length;
+
+    for (;i<l;i++)
+    {
+        if (this._showSegments[i].rendersModel(category)) return this._showSegments[i];
+    }
+
+    return null;
 };
 
 /**
@@ -163,7 +185,7 @@ App.ReportChart.prototype._registerEventListeners = function _registerEventListe
 
         this._ticker.addEventListener(App.EventType.TICK,this,this._onTick);
 
-        this._tween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+        this._segmentTween.addEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
     }
 };
 
@@ -175,7 +197,7 @@ App.ReportChart.prototype._unRegisterEventListeners = function _unRegisterEventL
 {
     this._ticker.removeEventListener(App.EventType.TICK,this,this._onTick);
 
-    this._tween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
+    this._segmentTween.removeEventListener(App.EventType.COMPLETE,this,this._onTweenComplete);
 
     this._eventsRegistered = false;
 };
@@ -186,9 +208,9 @@ App.ReportChart.prototype._unRegisterEventListeners = function _unRegisterEventL
  */
 App.ReportChart.prototype._onTick = function _onTick()
 {
-    if (this._tween.isRunning())
+    if (this._segmentTween.isRunning())
     {
-        if (this._updateHighlight) this._highlight.update(this._tween.progress);
+        if (this._updateHighlight) this._highlight.update(this._segmentTween.progress,false);
         else this._updateTween();
     }
 };
@@ -200,12 +222,11 @@ App.ReportChart.prototype._onTick = function _onTick()
 App.ReportChart.prototype._updateTween = function _updateTween()
 {
     var GraphicUtils = App.GraphicUtils,
-        progress = this._tween.progress,
+        progress = this._segmentTween.progress,
         progressAngle = progress * 360,
         size = this._chartSize,
         i = 0,
         l = this._showSegments.length,
-        steps = 20,//hiRes ? 20 : 10,//TODO adjust steps to chart size
         end = 0,
         segment = null;
 
@@ -223,20 +244,22 @@ App.ReportChart.prototype._updateTween = function _updateTween()
                     segment.fullyRendered = true;
                 }
 
-                GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,end,steps,0,0,0,"0x"+segment.color,1);
+                GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,end,24,0,0,0,"0x"+segment.color,1);
             }
         }
     }
 
     if (this._hideSegments)
     {
+        this._highlight.update(progress,true);
+
         progress = 1 - progress;
         size = this._chartSize * progress;
 
         for (i=0,l=this._hideSegments.length;i<l;i++)
         {
             segment = this._hideSegments[i];
-            GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,segment.endAngle,steps,0,0,0,"0x"+segment.color,progress);
+            GraphicUtils.drawArc(segment,this._center,size,size,this._thickness,segment.startAngle,segment.endAngle,10,0,0,0,"0x"+segment.color,progress);
         }
     }
 };
@@ -247,14 +270,16 @@ App.ReportChart.prototype._updateTween = function _updateTween()
  */
 App.ReportChart.prototype._onTweenComplete = function _onTweenComplete()
 {
-    this._updateTween();
-
     this._unRegisterEventListeners();
 
     if (this._updateHighlight)
     {
         this._updateHighlight = false;
 
-        this._highlight.update(1);
+        this._highlight.update(1,false);
+    }
+    else
+    {
+        this._updateTween();
     }
 };

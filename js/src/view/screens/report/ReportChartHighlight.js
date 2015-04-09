@@ -26,28 +26,40 @@ App.ReportChartHighlight.prototype = Object.create(PIXI.Graphics.prototype);
 
 /**
  * Change
- * @param {number} start
- * @param {number} end
- * @param {number} color
+ * @param {App.ReportChartSegment} segment
  */
-App.ReportChartHighlight.prototype.change = function change(start,end,color)
+App.ReportChartHighlight.prototype.change = function change(segment)
 {
     this._oldStart = this._start;
     this._oldEnd = this._end;
 
-    this._start = start;
-    this._end = end;
-    this._color = color;
+    this._start = segment.startAngle;
+    this._end = segment.endAngle;
+    this._color = segment.color;
+};
+
+/**
+ * Hide - Set hide properties
+ */
+App.ReportChartHighlight.prototype.hide = function hide()
+{
+    this._oldStart = this._start;
+    this._oldEnd = this._end;
+
+    this._start = 0.0;
+    this._end = 0.0;
 };
 
 /**
  * Update change by progress passed in
  * @param {number} progress
+ * @param {boolean} [hide=false]
  */
-App.ReportChartHighlight.prototype.update = function update(progress)
+App.ReportChartHighlight.prototype.update = function update(progress,hide)
 {
     var start = this._oldStart + (this._start - this._oldStart) * progress,
-        end = this._oldEnd + (this._end - this._oldEnd) * progress;
+        end = this._oldEnd + (this._end - this._oldEnd) * progress,
+        alpha = hide ? 1 - progress : 1;
 
-    App.GraphicUtils.drawArc(this,this._center,this._width,this._height,this._thickness,start,end,20,0,0,0,this._color,1);
+    App.GraphicUtils.drawArc(this,this._center,this._width,this._height,this._thickness,start,end,30,0,0,0,"0x"+this._color,alpha);
 };

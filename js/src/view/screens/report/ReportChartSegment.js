@@ -39,3 +39,13 @@ App.ReportChartSegment.prototype.setModel = function setModel(model,totalBalance
 
     this.clear();
 };
+
+/**
+ * Check if this segment renders model passed in
+ * @param {App.Category} model
+ * @returns {boolean}
+ */
+App.ReportChartSegment.prototype.rendersModel = function rendersModel(model)
+{
+    return this._model === model;
+};
