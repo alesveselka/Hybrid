@@ -128,7 +128,12 @@ App.ReportScreen.prototype._onTweenComplete = function _onTweenComplete()
 
     if (this._transitionState === App.TransitionState.SHOWN)
     {
-        this._chart.showSegments(this._buttonList.getItemAt(0).getModel());
+        var button = this._buttonList.getItemAt(0);
+
+        if (!button.isOpen()) button.open();
+        this._chart.showSegments(button.getModel());
+
+        this._layoutDirty = true;
     }
 };
 

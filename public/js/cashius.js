@@ -12351,11 +12351,7 @@ App.ReportAccountButton.prototype.onClick = function onClick(pointerData)
     {
         if (this._transitionState === TransitionState.CLOSED || this._transitionState === TransitionState.CLOSING)
         {
-            if (!this._updated) this._update();
-
-            this._interactiveButton = null;
-            this._closeButtons(true);
-            this.open(true);
+            this.open();
         }
         else if (this._transitionState === TransitionState.OPEN || this._transitionState === TransitionState.OPENING)
         {
@@ -12378,6 +12374,19 @@ App.ReportAccountButton.prototype.onClick = function onClick(pointerData)
     }
 
     return null;
+};
+
+/**
+ * Open
+ */
+App.ReportAccountButton.prototype.open = function open()
+{
+    if (!this._updated) this._update();
+
+    this._interactiveButton = null;
+    this._closeButtons(true);
+
+    App.ExpandButton.prototype.open.call(this,true);
 };
 
 /**
@@ -12941,7 +12950,12 @@ App.ReportScreen.prototype._onTweenComplete = function _onTweenComplete()
 
     if (this._transitionState === App.TransitionState.SHOWN)
     {
-        this._chart.showSegments(this._buttonList.getItemAt(0).getModel());
+        var button = this._buttonList.getItemAt(0);
+
+        if (!button.isOpen()) button.open();
+        this._chart.showSegments(button.getModel());
+
+        this._layoutDirty = true;
     }
 };
 
