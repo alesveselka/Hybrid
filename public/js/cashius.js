@@ -12298,7 +12298,7 @@ App.ReportAccountButton.prototype.setModel = function setModel(model)
     this.close(true);
 
     this._nameField.setText(this._model.name);
-    this._amountField.setText(App.StringUtils.formatNumber(Math.abs(this._model.calculateBalance()),2,","));
+    this._amountField.setText(App.StringUtils.formatNumber(Math.abs(this._model.balance),2,","));
 
     this._render();
 };
@@ -12640,13 +12640,14 @@ App.ReportChart.prototype.update = function update()
     for (i=0;i<l;)
     {
         account = this._model.getItemAt(i++);
-        if (account.lifeCycleState !== deletedState)//TODO also check if account has any categories
+        totalBalance = account.balance;
+        if (account.lifeCycleState !== deletedState && !isNaN(totalBalance) && totalBalance !== 0.0)
         {
             if (!this._segments[account.id]) this._segments[account.id] = [];
 
             segmentArray = this._segments[account.id];
             previousBalance = 0.0;
-            totalBalance = account.balance;
+            category = null;
             categories = account.categories;
             for (j=0,k=categories.length;j<k;)
             {
@@ -12693,6 +12694,7 @@ App.ReportChart.prototype.showSegments = function showSegments(account)
  */
 App.ReportChart.prototype.highlightSegment = function highlightSegment(category)
 {
+    //TODO add icon of highlighted category in the middle of chart
     if (this._showSegments)
     {
         var segment = this._getSegmentByCategory(category);
@@ -12873,8 +12875,8 @@ App.ReportScreen = function ReportScreen(layout)
                 skin:skin.NARROW_GREY_40,
                 labelStyles:{
                     name:FontStyle.get(18,FontStyle.BLUE),
-                    percent:FontStyle.get(16,FontStyle.GREY_DARK),
-                    amount:FontStyle.get(16,FontStyle.BLUE)
+                    percent:FontStyle.get(14,FontStyle.GREY_DARK),
+                    amount:FontStyle.get(14,FontStyle.BLUE)
                 },
                 subCategoryButtonPool:new ObjectPool(App.ReportSubCategoryButton,5,{
                     width:listWidth,
@@ -12937,14 +12939,16 @@ App.ReportScreen.prototype.update = function update()
         l = this._buttonList.length,
         deletedState = App.LifeCycleState.DELETED,
         account = null,
-        button = null;
+        button = null,
+        balance = 0.0;
 
     for (;i<l;i++) this._buttonPool.release(this._buttonList.removeItemAt(0));
 
     for (i=0,l=this._model.length();i<l;)
     {
         account = this._model.getItemAt(i++);
-        if (account.lifeCycleState !== deletedState)//TODO also check if account has any categories
+        balance = account.calculateBalance();
+        if (account.lifeCycleState !== deletedState && !isNaN(balance) && balance !== 0.0)
         {
             button = this._buttonPool.allocate();
             button.setModel(account);
@@ -15843,13 +15847,16 @@ App.ChangeTransaction.prototype._updateCurrentBalance = function _updateCurrentB
         subCategory = transaction.subCategory,
         currentAmount = parseFloat(data.amount) / currencyPairCollection.findRate(settings.baseCurrency,transaction.currencyQuote);
 
-    if (data.transactionType === TransactionType.EXPENSE)
+    if (!isNaN(currentAmount))
     {
-        subCategory.balance = subCategory.balance - currentAmount;
-    }
-    else if (data.transactionType === TransactionType.INCOME)
-    {
-        subCategory.balance = subCategory.balance + currentAmount;
+        if (data.transactionType === TransactionType.EXPENSE)
+        {
+            subCategory.balance = subCategory.balance - currentAmount;
+        }
+        else if (data.transactionType === TransactionType.INCOME)
+        {
+            subCategory.balance = subCategory.balance + currentAmount;
+        }
     }
 };
 

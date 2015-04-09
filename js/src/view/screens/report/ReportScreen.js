@@ -97,14 +97,16 @@ App.ReportScreen.prototype.update = function update()
         l = this._buttonList.length,
         deletedState = App.LifeCycleState.DELETED,
         account = null,
-        button = null;
+        button = null,
+        balance = 0.0;
 
     for (;i<l;i++) this._buttonPool.release(this._buttonList.removeItemAt(0));
 
     for (i=0,l=this._model.length();i<l;)
     {
         account = this._model.getItemAt(i++);
-        if (account.lifeCycleState !== deletedState)//TODO also check if account has any categories
+        balance = account.calculateBalance();
+        if (account.lifeCycleState !== deletedState && !isNaN(balance) && balance !== 0.0)
         {
             button = this._buttonPool.allocate();
             button.setModel(account);

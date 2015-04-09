@@ -255,12 +255,15 @@ App.ChangeTransaction.prototype._updateCurrentBalance = function _updateCurrentB
         subCategory = transaction.subCategory,
         currentAmount = parseFloat(data.amount) / currencyPairCollection.findRate(settings.baseCurrency,transaction.currencyQuote);
 
-    if (data.transactionType === TransactionType.EXPENSE)
+    if (!isNaN(currentAmount))
     {
-        subCategory.balance = subCategory.balance - currentAmount;
-    }
-    else if (data.transactionType === TransactionType.INCOME)
-    {
-        subCategory.balance = subCategory.balance + currentAmount;
+        if (data.transactionType === TransactionType.EXPENSE)
+        {
+            subCategory.balance = subCategory.balance - currentAmount;
+        }
+        else if (data.transactionType === TransactionType.INCOME)
+        {
+            subCategory.balance = subCategory.balance + currentAmount;
+        }
     }
 };

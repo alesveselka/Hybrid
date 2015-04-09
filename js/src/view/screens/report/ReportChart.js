@@ -82,13 +82,14 @@ App.ReportChart.prototype.update = function update()
     for (i=0;i<l;)
     {
         account = this._model.getItemAt(i++);
-        if (account.lifeCycleState !== deletedState)
+        totalBalance = account.balance;
+        if (account.lifeCycleState !== deletedState && !isNaN(totalBalance) && totalBalance !== 0.0)
         {
             if (!this._segments[account.id]) this._segments[account.id] = [];
 
             segmentArray = this._segments[account.id];
             previousBalance = 0.0;
-            totalBalance = account.balance;
+            category = null;
             categories = account.categories;
             for (j=0,k=categories.length;j<k;)
             {
@@ -135,6 +136,7 @@ App.ReportChart.prototype.showSegments = function showSegments(account)
  */
 App.ReportChart.prototype.highlightSegment = function highlightSegment(category)
 {
+    //TODO add icon of highlighted category in the middle of chart
     if (this._showSegments)
     {
         var segment = this._getSegmentByCategory(category);
