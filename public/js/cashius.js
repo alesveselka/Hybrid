@@ -9660,10 +9660,23 @@ App.AccountScreen = function AccountScreen(layout)
     var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
         r = layout.pixelRatio,
-        h = layout.contentHeight;
+        w = layout.width,
+        h = layout.contentHeight,
+        skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
+        buttonOptions = {
+            width:w,
+            height:Math.round(70 * r),
+            pixelRatio:r,
+            skin:skin.GREY_70,
+            nameStyle:FontStyle.get(24,FontStyle.BLUE),
+            detailStyle:FontStyle.get(12,FontStyle.GREY_DARKER,null,FontStyle.LIGHT_CONDENSED),
+            editStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+            openOffset:Math.round(80 * r)
+        };
 
     this._model = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS);
 
+    this._buttonPool = new App.ObjectPool(App.AccountButton,2,buttonOptions);
     this._interactiveButton = null;
     this._buttonList = new App.TileList(App.Direction.Y,h);
     this._addNewButton = new App.AddNewButton("ADD ACCOUNT",FontStyle.get(16,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_60,r);
@@ -9706,21 +9719,20 @@ App.AccountScreen.prototype.update = function update(data,mode)
 {
     this._buttonList.remove(this._addNewButton);
 
-    var buttonPool = App.ViewLocator.getViewSegment(App.ViewName.ACCOUNT_BUTTON_POOL),
-        i = 0,
+    var i = 0,
         l = this._buttonList.length,
         deletedState = App.LifeCycleState.DELETED,
         account = null,
         button = null;
 
-    for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
+    for (;i<l;i++) this._buttonPool.release(this._buttonList.removeItemAt(0));
 
     for (i=0,l=this._model.length();i<l;)
     {
         account = this._model.getItemAt(i++);
         if (account.lifeCycleState !== deletedState)
         {
-            button = buttonPool.allocate();
+            button = this._buttonPool.allocate();
             button.setModel(account,mode);
             this._buttonList.add(button);
         }
@@ -10555,7 +10567,7 @@ App.CategoryScreen = function CategoryScreen(layout)
         w = layout.width,
         h = layout.contentHeight,
         skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
-        categoryButtonOptions = {
+        buttonOptions = {
             width:w,
             height:Math.round(50 * r),
             pixelRatio:r,
@@ -10571,8 +10583,8 @@ App.CategoryScreen = function CategoryScreen(layout)
     this._buttonsInTransition = [];
     this._layoutDirty = false;
 
-    this._buttonExpandPool = new ObjectPool(App.CategoryButtonExpand,5,categoryButtonOptions);
-    this._buttonEditPool = new ObjectPool(App.CategoryButtonEdit,5,categoryButtonOptions);
+    this._buttonExpandPool = new ObjectPool(App.CategoryButtonExpand,5,buttonOptions);
+    this._buttonEditPool = new ObjectPool(App.CategoryButtonEdit,5,buttonOptions);
     this._buttonList = new App.TileList(App.Direction.Y,h);
     this._addNewButton = new App.AddNewButton("ADD CATEGORY",FontStyle.get(14,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,r);
     this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,r,false);
@@ -15443,16 +15455,6 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
             editLabelStyle:FontStyle.get(16,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
             openOffset:Math.round(80 * pixelRatio)
         },
-        accountButtonOptions = {
-            width:width,
-            height:Math.round(70 * pixelRatio),
-            pixelRatio:pixelRatio,
-            skin:skin.GREY_70,
-            nameStyle:FontStyle.get(24,FontStyle.BLUE),
-            detailStyle:FontStyle.get(12,FontStyle.GREY_DARKER,null,FontStyle.LIGHT_CONDENSED),
-            editStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-            openOffset:Math.round(80 * pixelRatio)
-        },
         transactionButtonOptions = {
             labelStyles:{
                 edit:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
@@ -15477,7 +15479,6 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
     //TODO move some pools to the actual screens?; they may not be accessed anywhere else anyway ...
     ViewLocator.init([
         ViewName.SKIN,skin,
-        ViewName.ACCOUNT_BUTTON_POOL,new ObjectPool(App.AccountButton,2,accountButtonOptions),
         ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions),
         ViewName.TRANSACTION_BUTTON_POOL,new ObjectPool(App.TransactionButton,4,transactionButtonOptions)
     ]);

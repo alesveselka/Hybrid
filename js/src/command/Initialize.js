@@ -206,16 +206,6 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
             editLabelStyle:FontStyle.get(16,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
             openOffset:Math.round(80 * pixelRatio)
         },
-        accountButtonOptions = {
-            width:width,
-            height:Math.round(70 * pixelRatio),
-            pixelRatio:pixelRatio,
-            skin:skin.GREY_70,
-            nameStyle:FontStyle.get(24,FontStyle.BLUE),
-            detailStyle:FontStyle.get(12,FontStyle.GREY_DARKER,null,FontStyle.LIGHT_CONDENSED),
-            editStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-            openOffset:Math.round(80 * pixelRatio)
-        },
         transactionButtonOptions = {
             labelStyles:{
                 edit:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
@@ -240,7 +230,6 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
     //TODO move some pools to the actual screens?; they may not be accessed anywhere else anyway ...
     ViewLocator.init([
         ViewName.SKIN,skin,
-        ViewName.ACCOUNT_BUTTON_POOL,new ObjectPool(App.AccountButton,2,accountButtonOptions),
         ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions),
         ViewName.TRANSACTION_BUTTON_POOL,new ObjectPool(App.TransactionButton,4,transactionButtonOptions)
     ]);
