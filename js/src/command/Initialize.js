@@ -196,17 +196,6 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
     var ObjectPool = App.ObjectPool,
         FontStyle = App.FontStyle.init(pixelRatio),
         skin = new App.Skin(width,pixelRatio),
-        categoryButtonOptions = {
-            width:width,
-            height:Math.round(50 * pixelRatio),
-            pixelRatio:pixelRatio,
-            skin:skin.GREY_50,
-            addButtonSkin:skin.WHITE_40,
-            nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
-            editLabelStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK),
-            displayHeader:false
-        },
         subCategoryButtonOptions = {
             width:width,
             height:Math.round(40 * pixelRatio),
@@ -252,8 +241,6 @@ App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocato
     ViewLocator.init([
         ViewName.SKIN,skin,
         ViewName.ACCOUNT_BUTTON_POOL,new ObjectPool(App.AccountButton,2,accountButtonOptions),
-        ViewName.CATEGORY_BUTTON_EXPAND_POOL,new ObjectPool(App.CategoryButtonExpand,5,categoryButtonOptions),
-        ViewName.CATEGORY_BUTTON_EDIT_POOL,new ObjectPool(App.CategoryButtonEdit,5,categoryButtonOptions),
         ViewName.SUB_CATEGORY_BUTTON_POOL,new ObjectPool(App.SubCategoryButton,5,subCategoryButtonOptions),
         ViewName.TRANSACTION_BUTTON_POOL,new ObjectPool(App.TransactionButton,4,transactionButtonOptions)
     ]);

@@ -10,13 +10,29 @@ App.CategoryScreen = function CategoryScreen(layout)
 
     var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
+        ObjectPool = App.ObjectPool,
         r = layout.pixelRatio,
-        h = layout.contentHeight;
+        w = layout.width,
+        h = layout.contentHeight,
+        skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
+        buttonOptions = {
+            width:w,
+            height:Math.round(50 * r),
+            pixelRatio:r,
+            skin:skin.GREY_50,
+            addButtonSkin:skin.WHITE_40,
+            nameLabelStyle:FontStyle.get(18,FontStyle.BLUE),
+            editLabelStyle:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+            addLabelStyle:FontStyle.get(14,FontStyle.GREY_DARK),
+            displayHeader:false
+        };
 
     this._interactiveButton = null;
     this._buttonsInTransition = [];
     this._layoutDirty = false;
 
+    this._buttonExpandPool = new ObjectPool(App.CategoryButtonExpand,5,buttonOptions);
+    this._buttonEditPool = new ObjectPool(App.CategoryButtonEdit,5,buttonOptions);
     this._buttonList = new App.TileList(App.Direction.Y,h);
     this._addNewButton = new App.AddNewButton("ADD CATEGORY",FontStyle.get(14,FontStyle.GREY_DARK),App.ViewLocator.getViewSegment(App.ViewName.SKIN).GREY_50,r);
     this._pane = new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,layout.width,h,r,false);
@@ -48,12 +64,6 @@ App.CategoryScreen.prototype.disable = function disable()
     this._layoutDirty = false;
 
     this._pane.disable();
-
-    //TODO do I need disable buttons? They'll be updated on show anyway
-    /*var i = 0,
-        l = this._buttonList.length;
-
-    for (;i<l;) this._buttonList.getItemAt(i++).disable();*/
 };
 
 /**
@@ -69,11 +79,7 @@ App.CategoryScreen.prototype.update = function update(data,mode)
     this._buttonList.remove(this._addNewButton);
 
     var ScreenMode = App.ScreenMode,
-        ViewLocator = App.ViewLocator,
-        ViewName = App.ViewName,
-        expandButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EXPAND_POOL),
-        editButtonPool = ViewLocator.getViewSegment(ViewName.CATEGORY_BUTTON_EDIT_POOL),
-        buttonPool = this._mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool,
+        buttonPool = this._mode === ScreenMode.SELECT ? this._buttonExpandPool : this._buttonEditPool,
         categories = this._model.categories,
         i = 0,
         l = this._buttonList.length,
@@ -81,7 +87,7 @@ App.CategoryScreen.prototype.update = function update(data,mode)
 
     for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
 
-    buttonPool = mode === ScreenMode.SELECT ? expandButtonPool : editButtonPool;
+    buttonPool = mode === ScreenMode.SELECT ? this._buttonExpandPool : this._buttonEditPool;
 
     for (i=0,l=categories.length;i<l;)
     {
