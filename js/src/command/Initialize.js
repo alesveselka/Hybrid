@@ -173,55 +173,15 @@ App.Initialize.prototype._initView = function _initView()
         stage.interactionManager.setPixelRatio(pixelRatio);
     }
 
+    App.FontStyle.init(pixelRatio);
+
     PIXI.CanvasTinter.tintMethod = PIXI.CanvasTinter.tintWithOverlay;
 
     //context.webkitImageSmoothingEnabled = context.mozImageSmoothingEnabled = true;
     context.lineCap = "square";
 
-    this._initButtonPools(ViewLocator,ViewName,Math.round(width * pixelRatio),pixelRatio);
-
+    ViewLocator.addViewSegment(ViewName.SKIN,new App.Skin(Math.round(width * pixelRatio),pixelRatio));
     ViewLocator.addViewSegment(ViewName.APPLICATION_VIEW,stage.addChild(new App.ApplicationView(stage,renderer,width,height,pixelRatio)));
-};
-
-/**
- * Initialize button pools
- * @param {Object} ViewLocator
- * @param {Object} ViewName
- * @param {number} width
- * @param {number} pixelRatio
- * @private
- */
-App.Initialize.prototype._initButtonPools = function _initButtonPools(ViewLocator,ViewName,width,pixelRatio)
-{
-    var ObjectPool = App.ObjectPool,
-        FontStyle = App.FontStyle.init(pixelRatio),
-        skin = new App.Skin(width,pixelRatio),
-        transactionButtonOptions = {
-            labelStyles:{
-                edit:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-                accountIncome:FontStyle.get(14,FontStyle.BLUE_LIGHT,null,FontStyle.LIGHT_CONDENSED),
-                amountIncome:FontStyle.get(26,FontStyle.BLUE),
-                currencyIncome:FontStyle.get(16,FontStyle.BLUE_DARK,null,FontStyle.LIGHT_CONDENSED),
-                date:FontStyle.get(14,FontStyle.GREY_DARK),
-                pending:FontStyle.get(12,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-                accountPending:FontStyle.get(14,FontStyle.RED_DARK),
-                amountPending:FontStyle.get(26,FontStyle.WHITE),
-                currencyPending:FontStyle.get(16,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
-                datePending:FontStyle.get(14,FontStyle.WHITE,"right",FontStyle.LIGHT_CONDENSED)
-            },
-            greySkin:skin.GREY_70,
-            redSkin:skin.RED_70,
-            width:width,
-            height:Math.round(70 * pixelRatio),
-            pixelRatio:pixelRatio,
-            openOffset:Math.round(120 * pixelRatio)
-        };
-
-    //TODO move some pools to the actual screens?; they may not be accessed anywhere else anyway ...
-    ViewLocator.init([
-        ViewName.SKIN,skin,
-        ViewName.TRANSACTION_BUTTON_POOL,new ObjectPool(App.TransactionButton,4,transactionButtonOptions)
-    ]);
 };
 
 /**

@@ -9,12 +9,35 @@ App.TransactionScreen = function TransactionScreen(layout)
     App.Screen.call(this,layout,0.4);
 
     var ScrollPolicy = App.ScrollPolicy,
+        FontStyle = App.FontStyle,
         r = layout.pixelRatio,
         w = layout.width,
-        h = layout.contentHeight;
+        h = layout.contentHeight,
+        skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
+        buttonOptions = {
+            labelStyles:{
+                edit:FontStyle.get(18,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+                accountIncome:FontStyle.get(14,FontStyle.BLUE_LIGHT,null,FontStyle.LIGHT_CONDENSED),
+                amountIncome:FontStyle.get(26,FontStyle.BLUE),
+                currencyIncome:FontStyle.get(16,FontStyle.BLUE_DARK,null,FontStyle.LIGHT_CONDENSED),
+                date:FontStyle.get(14,FontStyle.GREY_DARK),
+                pending:FontStyle.get(12,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+                accountPending:FontStyle.get(14,FontStyle.RED_DARK),
+                amountPending:FontStyle.get(26,FontStyle.WHITE),
+                currencyPending:FontStyle.get(16,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+                datePending:FontStyle.get(14,FontStyle.WHITE,"right",FontStyle.LIGHT_CONDENSED)
+            },
+            greySkin:skin.GREY_70,
+            redSkin:skin.RED_70,
+            width:w,
+            height:Math.round(70 * r),
+            pixelRatio:r,
+            openOffset:Math.round(120 * r)
+        };
 
     this._interactiveButton = null;
-    this._buttonList = new App.VirtualList(App.ViewLocator.getViewSegment(App.ViewName.TRANSACTION_BUTTON_POOL),App.Direction.Y,w,h,r);
+    this._buttonPool = new App.ObjectPool(App.TransactionButton,4,buttonOptions);
+    this._buttonList = new App.VirtualList(this._buttonPool,App.Direction.Y,w,h,r);
     this._pane = this.addChild(new App.TilePane(ScrollPolicy.OFF,ScrollPolicy.AUTO,w,h,r,false));
     this._pane.setContent(this._buttonList);
 };
