@@ -17,12 +17,28 @@ App.SubCategoryList = function SubCategoryList(options)
 {
     PIXI.DisplayObjectContainer.call(this);
 
-    this.boundingBox = new App.Rectangle(0,0,options.width,0);
+    var FontStyle = App.FontStyle,
+        r = options.pixelRatio,
+        w = options.width,
+        skin = App.ViewLocator.getViewSegment(App.ViewName.SKIN),
+        buttonOptions = {
+            width:w,
+            height:Math.round(40 * r),
+            pixelRatio:r,
+            whiteSkin:skin.WHITE_40,
+            greySkin:skin.GREY_40,
+            nameLabelStyle:FontStyle.get(14,FontStyle.BLUE),
+            editLabelStyle:FontStyle.get(16,FontStyle.WHITE,null,FontStyle.LIGHT_CONDENSED),
+            openOffset:Math.round(80 * r)
+        };
+
+    this.boundingBox = new App.Rectangle(0,0,w,0);
 
     this._model = null;
     this._mode = null;
-    this._width = options.width;
-    this._pixelRatio = options.pixelRatio;
+    this._width = w;
+    this._pixelRatio = r;
+    this._buttonPool = new App.ObjectPool(App.SubCategoryButton,5,buttonOptions);
     this._interactiveButton = null;
     if (options.displayHeader) this._header = this.addChild(new App.ListHeader("Sub-Categories",this._width,this._pixelRatio));
     this._buttonList = this.addChild(new App.List(App.Direction.Y));
@@ -54,19 +70,18 @@ App.SubCategoryList.prototype.update = function update(model,mode)
     this._buttonList.remove(this._addNewButton);
 
     var subCategories = model.subCategories,
-        buttonPool = App.ViewLocator.getViewSegment(App.ViewName.SUB_CATEGORY_BUTTON_POOL),
         i = 0,
         l = this._buttonList.length,
         button = null;
 
-    for (;i<l;i++) buttonPool.release(this._buttonList.removeItemAt(0));
+    for (;i<l;i++) this._buttonPool.release(this._buttonList.removeItemAt(0));
 
     i = 0;
     l = subCategories.length;
 
     for (;i<l;)
     {
-        button = buttonPool.allocate();
+        button = this._buttonPool.allocate();
         button.update(subCategories[i++],mode);
         this._buttonList.add(button,false);
     }
