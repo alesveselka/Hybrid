@@ -70,7 +70,6 @@ App.TransactionScreen.prototype.disable = function disable()
 
 /**
  * Update
- * @private
  */
 App.TransactionScreen.prototype.update = function update(model)
 {

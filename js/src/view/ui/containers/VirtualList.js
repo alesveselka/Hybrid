@@ -233,7 +233,7 @@ App.VirtualList.prototype.reset = function reset()
 
 /**
  * Update
- * @param {Array.<App.transaction>} model
+ * @param {Array.<App.Transaction>} model
  */
 App.VirtualList.prototype.update = function update(model)
 {

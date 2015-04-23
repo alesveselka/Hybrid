@@ -154,7 +154,6 @@ App.AddTransactionScreen.prototype._render = function _render()
  * Update
  * @param {App.Transaction} data
  * @param {number} mode
- * @private
  */
 App.AddTransactionScreen.prototype.update = function update(data,mode)
 {

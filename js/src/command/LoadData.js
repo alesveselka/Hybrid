@@ -132,4 +132,5 @@ App.LoadData.prototype.destroy = function destroy()
     clearInterval(this._fontLoadingInterval);
 
     this._fontInfoElement = null;
+    this._icons = null;
 };
