@@ -1740,6 +1740,38 @@ App.Collection.prototype.length = function length()
 };
 
 /**
+ * @class TransactionCollection
+ * @param {Array.<number>} meta
+ * @param {Array} transactions
+ * @param {App.ObjectPool} eventListenerPool
+ * @constructor
+ */
+App.TransactionCollection = function TransactionCollection(meta,transactions,eventListenerPool)
+{
+    App.Collection.call(this,transactions,App.Transaction,null,eventListenerPool);
+
+    this._meta = new Array(meta.length);
+    this._initMeta(meta);
+
+    console.log(this._meta);
+};
+
+App.TransactionCollection.prototype = Object.create(App.Collection.prototype);
+
+/**
+ * Initialize meta information object
+ * @param {Array.<number>} meta
+ * @private
+ */
+App.TransactionCollection.prototype._initMeta = function _initMeta(meta)
+{
+    var l = meta.length - 1,
+        i = l;
+
+    for (;i>-1;i--) this._meta[i] = {length:meta[i],loaded:i===l};
+};
+
+/**
  * @class Settings
  * @param {Array} data
  * @constructor
@@ -6104,7 +6136,7 @@ App.VirtualList.prototype.reset = function reset()
 
 /**
  * Update
- * @param {Array.<App.transaction>} model
+ * @param {Array.<App.Transaction>} model
  */
 App.VirtualList.prototype.update = function update(model)
 {
@@ -8952,7 +8984,6 @@ App.AddTransactionScreen.prototype._render = function _render()
  * Update
  * @param {App.Transaction} data
  * @param {number} mode
- * @private
  */
 App.AddTransactionScreen.prototype.update = function update(data,mode)
 {
@@ -11952,7 +11983,6 @@ App.TransactionScreen.prototype.disable = function disable()
 
 /**
  * Update
- * @private
  */
 App.TransactionScreen.prototype.update = function update(model)
 {
@@ -15283,6 +15313,7 @@ App.LoadData.prototype.destroy = function destroy()
     clearInterval(this._fontLoadingInterval);
 
     this._fontInfoElement = null;
+    this._icons = null;
 };
 
 /**
@@ -15347,7 +15378,7 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  * Initialize application model
  *
  * @method _initModel
- * @param {{userData:string,transactions:string,icons:Object}} data
+ * @param {{userData:string,transactionsMeta:string,transactions0:string,icons:Object}} data
  * @param {ObjectPool} changeScreenDataPool
  * @private
  */
@@ -15370,7 +15401,7 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         ModelName.SUB_CATEGORIES,new Collection(userData.subCategories,App.SubCategory,null,this._eventListenerPool),
         ModelName.CATEGORIES,new Collection(userData.categories,App.Category,null,this._eventListenerPool),
         ModelName.ACCOUNTS,new Collection(userData.accounts,App.Account,null,this._eventListenerPool),
-        ModelName.TRANSACTIONS,new Collection(userData.transactions,App.Transaction,null,this._eventListenerPool),
+        ModelName.TRANSACTIONS,new App.TransactionCollection(userData.transactionsMeta,userData.transactions0,this._eventListenerPool),
         ModelName.CHANGE_SCREEN_DATA_POOL,changeScreenDataPool,
         ModelName.SCREEN_HISTORY,new App.Stack()
     ]);

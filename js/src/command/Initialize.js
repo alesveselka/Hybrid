@@ -60,7 +60,7 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  * Initialize application model
  *
  * @method _initModel
- * @param {{userData:string,transactions:string,icons:Object}} data
+ * @param {{userData:string,transactionsMeta:string,transactions0:string,icons:Object}} data
  * @param {ObjectPool} changeScreenDataPool
  * @private
  */
@@ -83,7 +83,7 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         ModelName.SUB_CATEGORIES,new Collection(userData.subCategories,App.SubCategory,null,this._eventListenerPool),
         ModelName.CATEGORIES,new Collection(userData.categories,App.Category,null,this._eventListenerPool),
         ModelName.ACCOUNTS,new Collection(userData.accounts,App.Account,null,this._eventListenerPool),
-        ModelName.TRANSACTIONS,new Collection(userData.transactions,App.Transaction,null,this._eventListenerPool),
+        ModelName.TRANSACTIONS,new App.TransactionCollection(userData.transactionsMeta,userData.transactions0,this._eventListenerPool),
         ModelName.CHANGE_SCREEN_DATA_POOL,changeScreenDataPool,
         ModelName.SCREEN_HISTORY,new App.Stack()
     ]);
