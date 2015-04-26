@@ -12,7 +12,7 @@ App.TransactionCollection = function TransactionCollection(meta,transactions,eve
     this._meta = new Array(meta.length);
     this._initMeta(meta);
 
-    console.log(this._meta);
+    //console.log(this._meta);
 };
 
 App.TransactionCollection.prototype = Object.create(App.Collection.prototype);
