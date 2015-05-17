@@ -1036,6 +1036,10 @@ App.LifeCycleState = {
     DELETED:3
 };
 
+App.StorageKey = {
+    TRANSACTION:"transaction"
+};
+
 /**
  * @class EventListener
  * @param {number} index
@@ -1753,7 +1757,7 @@ App.TransactionCollection = function TransactionCollection(meta,transactions,eve
     this._meta = new Array(meta.length);
     this._initMeta(meta);
 
-    console.log(this._meta);
+    //console.log(this._meta);
 };
 
 App.TransactionCollection.prototype = Object.create(App.Collection.prototype);
@@ -1767,7 +1771,7 @@ App.TransactionCollection.prototype._initMeta = function _initMeta(meta)
 {
     var l = meta.length - 1,
         i = l;
-
+    //TODO I will also have to know from what segment is particular transaction when I change it and save again - save in ID (meta.transaction)
     for (;i>-1;i--) this._meta[i] = {length:meta[i],loaded:i===l};
 };
 
@@ -15090,6 +15094,44 @@ App.Controller = {
     }
 };
 
+App.Storage = (function Storage()
+{
+    var Method = {GET:"get",SET:"set"},
+        _worker = new Worker("./js/storage-worker.min.js");
+
+    /**
+     *
+     */
+    _worker.addEventListener("message",onWorkerMessage);
+
+    function onWorkerMessage(e)
+    {
+        console.log("on worker message ",e.data);
+    }
+
+    _worker.postMessage("init/"+JSON.stringify({StorageKey:App.StorageKey,Method:Method}));
+
+    return {
+        /**
+         * Request for data under key passed in
+         * @param {string} key
+         */
+        getData:function getData(key)
+        {
+            _worker.postMessage(Method.GET+"/"+key);
+        },
+        /**
+         * Send data to to worker for save
+         * @param {string} key
+         * @param {string} data JSON-formatted data to save
+         */
+        setData:function setData(key,data)
+        {
+            _worker.postMessage(Method.SET+"/"+key+"/"+data);
+        }
+    };
+})();
+
 /**
  * The Command
  * @class Command
@@ -15405,6 +15447,24 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         ModelName.CHANGE_SCREEN_DATA_POOL,changeScreenDataPool,
         ModelName.SCREEN_HISTORY,new App.Stack()
     ]);
+
+    var storageKey = "transactions",
+        timeStamp = window.performance && window.performance.now ? window.performance : Date,
+        start = timeStamp.now();
+    localStorage.setItem(storageKey,JSON.stringify(userData.transactions0));
+    console.log("set: ",(timeStamp.now()-start));
+    start = timeStamp.now();
+    console.log(localStorage.getItem(storageKey));
+    console.log("get: ",(timeStamp.now()-start));
+
+    /*var worker = new Worker("./js/StorageWorker.js");
+
+    worker.onmessage = function onMessage(e)
+    {
+        console.log("On worker message ",e);
+    };
+    worker.postMessage("START");
+    console.log(App.Storage);*/
 };
 
 /**

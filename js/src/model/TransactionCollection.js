@@ -26,6 +26,6 @@ App.TransactionCollection.prototype._initMeta = function _initMeta(meta)
 {
     var l = meta.length - 1,
         i = l;
-
+    //TODO I will also have to know from what segment is particular transaction when I change it and save again - save in ID (meta.transaction)
     for (;i>-1;i--) this._meta[i] = {length:meta[i],loaded:i===l};
 };

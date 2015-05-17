@@ -1,0 +1,3 @@
+App.StorageKey = {
+    TRANSACTION:"transaction"
+};

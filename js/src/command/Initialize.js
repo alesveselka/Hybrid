@@ -87,6 +87,24 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         ModelName.CHANGE_SCREEN_DATA_POOL,changeScreenDataPool,
         ModelName.SCREEN_HISTORY,new App.Stack()
     ]);
+
+    var storageKey = "transactions",
+        timeStamp = window.performance && window.performance.now ? window.performance : Date,
+        start = timeStamp.now();
+    localStorage.setItem(storageKey,JSON.stringify(userData.transactions0));
+    console.log("set: ",(timeStamp.now()-start));
+    start = timeStamp.now();
+    console.log(localStorage.getItem(storageKey));
+    console.log("get: ",(timeStamp.now()-start));
+
+    /*var worker = new Worker("./js/StorageWorker.js");
+
+    worker.onmessage = function onMessage(e)
+    {
+        console.log("On worker message ",e);
+    };
+    worker.postMessage("START");
+    console.log(App.Storage);*/
 };
 
 /**
