@@ -39,7 +39,8 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
 
     this._loadDataCommand.destroy();
     this._loadDataCommand = null;
-    
+
+    this._initServices();
     this._initModel(data,changeScreenDataPool);
     this._initController();
     this._initView();
@@ -54,6 +55,15 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
     ));
 
     this.dispatchEvent(App.EventType.COMPLETE);
+};
+
+/**
+ * Initialize services
+ * @private
+ */
+App.Initialize.prototype._initServices = function _initServices()
+{
+    App.ServiceLocator.init([App.ServiceName.STORAGE,new App.Storage("./js/storage-worker.min.js")]);
 };
 
 /**

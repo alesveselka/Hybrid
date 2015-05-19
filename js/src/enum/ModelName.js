@@ -1,5 +1,5 @@
 /**
- * Model Proxy state
+ * Model Proxy name
  * @enum {number}
  * @return {{
  *      TICKER:number,

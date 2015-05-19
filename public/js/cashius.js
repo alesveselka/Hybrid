@@ -778,7 +778,7 @@ App.EventType = {
 };
 
 /**
- * Model Proxy state
+ * Model Proxy name
  * @enum {number}
  * @return {{
  *      TICKER:number,
@@ -1038,6 +1038,15 @@ App.LifeCycleState = {
 
 App.StorageKey = {
     TRANSACTION:"transaction"
+};
+
+/**
+ * Service name enum
+ * @enum {number}
+ * @type {{STORAGE: number}}
+ */
+App.ServiceName = {
+    STORAGE:1
 };
 
 /**
@@ -15094,43 +15103,319 @@ App.Controller = {
     }
 };
 
-App.Storage = (function Storage()
+App.DefaultData = {
+    TODO:"COMPRESS THE DATA BEFORE SAVING THEM?",
+    _commentSettings:["startOfWeek","baseCurrency","defaultCurrency","defaultAccount","defaultCategory","defaultSubCategory","defaultPaymentMethod"],
+    settings:[1,"CZK","CZK","1","1","1",1],
+    _commentCurrencies:["id","baseCurrency","symbol","rate"],
+    currencyPairs:[
+        [1,"EUR","AUD",1.3932],
+        [2,"EUR","CAD",1.3593],
+        [3,"EUR","CHF",1.066],
+        [4,"EUR","CZK",27.166],
+        [5,"EUR","DKK",7.4603],
+        [6,"EUR","GBP",0.7211],
+        [7,"EUR","HKD",8.2552],
+        [8,"EUR","HUF",304.04],
+        [9,"EUR","JPY",128.81],
+        [10,"EUR","MXN",16.41],
+        [11,"EUR","NOK",8.8013],
+        [12,"EUR","NZD",1.4461],
+        [13,"EUR","PLN",1.4461],
+        [14,"EUR","RON",4.4396],
+        [15,"EUR","SEK",9.1826],
+        [16,"EUR","SGD",1.4759],
+        [17,"EUR","THB",34.93],
+        [18,"EUR","TRY",2.7766],
+        [19,"EUR","USD",1.0628],
+
+        [20,"GBP","AUD",1.9293],
+        [21,"GBP","CAD",1.8825],
+        [22,"GBP","CHF",1.4777],
+        [23,"GBP","CZK",37.683],
+        [24,"GBP","DKK",10.3425],
+        [25,"GBP","HKD",11.4352],
+        [26,"GBP","HUF",421.46],
+        [27,"GBP","JPY",178.61],
+        [28,"GBP","MXN",22.5122],
+        [29,"GBP","NOK",12.196],
+        [30,"GBP","NZD",2.004],
+        [31,"GBP","PLN",5.7445],
+        [32,"GBP","RON",6.13249],
+        [33,"GBP","SEK",12.7325],
+        [34,"GBP","SGD",2.0465],
+        [35,"GBP","THB",48.45],
+        [36,"GBP","TRY",3.8482],
+        [37,"GBP","USD",1.4733],
+
+        [38,"USD","AUD",1.28526],
+        [39,"USD","CAD",1.2777],
+        [40,"USD","CHF",1.0028],
+        [41,"USD","CZK",25.58],
+        [42,"USD","DKK",7.0204],
+        [43,"USD","HKD",7.7631],
+        [44,"USD","HUF",286.11],
+        [45,"USD","JPY",121.26],
+        [46,"USD","MXN",15.424],
+        [47,"USD","NOK",8.2812],
+        [48,"USD","NZD",1.32162],
+        [49,"USD","PLN",3.8096],
+        [50,"USD","RON",4.1792],
+        [51,"USD","SEK",8.6418],
+        [52,"USD","SGD",1.3889],
+        [53,"USD","THB",32.86],
+        [54,"USD","TRY",2.611]
+    ],
+    _commentSubCategories:["id","name","category","balance"],
+    subCategories:[
+        ["1","Cinema","1",-16428.5],
+        ["2","Club","1",-2187],
+        ["3","Cafe","1",-119],
+        ["4","Gym","3",-218],
+        ["5","Swimming","3",-1230],
+        ["6","Utilities","4",-950],
+        ["7","Rent","4",-514],
+        ["8","Lunch","2",-750],
+        ["9","Lunch","5"],
+        ["10","Supplies","5",-320],
+        ["11","Invoices","5"],
+        ["12","Fees","5",-854],
+        ["13","Groceries","2",-130],
+        ["14","Food","2",-820],
+        ["15","Hotel","7",-275],
+        ["16","Hostel","7",-120],
+        ["17","Spa","7"],
+        ["18","Car Rental","6",-80],
+        ["19","Fuel","6",-16],
+        ["20","Bus","6"],
+        ["21","Train","6"]
+    ],
+    _commentCategories:["id","name","color","icon","account","subCategories","budget"],
+    categories:[
+        ["1","Leisure","80f320","disco-ball","1","1,2,3",200],
+        ["2","Shopping","9ae611","cloths","1","8,14,15"],
+        ["3","Sport","b4d406","ball","1","4,5",950],
+        ["4","House","cbbe01","house","1","6,7"],
+        ["5","Business","dea602","currencies","1","9,10,11,12,13"],
+        ["6","Transportation","ee8c08","car","1","19,20,22"],
+        ["7","Trip","f97113","air-plane","1","16,17,18"],
+        ["8","Arbitrary 3","fe5823","expense","2","1,2,3,4"],
+        ["9","Arbitrary 4","fe3f37","budget","2","1,2,3,4"],
+        ["10","Arbitrary 5","f92a4f","chart","2","1,2,3,4"],
+        ["11","Arbitrary 6","ee1868","account","2","1,2,3,4"],
+        ["12","Arbitrary 7","de0b83","tax","2","1,2,3,4"],
+        ["13","Arbitrary 9","cb049d","user","2","1,2,3,4"],
+        ["14","Arbitrary 10","b401b6","users","2","1,2,3,4"],
+        ["15","Arbitrary 11","9a04cd","credit-card","2","1,2,3,4"],
+        ["16","Arbitrary 12","800de0","calendar","2","1,2,3,4"],
+        ["17","Arbitrary 13","661aef","air-plane","2","1,2,3,4"],
+        ["18","Arbitrary 14","4c2cfa","car","2","1,2,3,4"],
+        ["19","Arbitrary 15","3542ff","pills","2","1,2,3,4"],
+        ["20","Arbitrary 16","225afe","book","2","1,2,3,4"],
+        ["21","Arbitrary 17","1274f8","gym","2","1,2,3,4"],
+        ["22","Arbitrary 18","078fed","cutlery","2","1,2,3,4"],
+        ["23","Arbitrary 19","02a8dd","cup","2","1,2,3,4"],
+        ["24","Arbitrary 20","02c1c9","cart","2","1,2,3,4"],
+        ["25","Arbitrary 21","07d6b1","scissors","2","1,2,3,4"],
+        ["26","Arbitrary 22","12e898","gift","2","1,2,3,4"],
+        ["27","Arbitrary 23","22f57d","heart","2","1,2,3,4"],
+        ["28","Arbitrary 24","35fc63","club","2","1,2,3,4"],
+        ["29","Arbitrary 25","4cff4a","star","2","1,2,3,4"],
+        ["30","Arbitrary 26","66fc33","movies","2","1,2,3,4"]
+    ],
+    _commentAccounts:["id","name","categories"],
+    accounts:[
+        ["1","Private","1,2,3,4,5,6,7"],
+        ["2","Business","8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30"]
+    ],
+    _commentTransactionsMeta:"array - each item representing number of transactions in a transactions array-segment",
+    transactionsMeta:[45,3],
+    _commentTransactions:["amount","transactionType","pending","repeat","account.category.subCategory","paymentMethod","date","currency(base[/quote@rate])","note"],
+    transactions0:[
+        [800,2,0,0,"2.5.13",1,1423750915663,"CZK","Jimmy%27s%20Coffee"],
+        [54,2,0,0,"2.5.13",1,1423750915663,"CZK/USD@0.039093"],
+        [300,1,0,0,"1.2.8",1,1423750915663,"CZK"],
+        [130,1,0,0,"1.2.14",1,1423750915663,"CZK"],
+        [218,1,0,0,"1.3.4",1,1423750915663,"CZK"],
+        [950,1,0,0,"1.4.6",1,1423750915663,"CZK"],
+        [320,1,0,0,"1.5.9",1,1423750915663,"CZK"],
+        [80,1,0,0,"1.6.19",1,1423750915663,"CZK"],
+        [275,1,0,0,"1.7.16",1,1423750915663,"CZK"],
+        [119,1,0,0,"1.1.3",1,1423750915663,"CZK"],
+        [820,1,0,0,"1.2.15",1,1423750915663,"CZK"],
+        [1230,1,0,0,"1.3.5",1,1423750915663,"CZK"],
+        [514,1,0,0,"1.4.7",1,1423750915663,"CZK"],
+        [450,1,0,0,"1.5.10",1,1423750915663,"CZK"],
+        [16,1,0,0,"1.6.20",1,1423750915663,"CZK"],
+        [120,1,0,0,"1.7.17",1,1423750915663,"CZK"],
+        [5096,1,1,0,"2.8.1",1,1423750915663,"CZK"],
+        [180,1,0,0,"2.9.1",1,1423750915663,"CZK"],
+        [400,1,0,0,"2.10.1",1,1423750915663,"CZK"],
+        [24,1,0,0,"2.11.1",1,1423750915663,"CZK"],
+        [85,1,0,0,"2.12.1",1,1423750915663,"CZK"],
+        [222,1,0,0,"2.13.1",1,1423750915663,"CZK"],
+        [515,1,0,0,"2.14.1",1,1423750915663,"CZK"],
+        [66,2,0,0,"2.15.1",1,1423750915663,"CZK"],
+        [989,2,0,0,"2.16.1",1,1423750915663,"CZK"],
+        [271,1,0,0,"2.17.1",1,1423750915663,"CZK"],
+        [169,1,0,0,"2.18.1",1,1423750915663,"CZK"],
+        [1226,1,0,0,"2.19.1",1,1423750915663,"CZK"],
+        [125,1,0,0,"2.20.1",1,1423750915663,"CZK"],
+        [950,1,0,0,"2.21.1",1,1423750915663,"CZK"],
+        [200,1,0,0,"2.22.1",1,1423750915663,"CZK"],
+        [150,1,0,0,"2.23.1",1,1423750915663,"CZK"],
+        [700,1,0,0,"2.24.1",1,1423750915663,"CZK"],
+        [1894,1,1,0,"2.25.1",1,1423750915663,"CZK"],
+        [1797,1,1,0,"2.25.1",1,1423750915663,"CZK"],
+        [150,1,0,0,"2.27.1",1,1423750915663,"CZK"],
+        [301,1,0,0,"2.28.1",1,1423750915663,"CZK"],
+        [238,1,0,0,"2.29.1",1,1423750915663,"CZK"],
+        [540,1,0,0,"2.30.1",1,1423750915663,"CZK"],
+        [90,1,0,0,"2.8.2",1,1423750915663,"CZK"],
+        [148,1,0,0,"2.9.2",1,1423750915663,"CZK"],
+        [355,1,0,0,"2.10.2",1,1423750915663,"CZK"],
+        [685,1,0,0,"2.11.2",1,1423750915663,"CZK"],
+        [68,1,0,0,"2.12.2",1,1423750915663,"CZK"],
+        [150,1,0,0,"2.13.2",1,1423750915663,"CZK"],
+        [550,1,0,0,"2.14.2",1,1423750915663,"CZK"]
+    ],
+    transactions1:[
+        [131,1,0,0,"2.15.2",1,1423750915663,"CZK"],
+        [10,1,0,0,"1.1.2",1,1423750915663,"CZK/USD@0.039093"],
+        [140.50,1,0,0,"1.1.1",1,1423750915663,"CZK"]
+    ]
+};
+
+/**
+ * Storage
+ * @param {string} workerUrl
+ * @constructor
+ */
+App.Storage = function Storage(workerUrl)
 {
-    var Method = {GET:"get",SET:"set"},
-        _worker = new Worker("./js/storage-worker.min.js");
+    this._workerUrl = workerUrl;
+    this._method = {GET:"get",SET:"set"};
+    this._worker = null;
+    this._initialized = false;
+
+    console.log(App.DefaultData.currencyPairs);
+    console.log(JSON.stringify(App.DefaultData.currencyPairs));
+};
+
+/**
+ * Init
+ * @private
+ */
+App.Storage.prototype._init = function _init()
+{
+    if (!this._initialized)
+    {
+        this._initialized = true;
+
+        if (window.Worker)
+        {
+            this._worker = new Worker(this._workerUrl);
+
+            this._registerEventListeners();
+
+            this._worker.postMessage("init/"+JSON.stringify({StorageKey:App.StorageKey,Method:this._method}));
+        }
+    }
+};
+
+/**
+ * Register event listeners
+ * @private
+ */
+App.Storage.prototype._registerEventListeners = function _registerEventListeners()
+{
+    if (this._worker) this._worker.addEventListener("message",this._onWorkerMessage);
+};
+
+/**
+ * Send data to worker to save under key passed in
+ * @param {string} key
+ * @param {Object} data
+ */
+App.Storage.prototype.setData = function setData(key,data)
+{
+    if (!this._initialized) this._init();
+
+    if (this._worker) this._worker.postMessage(this._method.SET+"/"+key+"/"+data);
+};
+
+/**
+ * Query worker for data by key passed in
+ * @param {string} key
+ */
+App.Storage.prototype.getData = function getData(key)
+{
+    if (!this._initialized) this._init();
+
+    if (this._worker) this._worker.postMessage(this._method.GET+"/"+key);
+};
+
+/**
+ * On worker message
+ * @param {Event} e
+ * @private
+ */
+App.Storage.prototype._onWorkerMessage = function _onWorkerMessage(e)
+{
+    console.log("on worker message ",e.data);
+};
+
+/**
+ * @class ServiceLocator
+ * @type {{_services:Object,addService:Function,hasService:Function,getService:Function}}
+ */
+App.ServiceLocator = {
+    _services:{},
 
     /**
-     *
+     * Initialize with array of services passed in
+     * @param {Array.<>} services
      */
-    _worker.addEventListener("message",onWorkerMessage);
-
-    function onWorkerMessage(e)
+    init:function init(services)
     {
-        console.log("on worker message ",e.data);
+        var i = 0,
+            l = services.length;
+
+        for (;i<l;) this._services[services[i++]] = services[i++];
+    },
+
+    /**
+     * @method addPoxy Add proxy to the locator
+     * @param {string} serviceName
+     * @param {*} proxy
+     */
+    addService:function addService(serviceName,proxy)
+    {
+        if (this._services[serviceName]) throw Error("Service "+serviceName+" already exist");
+
+        this._services[serviceName] = proxy;
+    },
+
+    /**
+     * @method hasProxy Check if proxy already exist
+     * @param {string} serviceName
+     * @return {boolean}
+     */
+    hasService:function hasService(serviceName)
+    {
+        return this._services[serviceName];
+    },
+
+    /**
+     * @method getProxy Returns proxy by name passed in
+     * @param {string} serviceName
+     * @return {*}
+     */
+    getService:function getService(serviceName)
+    {
+        return this._services[serviceName];
     }
-
-    _worker.postMessage("init/"+JSON.stringify({StorageKey:App.StorageKey,Method:Method}));
-
-    return {
-        /**
-         * Request for data under key passed in
-         * @param {string} key
-         */
-        getData:function getData(key)
-        {
-            _worker.postMessage(Method.GET+"/"+key);
-        },
-        /**
-         * Send data to to worker for save
-         * @param {string} key
-         * @param {string} data JSON-formatted data to save
-         */
-        setData:function setData(key,data)
-        {
-            _worker.postMessage(Method.SET+"/"+key+"/"+data);
-        }
-    };
-})();
+};
 
 /**
  * The Command
@@ -15399,7 +15684,8 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
 
     this._loadDataCommand.destroy();
     this._loadDataCommand = null;
-    
+
+    this._initServices();
     this._initModel(data,changeScreenDataPool);
     this._initController();
     this._initView();
@@ -15414,6 +15700,15 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
     ));
 
     this.dispatchEvent(App.EventType.COMPLETE);
+};
+
+/**
+ * Initialize services
+ * @private
+ */
+App.Initialize.prototype._initServices = function _initServices()
+{
+    App.ServiceLocator.init([App.ServiceName.STORAGE,new App.Storage("./js/storage-worker.min.js")]);
 };
 
 /**
