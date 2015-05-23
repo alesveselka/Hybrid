@@ -2,12 +2,14 @@
  * @class LoadData
  * @extends {Command}
  * @param {ObjectPool} pool
+ * @param {Storage} storage
  * @constructor
  */
-App.LoadData = function LoadData(pool)
+App.LoadData = function LoadData(pool,storage)
 {
     App.Command.call(this,false,pool);
 
+    this._storage = storage;
     this._jsonLoader = null;
     this._fontLoadingInterval = -1;
     this._fontInfoElement = null;
@@ -96,9 +98,26 @@ App.LoadData.prototype._loadFont = function _loadFont()
  */
 App.LoadData.prototype._loadData = function _loadData()
 {
-    //TODO Access local storage
+    var StorageKey  = App.StorageKey,
+        userData = Object.create(null),
+        timeStamp = window.performance && window.performance.now ? window.performance : Date,
+        start = timeStamp.now();
 
-    var request = new XMLHttpRequest();
+    userData[StorageKey.SETTINGS] = this._storage.getData(StorageKey.SETTINGS);
+    userData[StorageKey.CURRENCY_PAIRS] = this._storage.getData(StorageKey.CURRENCY_PAIRS);
+    userData[StorageKey.SUB_CATEGORIES] = this._storage.getData(StorageKey.SUB_CATEGORIES);
+    userData[StorageKey.CATEGORIES] = this._storage.getData(StorageKey.CATEGORIES);
+    userData[StorageKey.ACCOUNTS] = this._storage.getData(StorageKey.ACCOUNTS);
+    userData[StorageKey.TRANSACTIONS_META] = this._storage.getData(StorageKey.TRANSACTIONS_META);
+    userData[StorageKey.TRANSACTIONS+"0"] = this._storage.getData(StorageKey.TRANSACTIONS+"0");
+    userData[StorageKey.TRANSACTIONS+"1"] = this._storage.getData(StorageKey.TRANSACTIONS+"1");
+
+    console.log("userData: ",timeStamp.now()-start,userData);
+
+    this.dispatchEvent(App.EventType.COMPLETE,{userData:userData,icons:this._icons});
+
+
+    /*var request = new XMLHttpRequest();
     request.open('GET','./data/data.json',true);
 
     request.onload = function() {
@@ -115,7 +134,7 @@ App.LoadData.prototype._loadData = function _loadData()
         this.dispatchEvent(App.EventType.COMPLETE);
     };
 
-    request.send();
+    request.send();*/
 };
 
 /**

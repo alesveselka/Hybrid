@@ -9,7 +9,8 @@ App.Initialize = function Initialize()
 
     App.Command.call(this,false,this._eventListenerPool);
 
-    this._loadDataCommand = new App.LoadData(this._eventListenerPool);
+    this._storage = new App.Storage("./js/storage-worker.min.js",this._eventListenerPool);
+    this._loadDataCommand = new App.LoadData(this._eventListenerPool,this._storage);
 };
 
 App.Initialize.prototype = Object.create(App.Command.prototype);
@@ -63,7 +64,7 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  */
 App.Initialize.prototype._initServices = function _initServices()
 {
-    App.ServiceLocator.init([App.ServiceName.STORAGE,new App.Storage("./js/storage-worker.min.js")]);
+    App.ServiceLocator.init([App.ServiceName.STORAGE,this._storage]);
 };
 
 /**
@@ -79,7 +80,7 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
     var ModelName = App.ModelName,
         Collection = App.Collection,
         PaymentMethod = App.PaymentMethod,
-        userData = JSON.parse(data.userData),
+        userData = data.userData,
         currencyPairs = new App.CurrencyPairCollection(userData.currencyPairs,this._eventListenerPool);
 
     App.ModelLocator.init([
@@ -97,24 +98,6 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         ModelName.CHANGE_SCREEN_DATA_POOL,changeScreenDataPool,
         ModelName.SCREEN_HISTORY,new App.Stack()
     ]);
-
-    var storageKey = "transactions",
-        timeStamp = window.performance && window.performance.now ? window.performance : Date,
-        start = timeStamp.now();
-    localStorage.setItem(storageKey,JSON.stringify(userData.transactions0));
-    console.log("set: ",(timeStamp.now()-start));
-    start = timeStamp.now();
-    console.log(localStorage.getItem(storageKey));
-    console.log("get: ",(timeStamp.now()-start));
-
-    /*var worker = new Worker("./js/StorageWorker.js");
-
-    worker.onmessage = function onMessage(e)
-    {
-        console.log("On worker message ",e);
-    };
-    worker.postMessage("START");
-    console.log(App.Storage);*/
 };
 
 /**
@@ -226,6 +209,8 @@ App.Initialize.prototype.destroy = function destroy()
         this._loadDataCommand.destroy();
         this._loadDataCommand = null;
     }
+
+    this._storage = null;
 
     this._eventListenerPool = null;
 };

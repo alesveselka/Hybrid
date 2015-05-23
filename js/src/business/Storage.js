@@ -1,18 +1,20 @@
 /**
  * Storage
  * @param {string} workerUrl
+ * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.Storage = function Storage(workerUrl)
+App.Storage = function Storage(workerUrl,eventListenerPool)
 {
+    App.EventDispatcher.call(this,eventListenerPool);
+
     this._workerUrl = workerUrl;
     this._method = {GET:"get",SET:"set"};
     this._worker = null;
     this._initialized = false;
-
-//    console.log(App.DefaultData.currencyPairs);
-//    console.log(JSON.stringify(App.DefaultData.currencyPairs));
 };
+
+App.Storage.prototype = Object.create(App.EventDispatcher.prototype);
 
 /**
  * Init
@@ -59,12 +61,26 @@ App.Storage.prototype.setData = function setData(key,data)
 /**
  * Query worker for data by key passed in
  * @param {string} key
+ * @param {string} query
  */
-App.Storage.prototype.getData = function getData(key)
+App.Storage.prototype.getData = function getData(key,query)
 {
     if (!this._initialized) this._init();
 
-    if (this._worker) this._worker.postMessage(this._method.GET+"/"+key);
+    //TODO if no localStorage data is saved, send Default ones and save them as well
+    var data = localStorage.getItem(key);
+    if (data)
+    {
+        data = JSON.parse(data);
+    }
+    else
+    {
+        data = App.DefaultData[key];
+        localStorage.setItem(key,JSON.stringify(data));//TODO compress
+    }
+
+    return data;
+//    if (this._worker) this._worker.postMessage(this._method.GET+"/"+key+(query ? "?"+query : ""));
 };
 
 /**
@@ -75,4 +91,6 @@ App.Storage.prototype.getData = function getData(key)
 App.Storage.prototype._onWorkerMessage = function _onWorkerMessage(e)
 {
     console.log("on worker message ",e.data);
+
+    this.dispatchEvent(App.EventType.COMPLETE,e.data);
 };

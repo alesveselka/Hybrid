@@ -1036,9 +1036,15 @@ App.LifeCycleState = {
     DELETED:3
 };
 
-App.StorageKey = {
-    TRANSACTION:"transaction"
-};
+App.StorageKey = Object.create(null,{
+    SETTINGS:{value:"settings",writable:false,configurable:false},
+    CURRENCY_PAIRS:{value:"currencyPairs",writable:false,configurable:false},
+    SUB_CATEGORIES:{value:"subCategories",writable:false,configurable:false},
+    CATEGORIES:{value:"categories",writable:false,configurable:false},
+    ACCOUNTS:{value:"accounts",writable:false,configurable:false},
+    TRANSACTIONS_META:{value:"transactionsMeta",writable:false,configurable:false},
+    TRANSACTIONS:{value:"transactions",writable:false,configurable:false}
+});
 
 /**
  * Service name enum
@@ -15289,18 +15295,20 @@ App.DefaultData = {
 /**
  * Storage
  * @param {string} workerUrl
+ * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.Storage = function Storage(workerUrl)
+App.Storage = function Storage(workerUrl,eventListenerPool)
 {
+    App.EventDispatcher.call(this,eventListenerPool);
+
     this._workerUrl = workerUrl;
     this._method = {GET:"get",SET:"set"};
     this._worker = null;
     this._initialized = false;
-
-    console.log(App.DefaultData.currencyPairs);
-    console.log(JSON.stringify(App.DefaultData.currencyPairs));
 };
+
+App.Storage.prototype = Object.create(App.EventDispatcher.prototype);
 
 /**
  * Init
@@ -15347,12 +15355,26 @@ App.Storage.prototype.setData = function setData(key,data)
 /**
  * Query worker for data by key passed in
  * @param {string} key
+ * @param {string} query
  */
-App.Storage.prototype.getData = function getData(key)
+App.Storage.prototype.getData = function getData(key,query)
 {
     if (!this._initialized) this._init();
 
-    if (this._worker) this._worker.postMessage(this._method.GET+"/"+key);
+    //TODO if no localStorage data is saved, send Default ones and save them as well
+    var data = localStorage.getItem(key);
+    if (data)
+    {
+        data = JSON.parse(data);
+    }
+    else
+    {
+        data = App.DefaultData[key];
+        localStorage.setItem(key,JSON.stringify(data));//TODO compress
+    }
+
+    return data;
+//    if (this._worker) this._worker.postMessage(this._method.GET+"/"+key+(query ? "?"+query : ""));
 };
 
 /**
@@ -15363,6 +15385,8 @@ App.Storage.prototype.getData = function getData(key)
 App.Storage.prototype._onWorkerMessage = function _onWorkerMessage(e)
 {
     console.log("on worker message ",e.data);
+
+    this.dispatchEvent(App.EventType.COMPLETE,e.data);
 };
 
 /**
@@ -15510,12 +15534,14 @@ App.SequenceCommand.prototype.destroy = function destroy()
  * @class LoadData
  * @extends {Command}
  * @param {ObjectPool} pool
+ * @param {Storage} storage
  * @constructor
  */
-App.LoadData = function LoadData(pool)
+App.LoadData = function LoadData(pool,storage)
 {
     App.Command.call(this,false,pool);
 
+    this._storage = storage;
     this._jsonLoader = null;
     this._fontLoadingInterval = -1;
     this._fontInfoElement = null;
@@ -15604,9 +15630,26 @@ App.LoadData.prototype._loadFont = function _loadFont()
  */
 App.LoadData.prototype._loadData = function _loadData()
 {
-    //TODO Access local storage
+    var StorageKey  = App.StorageKey,
+        userData = Object.create(null),
+        timeStamp = window.performance && window.performance.now ? window.performance : Date,
+        start = timeStamp.now();
 
-    var request = new XMLHttpRequest();
+    userData[StorageKey.SETTINGS] = this._storage.getData(StorageKey.SETTINGS);
+    userData[StorageKey.CURRENCY_PAIRS] = this._storage.getData(StorageKey.CURRENCY_PAIRS);
+    userData[StorageKey.SUB_CATEGORIES] = this._storage.getData(StorageKey.SUB_CATEGORIES);
+    userData[StorageKey.CATEGORIES] = this._storage.getData(StorageKey.CATEGORIES);
+    userData[StorageKey.ACCOUNTS] = this._storage.getData(StorageKey.ACCOUNTS);
+    userData[StorageKey.TRANSACTIONS_META] = this._storage.getData(StorageKey.TRANSACTIONS_META);
+    userData[StorageKey.TRANSACTIONS+"0"] = this._storage.getData(StorageKey.TRANSACTIONS+"0");
+    userData[StorageKey.TRANSACTIONS+"1"] = this._storage.getData(StorageKey.TRANSACTIONS+"1");
+
+    console.log("userData: ",timeStamp.now()-start,userData);
+
+    this.dispatchEvent(App.EventType.COMPLETE,{userData:userData,icons:this._icons});
+
+
+    /*var request = new XMLHttpRequest();
     request.open('GET','./data/data.json',true);
 
     request.onload = function() {
@@ -15623,7 +15666,7 @@ App.LoadData.prototype._loadData = function _loadData()
         this.dispatchEvent(App.EventType.COMPLETE);
     };
 
-    request.send();
+    request.send();*/
 };
 
 /**
@@ -15654,7 +15697,8 @@ App.Initialize = function Initialize()
 
     App.Command.call(this,false,this._eventListenerPool);
 
-    this._loadDataCommand = new App.LoadData(this._eventListenerPool);
+    this._storage = new App.Storage("./js/storage-worker.min.js",this._eventListenerPool);
+    this._loadDataCommand = new App.LoadData(this._eventListenerPool,this._storage);
 };
 
 App.Initialize.prototype = Object.create(App.Command.prototype);
@@ -15708,7 +15752,7 @@ App.Initialize.prototype._onLoadDataComplete = function _onLoadDataComplete(data
  */
 App.Initialize.prototype._initServices = function _initServices()
 {
-    App.ServiceLocator.init([App.ServiceName.STORAGE,new App.Storage("./js/storage-worker.min.js")]);
+    App.ServiceLocator.init([App.ServiceName.STORAGE,this._storage]);
 };
 
 /**
@@ -15724,7 +15768,7 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
     var ModelName = App.ModelName,
         Collection = App.Collection,
         PaymentMethod = App.PaymentMethod,
-        userData = JSON.parse(data.userData),
+        userData = data.userData,
         currencyPairs = new App.CurrencyPairCollection(userData.currencyPairs,this._eventListenerPool);
 
     App.ModelLocator.init([
@@ -15742,24 +15786,6 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         ModelName.CHANGE_SCREEN_DATA_POOL,changeScreenDataPool,
         ModelName.SCREEN_HISTORY,new App.Stack()
     ]);
-
-    var storageKey = "transactions",
-        timeStamp = window.performance && window.performance.now ? window.performance : Date,
-        start = timeStamp.now();
-    localStorage.setItem(storageKey,JSON.stringify(userData.transactions0));
-    console.log("set: ",(timeStamp.now()-start));
-    start = timeStamp.now();
-    console.log(localStorage.getItem(storageKey));
-    console.log("get: ",(timeStamp.now()-start));
-
-    /*var worker = new Worker("./js/StorageWorker.js");
-
-    worker.onmessage = function onMessage(e)
-    {
-        console.log("On worker message ",e);
-    };
-    worker.postMessage("START");
-    console.log(App.Storage);*/
 };
 
 /**
@@ -15871,6 +15897,8 @@ App.Initialize.prototype.destroy = function destroy()
         this._loadDataCommand.destroy();
         this._loadDataCommand = null;
     }
+
+    this._storage = null;
 
     this._eventListenerPool = null;
 };
