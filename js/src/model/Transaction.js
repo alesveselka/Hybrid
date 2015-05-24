@@ -12,10 +12,11 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
     {
         this._data = data;
 
-        this.amount = data[0];
-        this.type = data[1];
-        this.pending = data[2] === 1;
-        this.repeat = data[3] === 1;
+        this.id = data[0];
+        this.amount = data[1];
+        this.type = data[2];
+        this.pending = data[3] === 1;
+        this.repeat = data[4] === 1;
         this._account = null;
         this._category = null;
         this._subCategory = null;
@@ -24,12 +25,13 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
         this._currencyBase = null;
         this._currencyQuote = null;
 //        this._currencyRate = 1.0;
-        this.note = data[8] ? decodeURI(data[8]) : "";
+        this.note = data[9] ? decodeURI(data[9]) : "";
     }
     else
     {
         this._data = null;
 
+        this.id = "?";
         this.amount = "";
         this.type = App.TransactionType.EXPENSE;
         this.pending = false;
@@ -82,10 +84,11 @@ App.Transaction.prototype.revokeState = function revokeState()
 {
     if (this._data)
     {
-        this.amount = this._data[0];
-        this.type = this._data[1];
-        this.pending = this._data[2] === 1;
-        this.repeat = this._data[3] === 1;
+        this.id = this._data[0];
+        this.amount = this._data[1];
+        this.type = this._data[2];
+        this.pending = this._data[3] === 1;
+        this.repeat = this._data[4] === 1;
         this._account = null;
         this._category = null;
         this._subCategory = null;
@@ -94,7 +97,7 @@ App.Transaction.prototype.revokeState = function revokeState()
         this._currencyBase = null;
         this._currencyQuote = null;
         // this._currencyRate = 1.0;
-        this.note = this._data[8] ? decodeURI(data[8]) : "";
+        this.note = this._data[9] ? decodeURI(data[9]) : "";
     }
 };
 
@@ -109,6 +112,7 @@ App.Transaction.prototype.serialize = function serialize()
         quote = this.currencyQuote,
         currency = base === quote ? quote : base + "/" + quote + "@" + App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(base,quote),
         data = [
+            this.id,
             parseFloat(this.amount),
             this.type,
             this.pending ? 1 : 0,
@@ -154,7 +158,7 @@ App.Transaction.prototype.copy = function copy()
 Object.defineProperty(App.Transaction.prototype,'savedAmount',{
     get:function()
     {
-        if (this._data) return this._data[0];
+        if (this._data) return this._data[1];
         else return 0.0;
     }
 });
@@ -166,7 +170,7 @@ Object.defineProperty(App.Transaction.prototype,'savedAmount',{
 Object.defineProperty(App.Transaction.prototype,'savedType',{
     get:function()
     {
-        if (this._data) return this._data[1];
+        if (this._data) return this._data[2];
         else return 1;
     }
 });
@@ -178,7 +182,7 @@ Object.defineProperty(App.Transaction.prototype,'savedType',{
 Object.defineProperty(App.Transaction.prototype,'savedPending',{
     get:function()
     {
-        if (this._data) return this._data[2] === 1;
+        if (this._data) return this._data[3] === 1;
         else return false;
     }
 });
@@ -190,7 +194,7 @@ Object.defineProperty(App.Transaction.prototype,'savedPending',{
 Object.defineProperty(App.Transaction.prototype,'savedSubCategory',{
     get:function()
     {
-        return App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find("id",this._data[4].split(".")[2]);
+        return App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find("id",this._data[5].split(".")[2]);
     }
 });
 
@@ -201,8 +205,8 @@ Object.defineProperty(App.Transaction.prototype,'savedSubCategory',{
 Object.defineProperty(App.Transaction.prototype,'savedCurrencyBase',{
     get:function()
     {
-        if (this._data[7].indexOf("@") === -1) return this._data[7];
-        else return this._data[7].split("@")[0].split("/")[0];
+        if (this._data[8].indexOf("@") === -1) return this._data[8];
+        else return this._data[8].split("@")[0].split("/")[0];
     }
 });
 
@@ -213,8 +217,8 @@ Object.defineProperty(App.Transaction.prototype,'savedCurrencyBase',{
 Object.defineProperty(App.Transaction.prototype,'savedCurrencyQuote',{
     get:function()
     {
-        if (this._data[7].indexOf("@") === -1) return this._data[7];
-        else return this._data[7].split("@")[0].split("/")[1];
+        if (this._data[8].indexOf("@") === -1) return this._data[8];
+        else return this._data[8].split("@")[0].split("/")[1];
     }
 });
 
@@ -225,8 +229,8 @@ Object.defineProperty(App.Transaction.prototype,'savedCurrencyQuote',{
 Object.defineProperty(App.Transaction.prototype,'savedCurrencyRate',{
     get:function()
     {
-        if (this._data[7].indexOf("@") === -1) return null;
-        else return parseFloat(this._data[7].split("@")[1]);
+        if (this._data[8].indexOf("@") === -1) return null;
+        else return parseFloat(this._data[8].split("@")[1]);
     }
 });
 
@@ -239,7 +243,7 @@ Object.defineProperty(App.Transaction.prototype,'account',{
     {
         if (!this._account)
         {
-            if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find("id",this._data[4].split(".")[0]);
+            if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find("id",this._data[5].split(".")[0]);
             else this._account = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultAccount;
         }
         return this._account;
@@ -263,7 +267,7 @@ Object.defineProperty(App.Transaction.prototype,'category',{
             {
                 var ModelLocator = App.ModelLocator,
                     ModelName = App.ModelName,
-                    ids = this._data[4].split(".");
+                    ids = this._data[5].split(".");
 
                 this._category = ModelLocator.getProxy(ModelName.CATEGORIES).find("id",ids[1]);
                 this._subCategory = ModelLocator.getProxy(ModelName.SUB_CATEGORIES).find("id",ids[2]);
@@ -311,7 +315,7 @@ Object.defineProperty(App.Transaction.prototype,'method',{
     {
         if (!this._method)
         {
-            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find("id",this._data[5]);
+            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find("id",this._data[6]);
             else this._method = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultPaymentMethod;
         }
         return this._method;
@@ -331,7 +335,7 @@ Object.defineProperty(App.Transaction.prototype,'date',{
     {
         if (!this._date)
         {
-            if (this._data) this._date = new Date(this._data[6]);
+            if (this._data) this._date = new Date(this._data[7]);
             else this._date = new Date();
         }
         return this._date;

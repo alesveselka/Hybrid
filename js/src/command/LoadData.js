@@ -109,32 +109,13 @@ App.LoadData.prototype._loadData = function _loadData()
     userData[StorageKey.CATEGORIES] = this._storage.getData(StorageKey.CATEGORIES);
     userData[StorageKey.ACCOUNTS] = this._storage.getData(StorageKey.ACCOUNTS);
     userData[StorageKey.TRANSACTIONS_META] = this._storage.getData(StorageKey.TRANSACTIONS_META);
+    //TODO load transactions according to Meta (the IDs don't necessarily have to go in order)
     userData[StorageKey.TRANSACTIONS+"0"] = this._storage.getData(StorageKey.TRANSACTIONS+"0");
     userData[StorageKey.TRANSACTIONS+"1"] = this._storage.getData(StorageKey.TRANSACTIONS+"1");
 
     console.log("userData: ",timeStamp.now()-start,userData);
 
     this.dispatchEvent(App.EventType.COMPLETE,{userData:userData,icons:this._icons});
-
-
-    /*var request = new XMLHttpRequest();
-    request.open('GET','./data/data.json',true);
-
-    request.onload = function() {
-        if (request.status >= 200 && request.status < 400)
-        {
-            this.dispatchEvent(App.EventType.COMPLETE,{userData:request.responseText,icons:this._icons});
-        } else {
-            console.log("error");
-        }
-    }.bind(this);
-
-    request.onerror = function() {
-        console.log("on error");
-        this.dispatchEvent(App.EventType.COMPLETE);
-    };
-
-    request.send();*/
 };
 
 /**
@@ -149,6 +130,8 @@ App.LoadData.prototype.destroy = function destroy()
     this._jsonLoader = null;
 
     clearInterval(this._fontLoadingInterval);
+
+    this._storage = null;
 
     this._fontInfoElement = null;
     this._icons = null;

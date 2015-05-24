@@ -2017,10 +2017,11 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
     {
         this._data = data;
 
-        this.amount = data[0];
-        this.type = data[1];
-        this.pending = data[2] === 1;
-        this.repeat = data[3] === 1;
+        this.id = data[0];
+        this.amount = data[1];
+        this.type = data[2];
+        this.pending = data[3] === 1;
+        this.repeat = data[4] === 1;
         this._account = null;
         this._category = null;
         this._subCategory = null;
@@ -2029,12 +2030,13 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
         this._currencyBase = null;
         this._currencyQuote = null;
 //        this._currencyRate = 1.0;
-        this.note = data[8] ? decodeURI(data[8]) : "";
+        this.note = data[9] ? decodeURI(data[9]) : "";
     }
     else
     {
         this._data = null;
 
+        this.id = "?";
         this.amount = "";
         this.type = App.TransactionType.EXPENSE;
         this.pending = false;
@@ -2087,10 +2089,11 @@ App.Transaction.prototype.revokeState = function revokeState()
 {
     if (this._data)
     {
-        this.amount = this._data[0];
-        this.type = this._data[1];
-        this.pending = this._data[2] === 1;
-        this.repeat = this._data[3] === 1;
+        this.id = this._data[0];
+        this.amount = this._data[1];
+        this.type = this._data[2];
+        this.pending = this._data[3] === 1;
+        this.repeat = this._data[4] === 1;
         this._account = null;
         this._category = null;
         this._subCategory = null;
@@ -2099,7 +2102,7 @@ App.Transaction.prototype.revokeState = function revokeState()
         this._currencyBase = null;
         this._currencyQuote = null;
         // this._currencyRate = 1.0;
-        this.note = this._data[8] ? decodeURI(data[8]) : "";
+        this.note = this._data[9] ? decodeURI(data[9]) : "";
     }
 };
 
@@ -2114,6 +2117,7 @@ App.Transaction.prototype.serialize = function serialize()
         quote = this.currencyQuote,
         currency = base === quote ? quote : base + "/" + quote + "@" + App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).findRate(base,quote),
         data = [
+            this.id,
             parseFloat(this.amount),
             this.type,
             this.pending ? 1 : 0,
@@ -2159,7 +2163,7 @@ App.Transaction.prototype.copy = function copy()
 Object.defineProperty(App.Transaction.prototype,'savedAmount',{
     get:function()
     {
-        if (this._data) return this._data[0];
+        if (this._data) return this._data[1];
         else return 0.0;
     }
 });
@@ -2171,7 +2175,7 @@ Object.defineProperty(App.Transaction.prototype,'savedAmount',{
 Object.defineProperty(App.Transaction.prototype,'savedType',{
     get:function()
     {
-        if (this._data) return this._data[1];
+        if (this._data) return this._data[2];
         else return 1;
     }
 });
@@ -2183,7 +2187,7 @@ Object.defineProperty(App.Transaction.prototype,'savedType',{
 Object.defineProperty(App.Transaction.prototype,'savedPending',{
     get:function()
     {
-        if (this._data) return this._data[2] === 1;
+        if (this._data) return this._data[3] === 1;
         else return false;
     }
 });
@@ -2195,7 +2199,7 @@ Object.defineProperty(App.Transaction.prototype,'savedPending',{
 Object.defineProperty(App.Transaction.prototype,'savedSubCategory',{
     get:function()
     {
-        return App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find("id",this._data[4].split(".")[2]);
+        return App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).find("id",this._data[5].split(".")[2]);
     }
 });
 
@@ -2206,8 +2210,8 @@ Object.defineProperty(App.Transaction.prototype,'savedSubCategory',{
 Object.defineProperty(App.Transaction.prototype,'savedCurrencyBase',{
     get:function()
     {
-        if (this._data[7].indexOf("@") === -1) return this._data[7];
-        else return this._data[7].split("@")[0].split("/")[0];
+        if (this._data[8].indexOf("@") === -1) return this._data[8];
+        else return this._data[8].split("@")[0].split("/")[0];
     }
 });
 
@@ -2218,8 +2222,8 @@ Object.defineProperty(App.Transaction.prototype,'savedCurrencyBase',{
 Object.defineProperty(App.Transaction.prototype,'savedCurrencyQuote',{
     get:function()
     {
-        if (this._data[7].indexOf("@") === -1) return this._data[7];
-        else return this._data[7].split("@")[0].split("/")[1];
+        if (this._data[8].indexOf("@") === -1) return this._data[8];
+        else return this._data[8].split("@")[0].split("/")[1];
     }
 });
 
@@ -2230,8 +2234,8 @@ Object.defineProperty(App.Transaction.prototype,'savedCurrencyQuote',{
 Object.defineProperty(App.Transaction.prototype,'savedCurrencyRate',{
     get:function()
     {
-        if (this._data[7].indexOf("@") === -1) return null;
-        else return parseFloat(this._data[7].split("@")[1]);
+        if (this._data[8].indexOf("@") === -1) return null;
+        else return parseFloat(this._data[8].split("@")[1]);
     }
 });
 
@@ -2244,7 +2248,7 @@ Object.defineProperty(App.Transaction.prototype,'account',{
     {
         if (!this._account)
         {
-            if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find("id",this._data[4].split(".")[0]);
+            if (this._data) this._account = App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).find("id",this._data[5].split(".")[0]);
             else this._account = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultAccount;
         }
         return this._account;
@@ -2268,7 +2272,7 @@ Object.defineProperty(App.Transaction.prototype,'category',{
             {
                 var ModelLocator = App.ModelLocator,
                     ModelName = App.ModelName,
-                    ids = this._data[4].split(".");
+                    ids = this._data[5].split(".");
 
                 this._category = ModelLocator.getProxy(ModelName.CATEGORIES).find("id",ids[1]);
                 this._subCategory = ModelLocator.getProxy(ModelName.SUB_CATEGORIES).find("id",ids[2]);
@@ -2316,7 +2320,7 @@ Object.defineProperty(App.Transaction.prototype,'method',{
     {
         if (!this._method)
         {
-            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find("id",this._data[5]);
+            if (this._data) this._method = App.ModelLocator.getProxy(App.ModelName.PAYMENT_METHODS).find("id",this._data[6]);
             else this._method = App.ModelLocator.getProxy(App.ModelName.SETTINGS).defaultPaymentMethod;
         }
         return this._method;
@@ -2336,7 +2340,7 @@ Object.defineProperty(App.Transaction.prototype,'date',{
     {
         if (!this._date)
         {
-            if (this._data) this._date = new Date(this._data[6]);
+            if (this._data) this._date = new Date(this._data[7]);
             else this._date = new Date();
         }
         return this._date;
@@ -15236,59 +15240,59 @@ App.DefaultData = {
     ],
     _commentTransactionsMeta:"array - each item representing number of transactions in a transactions array-segment",
     transactionsMeta:[45,3],
-    _commentTransactions:["amount","transactionType","pending","repeat","account.category.subCategory","paymentMethod","date","currency(base[/quote@rate])","note"],
+    _commentTransactions:["id(collection.transaction)","amount","transactionType","pending","repeat","account.category.subCategory","paymentMethod","date","currency(base[/quote@rate])","note"],
     transactions0:[
-        [800,2,0,0,"2.5.13",1,1423750915663,"CZK","Jimmy%27s%20Coffee"],
-        [54,2,0,0,"2.5.13",1,1423750915663,"CZK/USD@0.039093"],
-        [300,1,0,0,"1.2.8",1,1423750915663,"CZK"],
-        [130,1,0,0,"1.2.14",1,1423750915663,"CZK"],
-        [218,1,0,0,"1.3.4",1,1423750915663,"CZK"],
-        [950,1,0,0,"1.4.6",1,1423750915663,"CZK"],
-        [320,1,0,0,"1.5.9",1,1423750915663,"CZK"],
-        [80,1,0,0,"1.6.19",1,1423750915663,"CZK"],
-        [275,1,0,0,"1.7.16",1,1423750915663,"CZK"],
-        [119,1,0,0,"1.1.3",1,1423750915663,"CZK"],
-        [820,1,0,0,"1.2.15",1,1423750915663,"CZK"],
-        [1230,1,0,0,"1.3.5",1,1423750915663,"CZK"],
-        [514,1,0,0,"1.4.7",1,1423750915663,"CZK"],
-        [450,1,0,0,"1.5.10",1,1423750915663,"CZK"],
-        [16,1,0,0,"1.6.20",1,1423750915663,"CZK"],
-        [120,1,0,0,"1.7.17",1,1423750915663,"CZK"],
-        [5096,1,1,0,"2.8.1",1,1423750915663,"CZK"],
-        [180,1,0,0,"2.9.1",1,1423750915663,"CZK"],
-        [400,1,0,0,"2.10.1",1,1423750915663,"CZK"],
-        [24,1,0,0,"2.11.1",1,1423750915663,"CZK"],
-        [85,1,0,0,"2.12.1",1,1423750915663,"CZK"],
-        [222,1,0,0,"2.13.1",1,1423750915663,"CZK"],
-        [515,1,0,0,"2.14.1",1,1423750915663,"CZK"],
-        [66,2,0,0,"2.15.1",1,1423750915663,"CZK"],
-        [989,2,0,0,"2.16.1",1,1423750915663,"CZK"],
-        [271,1,0,0,"2.17.1",1,1423750915663,"CZK"],
-        [169,1,0,0,"2.18.1",1,1423750915663,"CZK"],
-        [1226,1,0,0,"2.19.1",1,1423750915663,"CZK"],
-        [125,1,0,0,"2.20.1",1,1423750915663,"CZK"],
-        [950,1,0,0,"2.21.1",1,1423750915663,"CZK"],
-        [200,1,0,0,"2.22.1",1,1423750915663,"CZK"],
-        [150,1,0,0,"2.23.1",1,1423750915663,"CZK"],
-        [700,1,0,0,"2.24.1",1,1423750915663,"CZK"],
-        [1894,1,1,0,"2.25.1",1,1423750915663,"CZK"],
-        [1797,1,1,0,"2.25.1",1,1423750915663,"CZK"],
-        [150,1,0,0,"2.27.1",1,1423750915663,"CZK"],
-        [301,1,0,0,"2.28.1",1,1423750915663,"CZK"],
-        [238,1,0,0,"2.29.1",1,1423750915663,"CZK"],
-        [540,1,0,0,"2.30.1",1,1423750915663,"CZK"],
-        [90,1,0,0,"2.8.2",1,1423750915663,"CZK"],
-        [148,1,0,0,"2.9.2",1,1423750915663,"CZK"],
-        [355,1,0,0,"2.10.2",1,1423750915663,"CZK"],
-        [685,1,0,0,"2.11.2",1,1423750915663,"CZK"],
-        [68,1,0,0,"2.12.2",1,1423750915663,"CZK"],
-        [150,1,0,0,"2.13.2",1,1423750915663,"CZK"],
-        [550,1,0,0,"2.14.2",1,1423750915663,"CZK"]
+        ["0.0",800,2,0,0,"2.5.13",1,1423750915663,"CZK","Jimmy%27s%20Coffee"],
+        ["0.1",54,2,0,0,"2.5.13",1,1423750915663,"CZK/USD@0.039093"],
+        ["0.2",300,1,0,0,"1.2.8",1,1423750915663,"CZK"],
+        ["0.3",130,1,0,0,"1.2.14",1,1423750915663,"CZK"],
+        ["0.4",218,1,0,0,"1.3.4",1,1423750915663,"CZK"],
+        ["0.5",950,1,0,0,"1.4.6",1,1423750915663,"CZK"],
+        ["0.6",320,1,0,0,"1.5.9",1,1423750915663,"CZK"],
+        ["0.7",80,1,0,0,"1.6.19",1,1423750915663,"CZK"],
+        ["0.8",275,1,0,0,"1.7.16",1,1423750915663,"CZK"],
+        ["0.9",119,1,0,0,"1.1.3",1,1423750915663,"CZK"],
+        ["0.10",820,1,0,0,"1.2.15",1,1423750915663,"CZK"],
+        ["0.11",1230,1,0,0,"1.3.5",1,1423750915663,"CZK"],
+        ["0.12",514,1,0,0,"1.4.7",1,1423750915663,"CZK"],
+        ["0.13",450,1,0,0,"1.5.10",1,1423750915663,"CZK"],
+        ["0.14",16,1,0,0,"1.6.20",1,1423750915663,"CZK"],
+        ["0.15",120,1,0,0,"1.7.17",1,1423750915663,"CZK"],
+        ["0.16",5096,1,1,0,"2.8.1",1,1423750915663,"CZK"],
+        ["0.17",180,1,0,0,"2.9.1",1,1423750915663,"CZK"],
+        ["0.18",400,1,0,0,"2.10.1",1,1423750915663,"CZK"],
+        ["0.19",24,1,0,0,"2.11.1",1,1423750915663,"CZK"],
+        ["0.20",85,1,0,0,"2.12.1",1,1423750915663,"CZK"],
+        ["0.21",222,1,0,0,"2.13.1",1,1423750915663,"CZK"],
+        ["0.22",515,1,0,0,"2.14.1",1,1423750915663,"CZK"],
+        ["0.23",66,2,0,0,"2.15.1",1,1423750915663,"CZK"],
+        ["0.24",989,2,0,0,"2.16.1",1,1423750915663,"CZK"],
+        ["0.25",271,1,0,0,"2.17.1",1,1423750915663,"CZK"],
+        ["0.26",169,1,0,0,"2.18.1",1,1423750915663,"CZK"],
+        ["0.27",1226,1,0,0,"2.19.1",1,1423750915663,"CZK"],
+        ["0.28",125,1,0,0,"2.20.1",1,1423750915663,"CZK"],
+        ["0.29",950,1,0,0,"2.21.1",1,1423750915663,"CZK"],
+        ["0.30",200,1,0,0,"2.22.1",1,1423750915663,"CZK"],
+        ["0.31",150,1,0,0,"2.23.1",1,1423750915663,"CZK"],
+        ["0.32",700,1,0,0,"2.24.1",1,1423750915663,"CZK"],
+        ["0.33",1894,1,1,0,"2.25.1",1,1423750915663,"CZK"],
+        ["0.34",1797,1,1,0,"2.25.1",1,1423750915663,"CZK"],
+        ["0.35",150,1,0,0,"2.27.1",1,1423750915663,"CZK"],
+        ["0.36",301,1,0,0,"2.28.1",1,1423750915663,"CZK"],
+        ["0.37",238,1,0,0,"2.29.1",1,1423750915663,"CZK"],
+        ["0.38",540,1,0,0,"2.30.1",1,1423750915663,"CZK"],
+        ["0.39",90,1,0,0,"2.8.2",1,1423750915663,"CZK"],
+        ["0.40",148,1,0,0,"2.9.2",1,1423750915663,"CZK"],
+        ["0.41",355,1,0,0,"2.10.2",1,1423750915663,"CZK"],
+        ["0.42",685,1,0,0,"2.11.2",1,1423750915663,"CZK"],
+        ["0.43",68,1,0,0,"2.12.2",1,1423750915663,"CZK"],
+        ["0.44",150,1,0,0,"2.13.2",1,1423750915663,"CZK"],
+        ["0.45",550,1,0,0,"2.14.2",1,1423750915663,"CZK"]
     ],
     transactions1:[
-        [131,1,0,0,"2.15.2",1,1423750915663,"CZK"],
-        [10,1,0,0,"1.1.2",1,1423750915663,"CZK/USD@0.039093"],
-        [140.50,1,0,0,"1.1.1",1,1423750915663,"CZK"]
+        ["1.0",131,1,0,0,"2.15.2",1,1423750915663,"CZK"],
+        ["1.1",10,1,0,0,"1.1.2",1,1423750915663,"CZK/USD@0.039093"],
+        ["1.2",140.50,1,0,0,"1.1.1",1,1423750915663,"CZK"]
     ]
 };
 
@@ -15320,14 +15324,14 @@ App.Storage.prototype._init = function _init()
     {
         this._initialized = true;
 
-        if (window.Worker)
+        /*if (window.Worker)
         {
             this._worker = new Worker(this._workerUrl);
 
             this._registerEventListeners();
 
             this._worker.postMessage("init/"+JSON.stringify({StorageKey:App.StorageKey,Method:this._method}));
-        }
+        }*/
     }
 };
 
@@ -15347,9 +15351,9 @@ App.Storage.prototype._registerEventListeners = function _registerEventListeners
  */
 App.Storage.prototype.setData = function setData(key,data)
 {
-    if (!this._initialized) this._init();
+    //if (!this._initialized) this._init();
 
-    if (this._worker) this._worker.postMessage(this._method.SET+"/"+key+"/"+data);
+    //if (this._worker) this._worker.postMessage(this._method.SET+"/"+key+"/"+data);
 };
 
 /**
@@ -15359,7 +15363,7 @@ App.Storage.prototype.setData = function setData(key,data)
  */
 App.Storage.prototype.getData = function getData(key,query)
 {
-    if (!this._initialized) this._init();
+    //if (!this._initialized) this._init();
 
     //TODO if no localStorage data is saved, send Default ones and save them as well
     var data = localStorage.getItem(key);
@@ -15647,26 +15651,6 @@ App.LoadData.prototype._loadData = function _loadData()
     console.log("userData: ",timeStamp.now()-start,userData);
 
     this.dispatchEvent(App.EventType.COMPLETE,{userData:userData,icons:this._icons});
-
-
-    /*var request = new XMLHttpRequest();
-    request.open('GET','./data/data.json',true);
-
-    request.onload = function() {
-        if (request.status >= 200 && request.status < 400)
-        {
-            this.dispatchEvent(App.EventType.COMPLETE,{userData:request.responseText,icons:this._icons});
-        } else {
-            console.log("error");
-        }
-    }.bind(this);
-
-    request.onerror = function() {
-        console.log("on error");
-        this.dispatchEvent(App.EventType.COMPLETE);
-    };
-
-    request.send();*/
 };
 
 /**
@@ -15681,6 +15665,8 @@ App.LoadData.prototype.destroy = function destroy()
     this._jsonLoader = null;
 
     clearInterval(this._fontLoadingInterval);
+
+    this._storage = null;
 
     this._fontInfoElement = null;
     this._icons = null;

@@ -26,14 +26,14 @@ App.Storage.prototype._init = function _init()
     {
         this._initialized = true;
 
-        if (window.Worker)
+        /*if (window.Worker)
         {
             this._worker = new Worker(this._workerUrl);
 
             this._registerEventListeners();
 
             this._worker.postMessage("init/"+JSON.stringify({StorageKey:App.StorageKey,Method:this._method}));
-        }
+        }*/
     }
 };
 
@@ -53,9 +53,9 @@ App.Storage.prototype._registerEventListeners = function _registerEventListeners
  */
 App.Storage.prototype.setData = function setData(key,data)
 {
-    if (!this._initialized) this._init();
+    //if (!this._initialized) this._init();
 
-    if (this._worker) this._worker.postMessage(this._method.SET+"/"+key+"/"+data);
+    //if (this._worker) this._worker.postMessage(this._method.SET+"/"+key+"/"+data);
 };
 
 /**
@@ -65,7 +65,7 @@ App.Storage.prototype.setData = function setData(key,data)
  */
 App.Storage.prototype.getData = function getData(key,query)
 {
-    if (!this._initialized) this._init();
+    //if (!this._initialized) this._init();
 
     //TODO if no localStorage data is saved, send Default ones and save them as well
     var data = localStorage.getItem(key);
