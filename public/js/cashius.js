@@ -1760,19 +1760,32 @@ App.Collection.prototype.length = function length()
 
 /**
  * @class TransactionCollection
- * @param {Array.<number>} meta
- * @param {Array} transactions
+ * @param {Object} data
  * @param {App.ObjectPool} eventListenerPool
  * @constructor
  */
-App.TransactionCollection = function TransactionCollection(meta,transactions,eventListenerPool)
+App.TransactionCollection = function TransactionCollection(data,eventListenerPool)
 {
+    var StorageKey = App.StorageKey,
+        transactions = [],
+        transactionIds = [];
+
+    for (var prop in data)
+    {
+        if (prop !== StorageKey.TRANSACTIONS_META)
+        {
+            transactionIds.push(parseInt(prop.replace(/\D/g,""),10));
+            transactions = transactions.concat(data[prop]);
+        }
+    }
+
     App.Collection.call(this,transactions,App.Transaction,null,eventListenerPool);
 
-    this._meta = new Array(meta.length);
-    this._initMeta(meta);
+    this._maxSegmentSize = 45;
+    this._meta = [];
+    this._initMeta(data[StorageKey.TRANSACTIONS_META],transactionIds);
 
-    //console.log(this._meta);
+    console.log(this._meta);
 };
 
 App.TransactionCollection.prototype = Object.create(App.Collection.prototype);
@@ -1782,12 +1795,86 @@ App.TransactionCollection.prototype = Object.create(App.Collection.prototype);
  * @param {Array.<number>} meta
  * @private
  */
-App.TransactionCollection.prototype._initMeta = function _initMeta(meta)
+App.TransactionCollection.prototype._initMeta = function _initMeta(meta,ids)
 {
-    var l = meta.length - 1,
+    /*var l = meta.length - 1,
         i = l;
     //TODO I will also have to know from what segment is particular transaction when I change it and save again - save in ID (meta.transaction)
-    for (;i>-1;i--) this._meta[i] = {length:meta[i],loaded:i===l};
+    for (;i>-1;i--) this._meta[i] = {length:meta[i][0],metaId:i,transactionId:meta[i][1],loaded:i===l};*/
+
+    var i = 0,
+        l = meta.length,
+        item = null;
+
+    for (;i<l;i++)
+    {
+        item = meta[i];
+        this._meta[i] = {metaId:item[0],length:item[1],transactionId:item[2],loaded:ids.indexOf(item[0]) > -1};
+    }
+};
+
+/**
+ * Create and return new transaction
+ * @returns {App.Transaction}
+ */
+App.TransactionCollection.prototype.createTransaction = function createTransaction()
+{
+    var transaction = new App.Transaction(),
+        meta = this._meta[this._meta.length-1];
+
+    if (meta.length >= this._maxSegmentSize)
+    {
+        this._meta[this._meta.length] = {metaId:meta.metaId++,length:0,transactionId:0,loaded:true};
+        meta = this._meta[this._meta.length-1];
+    }
+
+    transaction.id = meta.metaId + "." + meta.transactionId++;
+
+    return transaction;
+};
+
+/**
+ * Find and return meta object bu id passed in
+ * @param {number} id
+ * @returns {{metaId:number,length:number,transactionId:number,loaded:boolean}}
+ * @private
+ */
+App.TransactionCollection.prototype._getMetaById = function _getMetaById(id)
+{
+    for (var i= 0,l=this._meta.length;i<l;i++)
+    {
+        if (this._meta[i].metaId === id) return this._meta[i];
+    }
+
+    return this._meta[this._meta.length-1];
+};
+
+/**
+ * @method addItem Add item into collection
+ * @param {*} item
+ */
+App.TransactionCollection.prototype.addItem = function addItem(item)
+{
+    // Bump up length of meta object
+    this._getMetaById(parseInt(item.id.split(".")[0],10)).length++;
+
+    this._items[this._items.length] = item;
+
+    this.dispatchEvent(App.EventType.ADDED,item);
+};
+
+/**
+ * @method removeItem Remove item passed in
+ * @param {*} item
+ * @return {*} item
+ */
+App.TransactionCollection.prototype.removeItem = function removeItem(item)
+{
+    // Decrease length of meta object
+    var meta = this._getMetaById(parseInt(item.id.split(".")[0],10));
+    if (meta.length > 0) meta.length--;
+
+    return this.removeItemAt(this.indexOf(item));
 };
 
 /**
@@ -15238,8 +15325,8 @@ App.DefaultData = {
         ["1","Private","1,2,3,4,5,6,7"],
         ["2","Business","8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30"]
     ],
-    _commentTransactionsMeta:"array - each item representing number of transactions in a transactions array-segment",
-    transactionsMeta:[45,3],
+    _commentTransactionsMeta:"array of arrays - each item representing transactions array-segment; [segment ID,number of transactions,highest transaction ID]",
+    transactionsMeta:[[0,46,45],[1,3,2]],
     _commentTransactions:["id(collection.transaction)","amount","transactionType","pending","repeat","account.category.subCategory","paymentMethod","date","currency(base[/quote@rate])","note"],
     transactions0:[
         ["0.0",800,2,0,0,"2.5.13",1,1423750915663,"CZK","Jimmy%27s%20Coffee"],
@@ -15637,20 +15724,47 @@ App.LoadData.prototype._loadData = function _loadData()
     var StorageKey  = App.StorageKey,
         userData = Object.create(null),
         timeStamp = window.performance && window.performance.now ? window.performance : Date,
-        start = timeStamp.now();
+        start = timeStamp.now(),
+        transactions = Object.create(null),
+        transactionIds = null,
+        transactionKey = null,
+        i = 0,
+        l = 0;
 
     userData[StorageKey.SETTINGS] = this._storage.getData(StorageKey.SETTINGS);
     userData[StorageKey.CURRENCY_PAIRS] = this._storage.getData(StorageKey.CURRENCY_PAIRS);
     userData[StorageKey.SUB_CATEGORIES] = this._storage.getData(StorageKey.SUB_CATEGORIES);
     userData[StorageKey.CATEGORIES] = this._storage.getData(StorageKey.CATEGORIES);
     userData[StorageKey.ACCOUNTS] = this._storage.getData(StorageKey.ACCOUNTS);
-    userData[StorageKey.TRANSACTIONS_META] = this._storage.getData(StorageKey.TRANSACTIONS_META);
-    userData[StorageKey.TRANSACTIONS+"0"] = this._storage.getData(StorageKey.TRANSACTIONS+"0");
-    userData[StorageKey.TRANSACTIONS+"1"] = this._storage.getData(StorageKey.TRANSACTIONS+"1");
+    transactions[StorageKey.TRANSACTIONS_META] = this._storage.getData(StorageKey.TRANSACTIONS_META);
+
+    transactionIds = this._getMetaIds(transactions[StorageKey.TRANSACTIONS_META],2);
+    for (l=transactionIds.length;i<l;)
+    {
+        transactionKey = StorageKey.TRANSACTIONS+transactionIds[i++];
+        transactions[transactionKey] = this._storage.getData(transactionKey);
+    }
+    userData[StorageKey.TRANSACTIONS] = transactions;
 
     console.log("userData: ",timeStamp.now()-start,userData);
 
     this.dispatchEvent(App.EventType.COMPLETE,{userData:userData,icons:this._icons});
+};
+
+/**
+ * Find and return IDs of transaction segments to load
+ * @param {Array.<Array>} meta
+ * @param {number} lookBack
+ * @private
+ */
+App.LoadData.prototype._getMetaIds = function _getMetaIds(meta,lookBack)
+{
+    var i = meta.length > lookBack ? lookBack : meta.length - 1,
+        ids = [];
+
+    for (;i>-1;) ids.push(meta[i--][0]);
+
+    return ids;
 };
 
 /**
@@ -15745,7 +15859,7 @@ App.Initialize.prototype._initServices = function _initServices()
  * Initialize application model
  *
  * @method _initModel
- * @param {{userData:string,transactionsMeta:string,transactions0:string,icons:Object}} data
+ * @param {{userData:Object,icons:Object}} data
  * @param {ObjectPool} changeScreenDataPool
  * @private
  */
@@ -15768,7 +15882,7 @@ App.Initialize.prototype._initModel = function _initModel(data,changeScreenDataP
         ModelName.SUB_CATEGORIES,new Collection(userData.subCategories,App.SubCategory,null,this._eventListenerPool),
         ModelName.CATEGORIES,new Collection(userData.categories,App.Category,null,this._eventListenerPool),
         ModelName.ACCOUNTS,new Collection(userData.accounts,App.Account,null,this._eventListenerPool),
-        ModelName.TRANSACTIONS,new App.TransactionCollection(userData.transactionsMeta,userData.transactions0,this._eventListenerPool),
+        ModelName.TRANSACTIONS,new App.TransactionCollection(userData.transactions,this._eventListenerPool),
         ModelName.CHANGE_SCREEN_DATA_POOL,changeScreenDataPool,
         ModelName.SCREEN_HISTORY,new App.Stack()
     ]);

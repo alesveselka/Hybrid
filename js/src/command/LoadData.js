@@ -101,21 +101,48 @@ App.LoadData.prototype._loadData = function _loadData()
     var StorageKey  = App.StorageKey,
         userData = Object.create(null),
         timeStamp = window.performance && window.performance.now ? window.performance : Date,
-        start = timeStamp.now();
+        start = timeStamp.now(),
+        transactions = Object.create(null),
+        transactionIds = null,
+        transactionKey = null,
+        i = 0,
+        l = 0;
 
     userData[StorageKey.SETTINGS] = this._storage.getData(StorageKey.SETTINGS);
     userData[StorageKey.CURRENCY_PAIRS] = this._storage.getData(StorageKey.CURRENCY_PAIRS);
     userData[StorageKey.SUB_CATEGORIES] = this._storage.getData(StorageKey.SUB_CATEGORIES);
     userData[StorageKey.CATEGORIES] = this._storage.getData(StorageKey.CATEGORIES);
     userData[StorageKey.ACCOUNTS] = this._storage.getData(StorageKey.ACCOUNTS);
-    userData[StorageKey.TRANSACTIONS_META] = this._storage.getData(StorageKey.TRANSACTIONS_META);
-    //TODO load transactions according to Meta (the IDs don't necessarily have to go in order)
-    userData[StorageKey.TRANSACTIONS+"0"] = this._storage.getData(StorageKey.TRANSACTIONS+"0");
-    userData[StorageKey.TRANSACTIONS+"1"] = this._storage.getData(StorageKey.TRANSACTIONS+"1");
+    transactions[StorageKey.TRANSACTIONS_META] = this._storage.getData(StorageKey.TRANSACTIONS_META);
+
+    // Find and load two last segments of transactions
+    transactionIds = this._getMetaIds(transactions[StorageKey.TRANSACTIONS_META],2);
+    for (l=transactionIds.length;i<l;)
+    {
+        transactionKey = StorageKey.TRANSACTIONS+transactionIds[i++];
+        transactions[transactionKey] = this._storage.getData(transactionKey);
+    }
+    userData[StorageKey.TRANSACTIONS] = transactions;
 
     console.log("userData: ",timeStamp.now()-start,userData);
 
     this.dispatchEvent(App.EventType.COMPLETE,{userData:userData,icons:this._icons});
+};
+
+/**
+ * Find and return IDs of transaction segments to load
+ * @param {Array.<Array>} meta
+ * @param {number} lookBack
+ * @private
+ */
+App.LoadData.prototype._getMetaIds = function _getMetaIds(meta,lookBack)
+{
+    var i = meta.length > lookBack ? lookBack : meta.length - 1,
+        ids = [];
+
+    for (;i>-1;) ids.push(meta[i--][0]);
+
+    return ids;
 };
 
 /**
