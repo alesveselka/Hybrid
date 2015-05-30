@@ -85,6 +85,21 @@ App.Collection.prototype.copySource = function copySource()
 };
 
 /**
+ * Serialize collection data
+ * @returns {Array}
+ */
+App.Collection.prototype.serialize = function serialize()
+{
+    var data = [],
+        i = 0,
+        l = this._items.length;
+
+    for (;i<l;) data.push(this._items[i++].serialize());
+
+    return data;
+};
+
+/**
  * Filter collection against value passed in
  * @param {string|Array} value
  * @param {string} [property=null]

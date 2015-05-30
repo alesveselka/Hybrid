@@ -31,6 +31,15 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
 App.SubCategory._UID = 0;
 
 /**
+ * Serialize
+ * @return {Array}
+ */
+App.SubCategory.prototype.serialize = function serialize()
+{
+    return [this.id,this.name,this.category,this.balance];
+};
+
+/**
  * Save current state
  */
 App.SubCategory.prototype.saveState = function saveState()

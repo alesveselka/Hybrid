@@ -56,6 +56,8 @@ App.Storage.prototype.setData = function setData(key,data)
     //if (!this._initialized) this._init();
 
     //if (this._worker) this._worker.postMessage(this._method.SET+"/"+key+"/"+data);
+
+    localStorage.setItem(key,JSON.stringify(data));//TODO compress
 };
 
 /**
@@ -67,7 +69,6 @@ App.Storage.prototype.getData = function getData(key,query)
 {
     //if (!this._initialized) this._init();
 
-    //TODO if no localStorage data is saved, send Default ones and save them as well
     var data = localStorage.getItem(key);
     if (data)
     {

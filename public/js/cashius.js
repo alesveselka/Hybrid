@@ -1574,6 +1574,21 @@ App.Collection.prototype.copySource = function copySource()
 };
 
 /**
+ * Serialize collection data
+ * @returns {Array}
+ */
+App.Collection.prototype.serialize = function serialize()
+{
+    var data = [],
+        i = 0,
+        l = this._items.length;
+
+    for (;i<l;) data.push(this._items[i++].serialize());
+
+    return data;
+};
+
+/**
  * Filter collection against value passed in
  * @param {string|Array} value
  * @param {string} [property=null]
@@ -2495,6 +2510,15 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
 };
 
 App.SubCategory._UID = 0;
+
+/**
+ * Serialize
+ * @return {Array}
+ */
+App.SubCategory.prototype.serialize = function serialize()
+{
+    return [this.id,this.name,this.category,this.balance];
+};
 
 /**
  * Save current state
@@ -15427,6 +15451,8 @@ App.Storage.prototype.setData = function setData(key,data)
     //if (!this._initialized) this._init();
 
     //if (this._worker) this._worker.postMessage(this._method.SET+"/"+key+"/"+data);
+
+    localStorage.setItem(key,JSON.stringify(data));//TODO compress
 };
 
 /**
@@ -15689,7 +15715,7 @@ App.LoadData.prototype._loadFont = function _loadFont()
             {
                 clearInterval(this._fontLoadingInterval);
 
-                document.body.removeChild(this._fontInfoElement);
+//                document.body.removeChild(this._fontInfoElement);
 
                 this._loadData();
             }
@@ -16143,14 +16169,14 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     else if (type === EventType.CONFIRM)
     {
         // Update balances before saving
-        this._updateCategoryBalance(type,transaction,data,settings);
+        this._updateCategoryBalance(type,transaction,data,settings);//TODO save (sub)category
 
         this._setToggles(transaction,data);
         this._setInputs(transaction,data,true);
         this._setMethod(transaction,data,settings);
 
         transaction.currencyBase = settings.baseCurrency;
-        transaction.save();
+        transaction.save();//TODO save collection & meta to the storage
         transactions.setCurrent(null);
     }
     else if (type === EventType.CANCEL)
@@ -16167,8 +16193,9 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.DELETE)
     {
+        //TODO save collection & meta to the storage
         // Update balances before deleting
-        this._updateCategoryBalance(type,transaction,data,settings);
+        this._updateCategoryBalance(type,transaction,data,settings);//TODO save (sub)category
 
         transactions.removeItem(transaction).destroy();
 
@@ -16324,6 +16351,11 @@ App.ChangeTransaction.prototype._updateSavedBalance = function _updateSavedBalan
     {
         savedSubCategory.balance = savedSubCategory.balance - savedAmount;
     }
+
+    App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
+        App.StorageKey.SUB_CATEGORIES,
+        App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).serialize()
+    );
 };
 
 /**
@@ -16351,6 +16383,11 @@ App.ChangeTransaction.prototype._updateCurrentBalance = function _updateCurrentB
             subCategory.balance = subCategory.balance + currentAmount;
         }
     }
+
+    App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
+        App.StorageKey.SUB_CATEGORIES,
+        App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).serialize()
+    );
 };
 
 /**
