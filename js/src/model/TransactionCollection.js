@@ -7,23 +7,18 @@
 App.TransactionCollection = function TransactionCollection(data,eventListenerPool)
 {
     var StorageKey = App.StorageKey,
+        ids = data.ids.sort(function(a,b){return a-b;}),
         transactions = [],
-        transactionIds = [];
+        i = 0,
+        l = ids.length;
 
-    for (var prop in data)
-    {
-        if (prop !== StorageKey.TRANSACTIONS_META)
-        {
-            transactionIds.push(parseInt(prop.replace(/\D/g,""),10));
-            transactions = transactions.concat(data[prop]);
-        }
-    }
+    for (;i<l;) transactions = transactions.concat(data[StorageKey.TRANSACTIONS+ids[i++]]);
 
     App.Collection.call(this,transactions,App.Transaction,null,eventListenerPool);
 
     this._maxSegmentSize = 45;
     this._meta = [];
-    this._initMeta(data[StorageKey.TRANSACTIONS_META],transactionIds);
+    this._initMeta(data[StorageKey.TRANSACTIONS_META],ids);
 };
 
 App.TransactionCollection.prototype = Object.create(App.Collection.prototype);

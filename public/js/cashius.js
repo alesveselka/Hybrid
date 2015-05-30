@@ -1767,23 +1767,18 @@ App.Collection.prototype.length = function length()
 App.TransactionCollection = function TransactionCollection(data,eventListenerPool)
 {
     var StorageKey = App.StorageKey,
+        ids = data.ids.sort(function(a,b){return a-b;}),
         transactions = [],
-        transactionIds = [];
+        i = 0,
+        l = ids.length;
 
-    for (var prop in data)
-    {
-        if (prop !== StorageKey.TRANSACTIONS_META)
-        {
-            transactionIds.push(parseInt(prop.replace(/\D/g,""),10));
-            transactions = transactions.concat(data[prop]);
-        }
-    }
+    for (;i<l;) transactions = transactions.concat(data[StorageKey.TRANSACTIONS+ids[i++]]);
 
     App.Collection.call(this,transactions,App.Transaction,null,eventListenerPool);
 
     this._maxSegmentSize = 45;
     this._meta = [];
-    this._initMeta(data[StorageKey.TRANSACTIONS_META],transactionIds);
+    this._initMeta(data[StorageKey.TRANSACTIONS_META],ids);
 };
 
 App.TransactionCollection.prototype = Object.create(App.Collection.prototype);
@@ -15721,7 +15716,7 @@ App.LoadData.prototype._loadData = function _loadData()
         transactionKey = null,
         i = 0,
         l = 0;
-    localStorage.clear();
+
     userData[StorageKey.SETTINGS] = this._storage.getData(StorageKey.SETTINGS);
     userData[StorageKey.CURRENCY_PAIRS] = this._storage.getData(StorageKey.CURRENCY_PAIRS);
     userData[StorageKey.SUB_CATEGORIES] = this._storage.getData(StorageKey.SUB_CATEGORIES);
@@ -15736,6 +15731,7 @@ App.LoadData.prototype._loadData = function _loadData()
         transactionKey = StorageKey.TRANSACTIONS+transactionIds[i++];
         transactions[transactionKey] = this._storage.getData(transactionKey);
     }
+    transactions.ids = transactionIds;
     userData[StorageKey.TRANSACTIONS] = transactions;
 
     console.log("userData: ",timeStamp.now()-start,userData);
@@ -16156,7 +16152,6 @@ App.ChangeTransaction.prototype.execute = function execute(data)
         transaction.currencyBase = settings.baseCurrency;
         transaction.save();
         transactions.setCurrent(null);
-        console.log("ID ",transaction.id);
     }
     else if (type === EventType.CANCEL)
     {

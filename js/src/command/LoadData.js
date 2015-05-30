@@ -122,6 +122,7 @@ App.LoadData.prototype._loadData = function _loadData()
         transactionKey = StorageKey.TRANSACTIONS+transactionIds[i++];
         transactions[transactionKey] = this._storage.getData(transactionKey);
     }
+    transactions.ids = transactionIds;
     userData[StorageKey.TRANSACTIONS] = transactions;
 
     console.log("userData: ",timeStamp.now()-start,userData);
