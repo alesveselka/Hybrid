@@ -102,3 +102,28 @@ App.TransactionCollection.prototype.removeItem = function removeItem(item)
 
     return this.removeItemAt(this.indexOf(item));
 };
+
+/**
+ * Serialize and return transaction data for segment specified by ID passed in
+ * @param {string} metaId
+ * @param {boolean} serialize
+ * @returns {Array}
+ */
+App.TransactionCollection.prototype.serialize = function serialize(metaId,serialize)
+{
+    var transaction = null,
+        data = [],
+        i = 0,
+        l = this._items.length;
+
+    for (;i<l;)
+    {
+        transaction = this._items[i++];
+        if (metaId === transaction.id.split(".")[0])
+        {
+            data.push(transaction.getData(serialize));
+        }
+    }
+
+    return data;
+};

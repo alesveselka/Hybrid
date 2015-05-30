@@ -67,8 +67,10 @@ App.ChangeTransaction.prototype.execute = function execute(data)
         this._setMethod(transaction,data,settings);
 
         transaction.currencyBase = settings.baseCurrency;
-        transaction.save();//TODO save collection & meta to the storage
+        transaction.save();
         transactions.setCurrent(null);
+
+        this._saveCollection(transaction,transactions);
     }
     else if (type === EventType.CANCEL)
     {
@@ -84,13 +86,14 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     }
     else if (type === EventType.DELETE)
     {
-        //TODO save collection & meta to the storage
         // Update balances before deleting
         this._updateCategoryBalance(type,transaction,data,settings);
 
         transactions.removeItem(transaction).destroy();
 
         data.nextCommandData.updateData = transactions.copySource().reverse();
+
+        this._saveCollection(transaction,transactions);
     }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
@@ -278,5 +281,21 @@ App.ChangeTransaction.prototype._updateCurrentBalance = function _updateCurrentB
     App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
         App.StorageKey.SUB_CATEGORIES,
         App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).serialize()
+    );
+};
+
+/**
+ * Save transaction collection
+ * @param {App.Transaction} transaction
+ * @param {App.TransactionCollection} collection
+ * @private
+ */
+App.ChangeTransaction.prototype._saveCollection = function _saveCollection(transaction,collection)
+{
+    var metaId = transaction.id.split(".")[0];
+
+    App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
+        App.StorageKey.TRANSACTIONS+metaId,
+        collection.serialize(metaId,false)
     );
 };

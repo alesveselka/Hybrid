@@ -129,6 +129,16 @@ App.Transaction.prototype.serialize = function serialize()
 };
 
 /**
+ * Return serialized data
+ * @param {boolean} serialize If set to true, return result of 'serialize' call
+ * @returns {Array}
+ */
+App.Transaction.prototype.getData = function getData(serialize)
+{
+    return serialize ? this.serialize() : this._data;
+};
+
+/**
  * Create and return copy of itself
  * @returns {App.Transaction}
  */
