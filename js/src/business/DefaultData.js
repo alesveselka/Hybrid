@@ -124,7 +124,7 @@ App.DefaultData = {
         ["2","Business","8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30"]
     ],
     _commentTransactionsMeta:"array of arrays - each item representing transactions array-segment; [segment ID,number of transactions,highest transaction ID]",
-    transactionsMeta:[[0,46,45],[1,3,2]],
+    transactionsMeta:[[0,46,46],[1,3,3]],
     _commentTransactions:["id(collection.transaction)","amount","transactionType","pending","repeat","account.category.subCategory","paymentMethod","date","currency(base[/quote@rate])","note"],
     transactions0:[
         ["0.0",800,2,0,0,"2.5.13",1,1423750915663,"CZK","Jimmy%27s%20Coffee"],

@@ -33,6 +33,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     if (type === EventType.CREATE)
     {
         transaction = new App.Transaction();
+        transaction.id = transactions.getTransactionId();
         transactions.addItem(transaction);
         transactions.setCurrent(transaction);
 
@@ -41,6 +42,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     else if (type === EventType.COPY)
     {
         transaction = data.transaction.copy();
+        transaction.id = transactions.getTransactionId();
         transactions.addItem(transaction);
         transactions.setCurrent(transaction);
 

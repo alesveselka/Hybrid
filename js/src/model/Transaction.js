@@ -31,7 +31,7 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
     {
         this._data = null;
 
-        this.id = "?";
+        this.id = null;
         this.amount = "";
         this.type = App.TransactionType.EXPENSE;
         this.pending = false;

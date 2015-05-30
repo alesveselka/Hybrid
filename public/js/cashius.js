@@ -1784,8 +1784,6 @@ App.TransactionCollection = function TransactionCollection(data,eventListenerPoo
     this._maxSegmentSize = 45;
     this._meta = [];
     this._initMeta(data[StorageKey.TRANSACTIONS_META],transactionIds);
-
-    console.log(this._meta);
 };
 
 App.TransactionCollection.prototype = Object.create(App.Collection.prototype);
@@ -1793,15 +1791,11 @@ App.TransactionCollection.prototype = Object.create(App.Collection.prototype);
 /**
  * Initialize meta information object
  * @param {Array.<number>} meta
+ * @param {Array.<number>} ids
  * @private
  */
 App.TransactionCollection.prototype._initMeta = function _initMeta(meta,ids)
 {
-    /*var l = meta.length - 1,
-        i = l;
-    //TODO I will also have to know from what segment is particular transaction when I change it and save again - save in ID (meta.transaction)
-    for (;i>-1;i--) this._meta[i] = {length:meta[i][0],metaId:i,transactionId:meta[i][1],loaded:i===l};*/
-
     var i = 0,
         l = meta.length,
         item = null;
@@ -1814,13 +1808,12 @@ App.TransactionCollection.prototype._initMeta = function _initMeta(meta,ids)
 };
 
 /**
- * Create and return new transaction
- * @returns {App.Transaction}
+ * Create and return new transaction ID
+ * @returns {string}
  */
-App.TransactionCollection.prototype.createTransaction = function createTransaction()
+App.TransactionCollection.prototype.getTransactionId = function getTransactionId()
 {
-    var transaction = new App.Transaction(),
-        meta = this._meta[this._meta.length-1];
+    var meta = this._meta[this._meta.length-1];
 
     if (meta.length >= this._maxSegmentSize)
     {
@@ -1828,9 +1821,7 @@ App.TransactionCollection.prototype.createTransaction = function createTransacti
         meta = this._meta[this._meta.length-1];
     }
 
-    transaction.id = meta.metaId + "." + meta.transactionId++;
-
-    return transaction;
+    return meta.metaId + "." + meta.transactionId++;
 };
 
 /**
@@ -2123,7 +2114,7 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
     {
         this._data = null;
 
-        this.id = "?";
+        this.id = null;
         this.amount = "";
         this.type = App.TransactionType.EXPENSE;
         this.pending = false;
@@ -15326,7 +15317,7 @@ App.DefaultData = {
         ["2","Business","8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30"]
     ],
     _commentTransactionsMeta:"array of arrays - each item representing transactions array-segment; [segment ID,number of transactions,highest transaction ID]",
-    transactionsMeta:[[0,46,45],[1,3,2]],
+    transactionsMeta:[[0,46,46],[1,3,3]],
     _commentTransactions:["id(collection.transaction)","amount","transactionType","pending","repeat","account.category.subCategory","paymentMethod","date","currency(base[/quote@rate])","note"],
     transactions0:[
         ["0.0",800,2,0,0,"2.5.13",1,1423750915663,"CZK","Jimmy%27s%20Coffee"],
@@ -15730,7 +15721,7 @@ App.LoadData.prototype._loadData = function _loadData()
         transactionKey = null,
         i = 0,
         l = 0;
-
+    localStorage.clear();
     userData[StorageKey.SETTINGS] = this._storage.getData(StorageKey.SETTINGS);
     userData[StorageKey.CURRENCY_PAIRS] = this._storage.getData(StorageKey.CURRENCY_PAIRS);
     userData[StorageKey.SUB_CATEGORIES] = this._storage.getData(StorageKey.SUB_CATEGORIES);
@@ -15738,6 +15729,7 @@ App.LoadData.prototype._loadData = function _loadData()
     userData[StorageKey.ACCOUNTS] = this._storage.getData(StorageKey.ACCOUNTS);
     transactions[StorageKey.TRANSACTIONS_META] = this._storage.getData(StorageKey.TRANSACTIONS_META);
 
+    // Find and load two last segments of transactions
     transactionIds = this._getMetaIds(transactions[StorageKey.TRANSACTIONS_META],2);
     for (l=transactionIds.length;i<l;)
     {
@@ -16128,6 +16120,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     if (type === EventType.CREATE)
     {
         transaction = new App.Transaction();
+        transaction.id = transactions.getTransactionId();
         transactions.addItem(transaction);
         transactions.setCurrent(transaction);
 
@@ -16136,6 +16129,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
     else if (type === EventType.COPY)
     {
         transaction = data.transaction.copy();
+        transaction.id = transactions.getTransactionId();
         transactions.addItem(transaction);
         transactions.setCurrent(transaction);
 
@@ -16162,6 +16156,7 @@ App.ChangeTransaction.prototype.execute = function execute(data)
         transaction.currencyBase = settings.baseCurrency;
         transaction.save();
         transactions.setCurrent(null);
+        console.log("ID ",transaction.id);
     }
     else if (type === EventType.CANCEL)
     {

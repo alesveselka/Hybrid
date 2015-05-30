@@ -48,13 +48,12 @@ App.TransactionCollection.prototype._initMeta = function _initMeta(meta,ids)
 };
 
 /**
- * Create and return new transaction
- * @returns {App.Transaction}
+ * Create and return new transaction ID
+ * @returns {string}
  */
-App.TransactionCollection.prototype.createTransaction = function createTransaction()
+App.TransactionCollection.prototype.getTransactionId = function getTransactionId()
 {
-    var transaction = new App.Transaction(),
-        meta = this._meta[this._meta.length-1];
+    var meta = this._meta[this._meta.length-1];
 
     if (meta.length >= this._maxSegmentSize)
     {
@@ -62,9 +61,7 @@ App.TransactionCollection.prototype.createTransaction = function createTransacti
         meta = this._meta[this._meta.length-1];
     }
 
-    transaction.id = meta.metaId + "." + meta.transactionId++;
-
-    return transaction;
+    return meta.metaId + "." + meta.transactionId++;
 };
 
 /**
