@@ -106,10 +106,10 @@ App.TransactionCollection.prototype.removeItem = function removeItem(item)
 /**
  * Serialize and return transaction data for segment specified by ID passed in
  * @param {string} metaId
- * @param {boolean} serialize
+ * @param {boolean} serializeData
  * @returns {Array}
  */
-App.TransactionCollection.prototype.serialize = function serialize(metaId,serialize)
+App.TransactionCollection.prototype.serialize = function serialize(metaId,serializeData)
 {
     var transaction = null,
         data = [],
@@ -121,7 +121,7 @@ App.TransactionCollection.prototype.serialize = function serialize(metaId,serial
         transaction = this._items[i++];
         if (metaId === transaction.id.split(".")[0])
         {
-            data.push(transaction.getData(serialize));
+            data.push(transaction.getData(serializeData));
         }
     }
 
