@@ -62,11 +62,12 @@ App.LoadData.prototype._loadFont = function _loadFont()
 
     var FontStyle = App.FontStyle,
         fontInfoWidth = this._fontInfoElement.offsetWidth,
+        fontName = "QW@HhsXJ",
         fontsLoaded = 0;
 
     this._fontLoadingInterval = setInterval(function()
     {
-        if (this._fontInfoElement.offsetWidth !== fontInfoWidth)
+        if (this._fontInfoElement.offsetWidth !== fontInfoWidth && this._fontInfoElement.style.fontFamily === fontName)
         {
             fontsLoaded++;
 
@@ -74,9 +75,10 @@ App.LoadData.prototype._loadFont = function _loadFont()
             {
                 fontInfoWidth = this._fontInfoElement.offsetWidth;
 
+                fontName = FontStyle.LIGHT_CONDENSED;
                 this._fontInfoElement.style.fontFamily = FontStyle.LIGHT_CONDENSED;
             }
-            else if (fontsLoaded === 2)
+            else if (fontsLoaded >= 2)
             {
                 clearInterval(this._fontLoadingInterval);
 
@@ -87,6 +89,7 @@ App.LoadData.prototype._loadFont = function _loadFont()
         }
     }.bind(this),100);
 
+    fontName = FontStyle.CONDENSED;
     this._fontInfoElement.style.fontFamily = FontStyle.CONDENSED;
 };
 
