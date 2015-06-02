@@ -1880,15 +1880,13 @@ App.TransactionCollection.prototype.removeItem = function removeItem(item)
 
 /**
  * Serialize and return transaction data for segment specified by ID passed in
- * If no id is passed it, all transactions data are returned
  * @param {string} metaId
- * @param {boolean} serialize
+ * @param {boolean} serializeData
  * @returns {Array}
  */
-App.TransactionCollection.prototype.serialize = function serialize(metaId,serialize)
+App.TransactionCollection.prototype.serialize = function serialize(metaId,serializeData)
 {
     var transaction = null,
-        id = null,
         data = [],
         i = 0,
         l = this._items.length;
@@ -1898,7 +1896,7 @@ App.TransactionCollection.prototype.serialize = function serialize(metaId,serial
         transaction = this._items[i++];
         if (metaId === transaction.id.split(".")[0])
         {
-            data.push(transaction.getData(serialize));
+            data.push(transaction.getData(serializeData));
         }
     }
 
@@ -2837,6 +2835,29 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
 App.Account._UID = 0;
 
 /**
+ * Serialize
+ * @return {Array}
+ */
+App.Account.prototype.serialize = function serialize()
+{
+    var categoryCollection = this.categories;
+    if (categoryCollection.length)
+    {
+        var i = 0,
+            l = categoryCollection.length,
+            ids = [];
+
+        for (;i<l;) ids.push(categoryCollection[i++].id);
+
+        return [this.id,this.name,ids.join(",")];
+    }
+    else
+    {
+        return [this.id,this.name];
+    }
+};
+
+/**
  * Add category
  * @param {App.Category} category
  * @private
@@ -2893,7 +2914,7 @@ Object.defineProperty(App.Account.prototype,'categories',{
     {
         if (!this._categories)
         {
-            if (this._data) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2].split(","),"id");
+            if (this._data && this._data[2]) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2].split(","),"id");
             else this._categories = [];
         }
         return this._categories;
@@ -15489,6 +15510,7 @@ App.Storage.prototype.setData = function setData(key,data)
 
     //if (this._worker) this._worker.postMessage(this._method.SET+"/"+key+"/"+data);
 
+    //TODO use this only as 'prediction' amd then fetch data from server (see Meteor)
     localStorage.setItem(key,JSON.stringify(data));//TODO compress
 };
 
@@ -15733,11 +15755,12 @@ App.LoadData.prototype._loadFont = function _loadFont()
 
     var FontStyle = App.FontStyle,
         fontInfoWidth = this._fontInfoElement.offsetWidth,
+        fontName = "QW@HhsXJ",
         fontsLoaded = 0;
 
     this._fontLoadingInterval = setInterval(function()
     {
-        if (this._fontInfoElement.offsetWidth !== fontInfoWidth)
+        if (this._fontInfoElement.offsetWidth !== fontInfoWidth && this._fontInfoElement.style.fontFamily === fontName)
         {
             fontsLoaded++;
 
@@ -15745,9 +15768,10 @@ App.LoadData.prototype._loadFont = function _loadFont()
             {
                 fontInfoWidth = this._fontInfoElement.offsetWidth;
 
-                this._fontInfoElement.style.fontFamily = FontStyle.LIGHT_CONDENSED;
+                fontName = FontStyle.CONDENSED;
+                this._fontInfoElement.style.fontFamily = FontStyle.CONDENSED;
             }
-            else if (fontsLoaded === 2)
+            else if (fontsLoaded >= 2)
             {
                 clearInterval(this._fontLoadingInterval);
 
@@ -15758,7 +15782,8 @@ App.LoadData.prototype._loadFont = function _loadFont()
         }
     }.bind(this),100);
 
-    this._fontInfoElement.style.fontFamily = FontStyle.CONDENSED;
+    fontName = FontStyle.LIGHT_CONDENSED;
+    this._fontInfoElement.style.fontFamily = FontStyle.LIGHT_CONDENSED;
 };
 
 /**
@@ -15778,7 +15803,7 @@ App.LoadData.prototype._loadData = function _loadData()
         transactionKey = null,
         i = 0,
         l = 0;
-
+//    localStorage.clear();
     userData[StorageKey.SETTINGS] = this._storage.getData(StorageKey.SETTINGS);
     userData[StorageKey.CURRENCY_PAIRS] = this._storage.getData(StorageKey.CURRENCY_PAIRS);
     userData[StorageKey.SUB_CATEGORIES] = this._storage.getData(StorageKey.SUB_CATEGORIES);
@@ -16715,10 +16740,17 @@ App.ChangeAccount.prototype.execute = function execute(data)
             if (collection.indexOf(account) === -1) collection.addItem(account);
 
             account.lifeCycleState = App.LifeCycleState.ACTIVE;
+
+            // Save
+            App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
+                App.StorageKey.ACCOUNTS,
+                App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).serialize()
+            );
         }
     }
     else if (type === EventType.DELETE)
     {
+        //TODO keep checking when this account is not really needed and delete it
         account.lifeCycleState = App.LifeCycleState.DELETED;
     }
 

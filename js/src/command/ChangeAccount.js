@@ -42,10 +42,17 @@ App.ChangeAccount.prototype.execute = function execute(data)
             if (collection.indexOf(account) === -1) collection.addItem(account);
 
             account.lifeCycleState = App.LifeCycleState.ACTIVE;
+
+            // Save
+            App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
+                App.StorageKey.ACCOUNTS,
+                App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).serialize()
+            );
         }
     }
     else if (type === EventType.DELETE)
     {
+        //TODO keep checking when this account is not really needed and delete it
         account.lifeCycleState = App.LifeCycleState.DELETED;
     }
 

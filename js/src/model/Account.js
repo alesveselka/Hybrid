@@ -34,6 +34,29 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
 App.Account._UID = 0;
 
 /**
+ * Serialize
+ * @return {Array}
+ */
+App.Account.prototype.serialize = function serialize()
+{
+    var categoryCollection = this.categories;
+    if (categoryCollection.length)
+    {
+        var i = 0,
+            l = categoryCollection.length,
+            ids = [];
+
+        for (;i<l;) ids.push(categoryCollection[i++].id);
+
+        return [this.id,this.name,ids.join(",")];
+    }
+    else
+    {
+        return [this.id,this.name];
+    }
+};
+
+/**
  * Add category
  * @param {App.Category} category
  * @private
@@ -90,7 +113,7 @@ Object.defineProperty(App.Account.prototype,'categories',{
     {
         if (!this._categories)
         {
-            if (this._data) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2].split(","),"id");
+            if (this._data && this._data[2]) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2].split(","),"id");
             else this._categories = [];
         }
         return this._categories;
