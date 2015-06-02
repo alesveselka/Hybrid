@@ -75,8 +75,8 @@ App.LoadData.prototype._loadFont = function _loadFont()
             {
                 fontInfoWidth = this._fontInfoElement.offsetWidth;
 
-                fontName = FontStyle.LIGHT_CONDENSED;
-                this._fontInfoElement.style.fontFamily = FontStyle.LIGHT_CONDENSED;
+                fontName = FontStyle.CONDENSED;
+                this._fontInfoElement.style.fontFamily = FontStyle.CONDENSED;
             }
             else if (fontsLoaded >= 2)
             {
@@ -89,8 +89,8 @@ App.LoadData.prototype._loadFont = function _loadFont()
         }
     }.bind(this),100);
 
-    fontName = FontStyle.CONDENSED;
-    this._fontInfoElement.style.fontFamily = FontStyle.CONDENSED;
+    fontName = FontStyle.LIGHT_CONDENSED;
+    this._fontInfoElement.style.fontFamily = FontStyle.LIGHT_CONDENSED;
 };
 
 /**
