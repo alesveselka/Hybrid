@@ -24,6 +24,12 @@ App.ChangeCurrencyPair.prototype.execute = function execute(data)
 
     data.currencyPair.rate = parseFloat(data.rate);
 
+    // Save
+    App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
+        App.StorageKey.CURRENCY_PAIRS,
+        App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).serialize()
+    );
+
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);
 };

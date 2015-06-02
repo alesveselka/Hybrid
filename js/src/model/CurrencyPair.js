@@ -13,3 +13,12 @@ App.CurrencyPair = function CurrencyPair(data,collection,parent,eventListenerPoo
     this.symbol = data[2];//quote symbol
     this.rate = data[3];
 };
+
+/**
+ * Serialize
+ * @return {Array}
+ */
+App.CurrencyPair.prototype.serialize = function serialize()
+{
+    return [this.id,this.base,this.symbol,this.rate];
+};

@@ -2052,6 +2052,15 @@ App.CurrencyPair = function CurrencyPair(data,collection,parent,eventListenerPoo
 };
 
 /**
+ * Serialize
+ * @return {Array}
+ */
+App.CurrencyPair.prototype.serialize = function serialize()
+{
+    return [this.id,this.base,this.symbol,this.rate];
+};
+
+/**
  * @class CurrencyPairCollection
  * @param {Array} source
  * @param {ObjectPool} eventListenerPool
@@ -16783,6 +16792,12 @@ App.ChangeCurrencyPair.prototype.execute = function execute(data)
     this._nextCommandData = data.nextCommandData;
 
     data.currencyPair.rate = parseFloat(data.rate);
+
+    // Save
+    App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
+        App.StorageKey.CURRENCY_PAIRS,
+        App.ModelLocator.getProxy(App.ModelName.CURRENCY_PAIRS).serialize()
+    );
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
     else this.dispatchEvent(App.EventType.COMPLETE,this);
