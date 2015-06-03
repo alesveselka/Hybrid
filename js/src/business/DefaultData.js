@@ -118,10 +118,10 @@ App.DefaultData = {
         ["29","Arbitrary 25","4cff4a","star","2","1,2,3,4"],
         ["30","Arbitrary 26","66fc33","movies","2","1,2,3,4"]
     ],
-    _commentAccounts:["id","name","categories"],
+    _commentAccounts:["id","name","lifecycle(1=active,0=deleted)","categories"],
     accounts:[
-        ["1","Private","1,2,3,4,5,6,7"],
-        ["2","Business","8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30"]
+        ["1","Private",1,"1,2,3,4,5,6,7"],
+        ["2","Business",1,"8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30"]
     ],
     _commentTransactionsMeta:"array of arrays - each item representing transactions array-segment; [segment ID,number of transactions,highest transaction ID]",
     transactionsMeta:[[0,46,46],[1,3,3]],

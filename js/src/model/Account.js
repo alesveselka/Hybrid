@@ -16,6 +16,7 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
 
         this.id = this._data[0];
         this.name = this._data[1];
+        this.lifeCycleState = parseInt(this._data[2],10) ? App.LifeCycleState.ACTIVE : App.LifeCycleState.DELETED;
         this._categories = null;
     }
     else
@@ -24,11 +25,11 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
 
         this.id = String(++App.Account._UID);
         this.name = "Account" + this.id;
+        this.lifeCycleState = App.LifeCycleState.CREATED;
         this._categories = null;
     }
 
     this.balance = 0.0;
-    this.lifeCycleState = App.LifeCycleState.CREATED;
 };
 
 App.Account._UID = 0;
@@ -39,7 +40,9 @@ App.Account._UID = 0;
  */
 App.Account.prototype.serialize = function serialize()
 {
-    var categoryCollection = this.categories;
+    var categoryCollection = this.categories,
+        lifeCycle = this.lifeCycleState === App.LifeCycleState.DELETED ? 0 : 1;
+
     if (categoryCollection.length)
     {
         var i = 0,
@@ -48,11 +51,11 @@ App.Account.prototype.serialize = function serialize()
 
         for (;i<l;) ids.push(categoryCollection[i++].id);
 
-        return [this.id,this.name,ids.join(",")];
+        return [this.id,this.name,lifeCycle,ids.join(",")];
     }
     else
     {
-        return [this.id,this.name];
+        return [this.id,this.name,lifeCycle];
     }
 };
 
@@ -113,7 +116,7 @@ Object.defineProperty(App.Account.prototype,'categories',{
     {
         if (!this._categories)
         {
-            if (this._data && this._data[2]) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2].split(","),"id");
+            if (this._data && this._data[3]) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[3].split(","),"id");
             else this._categories = [];
         }
         return this._categories;

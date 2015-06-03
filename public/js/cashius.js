@@ -2826,6 +2826,7 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
 
         this.id = this._data[0];
         this.name = this._data[1];
+        this.lifeCycleState = parseInt(this._data[2],10) ? App.LifeCycleState.ACTIVE : App.LifeCycleState.DELETED;
         this._categories = null;
     }
     else
@@ -2834,11 +2835,11 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
 
         this.id = String(++App.Account._UID);
         this.name = "Account" + this.id;
+        this.lifeCycleState = App.LifeCycleState.CREATED;
         this._categories = null;
     }
 
     this.balance = 0.0;
-    this.lifeCycleState = App.LifeCycleState.CREATED;
 };
 
 App.Account._UID = 0;
@@ -2849,7 +2850,9 @@ App.Account._UID = 0;
  */
 App.Account.prototype.serialize = function serialize()
 {
-    var categoryCollection = this.categories;
+    var categoryCollection = this.categories,
+        lifeCycle = this.lifeCycleState === App.LifeCycleState.DELETED ? 0 : 1;
+
     if (categoryCollection.length)
     {
         var i = 0,
@@ -2858,11 +2861,11 @@ App.Account.prototype.serialize = function serialize()
 
         for (;i<l;) ids.push(categoryCollection[i++].id);
 
-        return [this.id,this.name,ids.join(",")];
+        return [this.id,this.name,lifeCycle,ids.join(",")];
     }
     else
     {
-        return [this.id,this.name];
+        return [this.id,this.name,lifeCycle];
     }
 };
 
@@ -2923,7 +2926,7 @@ Object.defineProperty(App.Account.prototype,'categories',{
     {
         if (!this._categories)
         {
-            if (this._data && this._data[2]) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[2].split(","),"id");
+            if (this._data && this._data[3]) this._categories = App.ModelLocator.getProxy(App.ModelName.CATEGORIES).filter(this._data[3].split(","),"id");
             else this._categories = [];
         }
         return this._categories;
@@ -15397,10 +15400,10 @@ App.DefaultData = {
         ["29","Arbitrary 25","4cff4a","star","2","1,2,3,4"],
         ["30","Arbitrary 26","66fc33","movies","2","1,2,3,4"]
     ],
-    _commentAccounts:["id","name","categories"],
+    _commentAccounts:["id","name","lifecycle(1=active,0=deleted)","categories"],
     accounts:[
-        ["1","Private","1,2,3,4,5,6,7"],
-        ["2","Business","8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30"]
+        ["1","Private",1,"1,2,3,4,5,6,7"],
+        ["2","Business",1,"8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30"]
     ],
     _commentTransactionsMeta:"array of arrays - each item representing transactions array-segment; [segment ID,number of transactions,highest transaction ID]",
     transactionsMeta:[[0,46,46],[1,3,3]],
@@ -16750,6 +16753,7 @@ App.ChangeAccount.prototype.execute = function execute(data)
 
             account.lifeCycleState = App.LifeCycleState.ACTIVE;
 
+            //TODO also save lifeCycle
             // Save
             App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
                 App.StorageKey.ACCOUNTS,
@@ -16759,8 +16763,12 @@ App.ChangeAccount.prototype.execute = function execute(data)
     }
     else if (type === EventType.DELETE)
     {
-        //TODO keep checking when this account is not really needed and delete it
         account.lifeCycleState = App.LifeCycleState.DELETED;
+
+        App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
+            App.StorageKey.ACCOUNTS,
+            App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).serialize()
+        );
     }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);

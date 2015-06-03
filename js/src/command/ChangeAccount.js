@@ -52,8 +52,12 @@ App.ChangeAccount.prototype.execute = function execute(data)
     }
     else if (type === EventType.DELETE)
     {
-        //TODO keep checking when this account is not really needed and delete it
         account.lifeCycleState = App.LifeCycleState.DELETED;
+
+        App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
+            App.StorageKey.ACCOUNTS,
+            App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).serialize()
+        );
     }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
