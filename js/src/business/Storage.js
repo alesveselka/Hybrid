@@ -57,6 +57,7 @@ App.Storage.prototype.setData = function setData(key,data)
 
     //if (this._worker) this._worker.postMessage(this._method.SET+"/"+key+"/"+data);
 
+    //TODO check if all collection items are used and save only the ones that are (delegate to workers?)
     //TODO use this only as 'prediction' amd then fetch data from server (see Meteor)
     localStorage.setItem(key,JSON.stringify(data));//TODO compress
 };
