@@ -21,10 +21,10 @@ App.Menu = function Menu(layout)
         };
 
     this._addTransactionItem = new MenuItem("Add Transaction","transactions",ScreenName.ADD_TRANSACTION,{width:w,height:Math.round(50*r),pixelRatio:r,style:itemLabelStyle});
-    this._accountsItem = new MenuItem("Accounts","account",ScreenName.ACCOUNT,itemOptions);
-    this._reportItem = new MenuItem("Report","chart",ScreenName.REPORT,itemOptions);
-    this._budgetItem = new MenuItem("Budgets","budget",-1,itemOptions);
     this._transactionsItem = new MenuItem("Transactions","transactions",ScreenName.TRANSACTIONS,itemOptions);
+    this._reportItem = new MenuItem("Report","chart",ScreenName.REPORT,itemOptions);
+    this._accountsItem = new MenuItem("Accounts","account",ScreenName.ACCOUNT,itemOptions);
+    this._budgetItem = new MenuItem("Budgets","budget",-1,itemOptions);
     this._currenciesItem = new MenuItem("Currency rates","currencies",ScreenName.CURRENCY_PAIRS,itemOptions);
     this._settignsItem = new MenuItem("Settings","settings-app",ScreenName.SETTINGS,itemOptions);
     this._container = new PIXI.Graphics();
@@ -36,10 +36,10 @@ App.Menu = function Menu(layout)
 
     this.addChild(this._background);
     this._items.push(this._container.addChild(this._addTransactionItem));
-    this._items.push(this._container.addChild(this._accountsItem));
-    this._items.push(this._container.addChild(this._reportItem));
-    this._items.push(this._container.addChild(this._budgetItem));
     this._items.push(this._container.addChild(this._transactionsItem));
+    this._items.push(this._container.addChild(this._reportItem));
+    this._items.push(this._container.addChild(this._accountsItem));
+    this._items.push(this._container.addChild(this._budgetItem));
     this._items.push(this._container.addChild(this._currenciesItem));
     this._items.push(this._container.addChild(this._settignsItem));
     this._pane.setContent(this._container);
@@ -60,11 +60,11 @@ App.Menu.prototype._render = function _render()
         GraphicUtils = App.GraphicUtils,
         bgColor = App.ColorTheme.BLUE_DARK;
 
-    this._accountsItem.y = this._addTransactionItem.boundingBox.height + bigGap;
-    this._reportItem.y = this._accountsItem.y + this._accountsItem.boundingBox.height + smallGap;
-    this._budgetItem.y = this._reportItem.y + this._reportItem.boundingBox.height + smallGap;
-    this._transactionsItem.y = this._budgetItem.y + this._budgetItem.boundingBox.height + smallGap;
-    this._currenciesItem.y = this._transactionsItem.y + this._transactionsItem.boundingBox.height + bigGap;
+    this._transactionsItem.y = this._addTransactionItem.boundingBox.height + bigGap;
+    this._reportItem.y = this._transactionsItem.y + this._transactionsItem.boundingBox.height + smallGap;
+    this._accountsItem.y = this._reportItem.y + this._reportItem.boundingBox.height + smallGap;
+    this._budgetItem.y = this._accountsItem.y + this._accountsItem.boundingBox.height + smallGap;
+    this._currenciesItem.y = this._budgetItem.y + this._budgetItem.boundingBox.height + bigGap;
     this._settignsItem.y = this._currenciesItem.y + this._currenciesItem.boundingBox.height + smallGap;
 
     GraphicUtils.drawRect(this._container,bgColor,1,0,0,this._layout.width,this._settignsItem.y+this._settignsItem.boundingBox.height);
@@ -123,9 +123,9 @@ App.Menu.prototype._onClick = function _onClick()
             });
             break;
 
-        case ScreenName.ACCOUNT:
-            changeScreenData.screenMode = App.ScreenMode.EDIT;
-            changeScreenData.headerName = ScreenTitle.ACCOUNTS;
+        case ScreenName.TRANSACTIONS:
+            changeScreenData.headerName = ScreenTitle.TRANSACTIONS;
+            changeScreenData.updateData = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).copySource().reverse();
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             break;
 
@@ -134,9 +134,9 @@ App.Menu.prototype._onClick = function _onClick()
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             break;
 
-        case ScreenName.TRANSACTIONS:
-            changeScreenData.headerName = ScreenTitle.TRANSACTIONS;
-            changeScreenData.updateData = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).copySource().reverse();
+        case ScreenName.ACCOUNT:
+            changeScreenData.screenMode = App.ScreenMode.EDIT;
+            changeScreenData.headerName = ScreenTitle.ACCOUNTS;
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             break;
 
