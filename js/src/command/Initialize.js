@@ -9,7 +9,7 @@ App.Initialize = function Initialize()
 
     App.Command.call(this,false,this._eventListenerPool);
 
-    this._storage = new App.Storage("./js/storage-worker.min.js",this._eventListenerPool);
+    this._storage = new App.Storage("./js/storage-worker.min.js");
     this._loadDataCommand = new App.LoadData(this._eventListenerPool,this._storage);
 };
 

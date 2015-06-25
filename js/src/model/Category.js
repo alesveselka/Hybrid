@@ -44,6 +44,7 @@ App.Category._UID = 0;
 
 /**
  * Destroy
+ * Don't erase strings, since they can still be used in TransactionButton
  */
 App.Category.prototype.destroy = function destroy()
 {

@@ -173,26 +173,12 @@ App.ChangeCategory.prototype._deleteCategory = function _deleteCategory(category
         ModelName = App.ModelName,
         StorageKey = App.StorageKey,
         Storage = App.ServiceLocator.getService(App.ServiceName.STORAGE),
-        accounts = ModelLocator.getProxy(ModelName.ACCOUNTS),
-        subCategoryCollection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES),
-        subCategories = category.subCategories,
-        i = 0,
-        l = subCategories.length;
-
-    //TODO may still be referenced in transaction(s)
-    //TODO keep the (sub)category in collection, but them completely remove if it's not referenced anywhere?
-    //for (;i<l;) subCategoryCollection.removeItem(subCategories[i++]);
+        accounts = ModelLocator.getProxy(ModelName.ACCOUNTS);
 
     accounts.find("id",category.account).removeCategory(category);
 
-    //TODO still be referenced in transaction(s)
-    //TODO keep the category in collection, but them completely remove if it's not referenced anywhere
-    //ModelLocator.getProxy(ModelName.CATEGORIES).removeItem(category);
-
     Storage.setData(StorageKey.ACCOUNTS,accounts.serialize());//TODO do I need to serialize every time?
-    //Storage.setData(StorageKey.CATEGORIES,ModelLocator.getProxy(ModelName.CATEGORIES).serialize());//TODO do I need to serialize every time?
-    Storage.setData(StorageKey.SUB_CATEGORIES,subCategoryCollection.serialize());//TODO do I need to serialize every time?
+    Storage.setData(StorageKey.SUB_CATEGORIES,ModelLocator.getProxy(ModelName.SUB_CATEGORIES).serialize());//TODO do I need to serialize every time?
 
-    //TODO can I also delete it from Category Collection?
     category.destroy();
 };

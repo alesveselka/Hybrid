@@ -1037,13 +1037,13 @@ App.LifeCycleState = {
 };
 
 App.StorageKey = Object.create(null,{
-    SETTINGS:{value:"settings",writable:false,configurable:false},
-    CURRENCY_PAIRS:{value:"currencyPairs",writable:false,configurable:false},
-    SUB_CATEGORIES:{value:"subCategories",writable:false,configurable:false},
-    CATEGORIES:{value:"categories",writable:false,configurable:false},
-    ACCOUNTS:{value:"accounts",writable:false,configurable:false},
-    TRANSACTIONS_META:{value:"transactionsMeta",writable:false,configurable:false},
-    TRANSACTIONS:{value:"transactions",writable:false,configurable:false}
+    SETTINGS:{value:"settings",writable:false,configurable:false,enumerable:true},
+    CURRENCY_PAIRS:{value:"currencyPairs",writable:false,configurable:false,enumerable:true},
+    SUB_CATEGORIES:{value:"subCategories",writable:false,configurable:false,enumerable:true},
+    CATEGORIES:{value:"categories",writable:false,configurable:false,enumerable:true},
+    ACCOUNTS:{value:"accounts",writable:false,configurable:false,enumerable:true},
+    TRANSACTIONS_META:{value:"transactionsMeta",writable:false,configurable:false,enumerable:true},
+    TRANSACTIONS:{value:"transactions",writable:false,configurable:false,enumerable:true}
 });
 
 /**
@@ -2634,6 +2634,7 @@ App.Category._UID = 0;
 
 /**
  * Destroy
+ * Don't erase strings, since they can still be used in TransactionButton
  */
 App.Category.prototype.destroy = function destroy()
 {
@@ -14124,10 +14125,10 @@ App.Menu = function Menu(layout)
         };
 
     this._addTransactionItem = new MenuItem("Add Transaction","transactions",ScreenName.ADD_TRANSACTION,{width:w,height:Math.round(50*r),pixelRatio:r,style:itemLabelStyle});
-    this._accountsItem = new MenuItem("Accounts","account",ScreenName.ACCOUNT,itemOptions);
-    this._reportItem = new MenuItem("Report","chart",ScreenName.REPORT,itemOptions);
-    this._budgetItem = new MenuItem("Budgets","budget",-1,itemOptions);
     this._transactionsItem = new MenuItem("Transactions","transactions",ScreenName.TRANSACTIONS,itemOptions);
+    this._reportItem = new MenuItem("Report","chart",ScreenName.REPORT,itemOptions);
+    this._accountsItem = new MenuItem("Accounts","account",ScreenName.ACCOUNT,itemOptions);
+    this._budgetItem = new MenuItem("Budgets","budget",-1,itemOptions);
     this._currenciesItem = new MenuItem("Currency rates","currencies",ScreenName.CURRENCY_PAIRS,itemOptions);
     this._settignsItem = new MenuItem("Settings","settings-app",ScreenName.SETTINGS,itemOptions);
     this._container = new PIXI.Graphics();
@@ -14139,10 +14140,10 @@ App.Menu = function Menu(layout)
 
     this.addChild(this._background);
     this._items.push(this._container.addChild(this._addTransactionItem));
-    this._items.push(this._container.addChild(this._accountsItem));
-    this._items.push(this._container.addChild(this._reportItem));
-    this._items.push(this._container.addChild(this._budgetItem));
     this._items.push(this._container.addChild(this._transactionsItem));
+    this._items.push(this._container.addChild(this._reportItem));
+    this._items.push(this._container.addChild(this._accountsItem));
+    this._items.push(this._container.addChild(this._budgetItem));
     this._items.push(this._container.addChild(this._currenciesItem));
     this._items.push(this._container.addChild(this._settignsItem));
     this._pane.setContent(this._container);
@@ -14163,11 +14164,11 @@ App.Menu.prototype._render = function _render()
         GraphicUtils = App.GraphicUtils,
         bgColor = App.ColorTheme.BLUE_DARK;
 
-    this._accountsItem.y = this._addTransactionItem.boundingBox.height + bigGap;
-    this._reportItem.y = this._accountsItem.y + this._accountsItem.boundingBox.height + smallGap;
-    this._budgetItem.y = this._reportItem.y + this._reportItem.boundingBox.height + smallGap;
-    this._transactionsItem.y = this._budgetItem.y + this._budgetItem.boundingBox.height + smallGap;
-    this._currenciesItem.y = this._transactionsItem.y + this._transactionsItem.boundingBox.height + bigGap;
+    this._transactionsItem.y = this._addTransactionItem.boundingBox.height + bigGap;
+    this._reportItem.y = this._transactionsItem.y + this._transactionsItem.boundingBox.height + smallGap;
+    this._accountsItem.y = this._reportItem.y + this._reportItem.boundingBox.height + smallGap;
+    this._budgetItem.y = this._accountsItem.y + this._accountsItem.boundingBox.height + smallGap;
+    this._currenciesItem.y = this._budgetItem.y + this._budgetItem.boundingBox.height + bigGap;
     this._settignsItem.y = this._currenciesItem.y + this._currenciesItem.boundingBox.height + smallGap;
 
     GraphicUtils.drawRect(this._container,bgColor,1,0,0,this._layout.width,this._settignsItem.y+this._settignsItem.boundingBox.height);
@@ -14226,9 +14227,9 @@ App.Menu.prototype._onClick = function _onClick()
             });
             break;
 
-        case ScreenName.ACCOUNT:
-            changeScreenData.screenMode = App.ScreenMode.EDIT;
-            changeScreenData.headerName = ScreenTitle.ACCOUNTS;
+        case ScreenName.TRANSACTIONS:
+            changeScreenData.headerName = ScreenTitle.TRANSACTIONS;
+            changeScreenData.updateData = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).copySource().reverse();
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             break;
 
@@ -14237,9 +14238,9 @@ App.Menu.prototype._onClick = function _onClick()
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             break;
 
-        case ScreenName.TRANSACTIONS:
-            changeScreenData.headerName = ScreenTitle.TRANSACTIONS;
-            changeScreenData.updateData = App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).copySource().reverse();
+        case ScreenName.ACCOUNT:
+            changeScreenData.screenMode = App.ScreenMode.EDIT;
+            changeScreenData.headerName = ScreenTitle.ACCOUNTS;
             App.Controller.dispatchEvent(App.EventType.CHANGE_SCREEN,changeScreenData);
             break;
 
@@ -15466,20 +15467,14 @@ App.DefaultData = {
 /**
  * Storage
  * @param {string} workerUrl
- * @param {ObjectPool} eventListenerPool
  * @constructor
  */
-App.Storage = function Storage(workerUrl,eventListenerPool)
+App.Storage = function Storage(workerUrl)
 {
-    App.EventDispatcher.call(this,eventListenerPool);
-
     this._workerUrl = workerUrl;
-    this._method = {GET:"get",SET:"set"};
     this._worker = null;
     this._initialized = false;
 };
-
-App.Storage.prototype = Object.create(App.EventDispatcher.prototype);
 
 /**
  * Init
@@ -15491,14 +15486,14 @@ App.Storage.prototype._init = function _init()
     {
         this._initialized = true;
 
-        /*if (window.Worker)
+        if (window.Worker)
         {
             this._worker = new Worker(this._workerUrl);
 
             this._registerEventListeners();
 
-            this._worker.postMessage("init/"+JSON.stringify({StorageKey:App.StorageKey,Method:this._method}));
-        }*/
+            this._worker.postMessage("init|"+JSON.stringify(App.StorageKey));
+        }
     }
 };
 
@@ -15508,47 +15503,7 @@ App.Storage.prototype._init = function _init()
  */
 App.Storage.prototype._registerEventListeners = function _registerEventListeners()
 {
-    if (this._worker) this._worker.addEventListener("message",this._onWorkerMessage);
-};
-
-/**
- * Send data to worker to save under key passed in
- * @param {string} key
- * @param {Object} data
- */
-App.Storage.prototype.setData = function setData(key,data)
-{
-    //if (!this._initialized) this._init();
-
-    //if (this._worker) this._worker.postMessage(this._method.SET+"/"+key+"/"+data);
-
-    //TODO check if all collection items are used and save only the ones that are (delegate to workers?)
-    //TODO use this only as 'prediction' amd then fetch data from server (see Meteor)
-    localStorage.setItem(key,JSON.stringify(data));//TODO compress
-};
-
-/**
- * Query worker for data by key passed in
- * @param {string} key
- * @param {string} query
- */
-App.Storage.prototype.getData = function getData(key,query)
-{
-    //if (!this._initialized) this._init();
-
-    var data = localStorage.getItem(key);
-    if (data)
-    {
-        data = JSON.parse(data);
-    }
-    else
-    {
-        data = App.DefaultData[key];
-        localStorage.setItem(key,JSON.stringify(data));//TODO compress
-    }
-
-    return data;
-//    if (this._worker) this._worker.postMessage(this._method.GET+"/"+key+(query ? "?"+query : ""));
+    this._worker.addEventListener("message",this._onWorkerMessage);
 };
 
 /**
@@ -15559,8 +15514,55 @@ App.Storage.prototype.getData = function getData(key,query)
 App.Storage.prototype._onWorkerMessage = function _onWorkerMessage(e)
 {
     console.log("on worker message ",e.data);
+    var components = e.data.split("|");
+    localStorage.setItem(components[0],components[1]);//TODO compress
+};
 
-    this.dispatchEvent(App.EventType.COMPLETE,e.data);
+/**
+ * Send data to worker to save under key passed in
+ * @param {string} key
+ * @param {Object} data
+ */
+App.Storage.prototype.setData = function setData(key,data/*,context? (CONFIRM|DELETE|...)*/)
+{
+    if (!this._initialized) this._init();
+
+    // CATEGORIES
+    // Check on account write - cant be referenced in Subs and Transactions in order to be deleted
+
+    //TODO use this only as 'prediction' amd then fetch data from server (see Meteor)
+
+    //TODO pass to worker; if worker is already working on same KEY data, cancel that job, and start again with the new ones (same KEY => latest win)
+    console.log("send to worker: ",JSON.stringify(data));
+    this._worker.postMessage(key+"|"+JSON.stringify(data));
+};
+
+/**
+ * Query worker for data by key passed in
+ * @param {string} key
+ */
+App.Storage.prototype.getData = function getData(key)
+{
+    if (!this._initialized) this._init();
+
+    var data = localStorage.getItem(key),
+        serialized = data;
+
+    if (data)
+    {
+        data = JSON.parse(data);
+    }
+    else
+    {
+        data = App.DefaultData[key];
+        serialized = JSON.stringify(data);
+        localStorage.setItem(key,serialized);//TODO compress
+    }
+
+    this._worker.postMessage("save|"+key+"|"+serialized);
+
+    return data;
+//    if (this._worker) this._worker.postMessage(this._method.GET+"/"+key+(query ? "?"+query : ""));
 };
 
 /**
@@ -15816,7 +15818,7 @@ App.LoadData.prototype._loadData = function _loadData()
         transactionKey = null,
         i = 0,
         l = 0;
-//    localStorage.clear();
+    localStorage.clear();
     userData[StorageKey.SETTINGS] = this._storage.getData(StorageKey.SETTINGS);
     userData[StorageKey.CURRENCY_PAIRS] = this._storage.getData(StorageKey.CURRENCY_PAIRS);
     userData[StorageKey.SUB_CATEGORIES] = this._storage.getData(StorageKey.SUB_CATEGORIES);
@@ -15885,7 +15887,7 @@ App.Initialize = function Initialize()
 
     App.Command.call(this,false,this._eventListenerPool);
 
-    this._storage = new App.Storage("./js/storage-worker.min.js",this._eventListenerPool);
+    this._storage = new App.Storage("./js/storage-worker.min.js");
     this._loadDataCommand = new App.LoadData(this._eventListenerPool,this._storage);
 };
 
@@ -16658,23 +16660,12 @@ App.ChangeCategory.prototype._deleteCategory = function _deleteCategory(category
         ModelName = App.ModelName,
         StorageKey = App.StorageKey,
         Storage = App.ServiceLocator.getService(App.ServiceName.STORAGE),
-        accounts = ModelLocator.getProxy(ModelName.ACCOUNTS),
-        subCategoryCollection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES),
-        subCategories = category.subCategories,
-        i = 0,
-        l = subCategories.length;
-
-    //TODO may still be referenced in transaction(s)
-    //TODO keep the (sub)category in collection, but them completely remove if it's not referenced anywhere?
-    //for (;i<l;) subCategoryCollection.removeItem(subCategories[i++]);
+        accounts = ModelLocator.getProxy(ModelName.ACCOUNTS);
 
     accounts.find("id",category.account).removeCategory(category);
 
-    //ModelLocator.getProxy(ModelName.CATEGORIES).removeItem(category);
-
     Storage.setData(StorageKey.ACCOUNTS,accounts.serialize());//TODO do I need to serialize every time?
-    //Storage.setData(StorageKey.CATEGORIES,ModelLocator.getProxy(ModelName.CATEGORIES).serialize());//TODO do I need to serialize every time?
-    Storage.setData(StorageKey.SUB_CATEGORIES,subCategoryCollection.serialize());//TODO do I need to serialize every time?
+    Storage.setData(StorageKey.SUB_CATEGORIES,ModelLocator.getProxy(ModelName.SUB_CATEGORIES).serialize());//TODO do I need to serialize every time?
 
     category.destroy();
 };
@@ -16723,9 +16714,6 @@ App.ChangeSubCategory.prototype.execute = function execute(data)
     else if (type === EventType.DELETE)
     {
         data.category.removeSubCategory(subCategory);
-
-        //TODO keep the sub-category in collection, but them completely remove if it's not referenced anywhere?
-        //App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).removeItem(subCategory);
     }
 
     if (this._nextCommand) this._executeNextCommand(this._nextCommandData);
