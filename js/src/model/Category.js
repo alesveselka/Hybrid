@@ -15,7 +15,7 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
         if (parseInt(data[0],10) >= App.Category._UID) App.Category._UID = parseInt(data[0],10);
 
         this.id = data[0];
-        this.name = data[1];
+        this.name = data[1];//TODO en/de-code
         this.color = data[2];
         this.icon = data[3];
         this.account = data[4];
@@ -132,6 +132,7 @@ App.Category.prototype.removeSubCategory = function removeSubCategory(subCategor
 App.Category.prototype.serialize = function serialize()
 {
     var collection = this.subCategories,
+        data = [this.id,this.name,this.color,this.icon,this.account],
         subCategoryIds = "",
         i = 0,
         l = this._subCategories.length;
@@ -140,7 +141,10 @@ App.Category.prototype.serialize = function serialize()
 
     subCategoryIds = subCategoryIds.substring(0,subCategoryIds.length-1);
 
-    return [this.id,this.name,this.color,this.icon,this.account,subCategoryIds,this.budget]
+    data.push(subCategoryIds);
+    if (this.budget) data.push(this.budget);
+
+    return data;
 };
 
 /**
