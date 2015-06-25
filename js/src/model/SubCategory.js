@@ -13,7 +13,7 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
         if (parseInt(data[0],10) >= App.SubCategory._UID) App.SubCategory._UID = parseInt(data[0],10);
 
         this.id = data[0];
-        this.name = data[1];
+        this.name = decodeURIComponent(data[1]);
         this.category = data[2];
         this.balance = isNaN(data[3]) ? 0.0 : parseFloat(data[3]);
     }
@@ -36,7 +36,7 @@ App.SubCategory._UID = 0;
  */
 App.SubCategory.prototype.serialize = function serialize()
 {
-    return [this.id,this.name,this.category,this.balance];
+    return [this.id,App.StringUtils.encode(this.name),this.category,this.balance];
 };
 
 /**

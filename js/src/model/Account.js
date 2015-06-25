@@ -15,7 +15,7 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
         if (parseInt(data[0],10) >= App.Account._UID) App.Account._UID = parseInt(data[0],10);
 
         this.id = this._data[0];
-        this.name = this._data[1];
+        this.name = decodeURIComponent(this._data[1]);
         this.lifeCycleState = parseInt(this._data[2],10) ? App.LifeCycleState.ACTIVE : App.LifeCycleState.DELETED;
         this._categories = null;
     }
@@ -41,6 +41,7 @@ App.Account._UID = 0;
 App.Account.prototype.serialize = function serialize()
 {
     var categoryCollection = this.categories,
+        encodedName = App.StringUtils.encode(this.name),
         lifeCycle = this.lifeCycleState === App.LifeCycleState.DELETED ? 0 : 1;
 
     if (categoryCollection.length)
@@ -51,11 +52,11 @@ App.Account.prototype.serialize = function serialize()
 
         for (;i<l;) ids.push(categoryCollection[i++].id);
 
-        return [this.id,this.name,lifeCycle,ids.join(",")];
+        return [this.id,encodedName,lifeCycle,ids.join(",")];
     }
     else
     {
-        return [this.id,this.name,lifeCycle];
+        return [this.id,encodedName,lifeCycle];
     }
 };
 

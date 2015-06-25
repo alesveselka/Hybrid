@@ -15,7 +15,7 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
         if (parseInt(data[0],10) >= App.Category._UID) App.Category._UID = parseInt(data[0],10);
 
         this.id = data[0];
-        this.name = data[1];//TODO en/de-code
+        this.name = decodeURIComponent(data[1]);
         this.color = data[2];
         this.icon = data[3];
         this.account = data[4];
@@ -36,7 +36,6 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
     }
 
     this.balance = 0.0;
-//    this._lifeCycleState = App.LifeCycleState.CREATED;
     this._states = null;
 };
 
@@ -132,7 +131,7 @@ App.Category.prototype.removeSubCategory = function removeSubCategory(subCategor
 App.Category.prototype.serialize = function serialize()
 {
     var collection = this.subCategories,
-        data = [this.id,this.name,this.color,this.icon,this.account],
+        data = [this.id,App.StringUtils.encode(this.name),this.color,this.icon,this.account],
         subCategoryIds = "",
         i = 0,
         l = this._subCategories.length;
@@ -166,7 +165,7 @@ App.Category.prototype.revokeState = function revokeState()
     {
         var state = this._states.pop();
 
-        this.name = state[1];
+        this.name = decodeURIComponent(state[1]);
         this.color = state[2];
         this.icon = state[3];
         this.account = state[4];
