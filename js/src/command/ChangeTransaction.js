@@ -246,6 +246,7 @@ App.ChangeTransaction.prototype._updateSavedBalance = function _updateSavedBalan
         savedSubCategory.balance = savedSubCategory.balance - savedAmount;
     }
 
+    console.log("Saving SubCategories from _updateSavedBalance");
     App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
         App.StorageKey.SUB_CATEGORIES,
         App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).serialize()
@@ -278,6 +279,7 @@ App.ChangeTransaction.prototype._updateCurrentBalance = function _updateCurrentB
         }
     }
 
+    console.log("Saving SubCategories from _updateCurrentBalance");
     App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
         App.StorageKey.SUB_CATEGORIES,
         App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).serialize()
@@ -294,6 +296,7 @@ App.ChangeTransaction.prototype._saveCollection = function _saveCollection(trans
 {
     var metaId = transaction.id.split(".")[0];
 
+    console.log("Saving "+App.StorageKey.TRANSACTIONS+metaId+" from _saveCollection");
     App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
         App.StorageKey.TRANSACTIONS+metaId,
         collection.serialize(metaId,false)

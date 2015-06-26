@@ -29,7 +29,7 @@ App.ChangeSubCategory.prototype.execute = function execute(data)
     if (type === EventType.CREATE)
     {
         subCategory = new App.SubCategory();
-        subCategory.category = data.category.id;
+//        subCategory.category = data.category.id;
 
         this._nextCommandData.updateData = {subCategory:subCategory,category:data.category};
     }

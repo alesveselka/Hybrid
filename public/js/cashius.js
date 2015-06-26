@@ -2152,7 +2152,7 @@ App.Transaction = function Transaction(data,collection,parent,eventListenerPool)
         this._currencyBase = null;
         this._currencyQuote = null;
 //        this._currencyRate = 1.0;
-        this.note = data[9] ? decodeURI(data[9]) : "";
+        this.note = data[9] ? decodeURIComponent(data[9]) : "";
     }
     else
     {
@@ -2224,7 +2224,7 @@ App.Transaction.prototype.revokeState = function revokeState()
         this._currencyBase = null;
         this._currencyQuote = null;
         // this._currencyRate = 1.0;
-        this.note = this._data[9] ? decodeURI(data[9]) : "";
+        this.note = this._data[9] ? decodeURIComponent(data[9]) : "";
     }
 };
 
@@ -2538,15 +2538,13 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
         if (parseInt(data[0],10) >= App.SubCategory._UID) App.SubCategory._UID = parseInt(data[0],10);
 
         this.id = data[0];
-        this.name = data[1];
-        this.category = data[2];
-        this.balance = isNaN(data[3]) ? 0.0 : parseFloat(data[3]);
+        this.name = decodeURIComponent(data[1]);
+        this.balance = isNaN(data[2]) ? 0.0 : parseFloat(data[2]);
     }
     else
     {
         this.id = String(++App.SubCategory._UID);
         this.name = "SubCategory" + this.id;
-        this.category = null;
         this.balance = 0.0;
     }
 
@@ -2561,7 +2559,8 @@ App.SubCategory._UID = 0;
  */
 App.SubCategory.prototype.serialize = function serialize()
 {
-    return [this.id,this.name,this.category,this.balance];
+    if (this.balance) return [this.id,App.StringUtils.encode(this.name),this.balance];
+    else return [this.id,App.StringUtils.encode(this.name)];
 };
 
 /**
@@ -2605,7 +2604,7 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
         if (parseInt(data[0],10) >= App.Category._UID) App.Category._UID = parseInt(data[0],10);
 
         this.id = data[0];
-        this.name = data[1];
+        this.name = decodeURIComponent(data[1]);
         this.color = data[2];
         this.icon = data[3];
         this.account = data[4];
@@ -2626,7 +2625,6 @@ App.Category = function Category(data,collection,parent,eventListenerPool)
     }
 
     this.balance = 0.0;
-//    this._lifeCycleState = App.LifeCycleState.CREATED;
     this._states = null;
 };
 
@@ -2722,6 +2720,7 @@ App.Category.prototype.removeSubCategory = function removeSubCategory(subCategor
 App.Category.prototype.serialize = function serialize()
 {
     var collection = this.subCategories,
+        data = [this.id,App.StringUtils.encode(this.name),this.color,this.icon,this.account],
         subCategoryIds = "",
         i = 0,
         l = this._subCategories.length;
@@ -2730,7 +2729,10 @@ App.Category.prototype.serialize = function serialize()
 
     subCategoryIds = subCategoryIds.substring(0,subCategoryIds.length-1);
 
-    return [this.id,this.name,this.color,this.icon,this.account,subCategoryIds,this.budget]
+    data.push(subCategoryIds);
+    if (this.budget) data.push(this.budget);
+
+    return data;
 };
 
 /**
@@ -2752,7 +2754,7 @@ App.Category.prototype.revokeState = function revokeState()
     {
         var state = this._states.pop();
 
-        this.name = state[1];
+        this.name = decodeURIComponent(state[1]);
         this.color = state[2];
         this.icon = state[3];
         this.account = state[4];
@@ -2826,7 +2828,7 @@ App.Account = function Account(data,collection,parent,eventListenerPool)
         if (parseInt(data[0],10) >= App.Account._UID) App.Account._UID = parseInt(data[0],10);
 
         this.id = this._data[0];
-        this.name = this._data[1];
+        this.name = decodeURIComponent(this._data[1]);
         this.lifeCycleState = parseInt(this._data[2],10) ? App.LifeCycleState.ACTIVE : App.LifeCycleState.DELETED;
         this._categories = null;
     }
@@ -2852,6 +2854,7 @@ App.Account._UID = 0;
 App.Account.prototype.serialize = function serialize()
 {
     var categoryCollection = this.categories,
+        encodedName = App.StringUtils.encode(this.name),
         lifeCycle = this.lifeCycleState === App.LifeCycleState.DELETED ? 0 : 1;
 
     if (categoryCollection.length)
@@ -2862,11 +2865,11 @@ App.Account.prototype.serialize = function serialize()
 
         for (;i<l;) ids.push(categoryCollection[i++].id);
 
-        return [this.id,this.name,lifeCycle,ids.join(",")];
+        return [this.id,encodedName,lifeCycle,ids.join(",")];
     }
     else
     {
-        return [this.id,this.name,lifeCycle];
+        return [this.id,encodedName,lifeCycle];
     }
 };
 
@@ -11672,6 +11675,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
         {
             if (inputFocused) this._scrollInput.blur();
 
+            //TODO if in new category, newly set name will be lost of change screen here ...
             if (button instanceof App.AddNewButton)
             {
                 App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{
@@ -15344,29 +15348,29 @@ App.DefaultData = {
         [53,"USD","THB",32.86],
         [54,"USD","TRY",2.611]
     ],
-    _commentSubCategories:["id","name","category","balance"],
+    _commentSubCategories:["id","name","balance"],
     subCategories:[
-        ["1","Cinema","1",-16428.5],
-        ["2","Club","1",-2187],
-        ["3","Cafe","1",-119],
-        ["4","Gym","3",-218],
-        ["5","Swimming","3",-1230],
-        ["6","Utilities","4",-950],
-        ["7","Rent","4",-514],
-        ["8","Lunch","2",-750],
-        ["9","Lunch","5"],
-        ["10","Supplies","5",-320],
-        ["11","Invoices","5"],
-        ["12","Fees","5",-854],
-        ["13","Groceries","2",-130],
-        ["14","Food","2",-820],
-        ["15","Hotel","7",-275],
-        ["16","Hostel","7",-120],
-        ["17","Spa","7"],
-        ["18","Car Rental","6",-80],
-        ["19","Fuel","6",-16],
-        ["20","Bus","6"],
-        ["21","Train","6"]
+        ["1","Cinema",-16428.5],
+        ["2","Club",-2187],
+        ["3","Cafe",-119],
+        ["4","Gym",-218],
+        ["5","Swimming",-1230],
+        ["6","Utilities",-950],
+        ["7","Rent",-514],
+        ["8","Lunch",-750],
+        ["9","Lunch"],
+        ["10","Supplies",-320],
+        ["11","Invoices"],
+        ["12","Fees",-854],
+        ["13","Groceries",-130],
+        ["14","Food",-820],
+        ["15","Hotel",-275],
+        ["16","Hostel",-120],
+        ["17","Spa"],
+        ["18","Car Rental",-80],
+        ["19","Fuel",-16],
+        ["20","Bus"],
+        ["21","Train"]
     ],
     _commentCategories:["id","name","color","icon","account","subCategories","budget"],
     categories:[
@@ -15375,7 +15379,7 @@ App.DefaultData = {
         ["3","Sport","b4d406","ball","1","4,5",950],
         ["4","House","cbbe01","house","1","6,7"],
         ["5","Business","dea602","currencies","1","9,10,11,12,13"],
-        ["6","Transportation","ee8c08","car","1","19,20,22"],
+        ["6","Transportation","ee8c08","car","1","19,20,21"],
         ["7","Trip","f97113","air-plane","1","16,17,18"],
         ["8","Arbitrary 3","fe5823","expense","2","1,2,3,4"],
         ["9","Arbitrary 4","fe3f37","budget","2","1,2,3,4"],
@@ -15513,7 +15517,7 @@ App.Storage.prototype._registerEventListeners = function _registerEventListeners
  */
 App.Storage.prototype._onWorkerMessage = function _onWorkerMessage(e)
 {
-    console.log("on worker message ",e.data);
+    console.log("received from worker: ",e.data);
     var components = e.data.split("|");
     localStorage.setItem(components[0],components[1]);//TODO compress
 };
@@ -15527,13 +15531,7 @@ App.Storage.prototype.setData = function setData(key,data/*,context? (CONFIRM|DE
 {
     if (!this._initialized) this._init();
 
-    // CATEGORIES
-    // Check on account write - cant be referenced in Subs and Transactions in order to be deleted
-
-    //TODO use this only as 'prediction' amd then fetch data from server (see Meteor)
-
-    //TODO pass to worker; if worker is already working on same KEY data, cancel that job, and start again with the new ones (same KEY => latest win)
-    console.log("send to worker: ",JSON.stringify(data));
+    console.log("send to worker: ",key,JSON.stringify(data));
     this._worker.postMessage(key+"|"+JSON.stringify(data));
 };
 
@@ -15556,13 +15554,12 @@ App.Storage.prototype.getData = function getData(key)
     {
         data = App.DefaultData[key];
         serialized = JSON.stringify(data);
-        localStorage.setItem(key,serialized);//TODO compress
+        localStorage.setItem(key,serialized);//TODO save via worker ...
     }
 
     this._worker.postMessage("save|"+key+"|"+serialized);
 
     return data;
-//    if (this._worker) this._worker.postMessage(this._method.GET+"/"+key+(query ? "?"+query : ""));
 };
 
 /**
@@ -16431,6 +16428,7 @@ App.ChangeTransaction.prototype._updateSavedBalance = function _updateSavedBalan
         savedSubCategory.balance = savedSubCategory.balance - savedAmount;
     }
 
+    console.log("Saving SubCategories from _updateSavedBalance");
     App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
         App.StorageKey.SUB_CATEGORIES,
         App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).serialize()
@@ -16463,6 +16461,7 @@ App.ChangeTransaction.prototype._updateCurrentBalance = function _updateCurrentB
         }
     }
 
+    console.log("Saving SubCategories from _updateCurrentBalance");
     App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
         App.StorageKey.SUB_CATEGORIES,
         App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).serialize()
@@ -16479,6 +16478,7 @@ App.ChangeTransaction.prototype._saveCollection = function _saveCollection(trans
 {
     var metaId = transaction.id.split(".")[0];
 
+    console.log("Saving "+App.StorageKey.TRANSACTIONS+metaId+" from _saveCollection");
     App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
         App.StorageKey.TRANSACTIONS+metaId,
         collection.serialize(metaId,false)
@@ -16545,8 +16545,8 @@ App.ChangeCategory.prototype.execute = function execute(data)
         category.color = data.color;
         category.budget = data.budget;
 
-        this._registerSubCategories(category);
         this._registerCategory(category);
+        this._registerSubCategories(category);
     }
     else if (type === EventType.CANCEL)
     {
@@ -16580,6 +16580,7 @@ App.ChangeCategory.prototype._registerCategory = function _registerCategory(cate
         var StorageKey = App.StorageKey,
             Storage = App.ServiceLocator.getService(App.ServiceName.STORAGE);
 
+        console.trace(" **** Saving Accounts, Categories from _registerCategory");
         Storage.setData(StorageKey.ACCOUNTS,ModelLocator.getProxy(ModelName.ACCOUNTS).serialize());//TODO do I need to serialize every time?
         Storage.setData(StorageKey.CATEGORIES,categories.serialize());//TODO do I need to serialize every time?
     }
@@ -16592,7 +16593,11 @@ App.ChangeCategory.prototype._registerCategory = function _registerCategory(cate
  */
 App.ChangeCategory.prototype._registerSubCategories = function _registerSubCategories(category)
 {
-    var subCategoryCollection = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES),
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        Storage = App.ServiceLocator.getService(App.ServiceName.STORAGE),
+        StorageKey = App.StorageKey,
+        subCategoryCollection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES),
         subCategories = category.subCategories,
         subCategory = null,
         i = 0,
@@ -16604,10 +16609,9 @@ App.ChangeCategory.prototype._registerSubCategories = function _registerSubCateg
         if (subCategoryCollection.indexOf(subCategory) === -1) subCategoryCollection.addItem(subCategory);
     }
 
-    App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
-        App.StorageKey.SUB_CATEGORIES,
-        subCategoryCollection.serialize()//TODO do I need to serialize every time?
-    );
+    console.trace(" ***** Saving Categories, SubCategories from _registerSubCategories");
+    Storage.setData(StorageKey.CATEGORIES,ModelLocator.getProxy(ModelName.CATEGORIES).serialize());//TODO do I need to serialize every time?
+    Storage.setData(StorageKey.SUB_CATEGORIES,subCategoryCollection.serialize());//TODO do I need to serialize every time?
 };
 
 /**
@@ -16645,6 +16649,7 @@ App.ChangeCategory.prototype._cancelChanges = function _cancelChanges(category)
 
     //TODO destroy category if it was newly created and eventually cancelled?
 
+    console.trace(" ***** Saving Categories, SubCategories from _cancelChanges");
     Storage.setData(StorageKey.CATEGORIES,ModelLocator.getProxy(ModelName.CATEGORIES).serialize());//TODO do I need to serialize every time?
     Storage.setData(StorageKey.SUB_CATEGORIES,subCategoryCollection.serialize());//TODO do I need to serialize every time?
 };
@@ -16664,7 +16669,9 @@ App.ChangeCategory.prototype._deleteCategory = function _deleteCategory(category
 
     accounts.find("id",category.account).removeCategory(category);
 
+    console.trace(" ***** Saving Accounts, Categories, SubCategories from _deleteCategory");
     Storage.setData(StorageKey.ACCOUNTS,accounts.serialize());//TODO do I need to serialize every time?
+    Storage.setData(StorageKey.CATEGORIES,ModelLocator.getProxy(ModelName.CATEGORIES).serialize());//TODO do I need to serialize every time?
     Storage.setData(StorageKey.SUB_CATEGORIES,ModelLocator.getProxy(ModelName.SUB_CATEGORIES).serialize());//TODO do I need to serialize every time?
 
     category.destroy();
@@ -16701,7 +16708,7 @@ App.ChangeSubCategory.prototype.execute = function execute(data)
     if (type === EventType.CREATE)
     {
         subCategory = new App.SubCategory();
-        subCategory.category = data.category.id;
+//        subCategory.category = data.category.id;
 
         this._nextCommandData.updateData = {subCategory:subCategory,category:data.category};
     }
@@ -16766,6 +16773,7 @@ App.ChangeAccount.prototype.execute = function execute(data)
             account.lifeCycleState = App.LifeCycleState.ACTIVE;
 
             // Save
+            console.log("Saving Accounts from ChangeAccount.execute CHANGE");
             App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
                 App.StorageKey.ACCOUNTS,
                 App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).serialize()
@@ -16776,6 +16784,7 @@ App.ChangeAccount.prototype.execute = function execute(data)
     {
         account.lifeCycleState = App.LifeCycleState.DELETED;
 
+        console.log("Saving Accounts from ChangeAccount.execute DELETE");
         App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
             App.StorageKey.ACCOUNTS,
             App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).serialize()

@@ -44,6 +44,7 @@ App.ChangeAccount.prototype.execute = function execute(data)
             account.lifeCycleState = App.LifeCycleState.ACTIVE;
 
             // Save
+            console.log("Saving Accounts from ChangeAccount.execute CHANGE");
             App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
                 App.StorageKey.ACCOUNTS,
                 App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).serialize()
@@ -54,6 +55,7 @@ App.ChangeAccount.prototype.execute = function execute(data)
     {
         account.lifeCycleState = App.LifeCycleState.DELETED;
 
+        console.log("Saving Accounts from ChangeAccount.execute DELETE");
         App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
             App.StorageKey.ACCOUNTS,
             App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).serialize()

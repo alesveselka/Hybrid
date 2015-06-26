@@ -56,31 +56,48 @@ function processQueue()
             var i = 0,
                 lookupItem = data[i++],
                 dependency = null,
-                id = -1,
+                id = null,
                 j = 0,
                 l = dependencies.length,
                 used = false;
 
-            idLoop:
+//            idLoop:
             while(lookupItem)
             {
                 id = lookupItem[0];
+                used = false;
 
-                console.log("while ",item.key,i,id,lookupItem);
-                for (;j<l;)
+                if (item.key === StorageKey.ACCOUNTS && lookupItem[2])
                 {
-                    dependency = dependencies[j++];
-                    if (dependency.indexOf(id) > -1)
+                    // Account's lifeCycle is 'active', no need to check for dependencies
+                    console.log(item.key,id," used ",true,i-1,data[i-1]);
+                    lookupItem = data[i++];
+                }
+                else
+                {
+                    for (j=0;j<l;)
                     {
-                        used = true;
-                        break idLoop;
+                        dependency = dependencies[j++];
+                        console.log("indexOf: ",item.key,id,dependency.concat().toString(),indexOf(dependency,id));
+                        if (indexOf(dependency,id) > -1)
+                        {
+                            used = true;
+    //                        break idLoop;
+                            break;
+                        }
+                    }
+                    console.log(item.key,id," used ",used,i-1,data[i-1]);
+                    if (used)
+                    {
+                        lookupItem = data[i++];
+                    }
+                    else
+                    {
+                        data.splice(i-1,1);
+                        lookupItem = data[i];
                     }
                 }
-
-                lookupItem = data[i++];
             }
-            console.log(item.key," used ",used,i-1);
-            if (!used) data.splice(i-1,1);
         }
 
         _proxies[item.key] = JSON.stringify(data);
@@ -122,6 +139,7 @@ function getDependencies(key)
             dependencies.push(JSON.parse(_proxies[StorageKey.CATEGORIES]).map(function(item){
                 return item[5];
             }).join(",").split(","));
+            console.log("SubCategory dependencies, categories: ",dependencies[dependencies.length-1].concat().toString());
         }
     }
     else if (key === StorageKey.CATEGORIES)
@@ -138,17 +156,17 @@ function getDependencies(key)
         if (dependencies.length)
         {
             dependencies.push(JSON.parse(_proxies[StorageKey.ACCOUNTS]).map(function(item){
-                return item[3];
+                return item[2] ? item[3] : "";
             }).join(",").split(","));
-            console.log("Category dependencies, accounts: ",dependencies[dependencies.length-1]);
+            console.log("Category dependencies, accounts: ",dependencies[dependencies.length-1].concat().toString());
 
-            dependencies.push(JSON.parse(_proxies[StorageKey.SUB_CATEGORIES]).map(function(item){
+            /*dependencies.push(JSON.parse(_proxies[StorageKey.SUB_CATEGORIES]).map(function(item){
                 return item[2];
             }));
-            console.log("Category dependencies, sub-categories: ",dependencies[dependencies.length-1]);
+            console.log("Category dependencies, sub-categories: ",dependencies[dependencies.length-1].concat().toString());*/
         }
     }
-    else if (key === StorageKey.ACCOUNTS)
+    else if (key === StorageKey.ACCOUNTS)//TODO check what account lifeCycle is
     {
         for (;i<l;)
         {
@@ -164,10 +182,45 @@ function getDependencies(key)
             dependencies.push(JSON.parse(_proxies[StorageKey.CATEGORIES]).map(function(item){
                 return item[4];
             }));
+            console.log("Account dependencies, categories: ",dependencies[dependencies.length-1].concat().toString());
         }
     }
 
     return dependencies;
+}
+
+/**
+ * @method indexOf Return currentItem's index
+ * @param {Array} collection
+ * @param {string} item
+ * @return {number}
+ */
+function indexOf(collection,item)
+{
+    var multiplier = 12, i = 0, l = Math.floor(collection.length / multiplier) * multiplier;
+    for (;i<l;)
+    {
+        if (collection[i++] === item) return i-1;
+        if (collection[i++] === item) return i-1;
+        if (collection[i++] === item) return i-1;
+        if (collection[i++] === item) return i-1;
+        if (collection[i++] === item) return i-1;
+        if (collection[i++] === item) return i-1;
+        if (collection[i++] === item) return i-1;
+        if (collection[i++] === item) return i-1;
+        if (collection[i++] === item) return i-1;
+        if (collection[i++] === item) return i-1;
+        if (collection[i++] === item) return i-1;
+        if (collection[i++] === item) return i-1;
+    }
+
+    l = collection.length;
+    for (;i<l;)
+    {
+        if (collection[i++] === item) return i-1;
+    }
+
+    return -1;
 }
 
 /**

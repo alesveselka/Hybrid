@@ -58,8 +58,8 @@ App.ChangeCategory.prototype.execute = function execute(data)
         category.color = data.color;
         category.budget = data.budget;
 
-        this._registerSubCategories(category);
         this._registerCategory(category);
+        this._registerSubCategories(category);
     }
     else if (type === EventType.CANCEL)
     {
@@ -93,6 +93,7 @@ App.ChangeCategory.prototype._registerCategory = function _registerCategory(cate
         var StorageKey = App.StorageKey,
             Storage = App.ServiceLocator.getService(App.ServiceName.STORAGE);
 
+        console.trace(" **** Saving Accounts, Categories from _registerCategory");
         Storage.setData(StorageKey.ACCOUNTS,ModelLocator.getProxy(ModelName.ACCOUNTS).serialize());//TODO do I need to serialize every time?
         Storage.setData(StorageKey.CATEGORIES,categories.serialize());//TODO do I need to serialize every time?
     }
@@ -105,7 +106,11 @@ App.ChangeCategory.prototype._registerCategory = function _registerCategory(cate
  */
 App.ChangeCategory.prototype._registerSubCategories = function _registerSubCategories(category)
 {
-    var subCategoryCollection = App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES),
+    var ModelLocator = App.ModelLocator,
+        ModelName = App.ModelName,
+        Storage = App.ServiceLocator.getService(App.ServiceName.STORAGE),
+        StorageKey = App.StorageKey,
+        subCategoryCollection = ModelLocator.getProxy(ModelName.SUB_CATEGORIES),
         subCategories = category.subCategories,
         subCategory = null,
         i = 0,
@@ -117,10 +122,9 @@ App.ChangeCategory.prototype._registerSubCategories = function _registerSubCateg
         if (subCategoryCollection.indexOf(subCategory) === -1) subCategoryCollection.addItem(subCategory);
     }
 
-    App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
-        App.StorageKey.SUB_CATEGORIES,
-        subCategoryCollection.serialize()//TODO do I need to serialize every time?
-    );
+    console.trace(" ***** Saving Categories, SubCategories from _registerSubCategories");
+    Storage.setData(StorageKey.CATEGORIES,ModelLocator.getProxy(ModelName.CATEGORIES).serialize());//TODO do I need to serialize every time?
+    Storage.setData(StorageKey.SUB_CATEGORIES,subCategoryCollection.serialize());//TODO do I need to serialize every time?
 };
 
 /**
@@ -158,6 +162,7 @@ App.ChangeCategory.prototype._cancelChanges = function _cancelChanges(category)
 
     //TODO destroy category if it was newly created and eventually cancelled?
 
+    console.trace(" ***** Saving Categories, SubCategories from _cancelChanges");
     Storage.setData(StorageKey.CATEGORIES,ModelLocator.getProxy(ModelName.CATEGORIES).serialize());//TODO do I need to serialize every time?
     Storage.setData(StorageKey.SUB_CATEGORIES,subCategoryCollection.serialize());//TODO do I need to serialize every time?
 };
@@ -177,7 +182,9 @@ App.ChangeCategory.prototype._deleteCategory = function _deleteCategory(category
 
     accounts.find("id",category.account).removeCategory(category);
 
+    console.trace(" ***** Saving Accounts, Categories, SubCategories from _deleteCategory");
     Storage.setData(StorageKey.ACCOUNTS,accounts.serialize());//TODO do I need to serialize every time?
+    Storage.setData(StorageKey.CATEGORIES,ModelLocator.getProxy(ModelName.CATEGORIES).serialize());//TODO do I need to serialize every time?
     Storage.setData(StorageKey.SUB_CATEGORIES,ModelLocator.getProxy(ModelName.SUB_CATEGORIES).serialize());//TODO do I need to serialize every time?
 
     category.destroy();

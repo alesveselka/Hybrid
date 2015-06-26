@@ -368,6 +368,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
         {
             if (inputFocused) this._scrollInput.blur();
 
+            //TODO if in new category, newly set name will be lost of change screen here ...
             if (button instanceof App.AddNewButton)
             {
                 App.Controller.dispatchEvent(App.EventType.CHANGE_SUB_CATEGORY,{
