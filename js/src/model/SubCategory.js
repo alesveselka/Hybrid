@@ -14,14 +14,12 @@ App.SubCategory = function SubCategory(data,collection,parent,eventListenerPool)
 
         this.id = data[0];
         this.name = decodeURIComponent(data[1]);
-        this.category = data[2];
-        this.balance = isNaN(data[3]) ? 0.0 : parseFloat(data[3]);
+        this.balance = isNaN(data[2]) ? 0.0 : parseFloat(data[2]);
     }
     else
     {
         this.id = String(++App.SubCategory._UID);
         this.name = "SubCategory" + this.id;
-        this.category = null;
         this.balance = 0.0;
     }
 
@@ -36,7 +34,8 @@ App.SubCategory._UID = 0;
  */
 App.SubCategory.prototype.serialize = function serialize()
 {
-    return [this.id,App.StringUtils.encode(this.name),this.category,this.balance];
+    if (this.balance) return [this.id,App.StringUtils.encode(this.name),this.balance];
+    else return [this.id,App.StringUtils.encode(this.name)];
 };
 
 /**
