@@ -8460,7 +8460,7 @@ App.EditScreen.prototype.update = function update(model,mode)
     this._model = model;
     this._mode = mode;
     this._target = this._model instanceof App.Account ? App.Account : App.SubCategory;
-    console.log("update ",this._mode);
+
     this._deleteButton.hidePopUp(true);
 
     if (this._target === App.Account)
@@ -10475,6 +10475,7 @@ App.SubCategoryList.prototype.hitTest = function hitTest(position)
 Object.defineProperty(App.SubCategoryList.prototype,'length',{
     get:function()
     {
+        // Subtract one; last button is 'Add' button
         return this._buttonList.length - 1;
     }
 });
@@ -11707,8 +11708,6 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
             }
             else
             {
-                //TODO check how many sub-categories the category have and allow to delete sub-category only if there is more than one
-                console.log("EditScreen ",this._subCategoryList.length);
                 button.onClick(touchData,this._model,this._subCategoryList.length > 1 ? ScreenMode.EDIT : ScreenMode.ADD);
             }
         }
@@ -11799,7 +11798,7 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
         this._model.clearSavedStates();
 
         changeScreenData.updateBackScreen = true;
-        //TODO when i create new Category, or edit current one, user can delete all subCategories!!!
+
         App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,changeCategoryData);
     }
     else if (action === App.HeaderAction.CANCEL)
@@ -15568,7 +15567,7 @@ App.Storage.prototype.getData = function getData(key)
     {
         data = App.DefaultData[key];
         serialized = JSON.stringify(data);
-        localStorage.setItem(key,serialized);//TODO save via worker ...
+        localStorage.setItem(key,serialized);//TODO save via worker ... and compress
     }
 
     this._worker.postMessage("save|"+key+"|"+serialized);
@@ -16339,6 +16338,7 @@ App.ChangeTransaction.prototype._setCategories = function _setCategories(transac
         transaction.category = data.category;
         transaction.subCategory = data.subCategory;
 
+        //TODO move this into its own command!
         settings.defaultAccount = data.account;
         settings.defaultCategory = data.category;
         settings.defaultSubCategory = data.subCategory;

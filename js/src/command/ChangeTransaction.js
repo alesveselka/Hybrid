@@ -143,6 +143,7 @@ App.ChangeTransaction.prototype._setCategories = function _setCategories(transac
         transaction.category = data.category;
         transaction.subCategory = data.subCategory;
 
+        //TODO move this into its own command!
         settings.defaultAccount = data.account;
         settings.defaultCategory = data.category;
         settings.defaultSubCategory = data.subCategory;

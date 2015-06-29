@@ -113,65 +113,56 @@ function processQueue()
  */
 function getDependencies(key)
 {
-    var dependencies = [],
-        transactionsMeta = JSON.parse(_proxies[StorageKey.TRANSACTIONS_META]),
-        transactionSegmentKey = null,
-        i = 0,
-        l = transactionsMeta.length;
+    var dependencies = getTransactionDependencies(key);
 
-    if (key === StorageKey.SUB_CATEGORIES)
+    // If there are no transactions, there is no need for other dependencies either
+    if (dependencies.length)
     {
-        for (;i<l;)
-        {
-            transactionSegmentKey = StorageKey.TRANSACTIONS + transactionsMeta[i++][0];
-            if (_proxies[transactionSegmentKey]) dependencies.push(JSON.parse(_proxies[transactionSegmentKey]).map(function(item){
-                return item[5].split(".")[2];
-            }));
-        }
-
-        // If there are no transactions, there is no need for other dependencies either
-        if (dependencies.length)
+        if (key === StorageKey.SUB_CATEGORIES)
         {
             dependencies.push(JSON.parse(_proxies[StorageKey.CATEGORIES]).map(function(item){
                 return item[5];
             }).join(",").split(","));
         }
-    }
-    else if (key === StorageKey.CATEGORIES)
-    {
-        for (;i<l;)
-        {
-            transactionSegmentKey = StorageKey.TRANSACTIONS + transactionsMeta[i++][0];
-            if (_proxies[transactionSegmentKey]) dependencies.push(JSON.parse(_proxies[transactionSegmentKey]).map(function(item){
-                return item[5].split(".")[1];
-            }));
-        }
-
-        // If there are no transactions, there is no need for other dependencies either
-        if (dependencies.length)
+        else if (key === StorageKey.CATEGORIES)
         {
             dependencies.push(JSON.parse(_proxies[StorageKey.ACCOUNTS]).map(function(item){
                 return item[2] ? item[3] : "";
             }).join(",").split(","));
         }
-    }
-    else if (key === StorageKey.ACCOUNTS)//TODO check what account lifeCycle is
-    {
-        for (;i<l;)
-        {
-            transactionSegmentKey = StorageKey.TRANSACTIONS + transactionsMeta[i++][0];
-            if (_proxies[transactionSegmentKey]) dependencies.push(JSON.parse(_proxies[transactionSegmentKey]).map(function(item){
-                return item[5].split(".")[0];
-            }));
-        }
-
-        // If there are no transactions, there is no need for other dependencies either
-        if (dependencies.length)
+        else if (key === StorageKey.ACCOUNTS)
         {
             dependencies.push(JSON.parse(_proxies[StorageKey.CATEGORIES]).map(function(item){
                 return item[4];
             }));
         }
+    }
+
+    return dependencies;
+}
+
+/**
+ * Find and return transactions dependencies
+ * @param {string} key
+ */
+function getTransactionDependencies(key)
+{
+    var dependencies = [],
+        transactionsMeta = JSON.parse(_proxies[StorageKey.TRANSACTIONS_META]),
+        transactionSegmentKey = null,
+        i = 0,
+        l = transactionsMeta.length,
+        index = 0; // Position of segment to return (in array after split: account.category.subCategory); default is 0 = Accounts
+
+    if (key === StorageKey.CATEGORIES) index = 1;
+    else if (key === StorageKey.SUB_CATEGORIES) index = 2;
+
+    for (;i<l;)
+    {
+        transactionSegmentKey = StorageKey.TRANSACTIONS + transactionsMeta[i++][0];
+        if (_proxies[transactionSegmentKey]) dependencies.push(JSON.parse(_proxies[transactionSegmentKey]).map(function(item){
+            return item[5].split(".")[index];
+        }));
     }
 
     return dependencies;

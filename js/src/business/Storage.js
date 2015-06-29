@@ -84,7 +84,7 @@ App.Storage.prototype.getData = function getData(key)
     {
         data = App.DefaultData[key];
         serialized = JSON.stringify(data);
-        localStorage.setItem(key,serialized);//TODO save via worker ...
+        localStorage.setItem(key,serialized);//TODO save via worker ... and compress
     }
 
     this._worker.postMessage("save|"+key+"|"+serialized);
