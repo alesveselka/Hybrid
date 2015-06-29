@@ -362,7 +362,8 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
     }
     else if (this._subCategoryList.hitTest(y))
     {
-        var button = this._subCategoryList.getItemUnderPoint(touchData);
+        var button = this._subCategoryList.getItemUnderPoint(touchData),
+            ScreenMode = App.ScreenMode;
 
         if (button)
         {
@@ -377,7 +378,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
                     nextCommand:new App.ChangeScreen(),
                     nextCommandData:App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
                         App.ScreenName.EDIT,
-                        App.ScreenMode.ADD,
+                        ScreenMode.ADD,
                         null,
                         0,
                         0,
@@ -387,8 +388,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
             }
             else
             {
-                //TODO check how many sub-categories the category have and allow to delete sub-category only if there is more than one
-                button.onClick(touchData,this._model);
+                button.onClick(touchData,this._model,this._subCategoryList.length > 1 ? ScreenMode.EDIT : ScreenMode.ADD);
             }
         }
 
@@ -478,7 +478,7 @@ App.EditCategoryScreen.prototype._onHeaderClick = function _onHeaderClick(action
         this._model.clearSavedStates();
 
         changeScreenData.updateBackScreen = true;
-        //TODO when i create new Category, or edit current one, user can delete all subCategories!!!
+
         App.Controller.dispatchEvent(EventType.CHANGE_CATEGORY,changeCategoryData);
     }
     else if (action === App.HeaderAction.CANCEL)

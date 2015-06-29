@@ -160,6 +160,7 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
     this._model = data || this._model;
     this._mode = mode || this._mode;
 
+    //TODO check if the default values are not already deleted
     var settings = App.ModelLocator.getProxy(App.ModelName.SETTINGS),
         account = this._model.account ? this._model.account : settings.defaultAccount,
         category = this._model.category ? this._model.category : settings.defaultCategory,

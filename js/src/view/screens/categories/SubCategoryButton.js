@@ -123,8 +123,9 @@ App.SubCategoryButton.prototype.getModel = function getModel()
  * Click handler
  * @param {InteractionData} interactionData
  * @param {App.Category} category
+ * @param {number} screenMode
  */
-App.SubCategoryButton.prototype.onClick = function onClick(interactionData,category)
+App.SubCategoryButton.prototype.onClick = function onClick(interactionData,category,screenMode)
 {
     if (this._mode === App.ScreenMode.EDIT)
     {
@@ -136,7 +137,7 @@ App.SubCategoryButton.prototype.onClick = function onClick(interactionData,categ
                 App.EventType.CHANGE_SCREEN,
                 App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
                     App.ScreenName.EDIT,
-                    App.ScreenMode.EDIT,
+                    screenMode,
                     {subCategory:this._model,category:category},
                     0,
                     0,

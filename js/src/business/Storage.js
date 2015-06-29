@@ -47,7 +47,7 @@ App.Storage.prototype._registerEventListeners = function _registerEventListeners
  */
 App.Storage.prototype._onWorkerMessage = function _onWorkerMessage(e)
 {
-    console.log("received from worker: ",e.data);
+//    console.log("received from worker: ",e.data);
     var components = e.data.split("|");
     localStorage.setItem(components[0],components[1]);//TODO compress
 };
@@ -61,7 +61,7 @@ App.Storage.prototype.setData = function setData(key,data/*,context? (CONFIRM|DE
 {
     if (!this._initialized) this._init();
 
-    console.log("send to worker: ",key,JSON.stringify(data));
+//    console.log("send to worker: ",key,JSON.stringify(data));
     this._worker.postMessage(key+"|"+JSON.stringify(data));
 };
 

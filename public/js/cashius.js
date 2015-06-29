@@ -8460,7 +8460,7 @@ App.EditScreen.prototype.update = function update(model,mode)
     this._model = model;
     this._mode = mode;
     this._target = this._model instanceof App.Account ? App.Account : App.SubCategory;
-
+    console.log("update ",this._mode);
     this._deleteButton.hidePopUp(true);
 
     if (this._target === App.Account)
@@ -9184,6 +9184,7 @@ App.AddTransactionScreen.prototype.update = function update(data,mode)
     this._model = data || this._model;
     this._mode = mode || this._mode;
 
+    //TODO check if the default values are not already deleted
     var settings = App.ModelLocator.getProxy(App.ModelName.SETTINGS),
         account = this._model.account ? this._model.account : settings.defaultAccount,
         category = this._model.category ? this._model.category : settings.defaultCategory,
@@ -10259,8 +10260,9 @@ App.SubCategoryButton.prototype.getModel = function getModel()
  * Click handler
  * @param {InteractionData} interactionData
  * @param {App.Category} category
+ * @param {number} screenMode
  */
-App.SubCategoryButton.prototype.onClick = function onClick(interactionData,category)
+App.SubCategoryButton.prototype.onClick = function onClick(interactionData,category,screenMode)
 {
     if (this._mode === App.ScreenMode.EDIT)
     {
@@ -10272,7 +10274,7 @@ App.SubCategoryButton.prototype.onClick = function onClick(interactionData,categ
                 App.EventType.CHANGE_SCREEN,
                 App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
                     App.ScreenName.EDIT,
-                    App.ScreenMode.EDIT,
+                    screenMode,
                     {subCategory:this._model,category:category},
                     0,
                     0,
@@ -10466,6 +10468,16 @@ App.SubCategoryList.prototype.hitTest = function hitTest(position)
     return position >= this.y && position < this.y + this.boundingBox.height;
 };
 
+/**
+ * @property length
+ * @type number
+ */
+Object.defineProperty(App.SubCategoryList.prototype,'length',{
+    get:function()
+    {
+        return this._buttonList.length - 1;
+    }
+});
 /**
  * @class CategoryButtonSurface
  * @extends DisplayObjectContainer
@@ -11669,7 +11681,8 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
     }
     else if (this._subCategoryList.hitTest(y))
     {
-        var button = this._subCategoryList.getItemUnderPoint(touchData);
+        var button = this._subCategoryList.getItemUnderPoint(touchData),
+            ScreenMode = App.ScreenMode;
 
         if (button)
         {
@@ -11684,7 +11697,7 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
                     nextCommand:new App.ChangeScreen(),
                     nextCommandData:App.ModelLocator.getProxy(App.ModelName.CHANGE_SCREEN_DATA_POOL).allocate().update(
                         App.ScreenName.EDIT,
-                        App.ScreenMode.ADD,
+                        ScreenMode.ADD,
                         null,
                         0,
                         0,
@@ -11695,7 +11708,8 @@ App.EditCategoryScreen.prototype._onClick = function _onClick()
             else
             {
                 //TODO check how many sub-categories the category have and allow to delete sub-category only if there is more than one
-                button.onClick(touchData,this._model);
+                console.log("EditScreen ",this._subCategoryList.length);
+                button.onClick(touchData,this._model,this._subCategoryList.length > 1 ? ScreenMode.EDIT : ScreenMode.ADD);
             }
         }
 
@@ -15517,7 +15531,7 @@ App.Storage.prototype._registerEventListeners = function _registerEventListeners
  */
 App.Storage.prototype._onWorkerMessage = function _onWorkerMessage(e)
 {
-    console.log("received from worker: ",e.data);
+//    console.log("received from worker: ",e.data);
     var components = e.data.split("|");
     localStorage.setItem(components[0],components[1]);//TODO compress
 };
@@ -15531,7 +15545,7 @@ App.Storage.prototype.setData = function setData(key,data/*,context? (CONFIRM|DE
 {
     if (!this._initialized) this._init();
 
-    console.log("send to worker: ",key,JSON.stringify(data));
+//    console.log("send to worker: ",key,JSON.stringify(data));
     this._worker.postMessage(key+"|"+JSON.stringify(data));
 };
 
@@ -16428,7 +16442,6 @@ App.ChangeTransaction.prototype._updateSavedBalance = function _updateSavedBalan
         savedSubCategory.balance = savedSubCategory.balance - savedAmount;
     }
 
-    console.log("Saving SubCategories from _updateSavedBalance");
     App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
         App.StorageKey.SUB_CATEGORIES,
         App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).serialize()
@@ -16461,7 +16474,6 @@ App.ChangeTransaction.prototype._updateCurrentBalance = function _updateCurrentB
         }
     }
 
-    console.log("Saving SubCategories from _updateCurrentBalance");
     App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
         App.StorageKey.SUB_CATEGORIES,
         App.ModelLocator.getProxy(App.ModelName.SUB_CATEGORIES).serialize()
@@ -16478,7 +16490,6 @@ App.ChangeTransaction.prototype._saveCollection = function _saveCollection(trans
 {
     var metaId = transaction.id.split(".")[0];
 
-    console.log("Saving "+App.StorageKey.TRANSACTIONS+metaId+" from _saveCollection");
     App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
         App.StorageKey.TRANSACTIONS+metaId,
         collection.serialize(metaId,false)
@@ -16580,7 +16591,6 @@ App.ChangeCategory.prototype._registerCategory = function _registerCategory(cate
         var StorageKey = App.StorageKey,
             Storage = App.ServiceLocator.getService(App.ServiceName.STORAGE);
 
-        console.trace(" **** Saving Accounts, Categories from _registerCategory");
         Storage.setData(StorageKey.ACCOUNTS,ModelLocator.getProxy(ModelName.ACCOUNTS).serialize());//TODO do I need to serialize every time?
         Storage.setData(StorageKey.CATEGORIES,categories.serialize());//TODO do I need to serialize every time?
     }
@@ -16609,7 +16619,6 @@ App.ChangeCategory.prototype._registerSubCategories = function _registerSubCateg
         if (subCategoryCollection.indexOf(subCategory) === -1) subCategoryCollection.addItem(subCategory);
     }
 
-    console.trace(" ***** Saving Categories, SubCategories from _registerSubCategories");
     Storage.setData(StorageKey.CATEGORIES,ModelLocator.getProxy(ModelName.CATEGORIES).serialize());//TODO do I need to serialize every time?
     Storage.setData(StorageKey.SUB_CATEGORIES,subCategoryCollection.serialize());//TODO do I need to serialize every time?
 };
@@ -16649,7 +16658,6 @@ App.ChangeCategory.prototype._cancelChanges = function _cancelChanges(category)
 
     //TODO destroy category if it was newly created and eventually cancelled?
 
-    console.trace(" ***** Saving Categories, SubCategories from _cancelChanges");
     Storage.setData(StorageKey.CATEGORIES,ModelLocator.getProxy(ModelName.CATEGORIES).serialize());//TODO do I need to serialize every time?
     Storage.setData(StorageKey.SUB_CATEGORIES,subCategoryCollection.serialize());//TODO do I need to serialize every time?
 };
@@ -16669,7 +16677,6 @@ App.ChangeCategory.prototype._deleteCategory = function _deleteCategory(category
 
     accounts.find("id",category.account).removeCategory(category);
 
-    console.trace(" ***** Saving Accounts, Categories, SubCategories from _deleteCategory");
     Storage.setData(StorageKey.ACCOUNTS,accounts.serialize());//TODO do I need to serialize every time?
     Storage.setData(StorageKey.CATEGORIES,ModelLocator.getProxy(ModelName.CATEGORIES).serialize());//TODO do I need to serialize every time?
     Storage.setData(StorageKey.SUB_CATEGORIES,ModelLocator.getProxy(ModelName.SUB_CATEGORIES).serialize());//TODO do I need to serialize every time?
@@ -16773,7 +16780,6 @@ App.ChangeAccount.prototype.execute = function execute(data)
             account.lifeCycleState = App.LifeCycleState.ACTIVE;
 
             // Save
-            console.log("Saving Accounts from ChangeAccount.execute CHANGE");
             App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
                 App.StorageKey.ACCOUNTS,
                 App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).serialize()
@@ -16784,7 +16790,6 @@ App.ChangeAccount.prototype.execute = function execute(data)
     {
         account.lifeCycleState = App.LifeCycleState.DELETED;
 
-        console.log("Saving Accounts from ChangeAccount.execute DELETE");
         App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
             App.StorageKey.ACCOUNTS,
             App.ModelLocator.getProxy(App.ModelName.ACCOUNTS).serialize()

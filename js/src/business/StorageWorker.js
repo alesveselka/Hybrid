@@ -61,7 +61,6 @@ function processQueue()
                 l = dependencies.length,
                 used = false;
 
-//            idLoop:
             while(lookupItem)
             {
                 id = lookupItem[0];
@@ -70,7 +69,6 @@ function processQueue()
                 if (item.key === StorageKey.ACCOUNTS && lookupItem[2])
                 {
                     // Account's lifeCycle is 'active', no need to check for dependencies
-                    console.log(item.key,id," used ",true,i-1,data[i-1]);
                     lookupItem = data[i++];
                 }
                 else
@@ -78,15 +76,13 @@ function processQueue()
                     for (j=0;j<l;)
                     {
                         dependency = dependencies[j++];
-                        console.log("indexOf: ",item.key,id,dependency.concat().toString(),indexOf(dependency,id));
                         if (indexOf(dependency,id) > -1)
                         {
                             used = true;
-    //                        break idLoop;
                             break;
                         }
                     }
-                    console.log(item.key,id," used ",used,i-1,data[i-1]);
+
                     if (used)
                     {
                         lookupItem = data[i++];
@@ -139,7 +135,6 @@ function getDependencies(key)
             dependencies.push(JSON.parse(_proxies[StorageKey.CATEGORIES]).map(function(item){
                 return item[5];
             }).join(",").split(","));
-            console.log("SubCategory dependencies, categories: ",dependencies[dependencies.length-1].concat().toString());
         }
     }
     else if (key === StorageKey.CATEGORIES)
@@ -158,12 +153,6 @@ function getDependencies(key)
             dependencies.push(JSON.parse(_proxies[StorageKey.ACCOUNTS]).map(function(item){
                 return item[2] ? item[3] : "";
             }).join(",").split(","));
-            console.log("Category dependencies, accounts: ",dependencies[dependencies.length-1].concat().toString());
-
-            /*dependencies.push(JSON.parse(_proxies[StorageKey.SUB_CATEGORIES]).map(function(item){
-                return item[2];
-            }));
-            console.log("Category dependencies, sub-categories: ",dependencies[dependencies.length-1].concat().toString());*/
         }
     }
     else if (key === StorageKey.ACCOUNTS)//TODO check what account lifeCycle is
@@ -182,7 +171,6 @@ function getDependencies(key)
             dependencies.push(JSON.parse(_proxies[StorageKey.CATEGORIES]).map(function(item){
                 return item[4];
             }));
-            console.log("Account dependencies, categories: ",dependencies[dependencies.length-1].concat().toString());
         }
     }
 

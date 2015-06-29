@@ -161,3 +161,15 @@ App.SubCategoryList.prototype.hitTest = function hitTest(position)
 {
     return position >= this.y && position < this.y + this.boundingBox.height;
 };
+
+/**
+ * @property length
+ * @type number
+ */
+Object.defineProperty(App.SubCategoryList.prototype,'length',{
+    get:function()
+    {
+        // Subtract one; last button is 'Add' button
+        return this._buttonList.length - 1;
+    }
+});
