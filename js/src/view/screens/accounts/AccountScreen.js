@@ -64,7 +64,6 @@ App.AccountScreen.prototype.disable = function disable()
  * Update
  * @param {App.Collection} data
  * @param {string} mode
- * @private
  */
 App.AccountScreen.prototype.update = function update(data,mode)
 {

@@ -29,7 +29,7 @@ App.AccountButton = function AccountButton(poolIndex,options)
     this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
     this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
     this._nameLabel = this._swipeSurface.addChild(new PIXI.Text("",options.nameStyle));
-    this._detailsLabel = this._swipeSurface.addChild(new PIXI.Text("Balance: 2.876, Expenses: -250, Income: 1.500",options.detailStyle));//TODO remove hard-coded data
+    this._detailsLabel = this._swipeSurface.addChild(new PIXI.Text("",options.detailStyle));
     this._renderAll = true;
 };
 
@@ -37,9 +37,10 @@ App.AccountButton.prototype = Object.create(App.SwipeButton.prototype);
 
 /**
  * @method render
+ * @param {number} showDetails
  * @private
  */
-App.AccountButton.prototype._render = function _render()
+App.AccountButton.prototype._render = function _render(showDetails)
 {
     if (this._renderAll)
     {
@@ -56,10 +57,19 @@ App.AccountButton.prototype._render = function _render()
         this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
 
         this._nameLabel.x = offset;
-        this._nameLabel.y = offset;
 
         this._detailsLabel.x = offset;
         this._detailsLabel.y = Math.round(45 * r);
+
+        if (showDetails)
+        {
+            this._nameLabel.y = offset;
+            this._swipeSurface.addChild(this._detailsLabel);
+        }
+        else
+        {
+            this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
+        }
     }
 };
 
@@ -75,7 +85,10 @@ App.AccountButton.prototype.setModel = function getModel(model,mode)
 
     this._nameLabel.setText(this._model.name);
 
-    this._render();
+    var balance = this._model.calculateBalance();
+    if (balance) this._detailsLabel.setText("Expenses: "+balance);
+
+    this._render(balance);
 };
 
 /**
