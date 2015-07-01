@@ -114,10 +114,13 @@ App.ReportScreen.prototype.update = function update()
         }
     }
 
-    this._buttonList.updateLayout(true);
-    this._pane.resize();
+    if (this._buttonList.length)
+    {
+        this._buttonList.updateLayout(true);
+        this._pane.resize();
 
-    this._chart.update();
+        this._chart.update();
+    }
 };
 
 /**
@@ -130,12 +133,15 @@ App.ReportScreen.prototype._onTweenComplete = function _onTweenComplete()
 
     if (this._transitionState === App.TransitionState.SHOWN)
     {
-        var button = this._buttonList.getItemAt(0);
+        if (this._buttonList.length)
+        {
+            var button = this._buttonList.getItemAt(0);
 
-        if (!button.isOpen()) button.open();
-        this._chart.showSegments(button.getModel());
+            if (!button.isOpen()) button.open();
+            this._chart.showSegments(button.getModel());
 
-        this._layoutDirty = true;
+            this._layoutDirty = true;
+        }
     }
 };
 
