@@ -50,10 +50,18 @@ App.TransactionCollection.prototype.getTransactionId = function getTransactionId
 {
     var meta = this._meta[this._meta.length-1];
 
-    if (meta.length >= this._maxSegmentSize)
+    if (meta)
     {
-        this._meta[this._meta.length] = {metaId:meta.metaId++,length:0,transactionId:0,loaded:true};
-        meta = this._meta[this._meta.length-1];
+        if (meta.length >= this._maxSegmentSize)
+        {
+            this._meta[this._meta.length] = {metaId:meta.metaId++,length:0,transactionId:0,loaded:true};
+            meta = this._meta[this._meta.length-1];
+        }
+    }
+    else
+    {
+        meta = {metaId:0,length:0,transactionId:0,loaded:true};
+        this._meta[this._meta.length] = meta;
     }
 
     return meta.metaId + "." + meta.transactionId++;
