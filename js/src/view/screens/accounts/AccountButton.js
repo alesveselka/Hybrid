@@ -85,7 +85,7 @@ App.AccountButton.prototype.setModel = function getModel(model,mode)
 
     this._nameLabel.setText(this._model.name);
 
-    var balance = this._model.calculateBalance();
+    var balance = this._model.calculateBalance().toFixed(2);
     if (balance) this._detailsLabel.setText("Expenses: "+balance);
 
     this._render(balance);
