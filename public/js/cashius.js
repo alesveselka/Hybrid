@@ -14503,24 +14503,11 @@ App.SettingScreen.prototype._onDeleteCancel = function _onDeleteCancel()
  */
 App.SettingScreen.prototype._onDeleteConfirm = function _onDeleteConfirm()
 {
-    /*var HeaderAction = App.HeaderAction,
-        changeTransactionData = this._getChangeTransactionData(
-            App.ScreenName.TRANSACTIONS,
-            0,
-            null,
-            HeaderAction.MENU,
-            HeaderAction.ADD_TRANSACTION,
-            App.ScreenTitle.TRANSACTIONS
-        );
+    // Just temporary for testing
+    localStorage.clear();
 
-    this._onHidePopUpComplete();
+    this._deleteButton.hidePopUp();
     App.ViewLocator.getViewSegment(App.ViewName.HEADER).enableActions();
-
-    App.ModelLocator.getProxy(App.ModelName.TRANSACTIONS).setCurrent(this._model);
-
-    changeTransactionData.type = App.EventType.DELETE;
-
-    App.Controller.dispatchEvent(App.EventType.CHANGE_TRANSACTION,changeTransactionData);*/
 };
 
 /**
@@ -15871,7 +15858,7 @@ App.LoadData.prototype._loadData = function _loadData()
         transactionKey = null,
         i = 0,
         l = 0;
-    localStorage.clear();
+//    localStorage.clear();
     userData[StorageKey.SETTINGS] = this._storage.getData(StorageKey.SETTINGS);
     userData[StorageKey.CURRENCY_PAIRS] = this._storage.getData(StorageKey.CURRENCY_PAIRS);
     userData[StorageKey.SUB_CATEGORIES] = this._storage.getData(StorageKey.SUB_CATEGORIES);
