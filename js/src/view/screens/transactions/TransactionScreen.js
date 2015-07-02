@@ -8,6 +8,8 @@ App.TransactionScreen = function TransactionScreen(layout)
 {
     App.Screen.call(this,layout,0.4);
 
+    //TODO display message/tutorial in case of empty screen
+
     var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
         r = layout.pixelRatio,

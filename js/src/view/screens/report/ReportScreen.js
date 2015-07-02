@@ -8,6 +8,8 @@ App.ReportScreen = function ReportScreen(layout)
 {
     App.Screen.call(this,layout,0.4);
 
+    //TODO display message/tutorial in case of empty screen
+
     var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
         ObjectPool = App.ObjectPool,
