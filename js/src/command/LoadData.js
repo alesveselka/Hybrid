@@ -128,7 +128,7 @@ App.LoadData.prototype._loadData = function _loadData()
     transactions.ids = transactionIds;
     userData[StorageKey.TRANSACTIONS] = transactions;
 
-    console.log("userData: ",timeStamp.now()-start,userData);
+//    console.log("userData: ",timeStamp.now()-start,userData);
 
     this.dispatchEvent(App.EventType.COMPLETE,{userData:userData,icons:this._icons});
 };

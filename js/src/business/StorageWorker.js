@@ -1,7 +1,5 @@
 var StorageKey = null,
-    _queue = [],
-    _proxies = Object.create(null), //This will hold latest snapshots of data; data are updated every time when set and retrieved.
-    _processing = false;
+    _proxies = Object.create(null); //This will hold latest snapshots of data; data are updated every time when set and retrieved.
 
 /**
  * Error handler
@@ -23,90 +21,62 @@ function onMessage(e)
 
     if (key === "init") StorageKey = JSON.parse(components[1]);
     else if (key === "save") _proxies[components[1]] = components[2];
-    else pushToQueue(key,JSON.parse(components[1]));
-}
-
-/**
- * Push data to queue
- * @param {string} key
- * @param {Object} data
- */
-function pushToQueue(key,data)
-{
-    _queue.push({key:key,data:data});
-
-    /*if (!_processing) */processQueue(key,data);
+    else process(key,JSON.parse(components[1]));
 }
 
 /**
  * Process queue
  */
-function processQueue(key,data)
+function process(key,data)
 {
-    _processing = true;
+    var dependencies = getDependencies(key,data);
+    if (dependencies.length)
+    {
+        var i = 0,
+            lookupItem = data[i++],
+            dependency = null,
+            id = null,
+            j = 0,
+            l = dependencies.length,
+            used = false;
 
-//    if (_queue.length)
-//    {
-        var /*item = _queue.shift(),
-            data = item.data,
-            key = item.key,*/
-            dependencies = getDependencies(key,data);
-        console.log("processQueue ",key,JSON.stringify(data),dependencies.length);
-        if (dependencies.length)
+        while(lookupItem)
         {
-            var i = 0,
-                lookupItem = data[i++],
-                dependency = null,
-                id = null,
-                j = 0,
-                l = dependencies.length,
-                used = false;
+            id = lookupItem[0];
+            used = false;
 
-            while(lookupItem)
+            if (key === StorageKey.ACCOUNTS && lookupItem[2])
             {
-                id = lookupItem[0];
-                used = false;
-
-                if (key === StorageKey.ACCOUNTS && lookupItem[2])
+                // Account's lifeCycle is 'active', no need to check for dependencies
+                lookupItem = data[i++];
+            }
+            else
+            {
+                for (j=0;j<l;)
                 {
-                    // Account's lifeCycle is 'active', no need to check for dependencies
+                    dependency = dependencies[j++];
+                    if (indexOf(dependency,id) > -1)
+                    {
+                        used = true;
+                        break;
+                    }
+                }
+
+                if (used)
+                {
                     lookupItem = data[i++];
                 }
                 else
                 {
-                    for (j=0;j<l;)
-                    {
-                        dependency = dependencies[j++];
-                        console.log("Dependencies ",key,dependency,", id: ",id);
-                        if (indexOf(dependency,id) > -1)
-                        {
-                            used = true;
-                            break;
-                        }
-                    }
-                    console.log(key," Used ",used);
-                    if (used)
-                    {
-                        lookupItem = data[i++];
-                    }
-                    else
-                    {
-                        data.splice(i-1,1);
-                        lookupItem = data[i];
-                    }
+                    data.splice(i-1,1);
+                    lookupItem = data[i];
                 }
             }
         }
-
-//        console.log("about to send back ",key,data.length);
-        _proxies[key] = JSON.stringify(data);
-        postMessage(key+"|"+_proxies[key]);
-        /*processQueue();
     }
-    else
-    {
-        _processing = false;
-    }*/
+
+    _proxies[key] = JSON.stringify(data);
+    postMessage(key+"|"+_proxies[key]);
 }
 
 /**

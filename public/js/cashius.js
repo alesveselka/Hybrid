@@ -1791,7 +1791,7 @@ App.TransactionCollection = function TransactionCollection(data,eventListenerPoo
 
     App.Collection.call(this,transactions,App.Transaction,null,eventListenerPool);
 
-    this._maxSegmentSize = 45;
+    this._maxSegmentSize = 3;
     this._meta = [];
     this._initMeta(data[StorageKey.TRANSACTIONS_META],ids);
 };
@@ -1813,8 +1813,29 @@ App.TransactionCollection.prototype._initMeta = function _initMeta(meta,ids)
     for (;i<l;i++)
     {
         item = meta[i];
-        this._meta[i] = {metaId:item[0],length:item[1],transactionId:item[2],loaded:ids.indexOf(item[0]) > -1};
+        // Initialize only meta objects with one or more transactions
+        if (item[1]) this._meta[i] = {metaId:item[0],length:item[1],transactionId:item[2],loaded:ids.indexOf(item[0]) > -1};
     }
+};
+
+/**
+ * Serialize and return meta information
+ * @returns {Array}
+ */
+App.TransactionCollection.prototype.serializeMeta = function serializeMeta()
+{
+    var i = 0,
+        l = this._meta.length,
+        data = [],
+        meta = null;
+
+    for (;i<l;)
+    {
+        meta = this._meta[i++];
+        data.push([meta.metaId,meta.length,meta.transactionId]);
+    }
+
+    return data;
 };
 
 /**
@@ -1825,10 +1846,18 @@ App.TransactionCollection.prototype.getTransactionId = function getTransactionId
 {
     var meta = this._meta[this._meta.length-1];
 
-    if (meta.length >= this._maxSegmentSize)
+    if (meta)
     {
-        this._meta[this._meta.length] = {metaId:meta.metaId++,length:0,transactionId:0,loaded:true};
-        meta = this._meta[this._meta.length-1];
+        if (meta.length >= this._maxSegmentSize)
+        {
+            this._meta[this._meta.length] = {metaId:meta.metaId+1,length:0,transactionId:0,loaded:true};
+            meta = this._meta[this._meta.length-1];
+        }
+    }
+    else
+    {
+        meta = {metaId:0,length:0,transactionId:0,loaded:true};
+        this._meta[this._meta.length] = meta;
     }
 
     return meta.metaId + "." + meta.transactionId++;
@@ -1894,10 +1923,7 @@ App.TransactionCollection.prototype.serialize = function serialize(metaId,serial
     for (;i<l;)
     {
         transaction = this._items[i++];
-        if (metaId === transaction.id.split(".")[0])
-        {
-            data.push(transaction.getData(serializeData));
-        }
+        if (metaId === transaction.id.split(".")[0]) data.push(transaction.getData(serializeData));
     }
 
     return data;
@@ -9785,7 +9811,7 @@ App.AccountButton = function AccountButton(poolIndex,options)
     this._swipeSurface = this.addChild(new PIXI.DisplayObjectContainer());
     this._skin = this._swipeSurface.addChild(new PIXI.Sprite(options.skin));
     this._nameLabel = this._swipeSurface.addChild(new PIXI.Text("",options.nameStyle));
-    this._detailsLabel = this._swipeSurface.addChild(new PIXI.Text("Balance: 2.876, Expenses: -250, Income: 1.500",options.detailStyle));//TODO remove hard-coded data
+    this._detailsLabel = this._swipeSurface.addChild(new PIXI.Text("",options.detailStyle));
     this._renderAll = true;
 };
 
@@ -9793,9 +9819,10 @@ App.AccountButton.prototype = Object.create(App.SwipeButton.prototype);
 
 /**
  * @method render
+ * @param {number} showDetails
  * @private
  */
-App.AccountButton.prototype._render = function _render()
+App.AccountButton.prototype._render = function _render(showDetails)
 {
     if (this._renderAll)
     {
@@ -9812,10 +9839,19 @@ App.AccountButton.prototype._render = function _render()
         this._editLabel.y = Math.round((h - this._editLabel.height) / 2);
 
         this._nameLabel.x = offset;
-        this._nameLabel.y = offset;
 
         this._detailsLabel.x = offset;
         this._detailsLabel.y = Math.round(45 * r);
+
+        if (showDetails)
+        {
+            this._nameLabel.y = offset;
+            this._swipeSurface.addChild(this._detailsLabel);
+        }
+        else
+        {
+            this._nameLabel.y = Math.round((h - this._nameLabel.height) / 2);
+        }
     }
 };
 
@@ -9831,7 +9867,10 @@ App.AccountButton.prototype.setModel = function getModel(model,mode)
 
     this._nameLabel.setText(this._model.name);
 
-    this._render();
+    var balance = this._model.calculateBalance().toFixed(2);
+    if (balance) this._detailsLabel.setText("Expenses: "+balance);
+
+    this._render(balance);
 };
 
 /**
@@ -9939,7 +9978,6 @@ App.AccountScreen.prototype.disable = function disable()
  * Update
  * @param {App.Collection} data
  * @param {string} mode
- * @private
  */
 App.AccountScreen.prototype.update = function update(data,mode)
 {
@@ -12129,6 +12167,8 @@ App.TransactionScreen = function TransactionScreen(layout)
 {
     App.Screen.call(this,layout,0.4);
 
+    //TODO display message/tutorial in case of empty screen
+
     var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
         r = layout.pixelRatio,
@@ -13152,6 +13192,8 @@ App.ReportScreen = function ReportScreen(layout)
 {
     App.Screen.call(this,layout,0.4);
 
+    //TODO display message/tutorial in case of empty screen
+
     var ScrollPolicy = App.ScrollPolicy,
         FontStyle = App.FontStyle,
         ObjectPool = App.ObjectPool,
@@ -13258,10 +13300,13 @@ App.ReportScreen.prototype.update = function update()
         }
     }
 
-    this._buttonList.updateLayout(true);
-    this._pane.resize();
+    if (this._buttonList.length)
+    {
+        this._buttonList.updateLayout(true);
+        this._pane.resize();
 
-    this._chart.update();
+        this._chart.update();
+    }
 };
 
 /**
@@ -13274,12 +13319,15 @@ App.ReportScreen.prototype._onTweenComplete = function _onTweenComplete()
 
     if (this._transitionState === App.TransitionState.SHOWN)
     {
-        var button = this._buttonList.getItemAt(0);
+        if (this._buttonList.length)
+        {
+            var button = this._buttonList.getItemAt(0);
 
-        if (!button.isOpen()) button.open();
-        this._chart.showSegments(button.getModel());
+            if (!button.isOpen()) button.open();
+            this._chart.showSegments(button.getModel());
 
-        this._layoutDirty = true;
+            this._layoutDirty = true;
+        }
     }
 };
 
@@ -15299,10 +15347,7 @@ App.Controller = {
 };
 
 App.DefaultData = {
-    TODO:"COMPRESS THE DATA BEFORE SAVING THEM?",
-    _commentSettings:["startOfWeek","baseCurrency","defaultCurrency","defaultAccount","defaultCategory","defaultSubCategory","defaultPaymentMethod"],
     settings:[1,"CZK","CZK","1","1","1",1],
-    _commentCurrencies:["id","baseCurrency","symbol","rate"],
     currencyPairs:[
         [1,"EUR","AUD",1.3932],
         [2,"EUR","CAD",1.3593],
@@ -15361,124 +15406,124 @@ App.DefaultData = {
         [53,"USD","THB",32.86],
         [54,"USD","TRY",2.611]
     ],
-    _commentSubCategories:["id","name","balance"],
     subCategories:[
-        ["1","Cinema",-16428.5],
-        ["2","Club",-2187],
-        ["3","Cafe",-119],
-        ["4","Gym",-218],
-        ["5","Swimming",-1230],
-        ["6","Utilities",-950],
-        ["7","Rent",-514],
-        ["8","Lunch",-750],
-        ["9","Lunch"],
-        ["10","Supplies",-320],
-        ["11","Invoices"],
-        ["12","Fees",-854],
-        ["13","Groceries",-130],
-        ["14","Food",-820],
-        ["15","Hotel",-275],
-        ["16","Hostel",-120],
-        ["17","Spa"],
-        ["18","Car Rental",-80],
-        ["19","Fuel",-16],
-        ["20","Bus"],
-        ["21","Train"]
+        ["1","OSSZ"],
+        ["2","ZP"],
+        ["3","Taxes"],
+        ["4","Invoice"],
+        ["5","Other"],
+
+        ["6","Rent"],
+        ["7","Other"],
+
+        ["8","Accounts"],
+        ["9","Transfer"],
+        ["10","ATM"],
+        ["11","Exchange%20Rate"],
+        ["12","Customs"],
+        ["13","VAT"],
+        ["14","Other"],
+
+        ["15","Gym"],
+        ["16","Swimming"],
+        ["17","Other"],
+
+        ["18","Groceries"],
+        ["19","Drugs"],
+        ["20","Clothing"],
+        ["21","Pharmacy"],
+        ["22","Shared%20Expenses"],
+        ["23","Food"],
+        ["24","Gift"],
+        ["25","Flowers"],
+        ["26","Other"],
+
+        ["27","Breakfast"],
+        ["28","Lunch"],
+        ["29","Dinner"],
+        ["30","Snack"],
+        ["31","Coffee"],
+        ["32","Other"],
+
+        ["33","Public%20Transportation"],
+        ["34","CR"],
+        ["35","Abroad"],
+        ["36","Taxi"],
+        ["37","AirPlane"],
+        ["38","Bus"],
+        ["39","Train"],
+        ["40","Ho%28s%29tel"],
+        ["41","Gas"],
+        ["42","Car%20Rental"],
+        ["43","Other"],
+
+        ["44","Club"],
+        ["45","Bar"],
+        ["46","Pub"],
+        ["47","Coffee"],
+        ["48","Concert"],
+        ["49","Festival"],
+        ["50","Cinema"],
+        ["51","Theatre"],
+        ["52","Gallery"],
+        ["53","Sight%20Seeing"],
+        ["54","Camp"],
+        ["55","Paddle%20Boat"],
+        ["56","Bowling"],
+        ["57","Aqua%20Park"],
+        ["58","Other"],
+
+        ["59","Software"],
+        ["60","Broker"],
+        ["61","Credit"],
+        ["62","Debit"],
+        ["63","Forum"],
+        ["64","Data"],
+        ["65","Subscription"],
+        ["66","Other"],
+
+        ["67","Hairdresser"],
+        ["68","Doctor"],
+        ["69","Print"],
+        ["70","Taxes"],
+        ["71","Massage"],
+        ["72","Post"],
+        ["73","Moving"],
+        ["74","Internet"],
+        ["75","Phone"],
+        ["76","Other"],
+
+        ["77","Books"],
+        ["78","Course"],
+        ["79","Other"],
+
+        ["80","Borrowing"],
+        ["81","Interest"],
+        ["82","Other"],
+
+        ["83","Lending"],
+        ["84","Interest"],
+        ["85","Other"]
     ],
-    _commentCategories:["id","name","color","icon","account","subCategories","budget"],
     categories:[
-        ["1","Leisure","80f320","disco-ball","1","1,2,3",200],
-        ["2","Shopping","9ae611","cloths","1","8,14,15"],
-        ["3","Sport","b4d406","ball","1","4,5",950],
-        ["4","House","cbbe01","house","1","6,7"],
-        ["5","Business","dea602","currencies","1","9,10,11,12,13"],
-        ["6","Transportation","ee8c08","car","1","19,20,21"],
-        ["7","Trip","f97113","air-plane","1","16,17,18"],
-        ["8","Arbitrary 3","fe5823","expense","2","1,2,3,4"],
-        ["9","Arbitrary 4","fe3f37","budget","2","1,2,3,4"],
-        ["10","Arbitrary 5","f92a4f","chart","2","1,2,3,4"],
-        ["11","Arbitrary 6","ee1868","account","2","1,2,3,4"],
-        ["12","Arbitrary 7","de0b83","tax","2","1,2,3,4"],
-        ["13","Arbitrary 9","cb049d","user","2","1,2,3,4"],
-        ["14","Arbitrary 10","b401b6","users","2","1,2,3,4"],
-        ["15","Arbitrary 11","9a04cd","credit-card","2","1,2,3,4"],
-        ["16","Arbitrary 12","800de0","calendar","2","1,2,3,4"],
-        ["17","Arbitrary 13","661aef","air-plane","2","1,2,3,4"],
-        ["18","Arbitrary 14","4c2cfa","car","2","1,2,3,4"],
-        ["19","Arbitrary 15","3542ff","pills","2","1,2,3,4"],
-        ["20","Arbitrary 16","225afe","book","2","1,2,3,4"],
-        ["21","Arbitrary 17","1274f8","gym","2","1,2,3,4"],
-        ["22","Arbitrary 18","078fed","cutlery","2","1,2,3,4"],
-        ["23","Arbitrary 19","02a8dd","cup","2","1,2,3,4"],
-        ["24","Arbitrary 20","02c1c9","cart","2","1,2,3,4"],
-        ["25","Arbitrary 21","07d6b1","scissors","2","1,2,3,4"],
-        ["26","Arbitrary 22","12e898","gift","2","1,2,3,4"],
-        ["27","Arbitrary 23","22f57d","heart","2","1,2,3,4"],
-        ["28","Arbitrary 24","35fc63","club","2","1,2,3,4"],
-        ["29","Arbitrary 25","4cff4a","star","2","1,2,3,4"],
-        ["30","Arbitrary 26","66fc33","movies","2","1,2,3,4"]
+        ["1","Freelance","80f320","currencies","1","1,2,3,4,5"],
+        ["2","Living","9ae611","house","1","6,7",15000],
+        ["3","Fees","b4d406","transactions","1","8,9,10,11,12,13,14"],
+        ["4","Sport","cbbe01","ball","1","15,16,17",1500],
+        ["5","Shopping","dea602","cart","1","18,19,20,21,22,23,24,25,26"],
+        ["6","Eating","ee8c08","cutlery","1","27,28,29,30,31,32"],
+        ["7","Travel","f97113","air-plane","1","33,34,35,36,37,38,39,40,41,42,43"],
+        ["8","Leisure","fe5823","disco-ball","1","44,45,46,47,48,49,50,51,52,53,54,55,56,57,58"],
+        ["9","Trading","fe3f37","chart","1","59,60,61,62,63,64,65,66"],
+        ["10","Services","f92a4f","scissors","1","67,68,69,70,71,72,73,74,75,76"],
+        ["11","Study","ee1868","book","1","77,78,79"],
+        ["12","Income","de0b83","income","1","80,81,82"],
+        ["13","Expense","cb049d","expense","1","83,84,85"]
     ],
-    _commentAccounts:["id","name","lifecycle(1=active,0=deleted)","categories"],
     accounts:[
-        ["1","Private",1,"1,2,3,4,5,6,7"],
-        ["2","Business",1,"8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30"]
+        ["1","Private",1,"1,2,3,4,5,6,7,8,9,10,11,12,13"]
     ],
-    _commentTransactionsMeta:"array of arrays - each item representing transactions array-segment; [segment ID,number of transactions,highest transaction ID]",
-    transactionsMeta:[[0,46,46],[1,3,3]],
-    _commentTransactions:["id(collection.transaction)","amount","transactionType","pending","repeat","account.category.subCategory","paymentMethod","date","currency(base[/quote@rate])","note"],
-    transactions0:[
-        ["0.0",800,2,0,0,"2.5.13",1,1423750915663,"CZK","Jimmy%27s%20Coffee"],
-        ["0.1",54,2,0,0,"2.5.13",1,1423750915663,"CZK/USD@0.039093"],
-        ["0.2",300,1,0,0,"1.2.8",1,1423750915663,"CZK"],
-        ["0.3",130,1,0,0,"1.2.14",1,1423750915663,"CZK"],
-        ["0.4",218,1,0,0,"1.3.4",1,1423750915663,"CZK"],
-        ["0.5",950,1,0,0,"1.4.6",1,1423750915663,"CZK"],
-        ["0.6",320,1,0,0,"1.5.9",1,1423750915663,"CZK"],
-        ["0.7",80,1,0,0,"1.6.19",1,1423750915663,"CZK"],
-        ["0.8",275,1,0,0,"1.7.16",1,1423750915663,"CZK"],
-        ["0.9",119,1,0,0,"1.1.3",1,1423750915663,"CZK"],
-        ["0.10",820,1,0,0,"1.2.15",1,1423750915663,"CZK"],
-        ["0.11",1230,1,0,0,"1.3.5",1,1423750915663,"CZK"],
-        ["0.12",514,1,0,0,"1.4.7",1,1423750915663,"CZK"],
-        ["0.13",450,1,0,0,"1.5.10",1,1423750915663,"CZK"],
-        ["0.14",16,1,0,0,"1.6.20",1,1423750915663,"CZK"],
-        ["0.15",120,1,0,0,"1.7.17",1,1423750915663,"CZK"],
-        ["0.16",5096,1,1,0,"2.8.1",1,1423750915663,"CZK"],
-        ["0.17",180,1,0,0,"2.9.1",1,1423750915663,"CZK"],
-        ["0.18",400,1,0,0,"2.10.1",1,1423750915663,"CZK"],
-        ["0.19",24,1,0,0,"2.11.1",1,1423750915663,"CZK"],
-        ["0.20",85,1,0,0,"2.12.1",1,1423750915663,"CZK"],
-        ["0.21",222,1,0,0,"2.13.1",1,1423750915663,"CZK"],
-        ["0.22",515,1,0,0,"2.14.1",1,1423750915663,"CZK"],
-        ["0.23",66,2,0,0,"2.15.1",1,1423750915663,"CZK"],
-        ["0.24",989,2,0,0,"2.16.1",1,1423750915663,"CZK"],
-        ["0.25",271,1,0,0,"2.17.1",1,1423750915663,"CZK"],
-        ["0.26",169,1,0,0,"2.18.1",1,1423750915663,"CZK"],
-        ["0.27",1226,1,0,0,"2.19.1",1,1423750915663,"CZK"],
-        ["0.28",125,1,0,0,"2.20.1",1,1423750915663,"CZK"],
-        ["0.29",950,1,0,0,"2.21.1",1,1423750915663,"CZK"],
-        ["0.30",200,1,0,0,"2.22.1",1,1423750915663,"CZK"],
-        ["0.31",150,1,0,0,"2.23.1",1,1423750915663,"CZK"],
-        ["0.32",700,1,0,0,"2.24.1",1,1423750915663,"CZK"],
-        ["0.33",1894,1,1,0,"2.25.1",1,1423750915663,"CZK"],
-        ["0.34",1797,1,1,0,"2.25.1",1,1423750915663,"CZK"],
-        ["0.35",150,1,0,0,"2.27.1",1,1423750915663,"CZK"],
-        ["0.36",301,1,0,0,"2.28.1",1,1423750915663,"CZK"],
-        ["0.37",238,1,0,0,"2.29.1",1,1423750915663,"CZK"],
-        ["0.38",540,1,0,0,"2.30.1",1,1423750915663,"CZK"],
-        ["0.39",90,1,0,0,"2.8.2",1,1423750915663,"CZK"],
-        ["0.40",148,1,0,0,"2.9.2",1,1423750915663,"CZK"],
-        ["0.41",355,1,0,0,"2.10.2",1,1423750915663,"CZK"],
-        ["0.42",685,1,0,0,"2.11.2",1,1423750915663,"CZK"],
-        ["0.43",68,1,0,0,"2.12.2",1,1423750915663,"CZK"],
-        ["0.44",150,1,0,0,"2.13.2",1,1423750915663,"CZK"],
-        ["0.45",550,1,0,0,"2.14.2",1,1423750915663,"CZK"]
-    ],
-    transactions1:[
-        ["1.0",131,1,0,0,"2.15.2",1,1423750915663,"CZK"],
-        ["1.1",10,1,0,0,"1.1.2",1,1423750915663,"CZK/USD@0.039093"],
-        ["1.2",140.50,1,0,0,"1.1.1",1,1423750915663,"CZK"]
-    ]
+    transactionsMeta:[]
 };
 
 /**
@@ -15530,7 +15575,6 @@ App.Storage.prototype._registerEventListeners = function _registerEventListeners
  */
 App.Storage.prototype._onWorkerMessage = function _onWorkerMessage(e)
 {
-//    console.log("received from worker: ",e.data);
     var components = e.data.split("|");
     localStorage.setItem(components[0],components[1]);//TODO compress
 };
@@ -15544,7 +15588,6 @@ App.Storage.prototype.setData = function setData(key,data/*,context? (CONFIRM|DE
 {
     if (!this._initialized) this._init();
 
-//    console.log("send to worker: ",key,JSON.stringify(data));
     this._worker.postMessage(key+"|"+JSON.stringify(data));
 };
 
@@ -15846,23 +15889,29 @@ App.LoadData.prototype._loadData = function _loadData()
     transactions.ids = transactionIds;
     userData[StorageKey.TRANSACTIONS] = transactions;
 
-    console.log("userData: ",timeStamp.now()-start,userData);
+//    console.log("userData: ",timeStamp.now()-start,userData);
 
     this.dispatchEvent(App.EventType.COMPLETE,{userData:userData,icons:this._icons});
 };
 
 /**
  * Find and return IDs of transaction segments to load
- * @param {Array.<Array>} meta
+ * @param {Array.<Array>} metas
  * @param {number} lookBack
  * @private
  */
-App.LoadData.prototype._getMetaIds = function _getMetaIds(meta,lookBack)
+App.LoadData.prototype._getMetaIds = function _getMetaIds(metas,lookBack)
 {
-    var i = meta.length > lookBack ? lookBack : meta.length - 1,
+    var i = metas.length > lookBack ? lookBack : metas.length - 1,
+        meta = null,
         ids = [];
 
-    for (;i>-1;) ids.push(meta[i--][0]);
+    for (;i>-1;)
+    {
+        meta = metas[i--];
+        // Only return IDs of meta, that have more than zero transactions
+        if (meta[1]) ids.push(meta[0]);
+    }
 
     return ids;
 };
@@ -16488,12 +16537,12 @@ App.ChangeTransaction.prototype._updateCurrentBalance = function _updateCurrentB
  */
 App.ChangeTransaction.prototype._saveCollection = function _saveCollection(transaction,collection)
 {
-    var metaId = transaction.id.split(".")[0];
+    var metaId = transaction.id.split(".")[0],
+        StorageKey = App.StorageKey,
+        Storage = App.ServiceLocator.getService(App.ServiceName.STORAGE);
 
-    App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
-        App.StorageKey.TRANSACTIONS+metaId,
-        collection.serialize(metaId,false)
-    );
+    Storage.setData(StorageKey.TRANSACTIONS+metaId,collection.serialize(metaId,false));
+    Storage.setData(StorageKey.TRANSACTIONS_META,collection.serializeMeta());
 };
 
 /**
