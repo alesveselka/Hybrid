@@ -110,7 +110,7 @@ App.LoadData.prototype._loadData = function _loadData()
         transactionKey = null,
         i = 0,
         l = 0;
-    localStorage.clear();
+//    localStorage.clear();
     userData[StorageKey.SETTINGS] = this._storage.getData(StorageKey.SETTINGS);
     userData[StorageKey.CURRENCY_PAIRS] = this._storage.getData(StorageKey.CURRENCY_PAIRS);
     userData[StorageKey.SUB_CATEGORIES] = this._storage.getData(StorageKey.SUB_CATEGORIES);
@@ -135,16 +135,22 @@ App.LoadData.prototype._loadData = function _loadData()
 
 /**
  * Find and return IDs of transaction segments to load
- * @param {Array.<Array>} meta
+ * @param {Array.<Array>} metas
  * @param {number} lookBack
  * @private
  */
-App.LoadData.prototype._getMetaIds = function _getMetaIds(meta,lookBack)
+App.LoadData.prototype._getMetaIds = function _getMetaIds(metas,lookBack)
 {
-    var i = meta.length > lookBack ? lookBack : meta.length - 1,
+    var i = metas.length > lookBack ? lookBack : metas.length - 1,
+        meta = null,
         ids = [];
 
-    for (;i>-1;) ids.push(meta[i--][0]);
+    for (;i>-1;)
+    {
+        meta = metas[i--];
+        // Only return IDs of meta, that have more than zero transactions
+        if (meta[1]) ids.push(meta[0]);
+    }
 
     return ids;
 };

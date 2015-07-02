@@ -35,22 +35,23 @@ function pushToQueue(key,data)
 {
     _queue.push({key:key,data:data});
 
-    if (!_processing) processQueue();
+    /*if (!_processing) */processQueue(key,data);
 }
 
 /**
  * Process queue
  */
-function processQueue()
+function processQueue(key,data)
 {
     _processing = true;
 
-    if (_queue.length)
-    {
-        var item = _queue.shift(),
+//    if (_queue.length)
+//    {
+        var /*item = _queue.shift(),
             data = item.data,
-            dependencies = getDependencies(item.key);
-
+            key = item.key,*/
+            dependencies = getDependencies(key,data);
+        console.log("processQueue ",key,JSON.stringify(data),dependencies.length);
         if (dependencies.length)
         {
             var i = 0,
@@ -66,7 +67,7 @@ function processQueue()
                 id = lookupItem[0];
                 used = false;
 
-                if (item.key === StorageKey.ACCOUNTS && lookupItem[2])
+                if (key === StorageKey.ACCOUNTS && lookupItem[2])
                 {
                     // Account's lifeCycle is 'active', no need to check for dependencies
                     lookupItem = data[i++];
@@ -76,13 +77,14 @@ function processQueue()
                     for (j=0;j<l;)
                     {
                         dependency = dependencies[j++];
+                        console.log("Dependencies ",key,dependency,", id: ",id);
                         if (indexOf(dependency,id) > -1)
                         {
                             used = true;
                             break;
                         }
                     }
-
+                    console.log(key," Used ",used);
                     if (used)
                     {
                         lookupItem = data[i++];
@@ -96,45 +98,67 @@ function processQueue()
             }
         }
 
-        _proxies[item.key] = JSON.stringify(data);
-        postMessage(item.key+"|"+_proxies[item.key]);
-        processQueue();
+//        console.log("about to send back ",key,data.length);
+        _proxies[key] = JSON.stringify(data);
+        postMessage(key+"|"+_proxies[key]);
+        /*processQueue();
     }
     else
     {
         _processing = false;
-    }
+    }*/
 }
 
 /**
  * Find and return dependencies for key passed in
  * @param {string} key
+ * @param {Array} data
  * @returns {Array}
  */
-function getDependencies(key)
+function getDependencies(key,data)
 {
-    var dependencies = getTransactionDependencies(key);
+    var dependencies = [];
 
-    // If there are no transactions, there is no need for other dependencies either
-    if (dependencies.length)
+    if (key === StorageKey.SUB_CATEGORIES)
     {
-        if (key === StorageKey.SUB_CATEGORIES)
+        dependencies = getTransactionDependencies(key,dependencies);
+        if (dependencies.length)
         {
             dependencies.push(JSON.parse(_proxies[StorageKey.CATEGORIES]).map(function(item){
                 return item[5];
             }).join(",").split(","));
         }
-        else if (key === StorageKey.CATEGORIES)
+    }
+    else if (key === StorageKey.CATEGORIES)
+    {
+        dependencies = getTransactionDependencies(key,dependencies);
+        if (dependencies.length)
         {
             dependencies.push(JSON.parse(_proxies[StorageKey.ACCOUNTS]).map(function(item){
                 return item[2] ? item[3] : "";
             }).join(",").split(","));
         }
-        else if (key === StorageKey.ACCOUNTS)
+    }
+    else if (key === StorageKey.ACCOUNTS)
+    {
+        dependencies = getTransactionDependencies(key,dependencies);
+        if (dependencies.length)
         {
             dependencies.push(JSON.parse(_proxies[StorageKey.CATEGORIES]).map(function(item){
                 return item[4];
             }));
+        }
+    }
+    else if (key === StorageKey.TRANSACTIONS_META)
+    {
+        var transactions = null,
+            i = 0,
+            l = data.length;
+
+        for (;i<l;)
+        {
+            transactions = JSON.parse(_proxies[StorageKey.TRANSACTIONS + data[i++][0]]);
+            if (transactions && transactions.length) dependencies.push([parseInt(transactions[0][0].split(".")[0],10)]);
         }
     }
 
@@ -144,11 +168,11 @@ function getDependencies(key)
 /**
  * Find and return transactions dependencies
  * @param {string} key
+ * @param {Array} dependencies
  */
-function getTransactionDependencies(key)
+function getTransactionDependencies(key,dependencies)
 {
-    var dependencies = [],
-        transactionsMeta = JSON.parse(_proxies[StorageKey.TRANSACTIONS_META]),
+    var transactionsMeta = JSON.parse(_proxies[StorageKey.TRANSACTIONS_META]),
         transactionSegmentKey = null,
         i = 0,
         l = transactionsMeta.length,

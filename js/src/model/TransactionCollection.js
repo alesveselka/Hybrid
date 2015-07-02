@@ -38,7 +38,8 @@ App.TransactionCollection.prototype._initMeta = function _initMeta(meta,ids)
     for (;i<l;i++)
     {
         item = meta[i];
-        this._meta[i] = {metaId:item[0],length:item[1],transactionId:item[2],loaded:ids.indexOf(item[0]) > -1};
+        // Initialize only meta objects with one or more transactions
+        if (item[1]) this._meta[i] = {metaId:item[0],length:item[1],transactionId:item[2],loaded:ids.indexOf(item[0]) > -1};
     }
 };
 
