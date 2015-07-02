@@ -16,7 +16,7 @@ App.TransactionCollection = function TransactionCollection(data,eventListenerPoo
 
     App.Collection.call(this,transactions,App.Transaction,null,eventListenerPool);
 
-    this._maxSegmentSize = 45;
+    this._maxSegmentSize = 3;
     this._meta = [];
     this._initMeta(data[StorageKey.TRANSACTIONS_META],ids);
 };
@@ -43,6 +43,26 @@ App.TransactionCollection.prototype._initMeta = function _initMeta(meta,ids)
 };
 
 /**
+ * Serialize and return meta information
+ * @returns {Array}
+ */
+App.TransactionCollection.prototype.serializeMeta = function serializeMeta()
+{
+    var i = 0,
+        l = this._meta.length,
+        data = [],
+        meta = null;
+
+    for (;i<l;)
+    {
+        meta = this._meta[i++];
+        data.push([meta.metaId,meta.length,meta.transactionId]);
+    }
+
+    return data;
+};
+
+/**
  * Create and return new transaction ID
  * @returns {string}
  */
@@ -54,7 +74,7 @@ App.TransactionCollection.prototype.getTransactionId = function getTransactionId
     {
         if (meta.length >= this._maxSegmentSize)
         {
-            this._meta[this._meta.length] = {metaId:meta.metaId++,length:0,transactionId:0,loaded:true};
+            this._meta[this._meta.length] = {metaId:meta.metaId+1,length:0,transactionId:0,loaded:true};
             meta = this._meta[this._meta.length-1];
         }
     }
@@ -127,10 +147,7 @@ App.TransactionCollection.prototype.serialize = function serialize(metaId,serial
     for (;i<l;)
     {
         transaction = this._items[i++];
-        if (metaId === transaction.id.split(".")[0])
-        {
-            data.push(transaction.getData(serializeData));
-        }
+        if (metaId === transaction.id.split(".")[0]) data.push(transaction.getData(serializeData));
     }
 
     return data;

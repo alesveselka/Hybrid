@@ -293,10 +293,10 @@ App.ChangeTransaction.prototype._updateCurrentBalance = function _updateCurrentB
  */
 App.ChangeTransaction.prototype._saveCollection = function _saveCollection(transaction,collection)
 {
-    var metaId = transaction.id.split(".")[0];
+    var metaId = transaction.id.split(".")[0],
+        StorageKey = App.StorageKey,
+        Storage = App.ServiceLocator.getService(App.ServiceName.STORAGE);
 
-    App.ServiceLocator.getService(App.ServiceName.STORAGE).setData(
-        App.StorageKey.TRANSACTIONS+metaId,
-        collection.serialize(metaId,false)
-    );
+    Storage.setData(StorageKey.TRANSACTIONS+metaId,collection.serialize(metaId,false));
+    Storage.setData(StorageKey.TRANSACTIONS_META,collection.serializeMeta());
 };
