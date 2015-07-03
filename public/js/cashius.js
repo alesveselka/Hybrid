@@ -2250,7 +2250,7 @@ App.Transaction.prototype.revokeState = function revokeState()
         this._currencyBase = null;
         this._currencyQuote = null;
         // this._currencyRate = 1.0;
-        this.note = this._data[9] ? decodeURIComponent(data[9]) : "";
+        this.note = this._data[9] ? decodeURIComponent(this._data[9]) : "";
     }
 };
 
